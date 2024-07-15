@@ -1,9 +1,11 @@
-import { addHours } from "date-fns";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { join } from 'path';
+import { addHours, differenceInMinutes, differenceInSeconds } from "date-fns";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { Request, Response } from "express";
-import { literal, Op } from "sequelize";
+import { literal, Op, QueryTypes } from "sequelize";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
 import Message from "../models/Message";
@@ -11,6 +13,16 @@ import Queue from "../models/Queue";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
+import {
+  agruparFechas,
+  agruparPorPropiedad,
+  currentDate,
+  differenceInSecondsByTimestamps,
+  formatDate,
+  formatDateToMySQL,
+  getDiffHoursWithBetweenDates,
+  SPECIAL_CHAT_MESSAGE_AUTOMATIC
+} from "../utils/util";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -358,6 +370,293 @@ export const generalReport = async (
     createdTicketsClosedInTheRangeTimeCount,
     tdrData,
     tdrPromedio
+  });
+};
+
+export const generalReportv2 = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedWhatsappIds: selectedUserIdsAsString
+  } = req.query as IndexQuery;
+
+  console.log({ fromDateAsString, toDateAsString });
+  const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const logsTime = [];
+  let sqlWhereAdd = `t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+  // const sqlWhereAdd = " t.id = 3318 ";
+
+  if (selectedWhatsappIds.length > 0) {
+    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  logsTime.push(`Whatasappnew-inicio: ${Date()}`);
+  let whatasappListIDS: any = await Whatsapp.sequelize.query(
+    "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",
+    { type: QueryTypes.SELECT }
+  );
+  logsTime.push(`Whatasappnew-fin: ${Date()}`);
+  whatasappListIDS = whatasappListIDS
+    .map(whatasapp => `'${whatasapp.number}'`)
+    .join(",");
+
+  const sql = `SELECT
+    t.id,
+    t.createdAt,
+    t.contactId,
+    t.status,
+    t.isGroup,
+    MIN(
+    CASE
+        WHEN t.id = m.ticketId
+        THEN m.timestamp
+        END) as dateFistMessageTicket,
+    MAX(CASE
+        WHEN t.id = m.ticketId
+        THEN m.timestamp
+        END) as dateLastMessageticket,
+    MIN(CASE
+        WHEN t.id = m.ticketId
+          AND m.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
+          AND (m.fromMe = 1
+          OR c.isCompanyMember = '1'
+          OR c.number IN (${whatasappListIDS}) )
+        THEN m.timestamp
+        END) as dateFirstMessageCS,
+  (
+      SELECT MIN(m_inner.timestamp)
+      FROM Messages m_inner
+      LEFT JOIN Contacts c_inner ON m_inner.contactId = c_inner.id
+      WHERE
+        m_inner.ticketId = t.id
+        AND m_inner.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
+        AND (m_inner.fromMe = 1
+        OR c_inner.isCompanyMember = '1'
+        OR c_inner.number IN (${whatasappListIDS}))
+        AND m_inner.timestamp > (
+          SELECT MIN(mcs.timestamp)
+          FROM Messages mcs
+          LEFT JOIN Contacts c_sub ON mcs.contactId = c_sub.id
+          WHERE mcs.ticketId = t.id
+          AND mcs.isPrivate != '1'
+          AND mcs.fromMe != 1
+          AND (c_sub.isCompanyMember IS NULL OR c_sub.isCompanyMember != '1')
+          AND c_sub.number NOT IN (${whatasappListIDS})
+        )
+    ) as dateSecondMessageCS,
+    MAX(CASE
+        WHEN t.id = m.ticketId
+          AND m.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
+          AND (m.fromMe = 1
+          OR c.isCompanyMember = '1'
+          OR c.number IN (${whatasappListIDS}))
+        THEN m.timestamp
+        END) as dateLastMessageCS,
+    MIN(CASE
+        WHEN t.id = m.ticketId
+          AND m.isPrivate != '1'
+          AND m.fromMe != 1
+          AND (c.isCompanyMember IS NULL OR c.isCompanyMember != '1')
+          AND c.number NOT IN (${whatasappListIDS})
+        THEN m.timestamp
+        END) as dateFirstMessageClient,
+      (
+      SELECT MIN(m_inner.timestamp)
+      FROM Messages m_inner
+      LEFT JOIN Contacts c_inner ON m_inner.contactId = c_inner.id
+      WHERE
+        m_inner.ticketId = t.id
+        AND m_inner.isPrivate != '1'
+        AND m_inner.fromMe != '1'
+        AND (c_inner.isCompanyMember IS NULL OR c_inner.isCompanyMember != '1')
+        AND c_inner.number NOT IN (${whatasappListIDS})
+        AND m_inner.createdAt >
+          (SELECT MAX(mcs.createdAt)
+          FROM Messages mcs
+          LEFT JOIN Contacts c_sub ON mcs.contactId = c_sub.id
+          WHERE mcs.ticketId = t.id
+          AND (mcs.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
+                AND (mcs.fromMe = 1
+                OR c_sub.isCompanyMember = '1'
+                OR c_sub.number IN (${whatasappListIDS})))
+          )
+    ) as dateFirstLastMessageClient
+  FROM Tickets t
+  INNER JOIN Messages m ON t.id = m.ticketId
+  LEFT JOIN Contacts c ON m.contactId = c.id
+  WHERE
+  ${sqlWhereAdd}
+  GROUP BY t.contactId, t.createdAt `;
+  console.log("sql", sql);
+
+  /**
+   * Obtengo todos los tickets acortandolos a los filtros de ticken que me pasen
+   */
+  const generarTickerOpenOrClose = await Ticket.sequelize.query(sql, {
+    type: QueryTypes.SELECT
+  });
+  logsTime.push(`sql-fin: ${Date()}`);
+  /**
+   * Los agrupos por para obtener los mensajes del ticket
+   */
+
+  const tiemposEsperaRespuesta = [
+    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
+    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
+    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
+    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
+    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
+    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
+    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
+    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
+    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
+    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
+    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+  ];
+
+  const ticketsCount = {
+    withResponse: { individual: 0, grupal: 0, total: 0 },
+    withOutResponse: { individual: 0, grupal: 0, total: 0 },
+    total: { individual: 0, grupal: 0, total: 0 }
+  };
+
+  let datesTicketCreateds = [];
+  let datesTicketOpen = [];
+  let datesTicketPendings = [];
+  let datesTicketCloses = [];
+  let countTicketsWaiting = 0;
+  let countFirstResponse = 0;
+  let totalTimeSecoundsFirstResponse = 0;
+  let avgTimeFirstResponse = 0;
+  let totalTimeSecounsSolution = 0;
+  let avgTimeSecounsSolution = 0;
+
+  generarTickerOpenOrClose.forEach((ticket: any) => {
+    let withResponse = false;
+    let timeSecoundFirstResponse = 0;
+    if (!!ticket?.dateFistMessageTicket && !!ticket?.dateFirstMessageCS) {
+      /**
+       * Si estas dos fechas son iguales quiere decir que el CS comenzo a hablar
+       */
+      if (ticket?.dateFistMessageTicket === ticket?.dateFirstMessageCS) {
+        if (!!ticket?.dateFirstMessageClient && !!ticket?.dateSecondMessageCS) {
+          timeSecoundFirstResponse = differenceInSeconds(
+            new Date(ticket?.dateSecondMessageCS * 1000),
+            new Date(ticket?.dateFirstMessageClient * 1000)
+          );
+          totalTimeSecoundsFirstResponse += timeSecoundFirstResponse;
+          countFirstResponse += 1;
+          withResponse = true;
+        }
+      } else {
+        timeSecoundFirstResponse += differenceInSeconds(
+          new Date(ticket?.dateFirstMessageCS * 1000),
+          new Date(ticket?.dateFistMessageTicket * 1000)
+        );
+        totalTimeSecoundsFirstResponse += timeSecoundFirstResponse;
+        countFirstResponse += 1;
+        withResponse = true;
+      }
+    }
+
+    if (withResponse) {
+      if (ticket?.isGroup === 1) {
+        ticketsCount.withResponse.grupal += 1;
+      } else {
+        ticketsCount.withResponse.individual += 1;
+      }
+    } else if (ticket?.isGroup === 1) {
+      ticketsCount.withOutResponse.grupal += 1;
+    } else {
+      ticketsCount.withOutResponse.individual += 1;
+    }
+
+    if (ticket?.status === "pending") {
+      datesTicketCreateds.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+      datesTicketPendings.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+    } else if (ticket?.status === "open") {
+      datesTicketCreateds.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+      datesTicketOpen.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+      // if (totalTimeSecoundsFirstResponse > 0) {
+      // eslint-disable-next-line no-extra-boolean-cast
+      if (!!ticket?.dateFirstLastMessageClient) {
+        const totalHoursWaiting =
+          differenceInSeconds(
+            new Date(),
+            new Date(ticket?.dateFirstLastMessageClient * 1000)
+          ) / 3600;
+        tiemposEsperaRespuesta.forEach(item => {
+          if (
+            (item.max === -1 && totalHoursWaiting >= item.min) ||
+            (totalHoursWaiting >= item.min && totalHoursWaiting < item.max)
+          ) {
+            item.count += 1;
+            item.ticketIds.push(ticket.id);
+            countTicketsWaiting += 1;
+          }
+        });
+      }
+    } else if (ticket?.status === "closed") {
+      datesTicketCreateds.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+      datesTicketCloses.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+      if (!!ticket?.dateFistMessageTicket && !!ticket?.dateLastMessageticket) {
+        totalTimeSecounsSolution += differenceInMinutes(
+          new Date(ticket?.dateLastMessageticket * 1000),
+          new Date(ticket?.dateFistMessageTicket * 1000)
+        );
+      }
+    }
+  });
+  logsTime.push(`foreach-fin: ${Date()}`);
+  const ticketCreados = datesTicketCreateds.length;
+  const ticketResueltos = datesTicketCloses.length;
+  if (datesTicketCloses.length > 0) {
+    avgTimeSecounsSolution = totalTimeSecounsSolution / ticketResueltos;
+  }
+  if (countFirstResponse > 0 && totalTimeSecoundsFirstResponse > 0) {
+    avgTimeFirstResponse = totalTimeSecoundsFirstResponse / countFirstResponse;
+  }
+  datesTicketCreateds = agruparFechas(datesTicketCreateds);
+  datesTicketPendings = agruparFechas(datesTicketPendings);
+  datesTicketOpen = agruparFechas(datesTicketOpen);
+  datesTicketCloses = agruparFechas(datesTicketCloses);
+  ticketsCount.withResponse.total =
+    ticketsCount.withResponse.individual + ticketsCount.withResponse.grupal;
+  ticketsCount.withOutResponse.total =
+    ticketsCount.withOutResponse.individual +
+    ticketsCount.withOutResponse.grupal;
+  ticketsCount.total.individual =
+    ticketsCount.withResponse.individual +
+    ticketsCount.withOutResponse.individual;
+  ticketsCount.total.grupal =
+    ticketsCount.withResponse.grupal + ticketsCount.withOutResponse.grupal;
+  ticketsCount.total.total =
+    ticketsCount.total.individual + ticketsCount.total.grupal;
+  return res.status(200).json({
+    generarTickerOpenOrClose,
+    datesTicketCreateds,
+    datesTicketPendings,
+    datesTicketOpen,
+    datesTicketCloses,
+    ticketCreados,
+    totalTimeSecoundsFirstResponse,
+    ticketResueltos,
+    countFirstResponse,
+    avgTimeFirstResponse,
+    totalTimeSecounsSolution,
+    avgTimeSecounsSolution,
+    ticketsCount,
+    tiemposEsperaRespuesta,
+    countTicketsWaiting,
+    sql,
+    logsTime
   });
 };
 
