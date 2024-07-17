@@ -142,8 +142,8 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
           enableReinitialize={true}
           validationSchema={ContactSchema}
           onSubmit={(values, actions) => {
-            setTimeout(() => {
-              handleSaveContact(values);
+            setTimeout(async () => {
+              await handleSaveContact(values);
               actions.setSubmitting(false);
             }, 400);
           }}
