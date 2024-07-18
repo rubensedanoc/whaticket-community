@@ -6,10 +6,11 @@ import * as ReportsController from "../controllers/ReportsController";
 const reportsRoutes = Router();
 
 reportsRoutes.get("/generalReport", isAuth, ReportsController.generalReport);
+reportsRoutes.get("/generalReportv2", ReportsController.generalReportv2);
+reportsRoutes.get("/reportHistory", ReportsController.reportHistory);
 reportsRoutes.get(
-  "/generalReportv2",
-  isAuth,
-  ReportsController.generalReportv2
+  "/reportHistoryWithDateRange",
+  ReportsController.reportHistoryWithDateRange
 );
 
 reportsRoutes.get(
