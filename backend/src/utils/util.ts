@@ -139,7 +139,7 @@ export const groupDateWithRange = (
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   fechas: any[]
 ) => {
-  let datesGenerate = [];
+  let datesGenerate: any[] = [];
   let formatDates = "yyyy-MM-dd";
   if (
     formatDate(fechaInicio, "yyyy-MM-dd") === formatDate(fechaFin, "yyyy-MM-dd")
@@ -171,5 +171,5 @@ export const groupDateWithRange = (
       fechaG.count = fechaEncontradas[index].count;
     }
   });
-  return datesGenerate;
+  return datesGenerate.sort((a, b) => a.date - b.date);
 };
