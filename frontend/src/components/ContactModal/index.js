@@ -21,6 +21,7 @@ import { i18n } from "../../translate/i18n";
 
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
+import NewContactDomainModal from "../NewContactDomainModal";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -73,6 +74,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
   };
 
   const [contact, setContact] = useState(initialState);
+  const [newContactDomainModal, setNewContactDomainModal] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -142,8 +144,8 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
           enableReinitialize={true}
           validationSchema={ContactSchema}
           onSubmit={(values, actions) => {
-            setTimeout(() => {
-              handleSaveContact(values);
+            setTimeout(async () => {
+              await handleSaveContact(values);
               actions.setSubmitting(false);
             }, 400);
           }}
@@ -188,8 +190,27 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                     variant="outlined"
                   />
                 </div>
-                <div>
-                  <Field
+                {contactId && (
+                  <div className={classes.extraAttr}>
+                    <Button
+                      style={{ flex: 1, marginTop: 8 }}
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => {
+                        setNewContactDomainModal(true);
+                      }}
+                    >
+                      Relacionar con un dominio
+                    </Button>
+                    <NewContactDomainModal
+                      modalOpen={newContactDomainModal}
+                      onClose={() => setNewContactDomainModal(false)}
+                      contact={contact}
+                    />
+                  </div>
+                )}
+
+                {/* <Field
                     as={TextField}
                     label={"Dominio"}
                     name="domain"
@@ -197,8 +218,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                     fullWidth
                     margin="dense"
                     variant="outlined"
-                  />
-                </div>
+                  /> */}
                 <Typography
                   style={{ marginBottom: 8, marginTop: 12 }}
                   variant="subtitle1"

@@ -4,6 +4,7 @@ import openSocket from "../../services/socket-io";
 import List from "@material-ui/core/List";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
+import microserviceApi from "../../services/microserviceApi";
 
 import TicketListItem from "../TicketListItem";
 import TicketsListSkeleton from "../TicketsListSkeleton";
@@ -72,7 +73,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const reducer = (state, action) => {
-  // console.log("accion que llega al reducer", action.type, action.payload);
+  console.log("REDUCER: ", action.type, action.payload);
 
   if (action.type === "LOAD_TICKETS") {
     const newTickets = action.payload;
@@ -142,14 +143,24 @@ const reducer = (state, action) => {
   }
 
   if (action.type === "UPDATE_TICKET_UNREAD_MESSAGES") {
-    // console.log(
-    //   "UPDATE_TICKET_UNREAD_MESSAGES before:",
-    //   JSON.parse(JSON.stringify(state))
-    // );
     const { ticket, setUpdatedCount } = action.payload;
 
     const ticketIndex = state.findIndex((t) => t.id === ticket.id);
     if (ticketIndex !== -1) {
+      // console.log(
+      //   "UPDATE_TICKET_UNREAD_MESSAGES ticket old:",
+      //   JSON.parse(JSON.stringify(state[ticketIndex]))
+      // );
+
+      if (state[ticketIndex]?.contact?.isExclusive && ticket.contact) {
+        ticket.contact.isExclusive = true;
+      }
+
+      // console.log(
+      //   "UPDATE_TICKET_UNREAD_MESSAGES ticket new:",
+      //   JSON.parse(JSON.stringify(ticket))
+      // );
+
       state[ticketIndex] = { ...state[ticketIndex], ...ticket };
       state.unshift(state.splice(ticketIndex, 1)[0]);
     } else {
@@ -206,6 +217,7 @@ const TicketsList = (props) => {
   const [pageNumber, setPageNumber] = useState(1);
   const [ticketsList, dispatch] = useReducer(reducer, []);
   const [updatedCount, setUpdatedCount] = useState(0);
+  const [microServiceLoading, setMicroServiceLoading] = useState(false);
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
@@ -238,12 +250,19 @@ const TicketsList = (props) => {
   useEffect(() => {
     // console.log("PREV_TICKETS - STATUS:", status, "SEARCH_PARAM:", searchParam);
     if (!status && !searchParam) return;
-    console.log("LOAD_TICKETS", tickets);
 
-    dispatch({
-      type: "LOAD_TICKETS",
-      payload: tickets,
-    });
+    (async () => {
+      setMicroServiceLoading(true);
+
+      let ticketsToDispatch = await searchIfTicketsContactIsExclusive(tickets);
+
+      setMicroServiceLoading(false);
+
+      dispatch({
+        type: "LOAD_TICKETS",
+        payload: ticketsToDispatch,
+      });
+    })();
   }, [tickets]);
 
   useEffect(() => {
@@ -326,7 +345,7 @@ const TicketsList = (props) => {
       }
     });
 
-    socket.on("ticket", (data) => {
+    socket.on("ticket", async (data) => {
       // console.log("ticket socket::::::::::::::::::::", data);
       // console.log("selectedWhatsappIds: ", selectedWhatsappIds);
 
@@ -338,9 +357,16 @@ const TicketsList = (props) => {
       }
 
       if (data.action === "update" && shouldUpdateTicket(data.ticket)) {
+        const ticketToDispatch = (
+          await searchIfTicketsContactIsExclusive([data.ticket])
+        )[0];
+
         dispatch({
           type: "UPDATE_TICKET",
-          payload: { ticket: data.ticket, setUpdatedCount },
+          payload: {
+            ticket: ticketToDispatch,
+            setUpdatedCount,
+          },
         });
       }
 
@@ -377,9 +403,19 @@ const TicketsList = (props) => {
       }
     });
 
-    socket.on("contact", (data) => {
+    socket.on("contact", async (data) => {
       // console.log("contact socket::::::::::::::::::::", data);
       if (data.action === "update") {
+        const contactIsExclusive = await searchIfContactIsExclusive(
+          data.contact?.number
+        );
+        console.log("contact socket::::::::::::::::::::", data);
+        console.log("contactIsExclusive: ", contactIsExclusive);
+
+        if (contactIsExclusive) {
+          data.contact.isExclusive = true;
+        }
+
         dispatch({
           type: "UPDATE_TICKET_CONTACT",
           payload: data.contact,
@@ -401,6 +437,73 @@ const TicketsList = (props) => {
     showOnlyMyGroups,
   ]);
 
+  async function searchIfTicketsContactIsExclusive(tickets) {
+    let ticketsCopy = JSON.parse(JSON.stringify(tickets));
+
+    const contactNumbersOfTicket = ticketsCopy
+      ?.map((ticket) => ticket?.contact?.number)
+      .filter((number) => number);
+
+    if (contactNumbersOfTicket?.length) {
+      try {
+        let { data: newTicketsContactsNumbersMicroserviceData } =
+          await microserviceApi.post(
+            "/backendrestaurantpe/public/rest/common/localbi/searchPhoneList",
+            contactNumbersOfTicket
+          );
+
+        // console.log(
+        //   "newTicketsContactsNumbersMicroserviceData: ",
+        //   newTicketsContactsNumbersMicroserviceData
+        // );
+
+        newTicketsContactsNumbersMicroserviceData =
+          newTicketsContactsNumbersMicroserviceData?.data;
+
+        newTicketsContactsNumbersMicroserviceData = Object.fromEntries(
+          Object.entries(newTicketsContactsNumbersMicroserviceData).filter(
+            ([key, value]) => value.some((entry) => entry.isExclusive === true)
+          )
+        );
+
+        Object.keys(newTicketsContactsNumbersMicroserviceData).forEach(
+          (key) => {
+            ticketsCopy.forEach((ticket) => {
+              if (ticket.contact && ticket.contact.number === key) {
+                ticket.contact.isExclusive = true;
+                // console.log("||||||||||||||ticket encontrado", ticket);
+              }
+            });
+          }
+        );
+      } catch (error) {
+        console.log("error", error);
+      }
+    }
+
+    return ticketsCopy;
+  }
+
+  async function searchIfContactIsExclusive(contactNumber) {
+    if (contactNumber) {
+      try {
+        let { data } = await microserviceApi.post(
+          "/backendrestaurantpe/public/rest/common/localbi/searchPhoneList",
+          [contactNumber]
+        );
+
+        console.log("searchIfContactIsExclusive:", data.data);
+
+        if (data.data && data.data[contactNumber]) {
+          return true;
+        }
+      } catch (error) {
+        console.log("error", error);
+      }
+    }
+    return false;
+  }
+
   // useEffect(() => {
   //   if (typeof updateCount === "function") {
   //     updateCount(ticketsList.length);
@@ -413,7 +516,7 @@ const TicketsList = (props) => {
   };
 
   const handleScroll = (e) => {
-    if (!hasMore || loading) return;
+    if (!hasMore || loading || microServiceLoading) return;
 
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
@@ -433,7 +536,7 @@ const TicketsList = (props) => {
         onScroll={handleScroll}
       >
         <List style={{ paddingTop: 0 }}>
-          {ticketsList.length === 0 && !loading ? (
+          {ticketsList.length === 0 && !loading && !microServiceLoading ? (
             <div className={classes.noTicketsDiv}>
               <span className={classes.noTicketsTitle}>
                 {i18n.t("ticketsList.noTicketsTitle")}
@@ -449,7 +552,7 @@ const TicketsList = (props) => {
               ))}
             </>
           )}
-          {loading && <TicketsListSkeleton />}
+          {(loading || microServiceLoading) && <TicketsListSkeleton />}
         </List>
       </Paper>
     </Paper>
