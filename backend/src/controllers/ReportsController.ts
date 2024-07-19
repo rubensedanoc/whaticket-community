@@ -810,13 +810,13 @@ export const reportHistoryWithDateRange = async (
   console.log({ fromDateAsString, toDateAsString });
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds.length > 0) {
-    sqlWhereAdd += ` t.isGroup = 0 AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
