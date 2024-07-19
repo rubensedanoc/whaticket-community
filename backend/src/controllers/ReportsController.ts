@@ -1047,6 +1047,8 @@ export const reportHistoryWithDateRange = async (
     totalTimeSecounsSolution,
     avgTimeSecounsSolution,
     timesQuintalResponse,
+    ticketsCreated,
+    ticketsClosed,
     sql,
     logsTime
   });
