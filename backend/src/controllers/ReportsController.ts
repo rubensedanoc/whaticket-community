@@ -626,6 +626,7 @@ export const reportHistory = async (
   const timesQuintalWaitingResponse = [
     { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
     { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
     { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
     { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
     { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
@@ -937,6 +938,7 @@ export const reportHistoryWithDateRange = async (
   const timesQuintalResponse = [
     { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
     { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
     { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
     { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
     { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
