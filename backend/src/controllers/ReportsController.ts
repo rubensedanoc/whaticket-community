@@ -11,7 +11,7 @@ import Queue from "../models/Queue";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
-import { agruparFechas, convertDateStrToTimestamp, formatDate, formatDateToMySQL } from "../utils/util";
+import { agruparFechas, convertDateStrToTimestamp, formatDate, formatDateToMySQL, groupDateWithRange } from "../utils/util";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -966,7 +966,9 @@ export const reportHistoryWithDateRange = async (
     let timeSecoundFirstResponse = 0;
     ticketsCreated.count += 1;
     ticketsCreated.ticketIds.push(ticket?.id);
-    datesCreatedTickets.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+    datesCreatedTickets.push(
+      formatDate(ticket?.createdAt, "yyyy-MM-dd HH:mm:ss.SSS")
+    );
     /**
      * Tiene que existir un mensajes al menos del cliente y del CS
      */
@@ -999,7 +1001,9 @@ export const reportHistoryWithDateRange = async (
     if (ticket?.status === "closed") {
       ticketsClosed.count += 1;
       ticketsClosed.ticketIds.push(ticket?.id);
-      datesCloseTickets.push(formatDate(ticket?.createdAt, "yyyy-MM-dd"));
+      datesCloseTickets.push(
+        formatDate(ticket?.createdAt, "yyyy-MM-dd HH:mm:ss.SSS")
+      );
       if (!!ticket?.dateFistMessageTicket && !!ticket?.dateLastMessageticket) {
         const totalTimeResolution = differenceInSeconds(
           new Date(ticket?.dateLastMessageticket * 1000),
@@ -1035,8 +1039,16 @@ export const reportHistoryWithDateRange = async (
     avgTimeSecounsSolution = totalTimeSecounsSolution / ticketsClosed.count;
   }
 
-  datesCreatedTickets = agruparFechas(datesCreatedTickets);
-  datesCloseTickets = agruparFechas(datesCloseTickets);
+  datesCreatedTickets = groupDateWithRange(
+    formatDateToMySQL(fromDateAsString),
+    formatDateToMySQL(toDateAsString),
+    datesCreatedTickets
+  );
+  datesCloseTickets = groupDateWithRange(
+    formatDateToMySQL(fromDateAsString),
+    formatDateToMySQL(toDateAsString),
+    datesCloseTickets
+  );
 
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({

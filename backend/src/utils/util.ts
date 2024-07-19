@@ -95,6 +95,32 @@ export const differenceInSecondsByTimestamps = (
 
 export const SPECIAL_CHAT_MESSAGE_AUTOMATIC = "\u200E";
 
+// Función para generar todas las fechas entre dos fechas
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const generateDateByRange = (fechaInicio, fechaFin) => {
+  const fechas = [];
+  const currentdate = new Date(fechaInicio);
+  const currentdatefin = new Date(fechaFin);
+  while (currentdate <= currentdatefin) {
+    fechas.push({ date: new Date(currentdate), count: 0 });
+    currentdate.setDate(currentdate.getDate() + 1);
+  }
+  return fechas;
+};
+
+// Función para generar todas las horas entre dos fechas
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const generateHours = fecha => {
+  const horas = [];
+  // eslint-disable-next-line no-plusplus
+  for (let i = 0; i < 24; i++) {
+    const hora = new Date(fecha);
+    hora.setUTCHours(i, 0, 0, 0);
+    horas.push({ date: hora, count: 0 });
+  }
+  return horas;
+};
+
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const convertDateStrToTimestamp = fechaStr => {
   // Parsear la fecha utilizando el formato especificado
@@ -102,4 +128,48 @@ export const convertDateStrToTimestamp = fechaStr => {
   // Obtener el timestamp
   const timestamp = Math.floor(fecha.getTime() / 1000);
   return timestamp;
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const groupDateWithRange = (
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  fechaInicio: any,
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  fechaFin: any,
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  fechas: any[]
+) => {
+  let datesGenerate = [];
+  let formatDates = "yyyy-MM-dd";
+  if (
+    formatDate(fechaInicio, "yyyy-MM-dd") === formatDate(fechaFin, "yyyy-MM-dd")
+  ) {
+    datesGenerate = generateHours(fechaInicio);
+    formatDates = "HH";
+  } else {
+    datesGenerate = generateDateByRange(fechaInicio, fechaFin);
+  }
+  // Primero, contemos las fechas usando reduce
+  const conteo = fechas.reduce((acc, fecha) => {
+    fecha = formatDate(fecha, formatDates);
+    if (!acc[fecha]) {
+      acc[fecha] = 0;
+    }
+    acc[fecha] += 1;
+    return acc;
+  }, {});
+  // Luego, transformemos el objeto de conteo en una lista de objetos
+  const fechaEncontradas = Object.keys(conteo).map(fecha => ({
+    date: fecha,
+    count: conteo[fecha]
+  }));
+  // Añadir fechas faltantes con count 0
+  datesGenerate.forEach((fechaG: any) => {
+    fechaG.date = format(fechaG.date, formatDates);
+    const index = fechaEncontradas.findIndex(_f => _f.date === fechaG.date);
+    if (index !== -1) {
+      fechaG.count = fechaEncontradas[index].count;
+    }
+  });
+  return datesGenerate;
 };
