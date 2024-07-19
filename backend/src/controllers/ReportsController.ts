@@ -816,7 +816,7 @@ export const reportHistoryWithDateRange = async (
   // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds.length > 0) {
-    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+    sqlWhereAdd += ` t.isGroup = 0 AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
