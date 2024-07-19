@@ -40,6 +40,8 @@ const useStyles = makeStyles((theme) => ({
     cursor: "unset",
   },
 
+  exclusiveTicket: { backgroundColor: "rgba(147, 51, 234, 0.15) !important" },
+
   noTicketsDiv: {
     display: "flex",
     height: "100px",
@@ -193,9 +195,15 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
           handleSelectTicket(ticket.id);
         }}
         selected={ticketId && +ticketId === ticket.id}
-        className={clsx(classes.ticket, {
-          [classes.pendingTicket]: ticket.status === "pending",
-        })}
+        className={clsx(
+          classes.ticket,
+          {
+            [classes.pendingTicket]: ticket.status === "pending",
+          },
+          {
+            [classes.exclusiveTicket]: ticket?.contact?.isExclusive,
+          }
+        )}
       >
         <Tooltip
           arrow

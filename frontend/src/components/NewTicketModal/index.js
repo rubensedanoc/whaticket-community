@@ -232,8 +232,8 @@ const NewTicketModal = ({ modalOpen, onClose }) => {
             >
               {whatsApps?.length > 0 &&
                 whatsApps.map((whatsapp) => {
-                  console.log("whatsapp", whatsapp);
-                  console.log("user", user);
+                  // console.log("whatsapp", whatsapp);
+                  // console.log("user", user);
 
                   const isTheLastWppOfTheContact =
                     selectedContact?.tickets?.length > 0 &&

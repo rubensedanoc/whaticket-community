@@ -88,6 +88,10 @@ const UpdateTicketService = async ({
 
   await ticket.reload();
 
+  if (ticket.messages?.length > 0) {
+    ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
+  }
+
   // const io = getIO();
 
   if (ticket.status !== oldStatus || ticket.user?.id !== oldUserId) {

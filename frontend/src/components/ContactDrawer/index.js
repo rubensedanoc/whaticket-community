@@ -88,6 +88,7 @@ const ContactDrawer = ({
   contact,
   loading,
   ticketId,
+  microServiceData,
 }) => {
   const classes = useStyles();
 
@@ -174,7 +175,12 @@ const ContactDrawer = ({
               className={classes.contactDetails}
               style={{ gap: "6px" }}
             >
-              <Typography variant="subtitle1">Integrantes del grupo</Typography>
+              <Typography variant="subtitle1">
+                {" "}
+                <span style={{ fontWeight: "bold" }}>
+                  Integrantes del grupo
+                </span>
+              </Typography>
               <div></div>
               {groupParticipants?.map((value, index) => (
                 <div
@@ -196,6 +202,58 @@ const ContactDrawer = ({
               ))}
             </Paper>
           )}
+
+          {microServiceData &&
+            microServiceData.map((data, index) => (
+              <Paper
+                key={index}
+                square
+                variant="outlined"
+                className={classes.contactDetails}
+                style={{ gap: "6px" }}
+              >
+                <Typography variant="subtitle1">
+                  <span style={{ fontWeight: "bold" }}>Microservice</span>{" "}
+                  <a href={"https://" + data.link_dominio} target="_blank">
+                    {data.link_dominio}
+                  </a>
+                </Typography>
+                <div></div>
+                {Object.entries(data)
+                  .filter(([key]) =>
+                    [
+                      "local",
+                      "tipo_cliente",
+                      "pais",
+                      "ciudad",
+                      "direccion",
+                      "plan",
+                      "mensualidad",
+                      "localbi_ltv",
+                      "localbi_kam",
+                    ].includes(key)
+                  )
+                  .map(([key, value]) => (
+                    <Paper
+                      square
+                      variant="outlined"
+                      className={classes.contactExtraInfo}
+                    >
+                      <InputLabel>{key}</InputLabel>
+                      {value && (
+                        <Typography
+                          component="div"
+                          noWrap
+                          style={{ paddingTop: 2 }}
+                        >
+                          {value}
+                        </Typography>
+                      )}
+                    </Paper>
+                  ))}
+              </Paper>
+            ))}
+
           <Paper square variant="outlined" className={classes.contactDetails}>
             <ContactModal
               open={modalOpen}

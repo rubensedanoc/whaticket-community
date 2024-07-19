@@ -2,9 +2,7 @@ import React from "react";
 
 import { Avatar, CardHeader } from "@material-ui/core";
 
-import { i18n } from "../../translate/i18n";
-
-const TicketInfo = ({ contact, ticket, onClick }) => {
+const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
   return (
     <CardHeader
       onClick={onClick}
@@ -17,9 +15,7 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
         <>
           <div>{`Conexión: ${ticket?.whatsapp?.name}`}</div>
           <div>
-            {!ticket.isGroup &&
-              ticket.user &&
-              `${i18n.t("messagesList.header.assignedTo")} ${ticket.user.name}`}
+            {!ticket.isGroup && ticket.user && `Asignado: ${ticket.user.name}`}
           </div>
           <div>
             {ticket.isGroup && ticket.participantUsers?.length > 0 && (
@@ -32,11 +28,20 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
             )}
           </div>
           <div>
-            {contact.domain && (
-              <a href={contact.domain} target="_blank">
-                {contact.domain}
-              </a>
-            )}
+            {microServiceData
+              ? microServiceData.map((data) => (
+                  <>
+                    {" - "}
+                    <a href={"https://" + data.link_dominio} target="_blank">
+                      {data.link_dominio}
+                    </a>
+                  </>
+                ))
+              : contact.domain && (
+                  <a href={contact.domain} target="_blank">
+                    {contact.domain}
+                  </a>
+                )}
           </div>
         </>
       }

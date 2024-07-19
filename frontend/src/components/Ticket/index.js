@@ -11,6 +11,7 @@ import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMess
 import { SearchMessageContext } from "../../context/SearchMessage/SearchMessageContext";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
+import microserviceApi from "../../services/microserviceApi";
 import ContactDrawer from "../ContactDrawer";
 import MessageInput from "../MessageInput/";
 import MessagesList from "../MessagesList";
@@ -90,8 +91,30 @@ const Ticket = () => {
   const [contact, setContact] = useState({});
   const [ticket, setTicket] = useState({});
   const [relatedTickets, setRelatedTickets] = useState([]);
+  const [microServiceData, setMicroServiceData] = useState(null);
   const [selectRelatedTicketId, setSelectRelatedTicketId] = useState(null);
   const { setSearchingMessageId } = useContext(SearchMessageContext);
+
+  async function searchForMicroServiceData(contactNumber) {
+    try {
+      const { data: microserviceNumberData } = await microserviceApi.post(
+        "/backendrestaurantpe/public/rest/common/contactobi/searchphone",
+        {
+          telefono: contactNumber,
+        }
+      );
+
+      console.log("________TICKET microserviceData:", microserviceNumberData);
+
+      setMicroServiceData(
+        microserviceNumberData && microserviceNumberData.data?.length > 0
+          ? microserviceNumberData.data
+          : null
+      );
+    } catch (error) {
+      console.log("________TICKET microserviceData error:", error);
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -113,6 +136,8 @@ const Ticket = () => {
 
           setRelatedTickets(relatedTickets);
           setSelectRelatedTicketId(ticketId);
+
+          await searchForMicroServiceData(data.contact?.number);
 
           setLoading(false);
         } catch (err) {
@@ -146,6 +171,8 @@ const Ticket = () => {
       if (data.action === "update") {
         setContact((prevState) => {
           if (prevState.id === data.contact?.id) {
+            console.log("se actualiza la nueva data del contacto");
+            searchForMicroServiceData(data.contact?.number);
             return { ...prevState, ...data.contact };
           }
           return prevState;
@@ -181,6 +208,7 @@ const Ticket = () => {
               contact={contact}
               ticket={ticket}
               onClick={handleDrawerOpen}
+              microServiceData={microServiceData}
             />
           </div>
 
@@ -249,6 +277,7 @@ const Ticket = () => {
         contact={contact}
         ticketId={ticketId}
         loading={loading}
+        microServiceData={microServiceData}
       />
     </div>
   );
