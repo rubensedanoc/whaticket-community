@@ -572,8 +572,8 @@ export const reportHistory = async (
       AND m_inner.fromMe != '1'
       AND (c_inner.isCompanyMember IS NULL OR c_inner.isCompanyMember != '1')
       AND c_inner.number NOT IN (${whatasappListIDS})
-      AND m_inner.createdAt >
-        (SELECT MAX(mcs.createdAt)
+      AND m_inner.timestamp >
+        (SELECT MAX(mcs.timestamp)
         FROM Messages mcs
         LEFT JOIN Contacts c_sub ON mcs.contactId = c_sub.id
         WHERE mcs.ticketId = t.id
@@ -902,8 +902,8 @@ export const reportHistoryWithDateRange = async (
         AND m_inner.fromMe != '1'
         AND (c_inner.isCompanyMember IS NULL OR c_inner.isCompanyMember != '1')
         AND c_inner.number NOT IN (${whatasappListIDS})
-        AND m_inner.createdAt >
-          (SELECT MAX(mcs.createdAt)
+        AND m_inner.timestamp >
+          (SELECT MAX(mcs.timestamp)
           FROM Messages mcs
           LEFT JOIN Contacts c_sub ON mcs.contactId = c_sub.id
           WHERE mcs.ticketId = t.id
