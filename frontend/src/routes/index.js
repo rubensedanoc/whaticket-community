@@ -16,6 +16,7 @@ import Messages from "../pages/Messages/";
 import Queues from "../pages/Queues/";
 import QuickAnswers from "../pages/QuickAnswers/";
 import Reports from "../pages/Reports";
+import ReportsV2 from "../pages/ReportsV2";
 import Settings from "../pages/Settings/";
 import Signup from "../pages/Signup/";
 import Tickets from "../pages/Tickets/";
@@ -35,6 +36,12 @@ const Routes = () => {
                 <LoggedInLayout>
                   <Route exact path="/" component={Dashboard} isPrivate />
                   <Route exact path="/reports" component={Reports} isPrivate />
+                  <Route
+                    exact
+                    path="/reportsv2"
+                    component={ReportsV2}
+                    isPrivate
+                  />
                   <Route
                     exact
                     path="/tickets/:ticketId?"

@@ -24,7 +24,7 @@ const useRowStyles = makeStyles({
   },
 });
 
-const TicketListModal = ({ modalOpen, onClose, title, tickets }) => {
+const TicketListModal = ({ modalOpen, onClose, title, tickets, newView }) => {
   const [loading, setLoading] = useState(false);
   const [ticketsData, setTicketsData] = useState([]);
   const { whatsApps } = useContext(WhatsAppsContext);
@@ -40,7 +40,9 @@ const TicketListModal = ({ modalOpen, onClose, title, tickets }) => {
 
         const { data } = await api.get("/getATicketsList", {
           params: {
-            ticketIds: JSON.stringify(tickets.map((ticket) => ticket.id)),
+            ticketIds: JSON.stringify(
+              newView ? tickets : tickets.map((ticket) => ticket.id)
+            ),
           },
         });
         console.log("tickets data", data.tickets);
@@ -96,7 +98,7 @@ const TicketListModal = ({ modalOpen, onClose, title, tickets }) => {
 
         console.log({ sortedTickets });
 
-        setTicketsData(sortedTickets);
+        setTicketsData(data.tickets);
 
         setLoading(false);
       }

@@ -121,6 +121,11 @@ const MainListItems = (props) => {
               {i18n.t("mainDrawer.listItems.administration")}
             </ListSubheader>
             <ListItemLink
+              to="/reportsv2"
+              primary={"ReportesV2"}
+              icon={<BarChartIcon />}
+            />
+            <ListItemLink
               to="/reports"
               primary={"Reportes"}
               icon={<BarChartIcon />}
