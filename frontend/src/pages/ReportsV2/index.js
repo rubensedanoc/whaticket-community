@@ -1284,7 +1284,7 @@ const Reports = () => {
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount
-                          )}
+                          ) || "-"}
                           %
                         </div>
                       </Grid>
@@ -1339,7 +1339,7 @@ const Reports = () => {
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount
-                          )}
+                          ) || "-"}
                           %
                         </div>
                       </Grid>
@@ -1394,7 +1394,7 @@ const Reports = () => {
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount
-                          )}
+                          ) || "-"}
                           %
                         </div>
                       </Grid>
