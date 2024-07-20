@@ -753,7 +753,7 @@ export const reportHistory = async (
   });
   logsTime.push(`foreach-fin: ${Date()}`);
   timesQuintalWaitingResponse.forEach(item => {
-    item.ticketIds.sort((a, b) => a.timeSecoundWaiting - b.timeSecoundWaiting);
+    item.ticketIds.sort((a, b) => b.timeSecoundWaiting - a.timeSecoundWaiting);
     item.ticketIds = item.ticketIds.map(itemT => itemT.id);
   });
   ticketsCount.withResponse.total.count =
