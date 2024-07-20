@@ -1,4 +1,4 @@
-import { addHours, differenceInSeconds } from "date-fns";
+import { addHours, differenceInSeconds, format } from "date-fns";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
@@ -1001,9 +1001,14 @@ export const reportHistoryWithDateRange = async (
     if (ticket?.status === "closed") {
       ticketsClosed.count += 1;
       ticketsClosed.ticketIds.push(ticket?.id);
-      datesCloseTickets.push(
-        formatDate(ticket?.createdAt, "yyyy-MM-dd HH:mm:ss.SSS")
-      );
+      if (ticket?.dateLastMessageticket) {
+        datesCloseTickets.push(
+          format(
+            new Date(ticket?.dateLastMessageticket),
+            "yyyy-MM-dd HH:mm:ss.SSS"
+          )
+        );
+      }
       if (!!ticket?.dateFistMessageTicket && !!ticket?.dateLastMessageticket) {
         const totalTimeResolution = differenceInSeconds(
           new Date(ticket?.dateLastMessageticket * 1000),
