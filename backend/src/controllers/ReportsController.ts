@@ -738,7 +738,10 @@ export const reportHistory = async (
           ) {
             entroo = true;
             item.count += 1;
-            item.ticketIds.push(ticket.id);
+            item.ticketIds.push({
+              id: ticket.id,
+              timeSecoundWaiting: totalHoursWaiting * 3600
+            });
             countTicketsWaiting += 1;
           }
         });
@@ -749,6 +752,10 @@ export const reportHistory = async (
     }
   });
   logsTime.push(`foreach-fin: ${Date()}`);
+  timesQuintalWaitingResponse.forEach(item => {
+    item.ticketIds.sort((a, b) => a.timeSecoundWaiting - b.timeSecoundWaiting);
+    item.ticketIds = item.ticketIds.map(itemT => itemT.ticketId);
+  });
   ticketsCount.withResponse.total.count =
     ticketsCount.withResponse.individual.count +
     ticketsCount.withResponse.grupal.count;
