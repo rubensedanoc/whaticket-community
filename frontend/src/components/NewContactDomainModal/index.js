@@ -106,7 +106,8 @@ const NewContactDomainModal = ({ modalOpen, onClose, contact }) => {
     return (
       <div>
         <div style={{ fontWeight: "bold" }}>{option.link_dominio}</div>
-        <div style={{ fontSize: "12px" }}>{option.direccion}</div>
+        <div style={{ fontSize: "12px" }}>LOCAL: {option.local}</div>
+        <div style={{ fontSize: "12px" }}>DIRECCIÓN: {option.direccion}</div>
       </div>
     );
   };
