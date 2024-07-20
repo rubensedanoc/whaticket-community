@@ -1046,13 +1046,13 @@ export const reportHistoryWithDateRange = async (
   }
 
   datesCreatedTickets = groupDateWithRange(
-    formatDateToMySQL(fromDateAsString),
-    formatDateToMySQL(toDateAsString),
+    fromDateAsString.split("T")[0],
+    toDateAsString.split("T")[0],
     datesCreatedTickets
   );
   datesCloseTickets = groupDateWithRange(
-    formatDateToMySQL(fromDateAsString),
-    formatDateToMySQL(toDateAsString),
+    fromDateAsString.split("T")[0],
+    toDateAsString.split("T")[0],
     datesCloseTickets
   );
 
