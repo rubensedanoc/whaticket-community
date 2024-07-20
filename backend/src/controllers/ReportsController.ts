@@ -843,7 +843,6 @@ export const reportHistoryWithDateRange = async (
         END) as dateFistMessageTicket,
     MAX(CASE
         WHEN t.id = m.ticketId
-        AND (m.isPrivate IS NULL OR m.isPrivate != '1')
         THEN m.timestamp
         END) as dateLastMessageticket,
     MIN(CASE
@@ -916,7 +915,7 @@ export const reportHistoryWithDateRange = async (
           )
     ) as dateFirstLastMessageClient
   FROM Tickets t
-  INNER JOIN Messages m ON t.id = m.ticketId
+  LEFT JOIN Messages m ON t.id = m.ticketId
   LEFT JOIN Contacts c ON m.contactId = c.id
   WHERE
   ${sqlWhereAdd}
@@ -1004,10 +1003,12 @@ export const reportHistoryWithDateRange = async (
       if (ticket?.dateLastMessageticket) {
         datesCloseTickets.push(
           format(
-            new Date(ticket.dateLastMessageticket),
+            new Date(ticket.dateLastMessageticket * 1000),
             "yyyy-MM-dd HH:mm:ss.SSS"
           )
         );
+      } else {
+        console.log("no hay data");
       }
       if (!!ticket?.dateFistMessageTicket && !!ticket?.dateLastMessageticket) {
         const totalTimeResolution = differenceInSeconds(
