@@ -1004,7 +1004,7 @@ export const reportHistoryWithDateRange = async (
       if (ticket?.dateLastMessageticket) {
         datesCloseTickets.push(
           format(
-            new Date(ticket?.dateLastMessageticket),
+            new Date(ticket.dateLastMessageticket),
             "yyyy-MM-dd HH:mm:ss.SSS"
           )
         );
