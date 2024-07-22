@@ -185,7 +185,7 @@ const TicketActionButtons = ({ ticket }) => {
 
               {(ticket.userId === user?.id || user?.profile === "admin") && (
                 <>
-                  <ButtonWithSpinner
+                  {/* <ButtonWithSpinner
                     loading={loading}
                     startIcon={<Replay />}
                     size="small"
@@ -197,7 +197,7 @@ const TicketActionButtons = ({ ticket }) => {
                     }
                   >
                     {i18n.t("messagesList.header.buttons.return")}
-                  </ButtonWithSpinner>
+                  </ButtonWithSpinner> */}
 
                   <ButtonWithSpinner
                     loading={loading}
@@ -383,6 +383,7 @@ const TicketActionButtons = ({ ticket }) => {
         anchorEl={anchorEl}
         menuOpen={ticketOptionsMenuOpen}
         handleClose={handleCloseTicketOptionsMenu}
+        handleUpdateTicketStatus={handleUpdateTicketStatus}
       />
     </div>
   );

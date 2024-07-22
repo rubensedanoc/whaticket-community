@@ -12,7 +12,13 @@ import { Can } from "../Can";
 import ConfirmationModal from "../ConfirmationModal";
 import TransferTicketModal from "../TransferTicketModal";
 
-const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
+const TicketOptionsMenu = ({
+  ticket,
+  menuOpen,
+  handleClose,
+  anchorEl,
+  handleUpdateTicketStatus,
+}) => {
   const history = useHistory();
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [transferTicketModalOpen, setTransferTicketModalOpen] = useState(false);
@@ -111,6 +117,16 @@ const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
           </>
         ) : (
           <>
+            <MenuItem
+              onClick={() => {
+                handleUpdateTicketStatus({
+                  status: "pending",
+                  userId: null,
+                });
+              }}
+            >
+              {i18n.t("messagesList.header.buttons.return")}
+            </MenuItem>
             <MenuItem onClick={handleOpenTransferModal}>
               {i18n.t("ticketOptionsMenu.transfer")}
             </MenuItem>

@@ -36,7 +36,8 @@ const useStyles = makeStyles((theme) => ({
   },
 
   ticketInfo: {
-    // maxWidth: "50%",
+    maxWidth: "45%",
+    overflow: "hidden",
     // flexBasis: "50%",
     // [theme.breakpoints.down("sm")]: {
     //   maxWidth: "80%",
