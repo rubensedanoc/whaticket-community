@@ -171,5 +171,6 @@ export const groupDateWithRange = (
       fechaG.count = fechaEncontradas[index].count;
     }
   });
-  return datesGenerate.sort((a, b) => a.date - b.date);
+  datesGenerate.sort((a, b) => a.date - b.date);
+  return datesGenerate;
 };

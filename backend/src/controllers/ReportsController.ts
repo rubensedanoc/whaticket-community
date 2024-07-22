@@ -738,7 +738,10 @@ export const reportHistory = async (
           ) {
             entroo = true;
             item.count += 1;
-            item.ticketIds.push(ticket.id);
+            item.ticketIds.push({
+              id: ticket.id,
+              timeSecoundWaiting: totalHoursWaiting * 3600
+            });
             countTicketsWaiting += 1;
           }
         });
@@ -749,6 +752,10 @@ export const reportHistory = async (
     }
   });
   logsTime.push(`foreach-fin: ${Date()}`);
+  timesQuintalWaitingResponse.forEach(item => {
+    item.ticketIds.sort((a, b) => b.timeSecoundWaiting - a.timeSecoundWaiting);
+    item.ticketIds = item.ticketIds.map(itemT => itemT.id);
+  });
   ticketsCount.withResponse.total.count =
     ticketsCount.withResponse.individual.count +
     ticketsCount.withResponse.grupal.count;
@@ -1046,13 +1053,13 @@ export const reportHistoryWithDateRange = async (
   }
 
   datesCreatedTickets = groupDateWithRange(
-    formatDateToMySQL(fromDateAsString),
-    formatDateToMySQL(toDateAsString),
+    fromDateAsString.split("T")[0],
+    toDateAsString.split("T")[0],
     datesCreatedTickets
   );
   datesCloseTickets = groupDateWithRange(
-    formatDateToMySQL(fromDateAsString),
-    formatDateToMySQL(toDateAsString),
+    fromDateAsString.split("T")[0],
+    toDateAsString.split("T")[0],
     datesCloseTickets
   );
 
