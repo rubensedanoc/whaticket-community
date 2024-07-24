@@ -9,13 +9,13 @@ import {
   TableRow,
 } from "@material-ui/core";
 import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
 import Container from "@material-ui/core/Container";
 import Grid from "@material-ui/core/Grid";
 import IconButton from "@material-ui/core/IconButton";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
+import ButtonWithSpinner from "../../components/ButtonWithSpinner";
 import MainHeader from "../../components/MainHeader";
 import ReportsWhatsappSelect from "../../components/ReportsWhatsappSelect";
 import TicketListModal from "../../components/TicketListModal";
@@ -23,8 +23,6 @@ import Title from "../../components/Title";
 
 import Typography from "@material-ui/core/Typography";
 import * as XLSX from "xlsx";
-
-import { AuthContext } from "../../context/Auth/AuthContext";
 
 import { useEffect } from "react";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
@@ -77,28 +75,14 @@ function segundosAHorasMinutos(segundos) {
   return `${horas}h ${minutos}m ${segundosRestantes}s`;
 }
 
-const responseTimesRanges = [
-  { label: "0 - 1 Horas", min: 0, max: 1, type: "hours" },
-  { label: "1 - 2 Horas", min: 1, max: 2, type: "hours" },
-  { label: "2 - 3 Horas", min: 2, max: 3, type: "hours" },
-  { label: "3 - 4 Horas", min: 3, max: 4, type: "hours" },
-  { label: "4 - 5 Horas", min: 4, max: 5, type: "hours" },
-  { label: "0 - 5 Horas", min: 0, max: 5, type: "hours" },
-  { label: "5 - 10 Horas", min: 5, max: 10, type: "hours" },
-  { label: "10 - 15 Horas", min: 10, max: 15, type: "hours" },
-  { label: "15 - 20 Horas", min: 15, max: 20, type: "hours" },
-  { label: "20 - 24 Horas", min: 20, max: 24, type: "hours" },
-  { label: "0 - 24 Horas", min: 0, max: 24, type: "hours" },
-  { label: "1 - 2 Días", min: 1, max: 2, type: "days" },
-  { label: "2 - 3 Días", min: 2, max: 3, type: "days" },
-  { label: "3 - 4 Días", min: 3, max: 4, type: "days" },
-  { label: "4 - x Días", min: 4, max: Infinity, type: "days" },
-];
-
 const Reports = () => {
   const classes = useStyles();
 
-  const [loading, setLoading] = useState(false);
+  const [
+    loadingReportHistoryWithDateRange,
+    setLoadingReportHistoryWithDateRange,
+  ] = useState(true);
+  const [loadingReportHistory, setLoadingReportHistory] = useState(true);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
 
   const [createdTicketsData, setCreatedTicketsData] = useState(null);
@@ -160,119 +144,115 @@ const Reports = () => {
   }, [whatsApps]);
 
   useEffect(() => {
-    localStorage.getItem("ReportsWhatsappSelect") &&
+    if (localStorage.getItem("ReportsWhatsappSelect")) {
       setSelectedWhatsappIds(
         JSON.parse(localStorage.getItem("ReportsWhatsappSelect"))
       );
+    }
+    getReportHistory({
+      selectedWhatsappIds:
+        JSON.parse(localStorage.getItem("ReportsWhatsappSelect")) ||
+        selectedWhatsappIds,
+    });
+    getReportHistoryWithDateRange({
+      fromDate,
+      toDate,
+      selectedWhatsappIds:
+        JSON.parse(localStorage.getItem("ReportsWhatsappSelect")) ||
+        selectedWhatsappIds,
+    });
   }, []);
 
-  const { user } = useContext(AuthContext);
+  const getReportHistoryWithDateRange = async ({
+    fromDate,
+    toDate,
+    selectedWhatsappIds,
+  }) => {
+    try {
+      setLoadingReportHistoryWithDateRange(true);
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (esFechaValida(fromDate) && esFechaValida(toDate)) {
-        console.log({
-          fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
-          toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
-          selectedWhatsappIds,
-        });
+      const { data: reportHistoryWithDateRange } = await api.get(
+        "/reportHistoryWithDateRange",
+        {
+          params: {
+            fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+            toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+            selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+          },
+        }
+      );
 
-        (async () => {
-          try {
-            setLoading(true);
+      console.log("reportHistoryWithDateRange: ", reportHistoryWithDateRange);
 
-            const { data: reportHistoryWithDateRange } = await api.get(
-              "/reportHistoryWithDateRange",
-              {
-                params: {
-                  fromDate: format(
-                    new Date(fromDate),
-                    "yyyy-MM-dd'T'HH:mm:ssXXX"
-                  ),
-                  toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
-                  selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
-                },
-              }
-            );
+      if (reportHistoryWithDateRange) {
+        setTprPromedio(reportHistoryWithDateRange.avgTimeSecoundsFirstResponse);
+        setTdrPromedio(reportHistoryWithDateRange.avgTimeSecounsSolution);
+        setCreatedTicketsCount(
+          reportHistoryWithDateRange.ticketsCreated?.count
+        );
+        setCreatedTicketsClosedInTheRangeTimeCount(
+          reportHistoryWithDateRange.ticketsClosed?.count
+        );
 
-            console.log(
-              "reportHistoryWithDateRange: ",
-              reportHistoryWithDateRange
-            );
+        setCreatedTicketsChartData(
+          reportHistoryWithDateRange.datesCreatedTickets
+        );
 
-            if (reportHistoryWithDateRange) {
-              setTprPromedio(
-                reportHistoryWithDateRange.avgTimeSecoundsFirstResponse
-              );
-              setTdrPromedio(reportHistoryWithDateRange.avgTimeSecounsSolution);
-              setCreatedTicketsCount(
-                reportHistoryWithDateRange.ticketsCreated?.count
-              );
-              setCreatedTicketsClosedInTheRangeTimeCount(
-                reportHistoryWithDateRange.ticketsClosed?.count
-              );
+        setCreatedTicketsClosedInTheRangeTimeChartData(
+          reportHistoryWithDateRange.datesCloseTickets
+        );
 
-              setCreatedTicketsChartData(
-                reportHistoryWithDateRange.datesCreatedTickets
-              );
-
-              setCreatedTicketsClosedInTheRangeTimeChartData(
-                reportHistoryWithDateRange.datesCloseTickets
-              );
-
-              setCloseQuintilesTimes(
-                reportHistoryWithDateRange.timesQuintalResponse
-              );
-            }
-
-            const { data: reportHistory } = await api.get("/reportHistory", {
-              params: {
-                selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
-              },
-            });
-
-            console.log("reportHistory: ", reportHistory);
-            console.log(
-              "reportHistory: ",
-              reportHistory.ticketsCount.withOutResponse.total.ticketIds
-            );
-
-            if (reportHistory) {
-              setResponseTimesData(
-                reportHistory.ticketsCount.withOutResponse.total.ticketIds
-              );
-              setResponseTimes(reportHistory.timesQuintalWaitingResponse);
-
-              setTicketsIdsWithResposneThatAreGroups(
-                reportHistory.ticketsCount.withResponse.grupal.ticketIds
-              );
-
-              setTicketsIdsWithResposneThatAreIndividuals(
-                reportHistory.ticketsCount.withResponse.individual.ticketIds
-              );
-
-              setTicketsIdsWithNoResponseThatAreGroups(
-                reportHistory.ticketsCount.withOutResponse.grupal.ticketIds
-              );
-
-              setTicketsIdsWithNoResponseThatAreIndividuals(
-                reportHistory.ticketsCount.withOutResponse.individual.ticketIds
-              );
-            }
-
-            setLoading(false);
-          } catch (error) {
-            console.log(error);
-            toastError(error);
-          }
-        })();
+        setCloseQuintilesTimes(reportHistoryWithDateRange.timesQuintalResponse);
       }
 
-      return;
-    }, 500);
+      setLoadingReportHistoryWithDateRange(false);
+    } catch (error) {
+      console.log(error);
+      toastError(error);
+    }
+  };
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [fromDate, toDate, selectedWhatsappIds, whatsApps]);
+  const getReportHistory = async ({ selectedWhatsappIds }) => {
+    try {
+      setLoadingReportHistory(true);
+
+      const { data: reportHistory } = await api.get("/reportHistory", {
+        params: {
+          selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+        },
+      });
+
+      console.log("reportHistory: ", reportHistory);
+
+      if (reportHistory) {
+        setResponseTimesData(
+          reportHistory.ticketsCount.withOutResponse.total.ticketIds
+        );
+        setResponseTimes(reportHistory.timesQuintalWaitingResponse);
+
+        setTicketsIdsWithResposneThatAreGroups(
+          reportHistory.ticketsCount.withResponse.grupal.ticketIds
+        );
+
+        setTicketsIdsWithResposneThatAreIndividuals(
+          reportHistory.ticketsCount.withResponse.individual.ticketIds
+        );
+
+        setTicketsIdsWithNoResponseThatAreGroups(
+          reportHistory.ticketsCount.withOutResponse.grupal.ticketIds
+        );
+
+        setTicketsIdsWithNoResponseThatAreIndividuals(
+          reportHistory.ticketsCount.withOutResponse.individual.ticketIds
+        );
+      }
+
+      setLoadingReportHistory(false);
+    } catch (error) {
+      console.log(error);
+      toastError(error);
+    }
+  };
 
   const exportToExcel = () => {
     try {
@@ -405,9 +385,21 @@ const Reports = () => {
                     onChange={(values) => setSelectedWhatsappIds(values)}
                   />
                 </div>
-                {loading && <CircularProgress color="primary" size={25} />}
+                {/* {loading && <CircularProgress color="primary" size={25} />} */}
               </div>
             </div>
+            <ButtonWithSpinner
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                getReportHistory({
+                  selectedWhatsappIds,
+                });
+              }}
+              loading={loadingReportHistory}
+            >
+              Actualizar
+            </ButtonWithSpinner>
           </div>
         </MainHeader>
         <Grid container spacing={3}>
@@ -1065,6 +1057,7 @@ const Reports = () => {
                       id="date"
                       label="Desde"
                       type="datetime-local"
+                      variant="outlined"
                       value={fromDate}
                       onChange={(e) => setFromDate(e.target.value)}
                       className={classes.textField}
@@ -1076,6 +1069,7 @@ const Reports = () => {
                       id="date"
                       label="Hasta"
                       type="datetime-local"
+                      variant="outlined"
                       value={toDate}
                       onChange={(e) => setToDate(e.target.value)}
                       className={classes.textField}
@@ -1093,125 +1087,23 @@ const Reports = () => {
                     </div>
                   </div>
                 </div>
-                {/* <Button
+
+                <ButtonWithSpinner
                   variant="contained"
                   color="primary"
-                  onClick={exportToExcel}
+                  onClick={() => {
+                    getReportHistoryWithDateRange({
+                      fromDate,
+                      toDate,
+                      selectedWhatsappIds,
+                    });
+                  }}
+                  loading={loadingReportHistoryWithDateRange}
                 >
-                  Exportar
-                </Button> */}
+                  Actualizar
+                </ButtonWithSpinner>
               </div>
             </MainHeader>
-          </Grid>
-
-          <Grid item xs={12}>
-            <MainHeader>
-              <div
-                style={{
-                  display: "flex",
-                  marginTop: "1rem",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "flex" }}></div>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={exportToExcel}
-                >
-                  Exportar
-                </Button>
-              </div>
-            </MainHeader>
-          </Grid>
-
-          <Grid item xs={3}>
-            <Paper
-              className={classes.customFixedHeightPaper}
-              style={{ overflow: "hidden" }}
-            >
-              <Typography component="h3" variant="h6" color="primary" paragraph>
-                Tickets creados
-              </Typography>
-              <Grid item>
-                <Typography component="h1" variant="h4">
-                  {createdTicketsCount !== null && createdTicketsCount}
-                </Typography>
-              </Grid>
-            </Paper>
-          </Grid>
-          <Grid item xs={3}>
-            <Paper
-              className={classes.customFixedHeightPaper}
-              style={{ overflow: "hidden" }}
-            >
-              <Typography component="h3" variant="h6" color="primary" paragraph>
-                T. primera respuesta prom
-              </Typography>
-              <Grid item>
-                <Typography component="h1" variant="h4">
-                  {tprPromedio ? segundosAHorasMinutos(tprPromedio) : "-"}
-                </Typography>
-              </Grid>
-            </Paper>
-          </Grid>
-          <Grid item xs={3}>
-            <Paper
-              className={classes.customFixedHeightPaper}
-              style={{ overflow: "hidden" }}
-            >
-              <Typography component="h3" variant="h6" color="primary" paragraph>
-                Tickets resueltos
-              </Typography>
-              <Grid item>
-                <Typography component="h1" variant="h4">
-                  {createdTicketsClosedInTheRangeTimeCount}
-                </Typography>
-              </Grid>
-            </Paper>
-          </Grid>
-          <Grid item xs={3}>
-            <Paper
-              className={classes.customFixedHeightPaper}
-              style={{ overflow: "hidden" }}
-            >
-              <Typography component="h3" variant="h6" color="primary" paragraph>
-                T. de resolución prom
-              </Typography>
-              <Grid item>
-                <Typography component="h1" variant="h4">
-                  {tdrPromedio ? segundosAHorasMinutos(tdrPromedio) : "-"}
-                </Typography>
-              </Grid>
-            </Paper>
-          </Grid>
-          <Grid item xs={12}>
-            <Paper className={classes.fixedHeightPaper}>
-              <Chart
-                title="Ticket creados en el tiempo"
-                total={createdTicketsCount}
-                chartData={createdTicketsChartData}
-              />
-            </Paper>
-          </Grid>
-          {/* <Grid item xs={12}>
-            <Paper className={classes.fixedHeightPaper}>
-              <Chart
-                title={"Tiempo primera respuesta"}
-                total={tprPromedio ? segundosAHorasMinutos(tprPromedio) : "-"}
-              />
-            </Paper>
-          </Grid> */}
-          <Grid item xs={12}>
-            <Paper className={classes.fixedHeightPaper}>
-              <Chart
-                title="Tickets resueltos en el tiempo"
-                total={createdTicketsClosedInTheRangeTimeCount}
-                chartData={createdTicketsClosedInTheRangeTimeChartData}
-              />
-            </Paper>
           </Grid>
 
           <Grid item xs={12}>
@@ -1410,6 +1302,116 @@ const Reports = () => {
                   ) : null}
                 </Grid>
               </div>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12}>
+            <MainHeader>
+              <div
+                style={{
+                  display: "flex",
+                  marginTop: "1rem",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ display: "flex" }}></div>
+                <Button
+                  variant="contained"
+                  style={{ color: "white", backgroundColor: "#2de241" }}
+                  onClick={exportToExcel}
+                >
+                  Exportar a Excel
+                </Button>
+              </div>
+            </MainHeader>
+          </Grid>
+
+          <Grid item xs={3}>
+            <Paper
+              className={classes.customFixedHeightPaper}
+              style={{ overflow: "hidden" }}
+            >
+              <Typography component="h3" variant="h6" color="primary" paragraph>
+                Tickets creados
+              </Typography>
+              <Grid item>
+                <Typography component="h1" variant="h4">
+                  {createdTicketsCount !== null && createdTicketsCount}
+                </Typography>
+              </Grid>
+            </Paper>
+          </Grid>
+          <Grid item xs={3}>
+            <Paper
+              className={classes.customFixedHeightPaper}
+              style={{ overflow: "hidden" }}
+            >
+              <Typography component="h3" variant="h6" color="primary" paragraph>
+                T. primera respuesta prom
+              </Typography>
+              <Grid item>
+                <Typography component="h1" variant="h4">
+                  {tprPromedio ? segundosAHorasMinutos(tprPromedio) : "-"}
+                </Typography>
+              </Grid>
+            </Paper>
+          </Grid>
+          <Grid item xs={3}>
+            <Paper
+              className={classes.customFixedHeightPaper}
+              style={{ overflow: "hidden" }}
+            >
+              <Typography component="h3" variant="h6" color="primary" paragraph>
+                Tickets resueltos
+              </Typography>
+              <Grid item>
+                <Typography component="h1" variant="h4">
+                  {createdTicketsClosedInTheRangeTimeCount}
+                </Typography>
+              </Grid>
+            </Paper>
+          </Grid>
+          <Grid item xs={3}>
+            <Paper
+              className={classes.customFixedHeightPaper}
+              style={{ overflow: "hidden" }}
+            >
+              <Typography component="h3" variant="h6" color="primary" paragraph>
+                T. de resolución prom
+              </Typography>
+              <Grid item>
+                <Typography component="h1" variant="h4">
+                  {tdrPromedio ? segundosAHorasMinutos(tdrPromedio) : "-"}
+                </Typography>
+              </Grid>
+            </Paper>
+          </Grid>
+          <Grid item xs={12}>
+            <Paper className={classes.fixedHeightPaper}>
+              <Chart
+                title="Ticket creados en el tiempo"
+                total={createdTicketsCount}
+                chartData={createdTicketsChartData}
+              />
+            </Paper>
+          </Grid>
+          {/* <Grid item xs={12}>
+            <Paper className={classes.fixedHeightPaper}>
+              <Chart
+                title={"Tiempo primera respuesta"}
+                total={tprPromedio ? segundosAHorasMinutos(tprPromedio) : "-"}
+              />
+            </Paper>
+          </Grid> */}
+          <Grid item xs={12}>
+            <Paper className={classes.fixedHeightPaper}>
+              <Chart
+                title="Tickets resueltos en el tiempo"
+                total={createdTicketsClosedInTheRangeTimeCount}
+                chartData={createdTicketsClosedInTheRangeTimeChartData}
+              />
             </Paper>
           </Grid>
 
