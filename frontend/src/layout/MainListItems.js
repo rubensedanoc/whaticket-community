@@ -122,14 +122,14 @@ const MainListItems = (props) => {
             </ListSubheader>
             <ListItemLink
               to="/reportsv2"
-              primary={"ReportesV2"}
-              icon={<BarChartIcon />}
-            />
-            <ListItemLink
-              to="/reports"
               primary={"Reportes"}
               icon={<BarChartIcon />}
             />
+            {/* <ListItemLink
+              to="/reports"
+              primary={"Reportes"}
+              icon={<BarChartIcon />}
+            /> */}
             <ListItemLink
               to="/users"
               primary={i18n.t("mainDrawer.listItems.users")}
