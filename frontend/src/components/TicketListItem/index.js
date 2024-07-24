@@ -297,54 +297,16 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                 )}
 
                 {(() => {
-                  if (!ticket.messages?.length > 0) {
+                  if (!ticket.clientTimeWaiting) {
                     return null;
-                  }
-
-                  let ticketMessages = ticket.messages;
-
-                  const lastTicketMessage =
-                    ticketMessages[ticketMessages.length - 1];
-
-                  if (
-                    whatsApps.find(
-                      (w) => w.number === lastTicketMessage.contact?.number
-                    ) ||
-                    lastTicketMessage?.contact?.isCompanyMember ||
-                    lastTicketMessage?.fromMe
-                  ) {
-                    return null;
-                  }
-
-                  let firstLastMessageThatIsFromTheClient;
-
-                  for (let i = ticketMessages.length - 1; i >= 0; i--) {
-                    if (
-                      !whatsApps.find(
-                        (w) => w.number === ticketMessages.contact?.number
-                      ) &&
-                      !ticketMessages[i]?.contact?.isCompanyMember &&
-                      !ticketMessages[i]?.fromMe
-                    ) {
-                      firstLastMessageThatIsFromTheClient = ticketMessages[i];
-                    } else {
-                      break;
-                    }
                   }
 
                   return (
                     <TicketListItemLastMessageTime
-                      message={firstLastMessageThatIsFromTheClient}
+                      clientTimeWaiting={ticket.clientTimeWaiting}
                     />
                   );
                 })()}
-
-                {/* {(ticket.messages.length > 0 &&
-                  ticket.firstClientMessageAfterLastUserMessage[0].timestamp) ||
-                (ticket.firstClientMessageAfterLastUserMessage.length === 0 &&
-                  !ticket.userHadContact) ? (
-                  <TicketListItemLastMessageTime ticket={ticket} />
-                ) : null} */}
 
                 {ticket.lastMessageTimestamp && (
                   // LAST MESSAGE TIME

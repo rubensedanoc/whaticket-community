@@ -161,7 +161,11 @@ const reducer = (state, action) => {
       //   JSON.parse(JSON.stringify(ticket))
       // );
 
-      state[ticketIndex] = { ...state[ticketIndex], ...ticket };
+      state[ticketIndex] = {
+        ...state[ticketIndex],
+        ...ticket,
+        clientTimeWaiting: ticket.clientTimeWaiting,
+      };
       state.unshift(state.splice(ticketIndex, 1)[0]);
     } else {
       state.unshift(ticket);
@@ -279,6 +283,7 @@ const TicketsList = (props) => {
     const socket = openSocket();
 
     const shouldUpdateTicket = (ticket) => {
+      // console.log({ selectedQueueIds });
       // console.log("shouldUpdateTicket: ", ticket);
       // console.log("USER: ", user);
 
@@ -299,7 +304,9 @@ const TicketsList = (props) => {
           selectedTypeIds.length === 1 &&
           selectedTypeIds[0] === "group");
       const queueCondition =
-        !ticket.queueId || selectedQueueIds.indexOf(ticket.queueId) > -1;
+        (!ticket.queueId && selectedQueueIds.includes(null)) ||
+        selectedQueueIds.indexOf(ticket.queueId) !== -1 ||
+        selectedQueueIds?.length === 0;
       const typeCondition =
         (ticket.isGroup && selectedTypeIds[0] === "group") ||
         (!ticket.isGroup && selectedTypeIds[0] === "individual");
@@ -327,7 +334,7 @@ const TicketsList = (props) => {
       // console.log("userCondition", userCondition);
       // console.log("typeCondition", typeCondition);
       // console.log("ignoreConditions", ignoreConditions);
-      // console.log("queueCondition", queueCondition);
+      // console.log("||||||||||queueCondition", queueCondition);
       // console.log("whatsappCondition", whatsappCondition);
       // console.log(isConditionMet ? "PASÓ" : "NO PASÓ");
 
@@ -394,7 +401,6 @@ const TicketsList = (props) => {
 
     socket.on("appMessage", (data) => {
       // console.log("appMessage socket::::::::::::::::::::", data);
-      // console.log("selectedWhatsappIds: ", selectedWhatsappIds);
       if (data.action === "create" && shouldUpdateTicket(data.ticket)) {
         dispatch({
           type: "UPDATE_TICKET_UNREAD_MESSAGES",
