@@ -17,7 +17,8 @@ import {
   formatDateToMySQL,
   groupDateWithRange,
   processMessageTicketClosed,
-  processMessageTicketPendingOrOpen
+  processMessageTicketPendingOrOpen,
+  secondsToDhms
 } from "../utils/util";
 
 dayjs.extend(utc);
@@ -1380,10 +1381,12 @@ export const reportToExcel = async (
       whatasappListIDS
     );
     if (times.resolution !== null) {
+      const resolutionHours = times.resolution / 3600;
+      times.resolution = secondsToDhms(times.resolution);
       timesQuintalResponse.forEach(quintal => {
         if (
-          (quintal.max === -1 && times.resolution >= quintal.min) ||
-          (times.resolution >= quintal.min && times.resolution < quintal.max)
+          (quintal.max === -1 && resolutionHours >= quintal.min) ||
+          (resolutionHours >= quintal.min && resolutionHours < quintal.max)
         ) {
           times.quintalHours = quintal.label;
         }
@@ -1410,10 +1413,12 @@ export const reportToExcel = async (
       whatasappListIDS
     );
     if (times.waiting !== null) {
+      const waitingHours = times.waiting / 3600;
+      times.waiting = secondsToDhms(times.waiting);
       timesQuintalWaitingResponse.forEach(quintal => {
         if (
-          (quintal.max === -1 && times.waiting >= quintal.min) ||
-          (times.waiting >= quintal.min && times.waiting < quintal.max)
+          (quintal.max === -1 && waitingHours >= quintal.min) ||
+          (waitingHours >= quintal.min && waitingHours < quintal.max)
         ) {
           times.quintalHours = quintal.label;
         }

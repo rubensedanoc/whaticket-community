@@ -181,7 +181,21 @@ export const groupDateWithRange = (
   datesGenerate.sort((a, b) => a.date - b.date);
   return datesGenerate;
 };
+export const secondsToDhms = seconds => {
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
 
+  const dTxt = d < 10 ? `0${d}` : d;
+  const hTxt = h < 10 ? `0${h}` : h;
+  const mTxt = m < 10 ? `0${m}` : m;
+  const sTxt = s < 10 ? `0${s}` : s;
+  if (d > 0) {
+    return `${dTxt} dias ${hTxt}:${mTxt}:${sTxt}`;
+  }
+  return `${hTxt}:${mTxt}:${sTxt}`;
+};
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
 export const isMessageClient = (message: any, whatasappListIDS: any[]) => {
   return (
@@ -231,11 +245,10 @@ export const processMessageTicketClosed = (
     const lastMessageTicketTimeStamp =
       messageList[messageList.length - 1].mtimestamp;
     if (!!firstMessageTicketTimeStamp && !!lastMessageTicketTimeStamp) {
-      times.resolution =
-        differenceInSeconds(
-          new Date(firstMessageTicketTimeStamp * 1000),
-          new Date(lastMessageTicketTimeStamp * 1000)
-        ) / 3600;
+      times.resolution = differenceInSeconds(
+        new Date(firstMessageTicketTimeStamp * 1000),
+        new Date(lastMessageTicketTimeStamp * 1000)
+      );
     }
     const responseTimes = [];
     let lastSenderMessageTime = null;
@@ -250,7 +263,12 @@ export const processMessageTicketClosed = (
         // Calcular el tiempo de respuesta y añadirlo al array
         const responseTime = message.mtimestamp - lastSenderMessageTime;
         if (times.firstResponse === null) {
-          times.firstResponse = responseTime / 60;
+          times.firstResponse = secondsToDhms(
+            differenceInSeconds(
+              new Date(message.mtimestamp * 1000),
+              new Date(lastSenderMessageTime * 1000)
+            )
+          );
         }
         responseTimes.push(responseTime);
         lastSenderMessageTime = null; // Reset para el próximo par de mensajes
@@ -309,9 +327,13 @@ export const processMessageTicketPendingOrOpen = (
       ) {
         // console.log("message-310", lastSenderMessageTime);
         // Calcular el tiempo de respuesta y añadirlo al array
-        const responseTime = message.mtimestamp - lastSenderMessageTime;
+        // const responseTime = message.mtimestamp - lastSenderMessageTime;
+        const responseTime = differenceInSeconds(
+          new Date(message.mtimestamp * 1000),
+          new Date(lastSenderMessageTime * 1000)
+        );
         if (times.firstResponse === null) {
-          times.firstResponse = responseTime / 60;
+          times.firstResponse = secondsToDhms(responseTime);
         }
         // console.log("message-316", responseTime);
         responseTimes.push(responseTime);
@@ -322,16 +344,15 @@ export const processMessageTicketPendingOrOpen = (
     // Calcular el tiempo de respuesta promedio
     if (responseTimes.length > 0) {
       if (lastSenderMessageTime) {
-        times.waiting =
-          differenceInSeconds(
-            new Date(),
-            new Date(lastSenderMessageTime * 1000)
-          ) / 3600;
+        times.waiting = differenceInSeconds(
+          new Date(),
+          new Date(lastSenderMessageTime * 1000)
+        );
       }
       times.avgResponse =
         responseTimes.reduce((acc, time) => acc + time, 0) /
-        responseTimes.length /
-        3600;
+        responseTimes.length;
+      times.avgResponse = secondsToDhms(times.avgResponse);
     }
   }
   return times;
