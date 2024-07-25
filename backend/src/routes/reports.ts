@@ -24,4 +24,5 @@ reportsRoutes.get(
   "/reportHistoryWithDateRange",
   ReportsController.reportHistoryWithDateRange
 );
+reportsRoutes.get("/reportToExcel", ReportsController.reportToExcel);
 export default reportsRoutes;

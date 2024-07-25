@@ -95,6 +95,11 @@ export const differenceInSecondsByTimestamps = (
 
 export const SPECIAL_CHAT_MESSAGE_AUTOMATIC = "\u200E";
 
+export const textoNoStardWithAutomatic = texto =>
+  !texto.startsWith(
+    String.fromCharCode(parseInt(SPECIAL_CHAT_MESSAGE_AUTOMATIC, 16))
+  );
+
 // Función para generar todas las fechas entre dos fechas
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const generateDateByRange = (fechaInicio, fechaFin) => {
@@ -173,4 +178,123 @@ export const groupDateWithRange = (
   });
   datesGenerate.sort((a, b) => a.date - b.date);
   return datesGenerate;
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const isMessageClient = (message: any, whatasappListIDS: any[]) => {
+  return (
+    message?.misPrivate !== 1 &&
+    message?.mfromMe !== 1 &&
+    message?.misCompanyMember !== 1 &&
+    !message?.cmnumber?.includes(whatasappListIDS)
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const isMessageNotClient = (message: any, whatasappListIDS: any[]) => {
+  return (
+    textoNoStardWithAutomatic(message?.body) &&
+    message?.misPrivate !== 1 &&
+    (message?.mfromMe === 1 ||
+      message?.misCompanyMember === 1 ||
+      message?.cmnumber?.includes(whatasappListIDS))
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const processMessageTicketClosed = (
+  messageList: any[],
+  whatasappListIDS: any[]
+) => {
+  const times = {
+    firstResponse: null,
+    avgResponse: null,
+    resolution: null,
+    waiting: null,
+    quintalHours: null
+  };
+  let isValidate = true;
+  if (messageList.length === 1 && messageList[0].mid === null) {
+    isValidate = false;
+  }
+
+  if (isValidate) {
+    /**
+     * Ordenos los mensajes por timestamp
+     */
+    messageList.sort((a, b) => a.timestamp - b.timestamp);
+    const firstMessageTicketTimeStamp = messageList[0].timestamp;
+    const lastMessageTicketTimeStamp =
+      messageList[messageList.length - 1].timestamp;
+    if (!!firstMessageTicketTimeStamp && !!lastMessageTicketTimeStamp) {
+      times.resolution =
+        differenceInSeconds(
+          new Date(firstMessageTicketTimeStamp * 1000),
+          new Date(lastMessageTicketTimeStamp * 1000)
+        ) / 3600;
+    }
+    const responseTimes = [];
+    let lastSenderMessageTime = null;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const message of messageList) {
+      if (isMessageClient(message, whatasappListIDS)) {
+        lastSenderMessageTime = message.timestamp;
+      } else if (
+        isMessageNotClient(message, whatasappListIDS) &&
+        lastSenderMessageTime
+      ) {
+        // Calcular el tiempo de respuesta y añadirlo al array
+        const responseTime = message.timestamp - lastSenderMessageTime;
+        if (times.firstResponse === null) {
+          times.firstResponse = responseTime / 60;
+        }
+        responseTimes.push(responseTime);
+        lastSenderMessageTime = null; // Reset para el próximo par de mensajes
+      }
+    }
+
+    // Calcular el tiempo de respuesta promedio
+    if (responseTimes.length > 0) {
+      times.avgResponse =
+        responseTimes.reduce((acc, time) => acc + time, 0) /
+        responseTimes.length /
+        3600;
+    }
+  }
+  return times;
+};
+
+export const processMessageTicketPendingOrOpen = (
+  messageList: any[],
+  whatasappListIDS: any[]
+) => {
+  const times = {
+    firstResponse: null,
+    avgResponse: null,
+    resolution: null,
+    waiting: null,
+    quintalHours: null
+  };
+  let isValidate = true;
+  if (messageList.length === 1 && messageList[0].mid === null) {
+    isValidate = false;
+  }
+
+  if (isValidate) {
+    /**
+     * Ordenos los mensajes por timestamp
+     */
+    messageList.sort((a, b) => a.timestamp - b.timestamp);
+    const firstMessageTicketTimeStamp = messageList[0].timestamp;
+    const lastMessageTicketTimeStamp =
+      messageList[messageList.length - 1].timestamp;
+    if (!!firstMessageTicketTimeStamp && !!lastMessageTicketTimeStamp) {
+      times.resolution =
+        differenceInSeconds(
+          new Date(firstMessageTicketTimeStamp * 1000),
+          new Date(lastMessageTicketTimeStamp * 1000)
+        ) / 3600;
+    }
+  }
+  return times;
 };

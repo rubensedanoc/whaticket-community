@@ -1225,3 +1225,115 @@ export const reportHistoryWithDateRange = async (
     logsTime
   });
 };
+
+export const reportToExcel = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedWhatsappIds: selectedUserIdsAsString,
+    selectedCountryIds: selectedCountryIdsAsString
+  } = req.query as IndexQuery;
+
+  const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  const logsTime = [];
+  let sqlWhereAdd = ` t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+  // const sqlWhereAdd = " t.id = 3318 ";
+
+  if (selectedWhatsappIds.length > 0) {
+    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd += ` AND c.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+  logsTime.push(`Whatasappnew-inicio: ${Date()}`);
+  let whatasappListIDS: any = await Whatsapp.sequelize.query(
+    "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",
+    { type: QueryTypes.SELECT }
+  );
+  logsTime.push(`Whatasappnew-fin: ${Date()}`);
+  whatasappListIDS = whatasappListIDS
+    .map(whatasapp => `'${whatasapp.number}'`)
+    .join(",");
+
+  const sql = `SELECT
+    t.id as tid,
+    t.isGroup as tisGroup,
+    t.createdAt as tcreatedAt,
+    m.id as mid,
+    m.timestamp as mtimestamp,
+    m.createdAt as mcreatedAt,
+    u.id as uid,
+    u.name as uname,
+    c.id as cid,
+    c.name as cname
+  FROM Tickets t
+  LEFT JOIN Users u ON t.userId = u.id
+  LEFT JOIN Whatsapps w ON t.whatsappId = w.id
+  LEFT JOIN Messages m ON t.id = m.ticketId
+  LEFT JOIN Contacts c ON m.contactId = c.id
+  WHERE
+  ${sqlWhereAdd}`;
+  console.log("sql", sql);
+  logsTime.push(`sql-inicio: ${Date()}`);
+  /**
+   * Obtengo todos los tickets acortandolos a los filtros de ticken que me pasen
+   * # sudo lsof -i :8080
+     # sudo kill -9 7877
+   */
+  const ticketListFind = await Ticket.sequelize.query(sql, {
+    type: QueryTypes.SELECT
+  });
+  logsTime.push(`sql-fin: ${Date()}`);
+  /**
+   * Separar los tickets en pendientes o abiertos y cerrados
+   * porque va hacer diferente calculos
+   * Agrupar en ram por ticketID
+   */
+  let ticketsClosed: any = ticketListFind.filter(
+    (ticket: any) => ticket?.status === "closed"
+  );
+  let ticketsPendingOpen: any = ticketListFind.filter(
+    (ticket: any) => ticket?.status !== "closed"
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ticketsClosed = ticketsClosed.reduce((result, currentValue: any) => {
+    if (!result[currentValue?.tid]) {
+      result[currentValue.tid] = [];
+    }
+    result[currentValue.tid].push(currentValue);
+    return result;
+  }, {});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ticketsPendingOpen = ticketsPendingOpen.reduce(
+    (result, currentValue: any) => {
+      if (!result[currentValue?.tid]) {
+        result[currentValue.tid] = [];
+      }
+      result[currentValue.tid].push(currentValue);
+      return result;
+    },
+    {}
+  );
+
+  // Recorrer el objeto de tickets cerrados
+  for (const ticketId in ticketsClosed) {
+    ticketsClosed[ticketId].forEach(item => {
+      /**
+       * Logica
+       */
+    });
+  }
+  logsTime.push(`asignacion-fin: ${Date()}`);
+  return res.status(200).json({
+    ticketsClosed,
+    ticketsPendingOpen,
+    sql,
+    logsTime
+  });
+};
