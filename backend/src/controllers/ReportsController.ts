@@ -1398,6 +1398,7 @@ export const reportToExcel = async (
       tisGroup: ticketsClosed[ticketId][0].tisGroup,
       ctcname: ticketsPendingOpen[ticketId][0].ctcname,
       ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
+      tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
       ...times
     });
   }
@@ -1427,6 +1428,7 @@ export const reportToExcel = async (
       tisGroup: ticketsPendingOpen[ticketId][0].tisGroup,
       ctcname: ticketsPendingOpen[ticketId][0].ctcname,
       ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
+      tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
       ...times
     });
   }
