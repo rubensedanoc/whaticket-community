@@ -39,6 +39,8 @@ class Ticket extends Model<Ticket> {
   @Column
   lastMessageTimestamp: number;
 
+  clientTimeWaiting: number;
+
   @Column
   lastMessage: string;
 
@@ -92,9 +94,6 @@ class Ticket extends Model<Ticket> {
   @HasMany(() => Message)
   messages: Message[];
 
-  @HasMany(() => Message)
-  firstClientMessageAfterLastUserMessage: Message[];
-
   @BelongsToMany(() => Category, () => TicketCategory)
   categories: Category[];
 
@@ -103,6 +102,14 @@ class Ticket extends Model<Ticket> {
 
   @BelongsToMany(() => User, () => TicketParticipantUsers)
   participantUsers: User[];
+
+  // Sobrescribir el método toJSON para incluir clientTimeWaiting
+  toJSON() {
+    const attributes = { ...this.get() };
+    // @ts-ignore
+    attributes.clientTimeWaiting = this.clientTimeWaiting;
+    return attributes;
+  }
 }
 
 export default Ticket;

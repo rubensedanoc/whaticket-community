@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { Request, Response } from "express";
-import { literal, Op, QueryTypes } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
 import Message from "../models/Message";
@@ -11,7 +11,12 @@ import Queue from "../models/Queue";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
-import { agruparFechas, convertDateStrToTimestamp, formatDate, formatDateToMySQL, groupDateWithRange } from "../utils/util";
+import {
+  convertDateStrToTimestamp,
+  formatDate,
+  formatDateToMySQL,
+  groupDateWithRange
+} from "../utils/util";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -465,55 +470,186 @@ export const getATicketsList = async (
         model: User,
         as: "participantUsers",
         required: false
-      },
-      {
-        model: Message,
-        as: "messages",
-        order: [["timestamp", "DESC"]],
-        required: false,
-        limit: 25,
-        separate: true,
-        include: [
-          {
-            model: Contact,
-            as: "contact",
-            required: false
-          }
-        ],
-        where: {
-          isPrivate: {
-            [Op.or]: [false, null]
-          }
-        }
-      },
-      {
-        model: Message,
-        as: "firstClientMessageAfterLastUserMessage",
-        attributes: ["id", "body", "timestamp"],
-        order: [["timestamp", "ASC"]],
-        required: false,
-        separate: true,
-        limit: 1,
-        where: {
-          isPrivate: {
-            [Op.or]: [false, null]
-          },
-          fromMe: false,
-          timestamp: {
-            [Op.gt]: literal(
-              `(SELECT MAX(mes.timestamp) FROM Messages mes WHERE mes.ticketId = Message.ticketId AND mes.fromMe = 1 AND (mes.isPrivate = 0 OR mes.isPrivate IS NULL))`
-            )
-          }
-        }
       }
     ]
   });
 
-  tickets.forEach(ticket => {
-    ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
-  });
+  const ticketsWithClientTimeWaiting = await getClientTimeWaitingForTickets(
+    tickets
+  );
 
-  return res.status(200).json({ tickets });
+  console.log(
+    "ticketsWithClientTimeWaiting: ",
+    ticketsWithClientTimeWaiting.map(t => ({
+      id: t.id,
+      clientTimeWaiting: t.clientTimeWaiting
+    }))
+  );
+
+  return res.status(200).json({
+    tickets: ticketsWithClientTimeWaiting
+  });
+};
+
+export const getClientTimeWaitingForTickets = async (tickets: Ticket[]) => {
+  if (tickets.length === 0) {
+    return tickets;
+  }
+
+  try {
+    let whatasappListIDS: any = await Whatsapp.sequelize.query(
+      "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",
+      { type: QueryTypes.SELECT }
+    );
+
+    whatasappListIDS = whatasappListIDS
+      .map(whatasapp => `'${whatasapp.number}'`)
+      .join(",");
+
+    const ticketListIDS = tickets.map(ticket => `'${ticket.id}'`).join(",");
+
+    // console.log("----ticketIds", ticketListIDS);
+
+    const sql = `SELECT
+          t.id,
+      t.createdAt,
+      t.contactId,
+      t.status,
+      t.isGroup,
+      t.whatsappId,
+      MIN(CASE
+          WHEN t.id = m.ticketId
+            AND (m.isPrivate IS NULL OR m.isPrivate != '1')
+            AND m.fromMe != 1
+            AND (c.isCompanyMember IS NULL OR c.isCompanyMember != '1')
+            AND c.number NOT IN (${whatasappListIDS})
+          THEN m.timestamp
+          END) as dateFirstMessageClient,
+      MIN(
+      CASE
+          WHEN t.id = m.ticketId
+          AND (m.isPrivate IS NULL OR m.isPrivate != '1')
+          THEN m.timestamp
+          END) as dateFistMessageTicket,
+      (
+      SELECT MIN(m_inner.timestamp)
+      FROM Messages m_inner
+      LEFT JOIN Contacts c_inner ON m_inner.contactId = c_inner.id
+      WHERE
+        m_inner.ticketId = t.id
+        AND (m_inner.isPrivate IS NULL OR m_inner.isPrivate != '1')
+        AND m_inner.fromMe != '1'
+        AND (c_inner.isCompanyMember IS NULL OR c_inner.isCompanyMember != '1')
+        AND c_inner.number NOT IN (${whatasappListIDS})
+        AND m_inner.timestamp >
+          (SELECT MAX(mcs.timestamp)
+          FROM Messages mcs
+          LEFT JOIN Contacts c_sub ON mcs.contactId = c_sub.id
+          WHERE mcs.ticketId = t.id
+          AND (mcs.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
+              AND (mcs.isPrivate IS NULL OR mcs.isPrivate != 1)
+              AND (mcs.fromMe = 1
+              OR c_sub.isCompanyMember = '1'
+              OR c_sub.number IN (${whatasappListIDS})))
+          )
+      ) as dateFirstLastMessageClient,
+      MAX(CASE
+        WHEN t.id = m.ticketId
+          AND m.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
+          AND (m.isPrivate IS NULL OR m.isPrivate != 1)
+          AND (m.fromMe = 1
+          OR c.isCompanyMember = '1'
+          OR c.number IN (${whatasappListIDS}))
+        THEN m.timestamp
+        END) as dateLastMessageCS,
+      MIN(CASE
+          WHEN t.id = m.ticketId
+            AND m.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
+            AND (m.isPrivate IS NULL OR m.isPrivate != 1)
+            AND (m.fromMe = 1
+            OR c.isCompanyMember = '1'
+            OR c.number IN (${whatasappListIDS}) )
+          THEN m.timestamp
+          END) as dateFirstMessageCS
+    FROM Tickets t
+    INNER JOIN Messages m ON t.id = m.ticketId
+    LEFT JOIN Contacts c ON m.contactId = c.id
+    WHERE t.id in (${ticketListIDS})
+    GROUP BY t.id `;
+
+    const ticketListFind = await Ticket.sequelize.query(sql, {
+      type: QueryTypes.SELECT
+    });
+
+    ticketListFind.forEach((ticket: any) => {
+      let withResponse = false;
+      /**
+       * Si no existe dateFirstLastMessageClient quiere decir que el CS comenzo a hablar y el cliente no responde
+       * Valido que exista un primer mensaje ultimo del cliente
+       * para despues comparar el timestamp del ultimo mensajes del CS
+       * Si existe se afirmaria que habiado al menos una respuesta
+       * ahorta tocaria validar que el timestamp del CS sea mayor al ultimo mensaje del cliente
+       */
+      /**
+       * Para esta caso es que no hubo timestamp
+       */
+      if (
+        ticket?.dateFirstMessageClient === null &&
+        ticket?.dateFistMessageTicket === null &&
+        ticket?.dateFirstLastMessageClient === null &&
+        ticket?.dateLastMessageCS === null &&
+        ticket?.dateFirstMessageCS === null
+      ) {
+        ticket.timeAuxCreated = convertDateStrToTimestamp(ticket.createdAt);
+        ticket.dateFistMessageTicket = ticket.timeAuxCreated;
+        ticket.dateFirstLastMessageClient = ticket.dateFistMessageTicket;
+      }
+      if (
+        (ticket?.dateFirstLastMessageClient === null &&
+          ticket?.dateFirstMessageCS === null &&
+          ticket?.dateFistMessageTicket !== null &&
+          ticket?.dateFirstMessageClient !== null &&
+          ticket?.dateFistMessageTicket !== ticket?.dateFirstMessageClient) ||
+        (ticket?.dateFirstLastMessageClient === null &&
+          ticket?.dateLastMessageCS !== null) ||
+        (ticket.dateLastMessageCS !== null &&
+          ticket.dateFirstLastMessageClient !== null &&
+          ticket.dateLastMessageCS > ticket.dateFirstLastMessageClient)
+      ) {
+        withResponse = true;
+      }
+
+      if (!withResponse) {
+        let timeStampValidate = null;
+        if (ticket.dateFirstLastMessageClient !== null) {
+          timeStampValidate = ticket.dateFirstLastMessageClient;
+        } else if (ticket.dateFirstMessageClient !== null) {
+          timeStampValidate = ticket.dateFirstMessageClient;
+        } else if (ticket.dateFistMessageTicket !== null) {
+          timeStampValidate = ticket.dateFistMessageTicket;
+        }
+        if (timeStampValidate !== null) {
+          // console.log("ticket.id", ticket.id);
+          // console.log(
+          //   "clientTimeWaiting",
+          //   differenceInSeconds(new Date(), new Date(timeStampValidate * 1000))
+          // );
+
+          tickets.find(t => t.id === ticket.id).clientTimeWaiting =
+            timeStampValidate;
+        }
+      }
+    });
+  } catch (error) {
+    console.log("-------------------error", error);
+  }
+
+  // console.log(
+  //   "return ticketssss: ",
+  //   tickets.map(t => ({ id: t.id, clientTimeWaiting: t.clientTimeWaiting }))
+  // );
+
+  return tickets;
 };
 
 export const reportHistory = async (
@@ -727,10 +863,8 @@ export const reportHistory = async (
       let entroo = false;
       if (timeStampValidate !== null) {
         const totalHoursWaiting =
-          differenceInSeconds(
-            new Date(),
-            new Date(ticket?.dateFirstLastMessageClient * 1000)
-          ) / 3600;
+          differenceInSeconds(new Date(), new Date(timeStampValidate * 1000)) /
+          3600;
         timesQuintalWaitingResponse.forEach(item => {
           if (
             (item.max === -1 && totalHoursWaiting >= item.min) ||

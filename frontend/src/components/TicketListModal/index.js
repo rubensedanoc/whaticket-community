@@ -46,60 +46,15 @@ const TicketListModal = ({ modalOpen, onClose, title, tickets, newView }) => {
           },
         });
         console.log("tickets data", data.tickets);
-
-        const relevantTickets = data.tickets
-          .map((ticket) => {
-            if (!ticket.messages?.length > 0) {
-              return null;
-            }
-
-            let ticketMessages = ticket.messages;
-
-            const lastTicketMessage = ticketMessages[ticketMessages.length - 1];
-
-            if (
-              whatsApps.find(
-                (w) => w.number === lastTicketMessage.contact?.number
-              ) ||
-              lastTicketMessage?.contact?.isCompanyMember ||
-              lastTicketMessage?.fromMe
-            ) {
-              return null;
-            }
-
-            let firstLastMessageThatIsFromTheClient;
-
-            for (let i = ticketMessages.length - 1; i >= 0; i--) {
-              if (
-                !whatsApps.find(
-                  (w) => w.number === ticketMessages[i]?.contact?.number
-                ) &&
-                !ticketMessages[i]?.contact?.isCompanyMember &&
-                !ticketMessages[i]?.fromMe
-              ) {
-                firstLastMessageThatIsFromTheClient = ticketMessages[i];
-              } else {
-                break;
-              }
-            }
-
-            return { ticket, firstLastMessageThatIsFromTheClient };
-          })
-          .filter((item) => item !== null);
-
-        relevantTickets.sort((a, b) => {
-          return (
-            a.firstLastMessageThatIsFromTheClient.timestamp -
-            b.firstLastMessageThatIsFromTheClient.timestamp
-          );
-        });
-
-        const sortedTickets = relevantTickets.map((item) => item.ticket);
-
-        console.log({ sortedTickets });
+        // console.log(
+        //   "ticketsWithClientTimeWaiting: ",
+        //   data.tickets.map((t) => ({
+        //     id: t.id,
+        //     clientTimeWaiting: t.clientTimeWaiting,
+        //   }))
+        // );
 
         setTicketsData(data.tickets);
-
         setLoading(false);
       }
     }, 500);
@@ -119,15 +74,25 @@ const TicketListModal = ({ modalOpen, onClose, title, tickets, newView }) => {
       <DialogTitle id="form-dialog-title">{title}</DialogTitle>
       <DialogContent dividers style={{ width: "900px" }}>
         <TableContainer component={Paper}>
-          {ticketsData.map((ticket) => (
-            <div style={{ overflow: "hidden" }} key={ticket.id}>
-              <TicketListItem
-                ticket={ticket}
-                key={ticket.id}
-                openInANewWindowOnSelect={true}
-              />
-            </div>
-          ))}
+          {ticketsData
+            .sort((a, b) => {
+              if (a.clientTimeWaiting > b.clientTimeWaiting) {
+                return 1;
+              }
+              if (a.clientTimeWaiting < b.clientTimeWaiting) {
+                return -1;
+              }
+              return 0;
+            })
+            .map((ticket) => (
+              <div style={{ overflow: "hidden" }} key={ticket.id}>
+                <TicketListItem
+                  ticket={ticket}
+                  key={ticket.id}
+                  openInANewWindowOnSelect={true}
+                />
+              </div>
+            ))}
         </TableContainer>
         {loading && (
           <CircularProgress

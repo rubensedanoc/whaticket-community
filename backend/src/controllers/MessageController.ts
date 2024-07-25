@@ -4,6 +4,9 @@ import SetTicketMessagesAsRead from "../helpers/SetTicketMessagesAsRead";
 import Message from "../models/Message";
 
 // import ListMessages2Service from "../services/MessageServices/ListMessages2Service";
+import AppError from "../errors/AppError";
+import GetWbotMessage from "../helpers/GetWbotMessage";
+import Ticket from "../models/Ticket";
 import ListMessagesService from "../services/MessageServices/ListMessagesService";
 import ListMessagesV2Service from "../services/MessageServices/ListMessagesV2Service";
 import SearchMessagesService from "../services/MessageServices/SearchMessagesService";
@@ -183,6 +186,87 @@ export const remove = async (
     .catch(error => {
       console.error("Error:", error);
     });
+
+  return res.send();
+};
+
+export const updateOnWpp = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { messageId } = req.params;
+  const { body } = req.body;
+
+  console.log("updateOnWpp", messageId, body);
+
+  try {
+    const message = await Message.findByPk(messageId, {
+      include: [
+        {
+          model: Ticket,
+          as: "ticket",
+          include: ["contact"]
+        }
+      ]
+    });
+
+    if (!message) {
+      throw new AppError("No message found with this ID.");
+    }
+
+    const { ticket } = message;
+
+    const messageToEdit = await GetWbotMessage(ticket, messageId);
+
+    console.log(
+      "---------------------------messageToEdit a editarr",
+      messageToEdit
+    );
+
+    const editedMessage = await messageToEdit.edit(body);
+
+    console.log("-------------------- MENSAJE EDITADO", editedMessage);
+
+    if (!editedMessage) {
+      throw new AppError(
+        "Se trato de editar un mensaje usando el .edit y no funciono"
+      );
+    }
+
+    await message.update({ body: editedMessage.body, isEdited: true });
+
+    const url = process.env.NODE_URL + "/toEmit";
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        to: [message.ticketId.toString()],
+        event: {
+          name: "appMessage",
+          data: {
+            action: "update",
+            message
+          }
+        }
+      })
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok " + response.statusText);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Success:", data);
+      })
+      .catch(error => {
+        console.error("Error:", error);
+      });
+  } catch (err) {
+    throw new AppError("El mensaje no se pudo editar");
+  }
 
   return res.send();
 };

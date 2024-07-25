@@ -30,4 +30,10 @@ messageRoutes.post(
 
 messageRoutes.delete("/messages/:messageId", isAuth, MessageController.remove);
 
+messageRoutes.post(
+  "/updateOnWpp/:messageId",
+  isAuth,
+  MessageController.updateOnWpp
+);
+
 export default messageRoutes;

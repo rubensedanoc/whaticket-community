@@ -1,6 +1,5 @@
-import { Op, literal } from "sequelize";
 import { v4 as uuidv4 } from "uuid";
-import Contact from "../../models/Contact";
+import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
@@ -96,26 +95,6 @@ const CreateMessageService = async ({
             attributes: ["name"]
           },
           {
-            model: Message,
-            as: "messages",
-            order: [["timestamp", "DESC"]],
-            required: false,
-            limit: 25,
-            separate: true,
-            include: [
-              {
-                model: Contact,
-                as: "contact",
-                required: false
-              }
-            ],
-            where: {
-              isPrivate: {
-                [Op.or]: [false, null]
-              }
-            }
-          },
-          {
             model: User,
             as: "user",
             attributes: ["id", "name"],
@@ -130,25 +109,6 @@ const CreateMessageService = async ({
             model: User,
             as: "participantUsers",
             required: false
-          },
-          {
-            model: Message,
-            as: "firstClientMessageAfterLastUserMessage",
-            attributes: ["id", "body", "timestamp"],
-            order: [["timestamp", "ASC"]],
-            required: false,
-            limit: 1,
-            where: {
-              isPrivate: {
-                [Op.or]: [false, null]
-              },
-              fromMe: false,
-              timestamp: {
-                [Op.gt]: literal(
-                  `(SELECT MAX(mes.timestamp) FROM Messages mes WHERE mes.ticketId = Message.ticketId AND mes.fromMe = 1 AND (mes.isPrivate = 0 OR mes.isPrivate IS NULL))`
-                )
-              }
-            }
           }
         ]
       },
@@ -164,7 +124,13 @@ const CreateMessageService = async ({
     throw new Error("ERR_CREATING_MESSAGE");
   }
 
-  message.ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
+  // message.ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
+
+  if (message.ticket) {
+    message.ticket = (
+      await getClientTimeWaitingForTickets([message.ticket])
+    )[0];
+  }
 
   // const io = getIO();
   /* io.to(message.ticketId.toString())

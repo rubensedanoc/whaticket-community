@@ -23,6 +23,7 @@ import {
   Block,
   Done,
   DoneAll,
+  Edit,
   ExpandMore,
   GetApp,
 } from "@material-ui/icons";
@@ -1040,6 +1041,13 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
                 >
                   {message.isDeleted && (
                     <Block
+                      color="disabled"
+                      fontSize="small"
+                      className={classes.deletedIcon}
+                    />
+                  )}
+                  {message.isEdited && (
+                    <Edit
                       color="disabled"
                       fontSize="small"
                       className={classes.deletedIcon}

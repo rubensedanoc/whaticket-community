@@ -54,6 +54,10 @@ class Message extends Model<Message> {
   @Column
   isDeleted: boolean;
 
+  @Default(false)
+  @Column
+  isEdited: boolean;
+
   @Column
   isPrivate: boolean;
 

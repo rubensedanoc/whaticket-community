@@ -6,13 +6,12 @@ import {
   Sequelize,
   col,
   fn,
-  literal,
   where
 } from "sequelize";
 
+import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
-import Message from "../../models/Message";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
@@ -133,45 +132,6 @@ const ListTicketsService = async ({
             required: true
           }
         : { required: false })
-    },
-    {
-      model: Message,
-      as: "messages",
-      order: [["timestamp", "DESC"]],
-      required: false,
-      limit: 25,
-      separate: true,
-      include: [
-        {
-          model: Contact,
-          as: "contact",
-          required: false
-        }
-      ],
-      where: {
-        isPrivate: {
-          [Op.or]: [false, null]
-        }
-      }
-    },
-    {
-      model: Message,
-      as: "firstClientMessageAfterLastUserMessage",
-      attributes: ["id", "body", "timestamp"],
-      order: [["timestamp", "ASC"]],
-      required: false,
-      limit: 1,
-      where: {
-        isPrivate: {
-          [Op.or]: [false, null]
-        },
-        fromMe: false,
-        timestamp: {
-          [Op.gt]: literal(
-            `(SELECT MAX(mes.timestamp) FROM Messages mes WHERE mes.ticketId = Message.ticketId AND mes.fromMe = 1 AND (mes.isPrivate = 0 OR mes.isPrivate IS NULL))`
-          )
-        }
-      }
     }
   ];
 
@@ -347,12 +307,11 @@ const ListTicketsService = async ({
 
   const ticketsToReturn = filteredTickets || tickets;
 
-  ticketsToReturn.forEach(ticket => {
-    ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
-  });
+  const ticketsToReturnWithClientTimeWaiting =
+    await getClientTimeWaitingForTickets(ticketsToReturn);
 
   return {
-    tickets: ticketsToReturn,
+    tickets: ticketsToReturnWithClientTimeWaiting,
     count,
     hasMore
   };

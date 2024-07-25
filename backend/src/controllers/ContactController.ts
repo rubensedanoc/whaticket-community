@@ -8,12 +8,10 @@ import ListContactsService from "../services/ContactServices/ListContactsService
 import ShowContactService from "../services/ContactServices/ShowContactService";
 import UpdateContactService from "../services/ContactServices/UpdateContactService";
 
-import { Op, literal } from "sequelize";
 import AppError from "../errors/AppError";
 import { getWbot, getWbots } from "../libs/wbot";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
-import Message from "../models/Message";
 import Queue from "../models/Queue";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
@@ -22,6 +20,7 @@ import GetContactService from "../services/ContactServices/GetContactService";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
+import { getClientTimeWaitingForTickets } from "./ReportsController";
 
 type IndexQuery = {
   searchParam: string;
@@ -291,45 +290,6 @@ export const getNumberGroups = async (
                   model: User,
                   as: "participantUsers",
                   required: false
-                },
-                {
-                  model: Message,
-                  as: "messages",
-                  order: [["timestamp", "DESC"]],
-                  required: false,
-                  limit: 25,
-                  separate: true,
-                  include: [
-                    {
-                      model: Contact,
-                      as: "contact",
-                      required: false
-                    }
-                  ],
-                  where: {
-                    isPrivate: {
-                      [Op.or]: [false, null]
-                    }
-                  }
-                },
-                {
-                  model: Message,
-                  as: "firstClientMessageAfterLastUserMessage",
-                  attributes: ["id", "body", "timestamp"],
-                  order: [["timestamp", "ASC"]],
-                  required: false,
-                  limit: 1,
-                  where: {
-                    isPrivate: {
-                      [Op.or]: [false, null]
-                    },
-                    fromMe: false,
-                    timestamp: {
-                      [Op.gt]: literal(
-                        `(SELECT MAX(mes.timestamp) FROM Messages mes WHERE mes.ticketId = Message.ticketId AND mes.fromMe = 1 AND (mes.isPrivate = 0 OR mes.isPrivate IS NULL))`
-                      )
-                    }
-                  }
                 }
               ]
             }
@@ -337,9 +297,13 @@ export const getNumberGroups = async (
         });
 
         if (wbotChatInOurDb) {
-          wbotChatInOurDb.tickets?.forEach(ticket => {
-            ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
-          });
+          // console.log("wbotChatInOurDb", wbotChatInOurDb.tickets);
+
+          if (wbotChatInOurDb.tickets) {
+            wbotChatInOurDb.tickets = await getClientTimeWaitingForTickets(
+              wbotChatInOurDb.tickets
+            );
+          }
 
           registerGroups.push(wbotChatInOurDb);
         } else {
@@ -422,45 +386,6 @@ export const getNumberGroups = async (
                           model: User,
                           as: "participantUsers",
                           required: false
-                        },
-                        {
-                          model: Message,
-                          as: "messages",
-                          order: [["timestamp", "DESC"]],
-                          required: false,
-                          limit: 25,
-                          separate: true,
-                          include: [
-                            {
-                              model: Contact,
-                              as: "contact",
-                              required: false
-                            }
-                          ],
-                          where: {
-                            isPrivate: {
-                              [Op.or]: [false, null]
-                            }
-                          }
-                        },
-                        {
-                          model: Message,
-                          as: "firstClientMessageAfterLastUserMessage",
-                          attributes: ["id", "body", "timestamp"],
-                          order: [["timestamp", "ASC"]],
-                          required: false,
-                          limit: 1,
-                          where: {
-                            isPrivate: {
-                              [Op.or]: [false, null]
-                            },
-                            fromMe: false,
-                            timestamp: {
-                              [Op.gt]: literal(
-                                `(SELECT MAX(mes.timestamp) FROM Messages mes WHERE mes.ticketId = Message.ticketId AND mes.fromMe = 1 AND (mes.isPrivate = 0 OR mes.isPrivate IS NULL))`
-                              )
-                            }
-                          }
                         }
                       ]
                     }
@@ -468,10 +393,14 @@ export const getNumberGroups = async (
                 });
 
                 if (wbotChatInOurDb) {
-                  wbotChatInOurDb.tickets?.forEach(ticket => {
-                    ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
-                  });
+                  // console.log("wbotChatInOurDb", wbotChatInOurDb.tickets);
 
+                  if (wbotChatInOurDb.tickets) {
+                    wbotChatInOurDb.tickets =
+                      await getClientTimeWaitingForTickets(
+                        wbotChatInOurDb.tickets
+                      );
+                  }
                   registerGroups.push(wbotChatInOurDb);
                 } else {
                   notRegisterGroups.push(chat);
@@ -486,7 +415,11 @@ export const getNumberGroups = async (
     );
   }
 
-  console.log("registerGroups", registerGroups.length);
+  console.log(
+    "registerGroups",
+    registerGroups.length
+    // registerGroups.map(r => r)
+  );
   console.log("notRegisterGroups", notRegisterGroups.length);
 
   return res.status(200).json({ registerGroups, notRegisterGroups });
