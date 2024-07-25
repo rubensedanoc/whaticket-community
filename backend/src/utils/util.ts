@@ -246,8 +246,8 @@ export const processMessageTicketClosed = (
       messageList[messageList.length - 1].mtimestamp;
     if (!!firstMessageTicketTimeStamp && !!lastMessageTicketTimeStamp) {
       times.resolution = differenceInSeconds(
-        new Date(firstMessageTicketTimeStamp * 1000),
-        new Date(lastMessageTicketTimeStamp * 1000)
+        new Date(lastMessageTicketTimeStamp * 1000),
+        new Date(firstMessageTicketTimeStamp * 1000)
       );
     }
     const responseTimes = [];
