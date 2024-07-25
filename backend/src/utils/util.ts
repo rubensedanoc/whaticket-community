@@ -299,21 +299,21 @@ export const processMessageTicketPendingOrOpen = (
     let lastSenderMessageTime = null;
     // eslint-disable-next-line no-restricted-syntax
     for (const message of messageList) {
-      console.log("message", message);
+      // console.log("message", message);
       if (isMessageClient(message, whatasappListIDS)) {
         lastSenderMessageTime = message.mtimestamp;
-        console.log("message-305", lastSenderMessageTime);
+        // console.log("message-305", lastSenderMessageTime);
       } else if (
         isMessageNotClient(message, whatasappListIDS) &&
         lastSenderMessageTime
       ) {
-        console.log("message-310", lastSenderMessageTime);
+        // console.log("message-310", lastSenderMessageTime);
         // Calcular el tiempo de respuesta y añadirlo al array
         const responseTime = message.mtimestamp - lastSenderMessageTime;
         if (times.firstResponse === null) {
           times.firstResponse = responseTime / 60;
         }
-        console.log("message-316", responseTime);
+        // console.log("message-316", responseTime);
         responseTimes.push(responseTime);
         lastSenderMessageTime = null; // Reset para el próximo par de mensajes
       }
