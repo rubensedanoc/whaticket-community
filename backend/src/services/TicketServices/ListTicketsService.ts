@@ -93,7 +93,14 @@ const ListTicketsService = async ({
     {
       model: Contact,
       as: "contact",
-      attributes: ["id", "name", "number", "domain", "profilePicUrl"],
+      attributes: [
+        "id",
+        "name",
+        "number",
+        "domain",
+        "profilePicUrl",
+        "countryId"
+      ],
       ...(searchParam && { required: true })
     },
     {
