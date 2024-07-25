@@ -1245,7 +1245,7 @@ export const reportToExcel = async (
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = ` t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
@@ -1349,10 +1349,10 @@ export const reportToExcel = async (
   ];
 
   let ticketsClosed: any = ticketListFind.filter(
-    (ticket: any) => ticket?.status === "closed"
+    (ticket: any) => ticket?.tstatus === "closed"
   );
   let ticketsPendingOpen: any = ticketListFind.filter(
-    (ticket: any) => ticket?.status !== "closed"
+    (ticket: any) => ticket?.tstatus !== "closed"
   );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ticketsClosed = ticketsClosed.reduce((result, currentValue: any) => {
@@ -1399,9 +1399,9 @@ export const reportToExcel = async (
       wname: ticketsClosed[ticketId][0].wname,
       tstatus: ticketsClosed[ticketId][0].tstatus,
       tisGroup: ticketsClosed[ticketId][0].tisGroup,
-      ctcname: ticketsPendingOpen[ticketId][0].ctcname,
-      ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
-      tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
+      ctcname: ticketsClosed[ticketId][0].ctcname,
+      ctnumber: ticketsClosed[ticketId][0].ctnumber,
+      tcreatedAt: ticketsClosed[ticketId][0].tcreatedAt,
       ...times
     });
   }
@@ -1442,6 +1442,7 @@ export const reportToExcel = async (
   return res.status(200).json({
     // ticketListFind,
     ticketListFinal,
+    ticketsClosed,
     sql,
     logsTime
   });
