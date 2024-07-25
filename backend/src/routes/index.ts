@@ -5,6 +5,7 @@ import authRoutes from "./authRoutes";
 import categoryRoutes from "./categoryRoutes";
 import chatbotOptionRoutes from "./chatbotOptionRoutes";
 import contactRoutes from "./contactRoutes";
+import contryRoutes from "./countryRoutes";
 import messageRoutes from "./messageRoutes";
 import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
@@ -31,5 +32,6 @@ routes.use(categoryRoutes);
 routes.use(chatbotOptionRoutes);
 routes.use(reportsRoutes);
 routes.use("/api/messages", apiRoutes);
+routes.use(contryRoutes);
 
 export default routes;

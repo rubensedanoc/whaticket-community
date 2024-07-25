@@ -4,6 +4,7 @@ import { Field, FieldArray, Form, Formik } from "formik";
 import { toast } from "react-toastify";
 import * as Yup from "yup";
 
+import { ListItemText } from "@material-ui/core";
 import Button from "@material-ui/core/Button";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Dialog from "@material-ui/core/Dialog";
@@ -11,10 +12,13 @@ import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import IconButton from "@material-ui/core/IconButton";
+import MenuItem from "@material-ui/core/MenuItem";
+
 import TextField from "@material-ui/core/TextField";
 import Typography from "@material-ui/core/Typography";
 import { green } from "@material-ui/core/colors";
 import { makeStyles } from "@material-ui/core/styles";
+
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 
 import { i18n } from "../../translate/i18n";
@@ -37,6 +41,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 8,
   },
 
   btnWrapper: {
@@ -74,6 +79,8 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
   };
 
   const [contact, setContact] = useState(initialState);
+  const [countries, setCountries] = useState([]);
+  const [chooseCountryId, setChooseCountryId] = useState(null);
   const [newContactDomainModal, setNewContactDomainModal] = useState(false);
 
   useEffect(() => {
@@ -92,10 +99,24 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 
       if (!contactId) return;
 
+      if (open) {
+        try {
+          const { data } = await api.get(`/countries`);
+          if (data?.countries?.length > 0) {
+            setCountries(data.countries);
+          }
+        } catch (err) {
+          toastError(err);
+        }
+      }
+
       try {
         const { data } = await api.get(`/contacts/${contactId}`);
         if (isMounted.current) {
           setContact(data);
+          if (data?.countryId) {
+            setChooseCountryId(data.countryId);
+          }
         }
       } catch (err) {
         toastError(err);
@@ -113,7 +134,10 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
   const handleSaveContact = async (values) => {
     try {
       if (contactId) {
-        await api.put(`/contacts/${contactId}`, values);
+        await api.put(`/contacts/${contactId}`, {
+          ...values,
+          countryId: chooseCountryId,
+        });
         handleClose();
       } else {
         const { data } = await api.post("/contacts", values);
@@ -177,7 +201,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                   variant="outlined"
                   margin="dense"
                 />
-                <div>
+                <div className={classes.extraAttr}>
                   <Field
                     as={TextField}
                     label={i18n.t("contactModal.form.email")}
@@ -191,23 +215,64 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                   />
                 </div>
                 {contactId && (
-                  <div className={classes.extraAttr}>
-                    <Button
-                      style={{ flex: 1, marginTop: 8 }}
-                      variant="outlined"
-                      color="primary"
-                      onClick={() => {
-                        setNewContactDomainModal(true);
-                      }}
-                    >
-                      Relacionar con un dominio
-                    </Button>
-                    <NewContactDomainModal
-                      modalOpen={newContactDomainModal}
-                      onClose={() => setNewContactDomainModal(false)}
-                      contact={contact}
-                    />
-                  </div>
+                  <>
+                    <div className={classes.extraAttr}>
+                      <Field
+                        as={TextField}
+                        name="countryId"
+                        select
+                        label="País"
+                        fullWidth
+                        margin="dense"
+                        value={chooseCountryId}
+                        onChange={(event) => {
+                          setChooseCountryId(event.target.value);
+                        }}
+                        variant="outlined"
+                        MenuProps={{
+                          anchorOrigin: {
+                            vertical: "bottom",
+                            horizontal: "left",
+                          },
+                          transformOrigin: {
+                            vertical: "top",
+                            horizontal: "left",
+                          },
+                          getContentAnchorEl: null,
+                        }}
+                        renderValue={(value) => {
+                          if (value) {
+                            return countries.find((c) => c.id === value)?.name;
+                          }
+                        }}
+                      >
+                        {countries?.length > 0 &&
+                          countries.map((c) => (
+                            <MenuItem dense key={c.id} value={c.id}>
+                              <ListItemText primary={c.name} />
+                            </MenuItem>
+                          ))}
+                      </Field>
+                    </div>
+
+                    <div className={classes.extraAttr}>
+                      <Button
+                        style={{ flex: 1, marginTop: 8 }}
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => {
+                          setNewContactDomainModal(true);
+                        }}
+                      >
+                        Relacionar con un dominio
+                      </Button>
+                      <NewContactDomainModal
+                        modalOpen={newContactDomainModal}
+                        onClose={() => setNewContactDomainModal(false)}
+                        contact={contact}
+                      />
+                    </div>
+                  </>
                 )}
 
                 {/* <Field
