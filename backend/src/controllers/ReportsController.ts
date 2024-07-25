@@ -1253,7 +1253,7 @@ export const reportToExcel = async (
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
   }
   if (selectedCountryIds.length > 0) {
-    sqlWhereAdd += ` AND c.countryId IN (${selectedCountryIds.join(",")}) `;
+    sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
