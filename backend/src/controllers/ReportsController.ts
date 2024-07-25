@@ -25,6 +25,7 @@ type IndexQuery = {
   fromDate: string;
   toDate: string;
   selectedWhatsappIds: string;
+  selectedCountryIds?: string;
 };
 
 function findLast<T>(array: T[], callback: any): T | undefined {
@@ -373,8 +374,7 @@ export const getOpenOrPendingTicketsWithLastMessages = async (
 ): Promise<Response> => {
   console.log("---------------getOpenOrPendingTicketsWithLastMessages");
 
-  const { selectedWhatsappIds: selectedUserIdsAsString } =
-    req.query as IndexQuery;
+  const { selectedWhatsappIds: selectedUserIdsAsString } = req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as number[];
 
@@ -656,16 +656,22 @@ export const reportHistory = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { selectedWhatsappIds: selectedUserIdsAsString } =
-    req.query as IndexQuery;
+  const {
+    selectedWhatsappIds: selectedUserIdsAsString,
+    selectedCountryIds: selectedCountryIdsAsString
+  } = req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = " t.status IN ('pending','open') ";
   // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd += ` AND c.countryId IN (${selectedCountryIds.join(",")}) `;
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
@@ -946,11 +952,13 @@ export const reportHistoryWithDateRange = async (
   const {
     fromDate: fromDateAsString,
     toDate: toDateAsString,
-    selectedWhatsappIds: selectedUserIdsAsString
+    selectedWhatsappIds: selectedUserIdsAsString,
+    selectedCountryIds: selectedCountryIdsAsString
   } = req.query as IndexQuery;
 
   console.log({ fromDateAsString, toDateAsString });
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = `t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
@@ -959,6 +967,9 @@ export const reportHistoryWithDateRange = async (
 
   if (selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd += ` AND c.countryId IN (${selectedCountryIds.join(",")}) `;
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
