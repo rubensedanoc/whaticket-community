@@ -1274,25 +1274,29 @@ export const reportToExcel = async (
     m.createdAt as mcreatedAt,
     m.isPrivate as misPrivate,
     m.fromMe as mfromMe,
-    m.isCompanyMember as misCompanyMember,
+    m.body as mbody,
+    c.isCompanyMember as misCompanyMember,
     c.number as cmnumber,
     u.id as uid,
     u.name as uname,
     ct.id as ctid,
     ct.name as ctname,
-    w.whatsappId as wid,
-    w.name as wname
+    ct.number as ctnumber,
+    w.id as wid,
+    w.name as wname,
+    ctc.name as ctcname
   FROM Tickets t
   LEFT JOIN Users u ON t.userId = u.id
   LEFT JOIN Whatsapps w ON t.whatsappId = w.id
   LEFT JOIN Contacts ct ON t.contactId = ct.id
+  LEFT JOIN Countries ctc ON ct.countryId = ctc.id
   LEFT JOIN Messages m ON t.id = m.ticketId
   LEFT JOIN Contacts c ON m.contactId = c.id
   WHERE
   ${sqlWhereAdd}`;
   console.log("sql", sql);
   logsTime.push(`sql-inicio: ${Date()}`);
-  let ticketListFinal = [];
+  const ticketListFinal = [];
   /**
    * Obtengo todos los tickets acortandolos a los filtros de ticken que me pasen
    * # sudo lsof -i :8080
@@ -1392,6 +1396,8 @@ export const reportToExcel = async (
       wname: ticketsClosed[ticketId][0].wname,
       tstatus: ticketsClosed[ticketId][0].tstatus,
       tisGroup: ticketsClosed[ticketId][0].tisGroup,
+      ctcname: ticketsPendingOpen[ticketId][0].ctcname,
+      ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
       ...times
     });
   }
@@ -1419,6 +1425,8 @@ export const reportToExcel = async (
       wname: ticketsPendingOpen[ticketId][0].wname,
       tstatus: ticketsPendingOpen[ticketId][0].tstatus,
       tisGroup: ticketsPendingOpen[ticketId][0].tisGroup,
+      ctcname: ticketsPendingOpen[ticketId][0].ctcname,
+      ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
       ...times
     });
   }

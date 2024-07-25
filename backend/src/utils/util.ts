@@ -96,6 +96,8 @@ export const differenceInSecondsByTimestamps = (
 export const SPECIAL_CHAT_MESSAGE_AUTOMATIC = "\u200E";
 
 export const textoNoStardWithAutomatic = texto =>
+  texto !== null &&
+  texto !== "" &&
   !texto.startsWith(
     String.fromCharCode(parseInt(SPECIAL_CHAT_MESSAGE_AUTOMATIC, 16))
   );
@@ -193,7 +195,7 @@ export const isMessageClient = (message: any, whatasappListIDS: any[]) => {
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
 export const isMessageNotClient = (message: any, whatasappListIDS: any[]) => {
   return (
-    textoNoStardWithAutomatic(message?.body) &&
+    textoNoStardWithAutomatic(message?.mbody) &&
     message?.misPrivate !== 1 &&
     (message?.mfromMe === 1 ||
       message?.misCompanyMember === 1 ||
