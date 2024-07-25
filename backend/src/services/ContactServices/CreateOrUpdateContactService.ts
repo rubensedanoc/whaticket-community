@@ -1,5 +1,7 @@
+import { QueryTypes } from "sequelize";
 import { getIO } from "../../libs/socket";
 import Contact from "../../models/Contact";
+import Country from "../../models/Country";
 
 interface ExtraInfo {
   name: string;
@@ -41,13 +43,20 @@ const CreateOrUpdateContactService = async ({
     }
   } else {
     try {
+      let countryId = null;
+
+      if (!isGroup) {
+        countryId = await getCountryIdOfNumber(number);
+      }
+
       contact = await Contact.create({
         name,
         number,
         ...(profilePicUrl && { profilePicUrl }),
         email,
         isGroup,
-        extraInfo
+        extraInfo,
+        ...(countryId && { countryId })
       });
 
       io.emit("contact", {
@@ -73,13 +82,21 @@ const CreateOrUpdateContactService = async ({
           "---- En la segunda verificación el contacto no existe, Reintentando otra vez crear el contacto: ",
           number
         );
+
+        let countryId = null;
+
+        if (!isGroup) {
+          countryId = await getCountryIdOfNumber(number);
+        }
+
         contact = await Contact.create({
           name,
           number,
           ...(profilePicUrl && { profilePicUrl }),
           email,
           isGroup,
-          extraInfo
+          extraInfo,
+          ...(countryId && { countryId })
         });
 
         io.emit("contact", {
@@ -96,6 +113,21 @@ const CreateOrUpdateContactService = async ({
   }
 
   return contact;
+};
+
+const getCountryIdOfNumber = async (number: string) => {
+  const allCountries: Country[] = await Country.sequelize.query(
+    "SELECT * FROM Countries c ORDER BY LENGTH(c.code) DESC ",
+    { type: QueryTypes.SELECT }
+  );
+
+  console.log("---- allCountries: ", allCountries);
+
+  for (const country of allCountries) {
+    if (number.startsWith(country.code)) {
+      return country.id;
+    }
+  }
 };
 
 export default CreateOrUpdateContactService;
