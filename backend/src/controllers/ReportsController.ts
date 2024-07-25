@@ -15,7 +15,10 @@ import {
   convertDateStrToTimestamp,
   formatDate,
   formatDateToMySQL,
-  groupDateWithRange
+  groupDateWithRange,
+  processMessageTicketClosed,
+  processMessageTicketPendingOrOpen,
+  secondsToDhms
 } from "../utils/util";
 
 dayjs.extend(utc);
@@ -25,6 +28,7 @@ type IndexQuery = {
   fromDate: string;
   toDate: string;
   selectedWhatsappIds: string;
+  selectedCountryIds?: string;
 };
 
 function findLast<T>(array: T[], callback: any): T | undefined {
@@ -373,8 +377,7 @@ export const getOpenOrPendingTicketsWithLastMessages = async (
 ): Promise<Response> => {
   console.log("---------------getOpenOrPendingTicketsWithLastMessages");
 
-  const { selectedWhatsappIds: selectedUserIdsAsString } =
-    req.query as IndexQuery;
+  const { selectedWhatsappIds: selectedUserIdsAsString } = req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as number[];
 
@@ -656,16 +659,22 @@ export const reportHistory = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { selectedWhatsappIds: selectedUserIdsAsString } =
-    req.query as IndexQuery;
+  const {
+    selectedWhatsappIds: selectedUserIdsAsString,
+    selectedCountryIds: selectedCountryIdsAsString
+  } = req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = " t.status IN ('pending','open') ";
   // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
@@ -739,6 +748,7 @@ export const reportHistory = async (
         THEN m.timestamp
         END) as dateFirstMessageCS
   FROM Tickets t
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
   INNER JOIN Messages m ON t.id = m.ticketId
   LEFT JOIN Contacts c ON m.contactId = c.id
   WHERE
@@ -946,11 +956,13 @@ export const reportHistoryWithDateRange = async (
   const {
     fromDate: fromDateAsString,
     toDate: toDateAsString,
-    selectedWhatsappIds: selectedUserIdsAsString
+    selectedWhatsappIds: selectedUserIdsAsString,
+    selectedCountryIds: selectedCountryIdsAsString
   } = req.query as IndexQuery;
 
   console.log({ fromDateAsString, toDateAsString });
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = `t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
@@ -959,6 +971,9 @@ export const reportHistoryWithDateRange = async (
 
   if (selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
@@ -1056,6 +1071,7 @@ export const reportHistoryWithDateRange = async (
           )
     ) as dateFirstLastMessageClient
   FROM Tickets t
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
   LEFT JOIN Messages m ON t.id = m.ticketId
   LEFT JOIN Contacts c ON m.contactId = c.id
   WHERE
@@ -1210,6 +1226,222 @@ export const reportHistoryWithDateRange = async (
     timesQuintalResponse,
     ticketsCreated,
     ticketsClosed,
+    sql,
+    logsTime
+  });
+};
+
+export const reportToExcel = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedWhatsappIds: selectedUserIdsAsString,
+    selectedCountryIds: selectedCountryIdsAsString
+  } = req.query as IndexQuery;
+
+  const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  const logsTime = [];
+  let sqlWhereAdd = ` t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+  // const sqlWhereAdd = " t.id = 3318 ";
+
+  if (selectedWhatsappIds.length > 0) {
+    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+  logsTime.push(`Whatasappnew-inicio: ${Date()}`);
+  let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
+    "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",
+    { type: QueryTypes.SELECT }
+  );
+  logsTime.push(`Whatasappnew-fin: ${Date()}`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+
+  const sql = `SELECT
+    t.id as tid,
+    t.isGroup as tisGroup,
+    t.createdAt as tcreatedAt,
+    t.status as tstatus,
+    m.id as mid,
+    m.timestamp as mtimestamp,
+    m.createdAt as mcreatedAt,
+    m.isPrivate as misPrivate,
+    m.fromMe as mfromMe,
+    m.body as mbody,
+    c.isCompanyMember as misCompanyMember,
+    c.number as cmnumber,
+    u.id as uid,
+    u.name as uname,
+    ct.id as ctid,
+    ct.name as ctname,
+    ct.number as ctnumber,
+    w.id as wid,
+    w.name as wname,
+    ctc.name as ctcname
+  FROM Tickets t
+  LEFT JOIN Users u ON t.userId = u.id
+  LEFT JOIN Whatsapps w ON t.whatsappId = w.id
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
+  LEFT JOIN Countries ctc ON ct.countryId = ctc.id
+  LEFT JOIN Messages m ON t.id = m.ticketId
+  LEFT JOIN Contacts c ON m.contactId = c.id
+  WHERE
+  ${sqlWhereAdd}`;
+  console.log("sql", sql);
+  logsTime.push(`sql-inicio: ${Date()}`);
+  const ticketListFinal = [];
+  /**
+   * Obtengo todos los tickets acortandolos a los filtros de ticken que me pasen
+   * # sudo lsof -i :8080
+     # sudo kill -9 7877
+   */
+  const ticketListFind = await Ticket.sequelize.query(sql, {
+    type: QueryTypes.SELECT
+  });
+  logsTime.push(`sql-fin: ${Date()}`);
+  /**
+   * Separar los tickets en pendientes o abiertos y cerrados
+   * porque va hacer diferente calculos
+   * Agrupar en ram por ticketID
+   */
+  const timesQuintalResponse = [
+    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
+    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
+    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
+    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
+    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
+    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
+    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
+    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
+    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
+    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
+    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
+    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+  ];
+
+  const timesQuintalWaitingResponse = [
+    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
+    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
+    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
+    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
+    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
+    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
+    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
+    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
+    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
+    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
+    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
+    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+  ];
+
+  let ticketsClosed: any = ticketListFind.filter(
+    (ticket: any) => ticket?.status === "closed"
+  );
+  let ticketsPendingOpen: any = ticketListFind.filter(
+    (ticket: any) => ticket?.status !== "closed"
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ticketsClosed = ticketsClosed.reduce((result, currentValue: any) => {
+    if (!result[currentValue?.tid]) {
+      result[currentValue.tid] = [];
+    }
+    result[currentValue.tid].push(currentValue);
+    return result;
+  }, {});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ticketsPendingOpen = ticketsPendingOpen.reduce(
+    (result, currentValue: any) => {
+      if (!result[currentValue?.tid]) {
+        result[currentValue.tid] = [];
+      }
+      result[currentValue.tid].push(currentValue);
+      return result;
+    },
+    {}
+  );
+  // Recorrer el objeto de tickets cerrados
+  // eslint-disable-next-line no-restricted-syntax, guard-for-in
+  for (const ticketId in ticketsClosed) {
+    const times = processMessageTicketClosed(
+      ticketsClosed[ticketId],
+      whatasappListIDS
+    );
+    if (times.resolution !== null) {
+      const resolutionHours = times.resolution / 3600;
+      times.resolution = secondsToDhms(times.resolution);
+      timesQuintalResponse.forEach(quintal => {
+        if (
+          (quintal.max === -1 && resolutionHours >= quintal.min) ||
+          (resolutionHours >= quintal.min && resolutionHours < quintal.max)
+        ) {
+          times.quintalHours = quintal.label;
+        }
+      });
+    }
+    ticketListFinal.push({
+      tid: ticketsClosed[ticketId][0].tid,
+      uname: ticketsClosed[ticketId][0].uname,
+      ctname: ticketsClosed[ticketId][0].ctname,
+      wname: ticketsClosed[ticketId][0].wname,
+      tstatus: ticketsClosed[ticketId][0].tstatus,
+      tisGroup: ticketsClosed[ticketId][0].tisGroup,
+      ctcname: ticketsPendingOpen[ticketId][0].ctcname,
+      ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
+      tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
+      ...times
+    });
+  }
+
+  // eslint-disable-next-line no-restricted-syntax, guard-for-in
+  for (const ticketId in ticketsPendingOpen) {
+    const times = processMessageTicketPendingOrOpen(
+      ticketsPendingOpen[ticketId],
+      whatasappListIDS
+    );
+    if (times.waiting !== null) {
+      const waitingHours = times.waiting / 3600;
+      times.waiting = secondsToDhms(times.waiting);
+      timesQuintalWaitingResponse.forEach(quintal => {
+        if (
+          (quintal.max === -1 && waitingHours >= quintal.min) ||
+          (waitingHours >= quintal.min && waitingHours < quintal.max)
+        ) {
+          times.quintalHours = quintal.label;
+        }
+      });
+    }
+    ticketListFinal.push({
+      tid: ticketsPendingOpen[ticketId][0].tid,
+      uname: ticketsPendingOpen[ticketId][0].uname,
+      ctname: ticketsPendingOpen[ticketId][0].ctname,
+      wname: ticketsPendingOpen[ticketId][0].wname,
+      tstatus: ticketsPendingOpen[ticketId][0].tstatus,
+      tisGroup: ticketsPendingOpen[ticketId][0].tisGroup,
+      ctcname: ticketsPendingOpen[ticketId][0].ctcname,
+      ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
+      tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
+      ...times
+    });
+  }
+
+  logsTime.push(`asignacion-fin: ${Date()}`);
+  return res.status(200).json({
+    ticketListFind,
+    ticketListFinal,
     sql,
     logsTime
   });

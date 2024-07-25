@@ -17,6 +17,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
 import ButtonWithSpinner from "../../components/ButtonWithSpinner";
 import MainHeader from "../../components/MainHeader";
+import ReportsCountrySelect from "../../components/ReportsCountrySelect";
 import ReportsWhatsappSelect from "../../components/ReportsWhatsappSelect";
 import TicketListModal from "../../components/TicketListModal";
 import Title from "../../components/Title";
@@ -85,6 +86,9 @@ const Reports = () => {
   const [loadingReportHistory, setLoadingReportHistory] = useState(true);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
 
+  const [countries, setCountries] = useState([]);
+  const [selectedCountryIds, setSelectedCountryIds] = useState([]);
+
   const [createdTicketsData, setCreatedTicketsData] = useState(null);
   const [createdTicketsCount, setCreatedTicketsCount] = useState(null);
   const [createdTicketsChartData, setCreatedTicketsChartData] = useState(null);
@@ -149,10 +153,19 @@ const Reports = () => {
         JSON.parse(localStorage.getItem("ReportsWhatsappSelect"))
       );
     }
+    if (localStorage.getItem("ReportsCountrySelect")) {
+      setSelectedCountryIds(
+        JSON.parse(localStorage.getItem("ReportsCountrySelect"))
+      );
+    }
+
     getReportHistory({
       selectedWhatsappIds:
         JSON.parse(localStorage.getItem("ReportsWhatsappSelect")) ||
         selectedWhatsappIds,
+      selectedCountryIds:
+        JSON.parse(localStorage.getItem("ReportsCountrySelect")) ||
+        selectedCountryIds,
     });
     getReportHistoryWithDateRange({
       fromDate,
@@ -160,13 +173,28 @@ const Reports = () => {
       selectedWhatsappIds:
         JSON.parse(localStorage.getItem("ReportsWhatsappSelect")) ||
         selectedWhatsappIds,
+      selectedCountryIds:
+        JSON.parse(localStorage.getItem("ReportsCountrySelect")) ||
+        selectedCountryIds,
     });
+
+    (async () => {
+      try {
+        const { data } = await api.get(`/countries`);
+        if (data?.countries?.length > 0) {
+          setCountries(data.countries);
+        }
+      } catch (err) {
+        toastError(err);
+      }
+    })();
   }, []);
 
   const getReportHistoryWithDateRange = async ({
     fromDate,
     toDate,
     selectedWhatsappIds,
+    selectedCountryIds,
   }) => {
     try {
       setLoadingReportHistoryWithDateRange(true);
@@ -178,6 +206,7 @@ const Reports = () => {
             fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
             toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
             selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+            selectedCountryIds: JSON.stringify(selectedCountryIds),
           },
         }
       );
@@ -212,13 +241,64 @@ const Reports = () => {
     }
   };
 
-  const getReportHistory = async ({ selectedWhatsappIds }) => {
+  const getReportToExcel = async ({
+    fromDate,
+    toDate,
+    selectedWhatsappIds,
+    selectedCountryIds,
+  }) => {
+    try {
+      const { data: reportToExcel } = await api.get("/reportToExcel", {
+        params: {
+          fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+          toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+          selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+          selectedCountryIds: JSON.stringify(selectedCountryIds),
+        },
+      });
+
+      if (reportToExcel) {
+        console.log("reportToExcel: ", reportToExcel);
+
+        const dataToExport = reportToExcel.ticketListFinal.map((row) => ({
+          "N. DE TICKET": row.tid,
+          CREACIÓN_FECHA: format(new Date(row.tcreatedAt), "dd-MM-yyyy"),
+          CREACIÓN_HORA: format(new Date(row.tcreatedAt), "HH:mm"),
+          CONTACTO: row.ctname,
+          NUMERO: row.tisGroup ? "NO APLICA" : row.ctname,
+          PAIS: row.ctcname,
+          CONEXIÓN: row.wname,
+          "ES GRUPO?": row.tisGroup ? "SI" : "NO",
+          ASIGNADO: row.tisGroup ? "NO APLICA" : row.uname,
+          ESTADO: row.tstatus,
+          "ESPERANDO?": row.waiting ? "SI" : "NO",
+          "T. PRIMERA RESPUESTA": row.firstResponse,
+          "T. DE RESOLUCIÓN": row.resolution,
+          "T. DE RESPEUSTA PROM.": row.avgResponse,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+        XLSX.writeFile(workbook, `${"WHATREST"}.xlsx`);
+      }
+    } catch (error) {
+      console.log(error);
+      toastError(error);
+    }
+  };
+
+  const getReportHistory = async ({
+    selectedWhatsappIds,
+    selectedCountryIds,
+  }) => {
     try {
       setLoadingReportHistory(true);
 
       const { data: reportHistory } = await api.get("/reportHistory", {
         params: {
           selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+          selectedCountryIds: JSON.stringify(selectedCountryIds),
         },
       });
 
@@ -384,6 +464,15 @@ const Reports = () => {
                     userWhatsapps={whatsApps || []}
                     onChange={(values) => setSelectedWhatsappIds(values)}
                   />
+
+                  <ReportsCountrySelect
+                    style={{ marginLeft: 6 }}
+                    selectedCountryIds={selectedCountryIds || []}
+                    countries={countries || []}
+                    onChange={(values) => {
+                      setSelectedCountryIds(values);
+                    }}
+                  />
                 </div>
                 {/* {loading && <CircularProgress color="primary" size={25} />} */}
               </div>
@@ -394,6 +483,7 @@ const Reports = () => {
               onClick={() => {
                 getReportHistory({
                   selectedWhatsappIds,
+                  selectedCountryIds,
                 });
               }}
               loading={loadingReportHistory}
@@ -1096,6 +1186,7 @@ const Reports = () => {
                       fromDate,
                       toDate,
                       selectedWhatsappIds,
+                      selectedCountryIds,
                     });
                   }}
                   loading={loadingReportHistoryWithDateRange}
@@ -1320,7 +1411,14 @@ const Reports = () => {
                 <Button
                   variant="contained"
                   style={{ color: "white", backgroundColor: "#2de241" }}
-                  onClick={exportToExcel}
+                  onClick={() =>
+                    getReportToExcel({
+                      fromDate,
+                      toDate,
+                      selectedWhatsappIds,
+                      selectedCountryIds,
+                    })
+                  }
                 >
                   Exportar a Excel
                 </Button>

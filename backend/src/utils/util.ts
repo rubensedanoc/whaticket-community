@@ -95,6 +95,13 @@ export const differenceInSecondsByTimestamps = (
 
 export const SPECIAL_CHAT_MESSAGE_AUTOMATIC = "\u200E";
 
+export const textoNoStardWithAutomatic = texto =>
+  texto !== null &&
+  texto !== "" &&
+  !texto.startsWith(
+    String.fromCharCode(parseInt(SPECIAL_CHAT_MESSAGE_AUTOMATIC, 16))
+  );
+
 // Función para generar todas las fechas entre dos fechas
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const generateDateByRange = (fechaInicio, fechaFin) => {
@@ -173,4 +180,180 @@ export const groupDateWithRange = (
   });
   datesGenerate.sort((a, b) => a.date - b.date);
   return datesGenerate;
+};
+export const secondsToDhms = seconds => {
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+
+  const dTxt = d < 10 ? `0${d}` : d;
+  const hTxt = h < 10 ? `0${h}` : h;
+  const mTxt = m < 10 ? `0${m}` : m;
+  const sTxt = s < 10 ? `0${s}` : s;
+  if (d > 0) {
+    return `${dTxt} dias ${hTxt}:${mTxt}:${sTxt}`;
+  }
+  return `${hTxt}:${mTxt}:${sTxt}`;
+};
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const isMessageClient = (message: any, whatasappListIDS: any[]) => {
+  return (
+    message?.misPrivate !== 1 &&
+    message?.mfromMe !== 1 &&
+    message?.misCompanyMember !== 1 &&
+    !message?.cmnumber?.includes(whatasappListIDS)
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const isMessageNotClient = (message: any, whatasappListIDS: any[]) => {
+  return (
+    textoNoStardWithAutomatic(message?.mbody) &&
+    message?.misPrivate !== 1 &&
+    (message?.mfromMe === 1 ||
+      message?.misCompanyMember === 1 ||
+      message?.cmnumber?.includes(whatasappListIDS))
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export const processMessageTicketClosed = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messageList: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  whatasappListIDS: any[]
+) => {
+  const times = {
+    firstResponse: null,
+    avgResponse: null,
+    resolution: null,
+    waiting: null,
+    quintalHours: null
+  };
+  let isValidate = true;
+  if (messageList.length === 1 && messageList[0].mid === null) {
+    isValidate = false;
+  }
+
+  if (isValidate) {
+    /**
+     * Ordenos los mensajes por timestamp
+     */
+    messageList.sort((a, b) => a.mtimestamp - b.mtimestamp);
+    const firstMessageTicketTimeStamp = messageList[0].mtimestamp;
+    const lastMessageTicketTimeStamp =
+      messageList[messageList.length - 1].mtimestamp;
+    if (!!firstMessageTicketTimeStamp && !!lastMessageTicketTimeStamp) {
+      times.resolution = differenceInSeconds(
+        new Date(firstMessageTicketTimeStamp * 1000),
+        new Date(lastMessageTicketTimeStamp * 1000)
+      );
+    }
+    const responseTimes = [];
+    let lastSenderMessageTime = null;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const message of messageList) {
+      if (isMessageClient(message, whatasappListIDS)) {
+        lastSenderMessageTime = message.mtimestamp;
+      } else if (
+        isMessageNotClient(message, whatasappListIDS) &&
+        lastSenderMessageTime
+      ) {
+        // Calcular el tiempo de respuesta y añadirlo al array
+        const responseTime = message.mtimestamp - lastSenderMessageTime;
+        if (times.firstResponse === null) {
+          times.firstResponse = secondsToDhms(
+            differenceInSeconds(
+              new Date(message.mtimestamp * 1000),
+              new Date(lastSenderMessageTime * 1000)
+            )
+          );
+        }
+        responseTimes.push(responseTime);
+        lastSenderMessageTime = null; // Reset para el próximo par de mensajes
+      }
+    }
+
+    // Calcular el tiempo de respuesta promedio
+    if (responseTimes.length > 0) {
+      times.avgResponse =
+        responseTimes.reduce((acc, time) => acc + time, 0) /
+        responseTimes.length /
+        3600;
+    }
+  }
+  return times;
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const processMessageTicketPendingOrOpen = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messageList: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  whatasappListIDS: any[]
+) => {
+  const times = {
+    firstResponse: null,
+    avgResponse: null,
+    resolution: null,
+    waiting: null,
+    quintalHours: null
+  };
+  let isValidate = true;
+  if (messageList.length === 1 && messageList[0].mid === null) {
+    isValidate = false;
+  }
+
+  if (isValidate) {
+    /**
+     * Ordenos los mensajes por timestamp
+     */
+    /**
+     * Ordenos los mensajes por timestamp
+     */
+    messageList.sort((a, b) => a.mtimestamp - b.mtimestamp);
+    const responseTimes = [];
+    let lastSenderMessageTime = null;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const message of messageList) {
+      // console.log("message", message);
+      if (isMessageClient(message, whatasappListIDS)) {
+        lastSenderMessageTime = message.mtimestamp;
+        // console.log("message-305", lastSenderMessageTime);
+      } else if (
+        isMessageNotClient(message, whatasappListIDS) &&
+        lastSenderMessageTime
+      ) {
+        // console.log("message-310", lastSenderMessageTime);
+        // Calcular el tiempo de respuesta y añadirlo al array
+        // const responseTime = message.mtimestamp - lastSenderMessageTime;
+        const responseTime = differenceInSeconds(
+          new Date(message.mtimestamp * 1000),
+          new Date(lastSenderMessageTime * 1000)
+        );
+        if (times.firstResponse === null) {
+          times.firstResponse = secondsToDhms(responseTime);
+        }
+        // console.log("message-316", responseTime);
+        responseTimes.push(responseTime);
+        lastSenderMessageTime = null; // Reset para el próximo par de mensajes
+      }
+    }
+
+    // Calcular el tiempo de respuesta promedio
+    if (responseTimes.length > 0) {
+      if (lastSenderMessageTime) {
+        times.waiting = differenceInSeconds(
+          new Date(),
+          new Date(lastSenderMessageTime * 1000)
+        );
+      }
+      times.avgResponse =
+        responseTimes.reduce((acc, time) => acc + time, 0) /
+        responseTimes.length;
+      times.avgResponse = secondsToDhms(times.avgResponse);
+    }
+  }
+  return times;
 };
