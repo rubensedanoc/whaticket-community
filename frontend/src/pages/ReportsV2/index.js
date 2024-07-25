@@ -241,6 +241,53 @@ const Reports = () => {
     }
   };
 
+  const getReportToExcel = async ({
+    fromDate,
+    toDate,
+    selectedWhatsappIds,
+    selectedCountryIds,
+  }) => {
+    try {
+      const { data: reportToExcel } = await api.get("/reportToExcel", {
+        params: {
+          fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+          toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+          selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+          selectedCountryIds: JSON.stringify(selectedCountryIds),
+        },
+      });
+
+      if (reportToExcel) {
+        console.log("reportToExcel: ", reportToExcel);
+
+        const dataToExport = reportToExcel.ticketListFinal.map((row) => ({
+          "N. DE TICKET": row.tid,
+          CREACIÓN_FECHA: format(new Date(row.tcreatedAt), "dd-MM-yyyy"),
+          CREACIÓN_HORA: format(new Date(row.tcreatedAt), "HH:mm"),
+          CONTACTO: row.ctname,
+          NUMERO: row.tisGroup ? "NO APLICA" : row.ctname,
+          PAIS: row.ctcname,
+          CONEXIÓN: row.wname,
+          "ES GRUPO?": row.tisGroup ? "SI" : "NO",
+          ASIGNADO: row.tisGroup ? "NO APLICA" : row.uname,
+          ESTADO: row.tstatus,
+          "ESPERANDO?": row.waiting ? "SI" : "NO",
+          "T. PRIMERA RESPUESTA": row.firstResponse,
+          "T. DE RESOLUCIÓN": row.resolution,
+          "T. DE RESPEUSTA PROM.": row.avgResponse,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+        XLSX.writeFile(workbook, `${"WHATREST"}.xlsx`);
+      }
+    } catch (error) {
+      console.log(error);
+      toastError(error);
+    }
+  };
+
   const getReportHistory = async ({
     selectedWhatsappIds,
     selectedCountryIds,
@@ -1364,7 +1411,14 @@ const Reports = () => {
                 <Button
                   variant="contained"
                   style={{ color: "white", backgroundColor: "#2de241" }}
-                  onClick={exportToExcel}
+                  onClick={() =>
+                    getReportToExcel({
+                      fromDate,
+                      toDate,
+                      selectedWhatsappIds,
+                      selectedCountryIds,
+                    })
+                  }
                 >
                   Exportar a Excel
                 </Button>
