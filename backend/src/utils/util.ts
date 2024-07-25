@@ -203,7 +203,9 @@ export const isMessageNotClient = (message: any, whatasappListIDS: any[]) => {
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
 export const processMessageTicketClosed = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messageList: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   whatasappListIDS: any[]
 ) => {
   const times = {
@@ -264,8 +266,11 @@ export const processMessageTicketClosed = (
   return times;
 };
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const processMessageTicketPendingOrOpen = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messageList: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   whatasappListIDS: any[]
 ) => {
   const times = {
@@ -284,16 +289,36 @@ export const processMessageTicketPendingOrOpen = (
     /**
      * Ordenos los mensajes por timestamp
      */
+    /**
+     * Ordenos los mensajes por timestamp
+     */
     messageList.sort((a, b) => a.timestamp - b.timestamp);
-    const firstMessageTicketTimeStamp = messageList[0].timestamp;
-    const lastMessageTicketTimeStamp =
-      messageList[messageList.length - 1].timestamp;
-    if (!!firstMessageTicketTimeStamp && !!lastMessageTicketTimeStamp) {
-      times.resolution =
-        differenceInSeconds(
-          new Date(firstMessageTicketTimeStamp * 1000),
-          new Date(lastMessageTicketTimeStamp * 1000)
-        ) / 3600;
+    const responseTimes = [];
+    let lastSenderMessageTime = null;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const message of messageList) {
+      if (isMessageClient(message, whatasappListIDS)) {
+        lastSenderMessageTime = message.timestamp;
+      } else if (
+        isMessageNotClient(message, whatasappListIDS) &&
+        lastSenderMessageTime
+      ) {
+        // Calcular el tiempo de respuesta y añadirlo al array
+        const responseTime = message.timestamp - lastSenderMessageTime;
+        if (times.firstResponse === null) {
+          times.firstResponse = responseTime / 60;
+        }
+        responseTimes.push(responseTime);
+        lastSenderMessageTime = null; // Reset para el próximo par de mensajes
+      }
+    }
+
+    // Calcular el tiempo de respuesta promedio
+    if (responseTimes.length > 0) {
+      times.avgResponse =
+        responseTimes.reduce((acc, time) => acc + time, 0) /
+        responseTimes.length /
+        3600;
     }
   }
   return times;
