@@ -8,6 +8,7 @@ import toastError from "../../errors/toastError";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
 import ConfirmationModal from "../ConfirmationModal";
+import EditMessageModal from "../EditMessageModal";
 
 const MessageOptionsMenu = ({
   message,
@@ -18,6 +19,7 @@ const MessageOptionsMenu = ({
 }) => {
   const { setReplyingMessage } = useContext(ReplyMessageContext);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [editMessageModalOpen, setEditMessageModalOpen] = useState(false);
 
   const handleDeleteMessage = async () => {
     try {
@@ -50,6 +52,11 @@ const MessageOptionsMenu = ({
     handleClose();
   };
 
+  const handleOpenEditMessageModal = (e) => {
+    setEditMessageModalOpen(true);
+    handleClose();
+  };
+
   return (
     <>
       <ConfirmationModal
@@ -60,6 +67,11 @@ const MessageOptionsMenu = ({
       >
         {i18n.t("messageOptionsMenu.confirmationModal.message")}
       </ConfirmationModal>
+      <EditMessageModal
+        modalOpen={editMessageModalOpen}
+        onClose={() => setEditMessageModalOpen(false)}
+        message={message}
+      />
       <Menu
         anchorEl={anchorEl}
         getContentAnchorEl={null}
@@ -75,9 +87,12 @@ const MessageOptionsMenu = ({
         onClose={handleClose}
       >
         {message.fromMe && (
-          <MenuItem onClick={handleOpenConfirmationModal}>
-            {i18n.t("messageOptionsMenu.delete")}
-          </MenuItem>
+          <>
+            <MenuItem onClick={handleOpenConfirmationModal}>
+              {i18n.t("messageOptionsMenu.delete")}
+            </MenuItem>
+            <MenuItem onClick={handleOpenEditMessageModal}>Editar</MenuItem>
+          </>
         )}
         {canChangeTheIsCompanyMemberFromTheContact && (
           <MenuItem
