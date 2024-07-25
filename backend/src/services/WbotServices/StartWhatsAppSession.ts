@@ -16,11 +16,11 @@ export const StartWhatsAppSession = async (
     session: whatsapp
   });
 
-  // try {
-  //   const wbot = await initWbot(whatsapp);
-  //   wbotMessageListener(wbot);
-  //   wbotMonitor(wbot, whatsapp);
-  // } catch (err) {
-  //   logger.error(err);
-  // }
+  try {
+    const wbot = await initWbot(whatsapp);
+    wbotMessageListener(wbot);
+    wbotMonitor(wbot, whatsapp);
+  } catch (err) {
+    logger.error(err);
+  }
 };
