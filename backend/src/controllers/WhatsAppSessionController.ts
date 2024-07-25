@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { GroupChat } from "whatsapp-web.js";
+import AppError from "../errors/AppError";
 import { getWbot } from "../libs/wbot";
 import Contact from "../models/Contact";
 import GroupContact from "../models/GroupContact";
@@ -121,61 +122,62 @@ const syncGroupContactsTable = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  try {
-    // Extrae el ID de WhatsApp de los parámetros de la solicitud
-    const { whatsappId } = req.params;
+  const { whatsappId } = req.params;
 
-    if (!whatsappId) {
-      throw new Error("whatsappId is missing in request parameters");
-    }
+  if (!whatsappId) {
+    throw new Error("whatsappId is missing in request parameters");
+  }
 
-    console.log("whatsappId:", whatsappId);
+  console.log("whatsappId:", whatsappId);
 
-    // Obtiene la información del servicio de WhatsApp
-    const whatsapp = await ShowWhatsAppService(whatsappId);
+  // Obtiene la información del servicio de WhatsApp
+  const whatsapp = await ShowWhatsAppService(whatsappId);
 
-    if (!whatsapp) {
-      throw new Error("WhatsApp service not found");
-    }
+  if (!whatsapp) {
+    throw new Error("WhatsApp service not found");
+  }
 
-    console.log("whatsapp:", whatsapp);
+  console.log("whatsapp:", whatsapp);
 
-    // Obtiene el bot de WhatsApp usando el ID del servicio de WhatsApp
-    const wbot = getWbot(whatsapp.id);
+  // Obtiene el bot de WhatsApp usando el ID del servicio de WhatsApp
+  const wbot = getWbot(whatsapp.id);
 
-    if (!wbot) {
-      throw new Error("WhatsApp bot not found");
-    }
+  if (!wbot) {
+    throw new Error("WhatsApp bot not found");
+  }
 
-    console.log("wbot:", wbot);
+  console.log("wbot:", wbot);
 
-    // Obtiene todos los chats del bot de WhatsApp
-    let allChats = await wbot.getChats();
+  // Obtiene todos los chats del bot de WhatsApp
+  let allChats = await wbot.getChats();
 
-    if (!allChats) {
-      throw new Error("No chats found");
-    }
+  if (!allChats) {
+    throw new Error("No chats found");
+  }
 
-    console.log("allChats:", allChats.length);
+  console.log("allChats:", allChats.length);
 
-    // Filtra los chats para obtener solo los grupos
-    const groupChats = allChats.filter(chat => chat.isGroup);
+  // Filtra los chats para obtener solo los grupos
+  const groupChats = allChats.filter(chat => chat.isGroup);
 
-    console.log("groupChats:", groupChats.length);
+  console.log("groupChats:", groupChats.length);
 
-    for (const groupChat of groupChats) {
+  // Extrae el ID de WhatsApp de los parámetros de la solicitud
+
+  for (const groupChat of groupChats) {
+    try {
       const groupChatDetails = groupChat as GroupChat;
 
-      console.log("Processing groupChat:", groupChatDetails);
+      console.log("------------ Processing groupChat:", groupChatDetails.name);
 
-      console.log(
-        "groupChatDetails: to search in db",
-        groupChatDetails.id.user
-      );
+      // console.log(
+      //   "groupChatDetails: to search in db",
+      //   groupChatDetails.id.user
+      // );
 
       // Verifica que groupChatDetails.id.user exista
       if (!groupChatDetails.id || !groupChatDetails.id.user) {
-        throw new Error("Group chat details are missing id or user");
+        throw new AppError("Group chat details are missing id or user");
       }
 
       // Busca el contacto del grupo en nuestra base de datos
@@ -185,14 +187,14 @@ const syncGroupContactsTable = async (
         }
       });
 
-      console.log("groupContactInDB:", groupContactInDB);
+      // console.log("groupContactInDB:", groupContactInDB.id);
 
       // Si el contacto del grupo no está en nuestra base de datos, no sincroniza sus contactos
       if (groupContactInDB) {
         const groupParticipants = groupChatDetails.participants;
 
         if (!groupParticipants) {
-          throw new Error("Group participants not found");
+          throw new AppError("Group participants not found");
         }
 
         console.log("groupParticipants:", groupParticipants.length);
@@ -200,7 +202,7 @@ const syncGroupContactsTable = async (
         for (const participant of groupParticipants) {
           // Verifica que participant.id.user exista
           if (!participant.id || !participant.id.user) {
-            throw new Error("Participant details are missing id or user");
+            throw new AppError("Participant details are missing id or user");
           }
 
           // Busca el contacto del participante en nuestra base de datos
@@ -212,8 +214,8 @@ const syncGroupContactsTable = async (
 
           let participantContactId;
 
-          console.log("participant:", participant);
-          console.log("participantInDb:", participantContactInDB);
+          // console.log("participant:", participant);
+          // console.log("participantInDb:", participantContactInDB);
 
           // Si el participante no está registrado en nuestra base de datos, obtén su información y verifica su contacto
           if (!participantContactInDB) {
@@ -223,17 +225,17 @@ const syncGroupContactsTable = async (
               participant.id._serialized
             );
 
-            console.log("participantNotInDB:", participantNotInDB);
+            // console.log("participantNotInDB:", participantNotInDB);
 
             if (participantNotInDB) {
               const verifiedParticipantContact = await verifyContact(
                 participantNotInDB
               );
 
-              console.log(
-                "verifiedParticipantContact:",
-                verifiedParticipantContact
-              );
+              // console.log(
+              //   "verifiedParticipantContact:",
+              //   verifiedParticipantContact
+              // );
 
               if (verifiedParticipantContact) {
                 participantContactId = verifiedParticipantContact.id;
@@ -287,11 +289,10 @@ const syncGroupContactsTable = async (
       } else {
         console.log("Group contact not found in DB:", groupChatDetails.id.user);
       }
+    } catch (error) {
+      console.log("Error on sync a groupChat:", groupChat.id);
+      console.log("error: ", error);
     }
-  } catch (error) {
-    console.log("Error syncing group contacts table:", error);
-
-    return res.status(400).json({ success: false, error: error.message });
   }
 
   return res.status(200).json({

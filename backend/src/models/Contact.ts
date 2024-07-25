@@ -1,9 +1,11 @@
 import {
   AllowNull,
   AutoIncrement,
+  BelongsTo,
   Column,
   CreatedAt,
   Default,
+  ForeignKey,
   HasMany,
   Model,
   PrimaryKey,
@@ -12,6 +14,7 @@ import {
   UpdatedAt
 } from "sequelize-typescript";
 import ContactCustomField from "./ContactCustomField";
+import Country from "./Country";
 import Ticket from "./Ticket";
 
 @Table
@@ -53,6 +56,13 @@ class Contact extends Model<Contact> {
 
   @UpdatedAt
   updatedAt: Date;
+
+  @ForeignKey(() => Country)
+  @Column
+  countryId: number;
+
+  @BelongsTo(() => Country)
+  country: Country;
 
   @HasMany(() => Ticket)
   tickets: Ticket[];

@@ -3,6 +3,7 @@ import Category from "../models/Category";
 import ChatbotOption from "../models/ChatbotOption";
 import Contact from "../models/Contact";
 import ContactCustomField from "../models/ContactCustomField";
+import Country from "../models/Country";
 import GroupContact from "../models/GroupContact";
 import Message from "../models/Message";
 import Queue from "../models/Queue";
@@ -44,7 +45,8 @@ const models = [
   QuickAnswer,
   ChatbotOption,
   TicketParticipantUsers,
-  TicketLog
+  TicketLog,
+  Country
 ];
 
 sequelize.addModels(models);
