@@ -1440,7 +1440,7 @@ export const reportToExcel = async (
 
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
-    ticketListFind,
+    // ticketListFind,
     ticketListFinal,
     sql,
     logsTime
