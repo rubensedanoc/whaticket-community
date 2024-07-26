@@ -1385,8 +1385,9 @@ export const reportToExcel = async (
       times.resolution = secondsToDhms(times.resolution);
       timesQuintalResponse.forEach(quintal => {
         if (
-          (quintal.max === -1 && resolutionHours >= quintal.min) ||
-          (resolutionHours >= quintal.min && resolutionHours < quintal.max)
+          times.quintalHours === null &&
+          ((quintal.max === -1 && resolutionHours >= quintal.min) ||
+            (resolutionHours >= quintal.min && resolutionHours < quintal.max))
         ) {
           times.quintalHours = quintal.label;
         }
@@ -1417,8 +1418,9 @@ export const reportToExcel = async (
       times.waiting = secondsToDhms(times.waiting);
       timesQuintalWaitingResponse.forEach(quintal => {
         if (
-          (quintal.max === -1 && waitingHours >= quintal.min) ||
-          (waitingHours >= quintal.min && waitingHours < quintal.max)
+          times.quintalHours === null &&
+          ((quintal.max === -1 && waitingHours >= quintal.min) ||
+            (waitingHours >= quintal.min && waitingHours < quintal.max))
         ) {
           times.quintalHours = quintal.label;
         }
