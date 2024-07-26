@@ -1246,7 +1246,7 @@ export const reportToExcel = async (
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.status != 'pending' and t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
