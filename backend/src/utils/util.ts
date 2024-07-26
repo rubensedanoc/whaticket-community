@@ -1,4 +1,4 @@
-import { differenceInSeconds, format, parse, parseISO } from "date-fns";
+import { differenceInSeconds, format } from "date-fns";
 
 export const formatDateToMySQL = (dateStrIn: string): string => {
   const dateStr = dateStrIn;
@@ -182,19 +182,19 @@ export const groupDateWithRange = (
   return datesGenerate;
 };
 export const secondsToDhms = seconds => {
-  const d = Math.floor(seconds / (3600 * 24));
-  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  // const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   // eslint-disable-next-line radix
   const s = parseInt((seconds % 60).toString());
 
-  const dTxt = d < 10 ? `0${d}` : d;
+  // const dTxt = d < 10 ? `0${d}` : d;
   const hTxt = h < 10 ? `0${h}` : h;
   const mTxt = m < 10 ? `0${m}` : m;
   const sTxt = s < 10 ? `0${s}` : s;
-  if (d > 0) {
-    return `${dTxt} dias ${hTxt}:${mTxt}:${sTxt}`;
-  }
+  // if (d > 0) {
+  //   return `${dTxt} dias ${hTxt}:${mTxt}:${sTxt}`;
+  // }
   return `${hTxt}:${mTxt}:${sTxt}`;
 };
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
