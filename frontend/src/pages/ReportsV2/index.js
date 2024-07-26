@@ -265,7 +265,7 @@ const Reports = () => {
           CREACIÓN_FECHA: format(new Date(row.tcreatedAt), "dd-MM-yyyy"),
           CREACIÓN_HORA: format(new Date(row.tcreatedAt), "HH:mm"),
           CONTACTO: row.ctname,
-          NUMERO: row.tisGroup ? "NO APLICA" : row.ctname,
+          NUMERO: row.tisGroup ? "NO APLICA" : row.ctnumber,
           PAIS: row.ctcname,
           CONEXIÓN: row.wname,
           "ES GRUPO?": row.tisGroup ? "SI" : "NO",
@@ -275,6 +275,7 @@ const Reports = () => {
           "T. PRIMERA RESPUESTA": row.firstResponse,
           "T. DE RESOLUCIÓN": row.resolution,
           "T. DE RESPEUSTA PROM.": row.avgResponse,
+          QUINTAL: row.quintalHours,
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
