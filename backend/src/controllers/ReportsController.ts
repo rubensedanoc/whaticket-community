@@ -1444,7 +1444,6 @@ export const reportToExcel = async (
   return res.status(200).json({
     // ticketListFind,
     ticketListFinal,
-    ticketsClosed,
     sql,
     logsTime
   });
