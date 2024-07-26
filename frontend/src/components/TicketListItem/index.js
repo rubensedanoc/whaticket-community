@@ -20,6 +20,7 @@ import TicketPreviewModal from "../TicketPreviewModal";
 
 import Typography from "@material-ui/core/Typography";
 import { green } from "@material-ui/core/colors";
+
 import { makeStyles } from "@material-ui/core/styles";
 
 import IconButton from "@material-ui/core/IconButton";
@@ -376,6 +377,15 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                   style={{ display: "flex", alignItems: "center", gap: "4px" }}
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {ticket.contact?.countryId && (
+                    <>
+                      <img
+                        src={`/paises/${ticket.contact?.countryId}.png`}
+                        alt={`País: ${ticket.contact?.countryId}`}
+                        width="25"
+                      />
+                    </>
+                  )}
                   {/* USER */}
                   {ticket.isGroup && ticket.participantUsers.length > 0 && (
                     <Tooltip
@@ -389,7 +399,6 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     </Tooltip>
                   )}
                   {/* - USER */}
-
                   {/* USER */}
                   {!ticket.isGroup && ticket.userId && (
                     <Tooltip
@@ -406,7 +415,6 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     </Tooltip>
                   )}
                   {/* - USER */}
-
                   {/* WPP */}
                   {ticket.whatsappId && (
                     <Tooltip
@@ -420,7 +428,6 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     </Tooltip>
                   )}
                   {/* WPP */}
-
                   <IconButton
                     size="small"
                     onClick={(e) => {
@@ -430,13 +437,11 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                   >
                     <VisibilityOutlinedIcon fontSize="medium" />
                   </IconButton>
-
                   <TicketPreviewModal
                     ticket={ticket}
                     open={previewModalIsOpen}
                     onClose={() => setPreviewModalIsOpen(false)}
                   />
-
                   {/* UNREAD MESSAGES */}
                   {ticket.unreadMessages > 0 && (
                     <Chip
