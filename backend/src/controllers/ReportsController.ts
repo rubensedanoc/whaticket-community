@@ -377,7 +377,8 @@ export const getOpenOrPendingTicketsWithLastMessages = async (
 ): Promise<Response> => {
   console.log("---------------getOpenOrPendingTicketsWithLastMessages");
 
-  const { selectedWhatsappIds: selectedUserIdsAsString } = req.query as IndexQuery;
+  const { selectedWhatsappIds: selectedUserIdsAsString } =
+    req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as number[];
 
@@ -1269,6 +1270,7 @@ export const reportToExcel = async (
     t.id as tid,
     t.isGroup as tisGroup,
     t.createdAt as tcreatedAt,
+    que.name as queuename,
     t.status as tstatus,
     m.id as mid,
     m.timestamp as mtimestamp,
@@ -1293,6 +1295,7 @@ export const reportToExcel = async (
   LEFT JOIN Countries ctc ON ct.countryId = ctc.id
   LEFT JOIN Messages m ON t.id = m.ticketId
   LEFT JOIN Contacts c ON m.contactId = c.id
+  LEFT JOIN Queues que ON t.queueId = que.id
   WHERE
   ${sqlWhereAdd}`;
   console.log("sql", sql);
@@ -1403,6 +1406,7 @@ export const reportToExcel = async (
       ctcname: ticketsClosed[ticketId][0].ctcname,
       ctnumber: ticketsClosed[ticketId][0].ctnumber,
       tcreatedAt: ticketsClosed[ticketId][0].tcreatedAt,
+      queuename: ticketsClosed[ticketId][0].queuename,
       ...times
     });
   }
@@ -1436,6 +1440,7 @@ export const reportToExcel = async (
       ctcname: ticketsPendingOpen[ticketId][0].ctcname,
       ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
       tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
+      queuename: ticketsPendingOpen[ticketId][0].queuename,
       ...times
     });
   }

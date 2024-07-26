@@ -269,6 +269,7 @@ const Reports = () => {
           PAIS: row.ctcname,
           CONEXIÓN: row.wname,
           "ES GRUPO?": row.tisGroup ? "SI" : "NO",
+          DEPARTAMENTO: row.queuename,
           ASIGNADO: row.tisGroup ? "NO APLICA" : row.uname,
           ESTADO: row.tstatus,
           "ESPERANDO?": row.waiting ? "SI" : "NO",
