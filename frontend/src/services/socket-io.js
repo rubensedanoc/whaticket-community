@@ -4,7 +4,7 @@ import { getNodeUrl } from "../config";
 function connectToSocket(userId) {
   const token = localStorage.getItem("token");
   return openSocket(getNodeUrl(), {
-    transports: ["websocket", "polling", "flashsocket"],
+    transports: ["websocket"],
     query: {
       token: JSON.parse(token),
       ...(userId && { userId }),
