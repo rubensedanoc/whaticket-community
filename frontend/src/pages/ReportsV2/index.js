@@ -234,6 +234,17 @@ const Reports = () => {
         setCloseQuintilesTimes(reportHistoryWithDateRange.timesQuintalResponse);
       }
 
+      const { data: reportToUsers } = await api.get("/reportToUsers", {
+        params: {
+          fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+          toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+          selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+          selectedCountryIds: JSON.stringify(selectedCountryIds),
+        },
+      });
+
+      console.log("reportToUsers: ", reportToUsers);
+
       setLoadingReportHistoryWithDateRange(false);
     } catch (error) {
       console.log(error);
