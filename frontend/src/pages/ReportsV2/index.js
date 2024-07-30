@@ -281,6 +281,7 @@ const Reports = () => {
           CONEXIÓN: row.wname,
           "ES GRUPO?": row.tisGroup ? "SI" : "NO",
           DEPARTAMENTO: row.queuename,
+          CATEGORIA: row.tcategoryname,
           ASIGNADO: row.tisGroup ? "NO APLICA" : row.uname,
           ESTADO: row.tstatus,
           "ESPERANDO?": row.waiting ? "SI" : "NO",

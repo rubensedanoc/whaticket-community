@@ -1444,6 +1444,48 @@ export const reportToExcel = async (
       ...times
     });
   }
+
+  console.log(
+    "-----------:",
+    `
+    SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
+      .map(ticket => ticket.tid)
+      .join(",")}) ORDER BY tc.updatedAt DESC
+    `
+  );
+
+  let ticketListFinalCategories: any[] = await Ticket.sequelize.query(
+    `
+    SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
+      .map(ticket => ticket.tid)
+      .join(",")}) ORDER BY tc.updatedAt DESC
+    `,
+    {
+      type: QueryTypes.SELECT
+    }
+  );
+
+  ticketListFinalCategories = ticketListFinalCategories.reduce(
+    (result, currentValue: any) => {
+      const currentValueInResult = result.find(
+        ticket => ticket.ticketId === currentValue.ticketId
+      );
+      if (!currentValueInResult) {
+        result.push(currentValue);
+      }
+      return result;
+    },
+    []
+  );
+
+  for (const ticketCategory of ticketListFinalCategories) {
+    if (ticketListFinal.find(t => t.tid === ticketCategory.ticketId)) {
+      ticketListFinal.find(
+        t => t.tid === ticketCategory.ticketId
+      ).tcategoryname = ticketCategory.name;
+    }
+  }
+
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
     // ticketListFind,
