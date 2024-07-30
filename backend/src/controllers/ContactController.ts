@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import * as Yup from "yup";
-import { getIO } from "../libs/socket";
 
 import CreateContactService from "../services/ContactServices/CreateContactService";
 import DeleteContactService from "../services/ContactServices/DeleteContactService";
@@ -9,6 +8,7 @@ import ShowContactService from "../services/ContactServices/ShowContactService";
 import UpdateContactService from "../services/ContactServices/UpdateContactService";
 
 import AppError from "../errors/AppError";
+import { emitEvent } from "../libs/emitEvent";
 import { getWbot, getWbots } from "../libs/wbot";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
@@ -106,11 +106,21 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     profilePicUrl
   });
 
-  const io = getIO();
-  io.emit("contact", {
-    action: "create",
-    contact
+  emitEvent({
+    event: {
+      name: "contact",
+      data: {
+        action: "create",
+        contact
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("contact", {
+  //   action: "create",
+  //   contact
+  // });
 
   return res.status(200).json(contact);
 };
@@ -204,11 +214,21 @@ export const remove = async (
 
   await DeleteContactService(contactId);
 
-  const io = getIO();
-  io.emit("contact", {
-    action: "delete",
-    contactId
+  emitEvent({
+    event: {
+      name: "contact",
+      data: {
+        action: "delete",
+        contactId
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("contact", {
+  //   action: "delete",
+  //   contactId
+  // });
 
   return res.status(200).json({ message: "Contact deleted" });
 };

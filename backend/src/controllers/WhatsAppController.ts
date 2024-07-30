@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
 import { removeWbot } from "../libs/wbot";
 import { StartWhatsAppSession } from "../services/WbotServices/StartWhatsAppSession";
 
+import { emitEvent } from "../libs/emitEvent";
 import CreateWhatsAppService from "../services/WhatsappService/CreateWhatsAppService";
 import DeleteWhatsAppService from "../services/WhatsappService/DeleteWhatsAppService";
 import ListWhatsAppsService from "../services/WhatsappService/ListWhatsAppsService";
@@ -45,17 +45,37 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   StartWhatsAppSession(whatsapp);
 
-  const io = getIO();
-  io.emit("whatsapp", {
-    action: "update",
-    whatsapp
+  emitEvent({
+    event: {
+      name: "whatsapp",
+      data: {
+        action: "update",
+        whatsapp
+      }
+    }
   });
 
+  // const io = getIO();
+  // io.emit("whatsapp", {
+  //   action: "update",
+  //   whatsapp
+  // });
+
   if (oldDefaultWhatsapp) {
-    io.emit("whatsapp", {
-      action: "update",
-      whatsapp: oldDefaultWhatsapp
+    emitEvent({
+      event: {
+        name: "whatsapp",
+        data: {
+          action: "update",
+          whatsapp: oldDefaultWhatsapp
+        }
+      }
     });
+
+    // io.emit("whatsapp", {
+    //   action: "update",
+    //   whatsapp: oldDefaultWhatsapp
+    // });
   }
 
   return res.status(200).json(whatsapp);
@@ -81,17 +101,37 @@ export const update = async (
     whatsappId
   });
 
-  const io = getIO();
-  io.emit("whatsapp", {
-    action: "update",
-    whatsapp
+  emitEvent({
+    event: {
+      name: "whatsapp",
+      data: {
+        action: "update",
+        whatsapp
+      }
+    }
   });
 
+  // const io = getIO();
+  // io.emit("whatsapp", {
+  //   action: "update",
+  //   whatsapp
+  // });
+
   if (oldDefaultWhatsapp) {
-    io.emit("whatsapp", {
-      action: "update",
-      whatsapp: oldDefaultWhatsapp
+    emitEvent({
+      event: {
+        name: "whatsapp",
+        data: {
+          action: "update",
+          whatsapp: oldDefaultWhatsapp
+        }
+      }
     });
+
+    // io.emit("whatsapp", {
+    //   action: "update",
+    //   whatsapp: oldDefaultWhatsapp
+    // });
   }
 
   return res.status(200).json(whatsapp);
@@ -106,11 +146,21 @@ export const remove = async (
   await DeleteWhatsAppService(whatsappId);
   removeWbot(+whatsappId);
 
-  const io = getIO();
-  io.emit("whatsapp", {
-    action: "delete",
-    whatsappId: +whatsappId
+  emitEvent({
+    event: {
+      name: "whatsapp",
+      data: {
+        action: "delete",
+        whatsappId: +whatsappId
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("whatsapp", {
+  //   action: "delete",
+  //   whatsappId: +whatsappId
+  // });
 
   return res.status(200).json({ message: "Whatsapp deleted." });
 };
