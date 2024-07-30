@@ -1494,10 +1494,10 @@ export const reportToUsers = async (
     currentValue.ticketOpenCount = 0;
     currentValue.timeWaitingCount = 0;
     currentValue.timeWaitingSecounds = 0;
-    if (!result[currentValue?.tid]) {
-      result[currentValue.tid] = [];
+    if (!result[currentValue?.id]) {
+      result[currentValue.id] = [];
     }
-    result[currentValue.tid].push(currentValue);
+    result[currentValue.id].push(currentValue);
     return result;
   }, {});
   // eslint-disable-next-line no-restricted-syntax, guard-for-in
@@ -1711,7 +1711,8 @@ export const reportToUsers = async (
   }
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
-    usersListAll,
+    // usersListAll,
+    usersListFind,
     sql,
     logsTime
   });
