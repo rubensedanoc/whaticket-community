@@ -1,4 +1,5 @@
 import { QueryTypes } from "sequelize";
+import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
 import Contact from "../../models/Contact";
 import Country from "../../models/Country";
@@ -36,10 +37,20 @@ const CreateOrUpdateContactService = async ({
     if (profilePicUrl) {
       contact.update({ profilePicUrl });
 
-      io.emit("contact", {
-        action: "update",
-        contact
+      emitEvent({
+        event: {
+          name: "contact",
+          data: {
+            action: "update",
+            contact
+          }
+        }
       });
+
+      // io.emit("contact", {
+      //   action: "update",
+      //   contact
+      // });
     }
   } else {
     try {
@@ -59,10 +70,20 @@ const CreateOrUpdateContactService = async ({
         ...(countryId && { countryId })
       });
 
-      io.emit("contact", {
-        action: "create",
-        contact
+      emitEvent({
+        event: {
+          name: "contact",
+          data: {
+            action: "create",
+            contact
+          }
+        }
       });
+
+      // io.emit("contact", {
+      //   action: "create",
+      //   contact
+      // });
     } catch (error) {
       console.log("---- Error al crear contacto", error);
 
@@ -99,10 +120,20 @@ const CreateOrUpdateContactService = async ({
           ...(countryId && { countryId })
         });
 
-        io.emit("contact", {
-          action: "create",
-          contact
+        emitEvent({
+          event: {
+            name: "contact",
+            data: {
+              action: "create",
+              contact
+            }
+          }
         });
+
+        // io.emit("contact", {
+        //   action: "create",
+        //   contact
+        // });
       } else {
         console.log(
           "---- En la segunda verificación, El contacto ya existe: ",

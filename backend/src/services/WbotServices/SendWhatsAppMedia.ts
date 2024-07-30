@@ -22,6 +22,10 @@ const SendWhatsAppMedia = async ({
   ticket,
   body
 }: Request): Promise<WbotMessage> => {
+  if (media.size > 80000000) {
+    throw new AppError("Archivo supera el tamaño máximo permitido (80mb)");
+  }
+
   try {
     const wbot = await GetTicketWbot(ticket);
     const hasBody = body

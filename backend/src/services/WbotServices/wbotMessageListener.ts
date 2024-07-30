@@ -17,6 +17,7 @@ import Ticket from "../../models/Ticket";
 import { debounce } from "../../helpers/Debounce";
 import formatBody from "../../helpers/Mustache";
 import { getConnectedUsers } from "../../libs/connectedUsers";
+import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
 import { logger } from "../../utils/logger";
 import timeoutPromise from "../../utils/timeoutPromise";
@@ -101,12 +102,22 @@ const verifyContactForSyncUnreadMessages = async (
       extraInfo: []
     });
 
-    const io = getIO();
-
-    io.emit("contact", {
-      action: "create",
-      contact
+    emitEvent({
+      event: {
+        name: "contact",
+        data: {
+          action: "create",
+          contact
+        }
+      }
     });
+
+    // const io = getIO();
+
+    // io.emit("contact", {
+    //   action: "create",
+    //   contact
+    // });
   }
 
   // const contact = CreateOrUpdateContactService(contactData);

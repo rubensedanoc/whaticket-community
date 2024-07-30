@@ -1,14 +1,14 @@
-import * as Yup from "yup";
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import * as Yup from "yup";
 
-import ListQuickAnswerService from "../services/QuickAnswerService/ListQuickAnswerService";
 import CreateQuickAnswerService from "../services/QuickAnswerService/CreateQuickAnswerService";
+import DeleteQuickAnswerService from "../services/QuickAnswerService/DeleteQuickAnswerService";
+import ListQuickAnswerService from "../services/QuickAnswerService/ListQuickAnswerService";
 import ShowQuickAnswerService from "../services/QuickAnswerService/ShowQuickAnswerService";
 import UpdateQuickAnswerService from "../services/QuickAnswerService/UpdateQuickAnswerService";
-import DeleteQuickAnswerService from "../services/QuickAnswerService/DeleteQuickAnswerService";
 
 import AppError from "../errors/AppError";
+import { emitEvent } from "../libs/emitEvent";
 
 type IndexQuery = {
   searchParam: string;
@@ -49,11 +49,21 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     ...newQuickAnswer
   });
 
-  const io = getIO();
-  io.emit("quickAnswer", {
-    action: "create",
-    quickAnswer
+  emitEvent({
+    event: {
+      name: "quickAnswer",
+      data: {
+        action: "create",
+        quickAnswer
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("quickAnswer", {
+  //   action: "create",
+  //   quickAnswer
+  // });
 
   return res.status(200).json(quickAnswer);
 };
@@ -90,11 +100,21 @@ export const update = async (
     quickAnswerId
   });
 
-  const io = getIO();
-  io.emit("quickAnswer", {
-    action: "update",
-    quickAnswer
+  emitEvent({
+    event: {
+      name: "quickAnswer",
+      data: {
+        action: "update",
+        quickAnswer
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("quickAnswer", {
+  //   action: "update",
+  //   quickAnswer
+  // });
 
   return res.status(200).json(quickAnswer);
 };
@@ -107,11 +127,21 @@ export const remove = async (
 
   await DeleteQuickAnswerService(quickAnswerId);
 
-  const io = getIO();
-  io.emit("quickAnswer", {
-    action: "delete",
-    quickAnswerId
+  emitEvent({
+    event: {
+      name: "quickAnswer",
+      data: {
+        action: "delete",
+        quickAnswerId
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("quickAnswer", {
+  //   action: "delete",
+  //   quickAnswerId
+  // });
 
   return res.status(200).json({ message: "Quick Answer deleted" });
 };

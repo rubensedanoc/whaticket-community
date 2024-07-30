@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { emitEvent } from "../libs/emitEvent";
 import UserQueue from "../models/UserQueue";
 import AssociateQueueWithUserService from "../services/QueueService/AssociateQueueWithUserService";
 import CreateQueueService from "../services/QueueService/CreateQueueService";
@@ -19,11 +19,21 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   const queue = await CreateQueueService({ name, color, greetingMessage });
 
-  const io = getIO();
-  io.emit("queue", {
-    action: "update",
-    queue
+  emitEvent({
+    event: {
+      name: "queue",
+      data: {
+        action: "update",
+        queue
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("queue", {
+  //   action: "update",
+  //   queue
+  // });
 
   return res.status(200).json(queue);
 };
@@ -44,11 +54,21 @@ export const update = async (
 
   const queue = await UpdateQueueService(queueId, req.body);
 
-  const io = getIO();
-  io.emit("queue", {
-    action: "update",
-    queue
+  emitEvent({
+    event: {
+      name: "queue",
+      data: {
+        action: "update",
+        queue
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("queue", {
+  //   action: "update",
+  //   queue
+  // });
 
   return res.status(201).json(queue);
 };
@@ -61,11 +81,21 @@ export const remove = async (
 
   await DeleteQueueService(queueId);
 
-  const io = getIO();
-  io.emit("queue", {
-    action: "delete",
-    queueId: +queueId
+  emitEvent({
+    event: {
+      name: "queue",
+      data: {
+        action: "delete",
+        queueId: +queueId
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("queue", {
+  //   action: "delete",
+  //   queueId: +queueId
+  // });
 
   return res.status(200).send();
 };

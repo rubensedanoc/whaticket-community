@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { emitEvent } from "../libs/emitEvent";
 import CreateCategoryService from "../services/CategoryService/CreateCategoryService";
 import DeleteCategoryService from "../services/CategoryService/DeleteCategoryService";
 import ListCategorysService from "../services/CategoryService/ListCategorysService";
@@ -20,11 +20,21 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     color
   });
 
-  const io = getIO();
-  io.emit("category", {
-    action: "update",
-    category
+  emitEvent({
+    event: {
+      name: "category",
+      data: {
+        action: "update",
+        category
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("category", {
+  //   action: "update",
+  //   category
+  // });
 
   /* const ioClient = getIOClient();
   ioClient.emit("category", {
@@ -51,11 +61,21 @@ export const update = async (
 
   const category = await UpdateCategoryService(categoryId, req.body);
 
-  const io = getIO();
-  io.emit("category", {
-    action: "update",
-    category
+  emitEvent({
+    event: {
+      name: "category",
+      data: {
+        action: "update",
+        category
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("category", {
+  //   action: "update",
+  //   category
+  // });
 
   return res.status(201).json(category);
 };
@@ -68,11 +88,21 @@ export const remove = async (
 
   await DeleteCategoryService(categoryId);
 
-  const io = getIO();
-  io.emit("category", {
-    action: "delete",
-    categoryId: +categoryId
+  emitEvent({
+    event: {
+      name: "category",
+      data: {
+        action: "delete",
+        categoryId: +categoryId
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("category", {
+  //   action: "delete",
+  //   categoryId: +categoryId
+  // });
 
   return res.status(200).send();
 };

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { emitEvent } from "../libs/emitEvent";
 import CreateChatbotOptionService from "../services/ChatbotOptionService/CreateChatbotOptionService";
 import DeleteChatbotOptionService from "../services/ChatbotOptionService/DeleteChatbotOptionService";
 import ListChatbotOptionService from "../services/ChatbotOptionService/ListChatbotOptionService";
@@ -22,11 +22,21 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     fatherChatbotOptionId
   });
 
-  const io = getIO();
-  io.emit("chatbotOption", {
-    action: "update",
-    chatbotOption
+  emitEvent({
+    event: {
+      name: "chatbotOption",
+      data: {
+        action: "update",
+        chatbotOption
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("chatbotOption", {
+  //   action: "update",
+  //   chatbotOption
+  // });
 
   return res.status(200).json(chatbotOption);
 };
@@ -50,11 +60,21 @@ export const update = async (
     chatbotOptionData: req.body
   });
 
-  const io = getIO();
-  io.emit("chatbotOption", {
-    action: "update",
-    chatbotOption
+  emitEvent({
+    event: {
+      name: "chatbotOption",
+      data: {
+        action: "update",
+        chatbotOption
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("chatbotOption", {
+  //   action: "update",
+  //   chatbotOption
+  // });
 
   return res.status(201).json(chatbotOption);
 };
@@ -67,11 +87,21 @@ export const remove = async (
 
   await DeleteChatbotOptionService(chatbotOptionId);
 
-  const io = getIO();
-  io.emit("chatbotOption", {
-    action: "delete",
-    chatbotOptionId: +chatbotOptionId
+  emitEvent({
+    event: {
+      name: "chatbotOption",
+      data: {
+        action: "delete",
+        chatbotOptionId: +chatbotOptionId
+      }
+    }
   });
+
+  // const io = getIO();
+  // io.emit("chatbotOption", {
+  //   action: "delete",
+  //   chatbotOptionId: +chatbotOptionId
+  // });
 
   return res.status(200).send();
 };

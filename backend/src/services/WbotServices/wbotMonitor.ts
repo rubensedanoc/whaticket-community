@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { Client } from "whatsapp-web.js";
 
+import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
@@ -27,10 +28,20 @@ const wbotMonitor = async (
         logger.error(err);
       }
 
-      io.emit("whatsappSession", {
-        action: "update",
-        session: whatsapp
+      emitEvent({
+        event: {
+          name: "whatsappSession",
+          data: {
+            action: "update",
+            session: whatsapp
+          }
+        }
       });
+
+      // io.emit("whatsappSession", {
+      //   action: "update",
+      //   session: whatsapp
+      // });
     });
 
     wbot.on("change_battery", async batteryInfo => {
@@ -46,10 +57,20 @@ const wbotMonitor = async (
         logger.error(err);
       }
 
-      io.emit("whatsappSession", {
-        action: "update",
-        session: whatsapp
+      emitEvent({
+        event: {
+          name: "whatsappSession",
+          data: {
+            action: "update",
+            session: whatsapp
+          }
+        }
       });
+
+      // io.emit("whatsappSession", {
+      //   action: "update",
+      //   session: whatsapp
+      // });
     });
 
     wbot.on("disconnected", async reason => {
@@ -61,10 +82,20 @@ const wbotMonitor = async (
         logger.error(err);
       }
 
-      io.emit("whatsappSession", {
-        action: "update",
-        session: whatsapp
+      emitEvent({
+        event: {
+          name: "whatsappSession",
+          data: {
+            action: "update",
+            session: whatsapp
+          }
+        }
       });
+
+      // io.emit("whatsappSession", {
+      //   action: "update",
+      //   session: whatsapp
+      // });
 
       setTimeout(() => StartWhatsAppSession(whatsapp), 2000);
     });

@@ -47,7 +47,7 @@ const UpdateCategoryService = async (
         async value => {
           if (value) {
             const categoryWithSameColor = await Category.findOne({
-              where: { color: value }
+              where: { color: value, id: { [Op.not]: categoryId } }
             });
             return !categoryWithSameColor;
           }
