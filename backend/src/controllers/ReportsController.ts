@@ -1506,6 +1506,8 @@ export const reportToUsers = async (
       ticketCount: 0,
       ticketClosedCount: 0,
       ticketOpenCount: 0,
+      timeWaitingCount: 0,
+      timeWaitingSecounds: 0,
       name: usersListFind[userId].name
     };
   }
