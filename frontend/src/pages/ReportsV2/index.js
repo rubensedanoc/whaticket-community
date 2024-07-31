@@ -18,6 +18,7 @@ import TextField from "@material-ui/core/TextField";
 import ButtonWithSpinner from "../../components/ButtonWithSpinner";
 import MainHeader from "../../components/MainHeader";
 import ReportsCountrySelect from "../../components/ReportsCountrySelect";
+import ReportsTicketTypeSelect from "../../components/ReportsTicketTypeSelect";
 import ReportsWhatsappSelect from "../../components/ReportsWhatsappSelect";
 import TicketListModal from "../../components/TicketListModal";
 import Title from "../../components/Title";
@@ -89,6 +90,8 @@ const Reports = () => {
   const [countries, setCountries] = useState([]);
   const [selectedCountryIds, setSelectedCountryIds] = useState([]);
 
+  const [selectedTypes, setSelectedTypes] = useState([]);
+
   const [createdTicketsData, setCreatedTicketsData] = useState(null);
   const [createdTicketsCount, setCreatedTicketsCount] = useState(null);
   const [createdTicketsChartData, setCreatedTicketsChartData] = useState(null);
@@ -159,6 +162,11 @@ const Reports = () => {
         JSON.parse(localStorage.getItem("ReportsCountrySelect"))
       );
     }
+    if (localStorage.getItem("ReportsTicketTypeSelect")) {
+      setSelectedTypes(
+        JSON.parse(localStorage.getItem("ReportsTicketTypeSelect"))
+      );
+    }
 
     getReportHistory({
       selectedWhatsappIds:
@@ -167,6 +175,9 @@ const Reports = () => {
       selectedCountryIds:
         JSON.parse(localStorage.getItem("ReportsCountrySelect")) ||
         selectedCountryIds,
+      selectedTypes:
+        JSON.parse(localStorage.getItem("ReportsTicketTypeSelect")) ||
+        selectedTypes,
     });
     getReportHistoryWithDateRange({
       fromDate,
@@ -310,6 +321,7 @@ const Reports = () => {
   const getReportHistory = async ({
     selectedWhatsappIds,
     selectedCountryIds,
+    selectedTypes,
   }) => {
     try {
       setLoadingReportHistory(true);
@@ -318,6 +330,7 @@ const Reports = () => {
         params: {
           selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
           selectedCountryIds: JSON.stringify(selectedCountryIds),
+          selectedTypes: JSON.stringify(selectedTypes),
         },
       });
 
@@ -470,29 +483,39 @@ const Reports = () => {
                   gap: "1rem",
                 }}
               >
-                <div>
-                  {/* <UsersSelect
+                {/* <UsersSelect
                 selectedUserIds={selectedUserIds}
                 onChange={(value) => {
                   setSelectedUserIds(value);
                 }}
               /> */}
-                  <ReportsWhatsappSelect
-                    style={{ marginLeft: 6 }}
-                    selectedWhatsappIds={selectedWhatsappIds || []}
-                    userWhatsapps={whatsApps || []}
-                    onChange={(values) => setSelectedWhatsappIds(values)}
-                  />
+                <ReportsWhatsappSelect
+                  style={{ marginLeft: 6 }}
+                  selectedWhatsappIds={selectedWhatsappIds || []}
+                  userWhatsapps={whatsApps || []}
+                  onChange={(values) => setSelectedWhatsappIds(values)}
+                />
 
-                  <ReportsCountrySelect
-                    style={{ marginLeft: 6 }}
-                    selectedCountryIds={selectedCountryIds || []}
-                    countries={countries || []}
-                    onChange={(values) => {
-                      setSelectedCountryIds(values);
-                    }}
-                  />
-                </div>
+                <ReportsCountrySelect
+                  style={{ marginLeft: 6 }}
+                  selectedCountryIds={selectedCountryIds || []}
+                  countries={countries || []}
+                  onChange={(values) => {
+                    setSelectedCountryIds(values);
+                  }}
+                />
+
+                <ReportsTicketTypeSelect
+                  style={{ marginLeft: 6 }}
+                  selectedTypes={selectedTypes || []}
+                  types={[
+                    { id: "individual", name: "Individual" },
+                    { id: "group", name: "Grupo" },
+                  ]}
+                  onChange={(values) => {
+                    setSelectedTypes(values);
+                  }}
+                />
                 {/* {loading && <CircularProgress color="primary" size={25} />} */}
               </div>
             </div>
@@ -503,6 +526,7 @@ const Reports = () => {
                 getReportHistory({
                   selectedWhatsappIds,
                   selectedCountryIds,
+                  selectedTypes,
                 });
               }}
               loading={loadingReportHistory}

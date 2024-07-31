@@ -29,6 +29,7 @@ type IndexQuery = {
   toDate: string;
   selectedWhatsappIds: string;
   selectedCountryIds?: string;
+  selectedTypes?: string;
 };
 
 function findLast<T>(array: T[], callback: any): T | undefined {
@@ -662,11 +663,13 @@ export const reportHistory = async (
 ): Promise<Response> => {
   const {
     selectedWhatsappIds: selectedUserIdsAsString,
-    selectedCountryIds: selectedCountryIdsAsString
+    selectedCountryIds: selectedCountryIdsAsString,
+    selectedTypes: selectedTypesAsString
   } = req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  const selectedTypes = JSON.parse(selectedTypesAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = " t.status IN ('pending','open') ";
   // const sqlWhereAdd = " t.id = 3318 ";
@@ -676,6 +679,14 @@ export const reportHistory = async (
   }
   if (selectedCountryIds.length > 0) {
     sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+  if (selectedTypes.length === 1) {
+    if (selectedTypes.includes("individual")) {
+      sqlWhereAdd += ` AND t.isGroup = 0 `;
+    }
+    if (selectedTypes.includes("group")) {
+      sqlWhereAdd += ` AND t.isGroup = 1 `;
+    }
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
