@@ -20,6 +20,7 @@ import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import IconButton from "@material-ui/core/IconButton";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
+import TicketListModal from "../../components/TicketListModal";
 
 import ConfirmationModal from "../../components/ConfirmationModal/";
 import ContactModal from "../../components/ContactModal";
@@ -102,6 +103,9 @@ const Contacts = () => {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [deletingContact, setDeletingContact] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [ticketListModalOpen, setTicketListModalOpen] = useState(false);
+  const [ticketListModalTitle, setTicketListModalTitle] = useState("");
+  const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
@@ -248,6 +252,14 @@ const Contacts = () => {
           ? `${i18n.t("contacts.confirmationModal.deleteMessage")}`
           : `${i18n.t("contacts.confirmationModal.importMessage")}`}
       </ConfirmationModal>
+
+      <TicketListModal
+        modalOpen={ticketListModalOpen}
+        onClose={() => setTicketListModalOpen(false)}
+        title={ticketListModalTitle}
+        tickets={ticketListModalTickets}
+        newView={true}
+      />
       <MainHeader>
         <Title>{i18n.t("contacts.title")}</Title>
         <MainHeaderButtonsWrapper>
@@ -314,94 +326,16 @@ const Contacts = () => {
                   <TableCell align="center">
                     <IconButton
                       size="small"
-                      onClick={() => {
-                        console.log({ user, contact });
-
-                        // Obetenemos el whatsappId por defecto del usuario
-                        const userDefaultWppId = user.whatsappId;
-                        console.log(
-                          "Obetenemos el whatsappId por defecto del usuario",
-                          userDefaultWppId
+                      onClick={async () => {
+                        const { data } = await api.get(
+                          "/contacts-showWithActualTickets/" + contact.id
                         );
 
-                        // Obtenemos los tickets del contacto
-                        const contactTickets = contact.tickets;
-                        console.log(
-                          "Obtenemos los tickets del contacto",
-                          contactTickets
+                        setTicketListModalTitle("Tickets de " + contact.name);
+                        setTicketListModalOpen(true);
+                        setTicketListModalTickets(
+                          data.tickets?.map((t) => t.id) || []
                         );
-
-                        if (userDefaultWppId) {
-                          console.log("tiene whatsappId por defecto");
-
-                          // Buscamos si el contacto tiene un ticket con el mismo whatsappId del usuario
-                          const contactTicketWithSameWppId =
-                            contactTickets.find(
-                              (ticket) => ticket.whatsappId === userDefaultWppId
-                            );
-                          console.log(
-                            "Buscamos si el contacto tiene un ticket con el mismo whatsappId del usuario",
-                            contactTicketWithSameWppId
-                          );
-
-                          // Si no tiene un ticket con el mismo whatsappId del usuario o el ticket esta cerrado
-                          if (
-                            !contactTicketWithSameWppId ||
-                            contactTicketWithSameWppId?.status === "closed"
-                          ) {
-                            console.log(
-                              "Si no tiene un ticket con el mismo whatsappId del usuario o el ticket esta cerrado"
-                            );
-                            // creamos un ticket nuevo
-
-                            toast.info(
-                              "Crearemos un ticket nuevo con tu conexión asignada"
-                            );
-                            handleSaveTicket(contact.id);
-                            console.log("creamos un ticket nuevo", contact.id);
-                            return;
-                          }
-
-                          // lo mandamos al ticket encontrado
-                          console.log(
-                            "lo mandamos al ticket encontrado",
-                            contactTicketWithSameWppId.id
-                          );
-                          toast.info(
-                            "Ya existe un ticket para tu conexión asignada"
-                          );
-                          history.push(
-                            `/tickets/${contactTicketWithSameWppId.id}`
-                          );
-                        } else {
-                          if (contactTickets.length > 0) {
-                            console.log(
-                              "no tiene whatsappId por defecto, pero contacto tiene tickets"
-                            );
-                            const contactTicketAsignadoAlUsuario =
-                              contactTickets.find(
-                                (ticket) => ticket.userId === user.id
-                              );
-
-                            if (contactTicketAsignadoAlUsuario) {
-                              console.log(
-                                "en el contacto hay un ticket asignado al usuario, lo mandamos a ese ticket"
-                              );
-
-                              toast.info("Ya existe un ticket asignado a ti");
-                              history.push(`/tickets/${contactTickets[0].id}`);
-                            }
-                          } else {
-                            // Creamos un ticket nuevo
-                            console.log(
-                              "no tiene whatsappId por defecto y el contacto tmp tinene ningun ticket, Creamos un ticket nuevo"
-                            );
-                            toast.info(
-                              "No tienes conexión asignada, crearemos un ticket nuevo para ti con la conexión por defecto"
-                            );
-                            handleSaveTicket(contact.id);
-                          }
-                        }
                       }}
                     >
                       <WhatsAppIcon />

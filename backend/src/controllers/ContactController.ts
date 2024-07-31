@@ -7,6 +7,7 @@ import ListContactsService from "../services/ContactServices/ListContactsService
 import ShowContactService from "../services/ContactServices/ShowContactService";
 import UpdateContactService from "../services/ContactServices/UpdateContactService";
 
+import { Op } from "sequelize";
 import AppError from "../errors/AppError";
 import { emitEvent } from "../libs/emitEvent";
 import { getWbot, getWbots } from "../libs/wbot";
@@ -129,6 +130,32 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const { contactId } = req.params;
 
   const contact = await ShowContactService(contactId);
+
+  return res.status(200).json(contact);
+};
+
+export const showWithActualTicketIds = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { contactId } = req.params;
+
+  const contact = await Contact.findByPk(contactId, {
+    include: [
+      "extraInfo",
+      {
+        model: Ticket,
+        as: "tickets",
+        required: false,
+        attributes: ["id"],
+        where: { status: { [Op.not]: "closed" } }
+      }
+    ]
+  });
+
+  if (!contact) {
+    throw new AppError("ERR_NO_CONTACT_FOUND", 404);
+  }
 
   return res.status(200).json(contact);
 };
