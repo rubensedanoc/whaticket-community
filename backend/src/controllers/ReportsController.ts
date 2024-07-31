@@ -1790,16 +1790,22 @@ export const reportToUsers = async (
         }
       });
     } else {
-      if (ticketsPendingOpen[ticketId][0].tuserId === 6) {
-        console.log(
-          "userId:",
-          ticketsPendingOpen[ticketId][0].tuserId,
-          "este ticket NO esta esperando: ",
-          ticketId,
-          "tiempos:",
-          times
-        );
-      }
+      // if (ticketsPendingOpen[ticketId][0].tuserId === 6) {
+      // if (ticketId === "549") {
+      // console.log(
+      //   "userId:",
+      //   ticketsPendingOpen[ticketId][0].tuserId,
+      //   "este ticket NO esta esperando: ",
+      //   ticketId,
+      //   "tiempos:",
+      //   times
+      // );
+      // console.log(
+      //   "lo que se mando:",
+      //   ticketsPendingOpen[ticketId],
+      //   whatasappListIDS
+      // );
+      // }
     }
     // ticketListFinal.push({
     //   tid: ticketsPendingOpen[ticketId][0].tid,
