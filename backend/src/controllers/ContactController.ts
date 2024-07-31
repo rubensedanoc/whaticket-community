@@ -43,6 +43,7 @@ interface ContactData {
   email?: string;
   domain?: string;
   extraInfo?: ExtraInfo[];
+  countryId?: number;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -98,13 +99,15 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   let number = validNumber;
   let email = newContact.email;
   let extraInfo = newContact.extraInfo;
+  let countryId = newContact.countryId;
 
   const contact = await CreateContactService({
     name,
     number,
     email,
     extraInfo,
-    profilePicUrl
+    profilePicUrl,
+    countryId
   });
 
   emitEvent({
