@@ -1550,7 +1550,7 @@ export const reportToUsers = async (
       ticketOpenCount: 0,
       timeWaitingCount: 0,
       timeWaitingSecounds: 0,
-      name: usersListFind[userId].name
+      name: usersListFind[userId][0].name
     };
   }
   logsTime.push(`usersfind-fin: ${Date()}`);
@@ -1729,6 +1729,17 @@ export const reportToUsers = async (
           times.quintalHours = quintal.label;
         }
       });
+    } else {
+      if (ticketsPendingOpen[ticketId][0].tuserId === 6) {
+        console.log(
+          "userId:",
+          ticketsPendingOpen[ticketId][0].tuserId,
+          "este ticket NO esta esperando: ",
+          ticketId,
+          "tiempos:",
+          times
+        );
+      }
     }
     // ticketListFinal.push({
     //   tid: ticketsPendingOpen[ticketId][0].tid,

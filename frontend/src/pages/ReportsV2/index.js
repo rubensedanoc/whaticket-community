@@ -118,6 +118,7 @@ const Reports = () => {
   const [ticketListModalOpen, setTicketListModalOpen] = useState(false);
   const [ticketListModalTitle, setTicketListModalTitle] = useState("");
   const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
+  const [reportsByUser, setReportsByUser] = useState([]);
   const [
     ticketsIdsWithResposneThatAreGroups,
     setTicketsIdsWithResposneThatAreGroups,
@@ -244,6 +245,10 @@ const Reports = () => {
       });
 
       console.log("reportToUsers: ", reportToUsers);
+
+      if (reportToUsers) {
+        setReportsByUser(Object.values(reportToUsers.usersListAll));
+      }
 
       setLoadingReportHistoryWithDateRange(false);
     } catch (error) {
@@ -1407,6 +1412,70 @@ const Reports = () => {
                   ) : null}
                 </Grid>
               </div>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Paper className={classes.customFixedHeightPaper}>
+              <Typography
+                component="h3"
+                variant="h6"
+                color="primary"
+                paragraph
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
+                <span>Metricas por usuario</span>
+              </Typography>
+
+              <Table size="medium">
+                <TableHead>
+                  <TableRow>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      Usuario
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. tomados
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. abiertos
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. abiertos esperando
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      Tiempo prom. esperando
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. cerrados
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reportsByUser.length > 0 ? (
+                    reportsByUser.map((report) => (
+                      <TableRow key={report.name}>
+                        <TableCell>{report.name}</TableCell>
+                        <TableCell>{report.ticketCount}</TableCell>
+                        <TableCell>{report.ticketOpenCount}</TableCell>
+                        <TableCell>{report.timeWaitingCount}</TableCell>
+                        <TableCell>
+                          {report.timeWaitingSecounds / report.timeWaitingCount
+                            ? segundosAHorasMinutos(
+                                report.timeWaitingSecounds /
+                                  report.timeWaitingCount
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell>{report.ticketClosedCount}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4}>Sin hay datos</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </Paper>
           </Grid>
 
