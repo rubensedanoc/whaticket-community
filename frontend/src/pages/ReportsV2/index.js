@@ -1221,23 +1221,108 @@ const Reports = () => {
                   </div>
                 </div>
 
-                <ButtonWithSpinner
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    getReportHistoryWithDateRange({
-                      fromDate,
-                      toDate,
-                      selectedWhatsappIds,
-                      selectedCountryIds,
-                    });
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "1rem",
                   }}
-                  loading={loadingReportHistoryWithDateRange}
                 >
-                  Actualizar
-                </ButtonWithSpinner>
+                  <Button
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#2de241" }}
+                    onClick={() =>
+                      getReportToExcel({
+                        fromDate,
+                        toDate,
+                        selectedWhatsappIds,
+                        selectedCountryIds,
+                      })
+                    }
+                  >
+                    Exportar a Excel
+                  </Button>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      getReportHistoryWithDateRange({
+                        fromDate,
+                        toDate,
+                        selectedWhatsappIds,
+                        selectedCountryIds,
+                      });
+                    }}
+                    loading={loadingReportHistoryWithDateRange}
+                  >
+                    Actualizar
+                  </ButtonWithSpinner>
+                </div>
               </div>
             </MainHeader>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Paper className={classes.customFixedHeightPaper}>
+              <Typography
+                component="h3"
+                variant="h6"
+                color="primary"
+                paragraph
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
+                <span>Metricas por usuario</span>
+              </Typography>
+
+              <Table size="medium">
+                <TableHead>
+                  <TableRow>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      Usuario
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. tomados
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. abiertos
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. abiertos esperando
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      Tiempo prom. esperando
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. cerrados
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reportsByUser.length > 0 ? (
+                    reportsByUser.map((report) => (
+                      <TableRow key={report.name}>
+                        <TableCell>{report.name}</TableCell>
+                        <TableCell>{report.ticketCount}</TableCell>
+                        <TableCell>{report.ticketOpenCount}</TableCell>
+                        <TableCell>{report.timeWaitingCount}</TableCell>
+                        <TableCell>
+                          {report.timeWaitingSecounds / report.timeWaitingCount
+                            ? segundosAHorasMinutos(
+                                report.timeWaitingSecounds /
+                                  report.timeWaitingCount
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell>{report.ticketClosedCount}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4}>Sin hay datos</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Paper>
           </Grid>
 
           <Grid item xs={12}>
@@ -1437,100 +1522,6 @@ const Reports = () => {
                 </Grid>
               </div>
             </Paper>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Paper className={classes.customFixedHeightPaper}>
-              <Typography
-                component="h3"
-                variant="h6"
-                color="primary"
-                paragraph
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
-                <span>Metricas por usuario</span>
-              </Typography>
-
-              <Table size="medium">
-                <TableHead>
-                  <TableRow>
-                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
-                      Usuario
-                    </TableCell>
-                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
-                      T. tomados
-                    </TableCell>
-                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
-                      T. abiertos
-                    </TableCell>
-                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
-                      T. abiertos esperando
-                    </TableCell>
-                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
-                      Tiempo prom. esperando
-                    </TableCell>
-                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
-                      T. cerrados
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {reportsByUser.length > 0 ? (
-                    reportsByUser.map((report) => (
-                      <TableRow key={report.name}>
-                        <TableCell>{report.name}</TableCell>
-                        <TableCell>{report.ticketCount}</TableCell>
-                        <TableCell>{report.ticketOpenCount}</TableCell>
-                        <TableCell>{report.timeWaitingCount}</TableCell>
-                        <TableCell>
-                          {report.timeWaitingSecounds / report.timeWaitingCount
-                            ? segundosAHorasMinutos(
-                                report.timeWaitingSecounds /
-                                  report.timeWaitingCount
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell>{report.ticketClosedCount}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4}>Sin hay datos</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12}>
-            <MainHeader>
-              <div
-                style={{
-                  display: "flex",
-                  marginTop: "1rem",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "flex" }}></div>
-                <Button
-                  variant="contained"
-                  style={{ color: "white", backgroundColor: "#2de241" }}
-                  onClick={() =>
-                    getReportToExcel({
-                      fromDate,
-                      toDate,
-                      selectedWhatsappIds,
-                      selectedCountryIds,
-                    })
-                  }
-                >
-                  Exportar a Excel
-                </Button>
-              </div>
-            </MainHeader>
           </Grid>
 
           <Grid item xs={3}>
