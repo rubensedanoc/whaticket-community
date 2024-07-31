@@ -521,7 +521,7 @@ const Reports = () => {
                 paragraph
                 style={{ display: "flex", justifyContent: "space-between" }}
               >
-                <span>Tiempo de respuesta total</span>
+                <span>Quintiles de espera actual</span>
                 <span style={{ color: "black" }}>
                   Tickets Totales:{" "}
                   {responseTimesData ? responseTimesData.length : 0}
@@ -715,7 +715,7 @@ const Reports = () => {
                 paragraph
                 style={{ display: "flex", justifyContent: "space-between" }}
               >
-                <span>Distribución de respuesta total</span>
+                <span>Distribución de tickets actual</span>
               </Typography>
 
               <Table size="medium">
