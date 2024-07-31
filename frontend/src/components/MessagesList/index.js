@@ -451,6 +451,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
       {
         ticketId,
         pageNumber: 1,
+        isTheInitialFetch: true,
       },
     ]);
 
@@ -459,7 +460,6 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
 
   const fetchMessages = async ({
     evenToDispatch = "LOAD_MESSAGES",
-    wantScrollToBottom = true,
     ticketId,
     ticketsQueue,
   }) => {
@@ -488,11 +488,8 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
           setLoading(false);
         }
 
-        if (ticketsQueue[0].pageNumber === 1 && data.messages.length > 1) {
-          if (wantScrollToBottom) {
-            console.log("________fetchMessages wantScrollToBottom");
-            scrollToBottom();
-          }
+        if (ticketsQueue[0]?.isTheInitialFetch) {
+          scrollToBottom();
         }
 
         if (searchingMessageId) {
@@ -521,16 +518,6 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
         ticketsQueue,
       });
     }, 500);
-
-    // const intervalFn = setInterval(() => {
-    //   console.log("fetching messages in setInterval");
-    //   fetchMessages({
-    //     ticketId,
-    //     ticketsQueue,
-    //     evenToDispatch: "LOAD_NEW_MESSAGES",
-    //     wantScrollToBottom: false,
-    //   });
-    // }, 5000);
 
     return () => {
       clearTimeout(delayDebounceFn);
@@ -606,6 +593,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
       const next = JSON.parse(JSON.stringify(nextTicketsQueue));
       next[next.length - 1].pageNumber = +next[next.length - 1].pageNumber + 1;
       console.log("---- loadMore setTicketsQueue", next);
+      next[0].isTheInitialFetch = false;
       return next;
     });
   };
