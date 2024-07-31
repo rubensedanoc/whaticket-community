@@ -98,9 +98,7 @@ export const SPECIAL_CHAT_MESSAGE_AUTOMATIC = "\u200E";
 export const textoNoStardWithAutomatic = texto =>
   texto !== null &&
   texto !== "" &&
-  !texto.startsWith(
-    String.fromCharCode(parseInt(SPECIAL_CHAT_MESSAGE_AUTOMATIC, 16))
-  );
+  !texto.startsWith(SPECIAL_CHAT_MESSAGE_AUTOMATIC);
 
 // Función para generar todas las fechas entre dos fechas
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -327,9 +325,33 @@ export const processMessageTicketPendingOrOpen = (
     messageList.sort((a, b) => a.mtimestamp - b.mtimestamp);
     const responseTimes = [];
     let lastSenderMessageTime = null;
+
+    const firstMessage = messageList[0];
+
+    if (isMessageNotClient(firstMessage, whatasappListIDS)) {
+      const firstClientMessageIndex = messageList.findIndex(message => {
+        if (isMessageClient(message, whatasappListIDS)) {
+          lastSenderMessageTime = message.mtimestamp;
+          return true;
+        }
+      });
+
+      if (firstClientMessageIndex > -1) {
+        messageList = messageList.slice(firstClientMessageIndex);
+      }
+    }
+
     // eslint-disable-next-line no-restricted-syntax
     for (const message of messageList) {
+      // if (message.tid === 549) {
+      //   console.log("---MEENSAJE: ", message);
+      // }
+
       if (isMessageClient(message, whatasappListIDS)) {
+        // if (message.tid === 549) {
+        //   console.log("____isMessageClient");
+        // }
+
         if (lastSenderMessageTime === null) {
           lastSenderMessageTime = message.mtimestamp;
         }
@@ -337,6 +359,10 @@ export const processMessageTicketPendingOrOpen = (
         isMessageNotClient(message, whatasappListIDS) &&
         lastSenderMessageTime
       ) {
+        // if (message.tid === 549) {
+        //   console.log("___isMessageNotClient");
+        //   console.log("lastSenderMessageTime: ", lastSenderMessageTime);
+        // }
         // Calcular el tiempo de respuesta y añadirlo al array
         const responseTime = differenceInSeconds(
           new Date(message.mtimestamp * 1000),
@@ -350,14 +376,14 @@ export const processMessageTicketPendingOrOpen = (
       }
     }
 
+    if (lastSenderMessageTime) {
+      times.waiting = differenceInSeconds(
+        new Date(),
+        new Date(lastSenderMessageTime * 1000)
+      );
+    }
     // Calcular el tiempo de respuesta promedio
     if (responseTimes.length > 0) {
-      if (lastSenderMessageTime) {
-        times.waiting = differenceInSeconds(
-          new Date(),
-          new Date(lastSenderMessageTime * 1000)
-        );
-      }
       times.avgResponse =
         responseTimes.reduce((acc, time) => acc + time, 0) /
         responseTimes.length;

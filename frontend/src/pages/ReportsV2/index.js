@@ -8,7 +8,6 @@ import {
   TableHead,
   TableRow,
 } from "@material-ui/core";
-import Button from "@material-ui/core/Button";
 import Container from "@material-ui/core/Container";
 import Grid from "@material-ui/core/Grid";
 import IconButton from "@material-ui/core/IconButton";
@@ -18,6 +17,8 @@ import TextField from "@material-ui/core/TextField";
 import ButtonWithSpinner from "../../components/ButtonWithSpinner";
 import MainHeader from "../../components/MainHeader";
 import ReportsCountrySelect from "../../components/ReportsCountrySelect";
+import ReportsQueueSelect from "../../components/ReportsQueueSelect";
+import ReportsTicketTypeSelect from "../../components/ReportsTicketTypeSelect";
 import ReportsWhatsappSelect from "../../components/ReportsWhatsappSelect";
 import TicketListModal from "../../components/TicketListModal";
 import Title from "../../components/Title";
@@ -89,6 +90,8 @@ const Reports = () => {
   const [countries, setCountries] = useState([]);
   const [selectedCountryIds, setSelectedCountryIds] = useState([]);
 
+  const [selectedTypes, setSelectedTypes] = useState([]);
+
   const [createdTicketsData, setCreatedTicketsData] = useState(null);
   const [createdTicketsCount, setCreatedTicketsCount] = useState(null);
   const [createdTicketsChartData, setCreatedTicketsChartData] = useState(null);
@@ -118,6 +121,10 @@ const Reports = () => {
   const [ticketListModalOpen, setTicketListModalOpen] = useState(false);
   const [ticketListModalTitle, setTicketListModalTitle] = useState("");
   const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
+  const [reportsByUser, setReportsByUser] = useState([]);
+  const [queues, setQueues] = useState([]);
+  const [selectedQueueIds, setSelectedQueueIds] = useState([]);
+  const [loadingReportToExcel, setLoadingReportToExcel] = useState(false);
   const [
     ticketsIdsWithResposneThatAreGroups,
     setTicketsIdsWithResposneThatAreGroups,
@@ -158,6 +165,16 @@ const Reports = () => {
         JSON.parse(localStorage.getItem("ReportsCountrySelect"))
       );
     }
+    if (localStorage.getItem("ReportsTicketTypeSelect")) {
+      setSelectedTypes(
+        JSON.parse(localStorage.getItem("ReportsTicketTypeSelect"))
+      );
+    }
+    if (localStorage.getItem("ReportsQueueSelect")) {
+      setSelectedQueueIds(
+        JSON.parse(localStorage.getItem("ReportsQueueSelect"))
+      );
+    }
 
     getReportHistory({
       selectedWhatsappIds:
@@ -166,6 +183,12 @@ const Reports = () => {
       selectedCountryIds:
         JSON.parse(localStorage.getItem("ReportsCountrySelect")) ||
         selectedCountryIds,
+      selectedTypes:
+        JSON.parse(localStorage.getItem("ReportsTicketTypeSelect")) ||
+        selectedTypes,
+      selectedQueueIds:
+        JSON.parse(localStorage.getItem("ReportsQueueSelect")) ||
+        selectedQueueIds,
     });
     getReportHistoryWithDateRange({
       fromDate,
@@ -176,6 +199,9 @@ const Reports = () => {
       selectedCountryIds:
         JSON.parse(localStorage.getItem("ReportsCountrySelect")) ||
         selectedCountryIds,
+      selectedQueueIds:
+        JSON.parse(localStorage.getItem("ReportsQueueSelect")) ||
+        selectedQueueIds,
     });
 
     (async () => {
@@ -184,6 +210,14 @@ const Reports = () => {
         if (data?.countries?.length > 0) {
           setCountries(data.countries);
         }
+
+        const { data: queueData } = await api.get("/queue");
+
+        if (queueData.length > 0) {
+          setQueues(queueData);
+        }
+
+        console.log({ queueData });
       } catch (err) {
         toastError(err);
       }
@@ -195,6 +229,7 @@ const Reports = () => {
     toDate,
     selectedWhatsappIds,
     selectedCountryIds,
+    selectedQueueIds,
   }) => {
     try {
       setLoadingReportHistoryWithDateRange(true);
@@ -207,6 +242,7 @@ const Reports = () => {
             toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
             selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
             selectedCountryIds: JSON.stringify(selectedCountryIds),
+            selectedQueueIds: JSON.stringify(selectedQueueIds),
           },
         }
       );
@@ -240,31 +276,38 @@ const Reports = () => {
           toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
           selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
           selectedCountryIds: JSON.stringify(selectedCountryIds),
+          selectedQueueIds: JSON.stringify(selectedQueueIds),
         },
       });
 
       console.log("reportToUsers: ", reportToUsers);
 
+      if (reportToUsers) {
+        setReportsByUser(Object.values(reportToUsers.usersListAll));
+      }
+
       setLoadingReportHistoryWithDateRange(false);
     } catch (error) {
       console.log(error);
       toastError(error);
+      setLoadingReportHistoryWithDateRange(false);
     }
   };
 
   const getReportToExcel = async ({
     fromDate,
     toDate,
-    selectedWhatsappIds,
-    selectedCountryIds,
+    // selectedWhatsappIds,
+    // selectedCountryIds,
   }) => {
     try {
+      setLoadingReportToExcel(true);
       const { data: reportToExcel } = await api.get("/reportToExcel", {
         params: {
           fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
           toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
-          selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
-          selectedCountryIds: JSON.stringify(selectedCountryIds),
+          // selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+          // selectedCountryIds: JSON.stringify(selectedCountryIds),
         },
       });
 
@@ -296,6 +339,8 @@ const Reports = () => {
         XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
         XLSX.writeFile(workbook, `${"WHATREST"}.xlsx`);
       }
+
+      setLoadingReportToExcel(false);
     } catch (error) {
       console.log(error);
       toastError(error);
@@ -305,6 +350,8 @@ const Reports = () => {
   const getReportHistory = async ({
     selectedWhatsappIds,
     selectedCountryIds,
+    selectedTypes,
+    selectedQueueIds,
   }) => {
     try {
       setLoadingReportHistory(true);
@@ -313,6 +360,8 @@ const Reports = () => {
         params: {
           selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
           selectedCountryIds: JSON.stringify(selectedCountryIds),
+          selectedTypes: JSON.stringify(selectedTypes),
+          selectedQueueIds: JSON.stringify(selectedQueueIds),
         },
       });
 
@@ -348,101 +397,6 @@ const Reports = () => {
     }
   };
 
-  const exportToExcel = () => {
-    try {
-      const dataToExport = createdTicketsData.map((ticket) => ({
-        NÚMERO: ticket.id,
-        CREACIÓN_FECHA: format(
-          new Date(ticket.createdAt.replace("Z", "")),
-          "dd-MM-yyyy"
-        ),
-        CREACIÓN_HORA: format(
-          new Date(ticket.createdAt.replace("Z", "")),
-          "HH:mm"
-        ),
-        CONTACTO: ticket.contact?.name,
-        CONEXIÓN: ticket.whatsapp?.name,
-        USUARIO: ticket.user?.name,
-        ESTADO: ticket.status,
-      }));
-
-      tprData.map((tpr) => {
-        const ticketToAddTprData = dataToExport.find((d) => {
-          return d.NÚMERO === tpr.ticket.id;
-        });
-
-        // console.log("ticketToAddTprData:", ticketToAddTprData, tpr);
-
-        if (ticketToAddTprData) {
-          ticketToAddTprData["TPR_MENSAJE_CLIENTE_CUERPO"] =
-            tpr.tprFirstMessage.body;
-          ticketToAddTprData["TPR_MENSAJE_USUARIO_FECHA"] = tpr
-            .tprFirstUserMessage?.timestamp
-            ? format(
-                new Date(tpr.tprFirstUserMessage.timestamp * 1000),
-                "dd-MM-yyyy"
-              )
-            : "-";
-          ticketToAddTprData["TPR_MENSAJE_USUARIO_HORA"] = tpr
-            .tprFirstUserMessage?.timestamp
-            ? format(
-                new Date(tpr.tprFirstUserMessage?.timestamp * 1000),
-                "HH:mm"
-              )
-            : "-";
-          ticketToAddTprData["TPR_MENSAJE_USUARIO_CUERPO"] = tpr
-            .tprFirstUserMessage?.body
-            ? tpr.tprFirstUserMessage?.body
-            : "-";
-          ticketToAddTprData["TPR_EN_SEGUNDOS"] = tpr.tprItem;
-        }
-      });
-
-      createdTicketsClosedInTheRangeTimeData.map((i) => {
-        const ticketToAddTdrData = dataToExport.find((d) => {
-          return d.NÚMERO === i.id;
-        });
-
-        // console.log("ticketToAddTdrData:", ticketToAddTdrData, i);
-
-        if (ticketToAddTdrData) {
-          ticketToAddTdrData["CERRADO_FECHA"] = i.messages[
-            i.messages.length - 1
-          ]?.timestamp
-            ? format(
-                new Date(i.messages[i.messages.length - 1].timestamp * 1000),
-                "dd-MM-yyyy"
-              )
-            : "-";
-          ticketToAddTdrData["CERRADO_HORA"] = i.messages[i.messages.length - 1]
-            ?.timestamp
-            ? format(
-                new Date(i.messages[i.messages.length - 1].timestamp * 1000),
-                "HH:mm"
-              )
-            : "-";
-        }
-      });
-
-      tdrData.map((tdr) => {
-        const ticketToAddTdrData = dataToExport.find((d) => {
-          return d.NÚMERO === tdr.ticket.id;
-        });
-
-        if (ticketToAddTdrData) {
-          ticketToAddTdrData["TDR_EN_SEGUNDOS"] = tdr.tdrItem;
-        }
-      });
-
-      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-      XLSX.writeFile(workbook, `${"WHATREST"}.xlsx`);
-    } catch (error) {
-      console.log("-----------error", error);
-    }
-  };
-
   return (
     <div>
       <Container maxWidth="lg" className={classes.container}>
@@ -465,29 +419,47 @@ const Reports = () => {
                   gap: "1rem",
                 }}
               >
-                <div>
-                  {/* <UsersSelect
+                {/* <UsersSelect
                 selectedUserIds={selectedUserIds}
                 onChange={(value) => {
                   setSelectedUserIds(value);
                 }}
               /> */}
-                  <ReportsWhatsappSelect
-                    style={{ marginLeft: 6 }}
-                    selectedWhatsappIds={selectedWhatsappIds || []}
-                    userWhatsapps={whatsApps || []}
-                    onChange={(values) => setSelectedWhatsappIds(values)}
-                  />
+                <ReportsWhatsappSelect
+                  style={{ marginLeft: 6 }}
+                  selectedWhatsappIds={selectedWhatsappIds || []}
+                  userWhatsapps={whatsApps || []}
+                  onChange={(values) => setSelectedWhatsappIds(values)}
+                />
 
-                  <ReportsCountrySelect
-                    style={{ marginLeft: 6 }}
-                    selectedCountryIds={selectedCountryIds || []}
-                    countries={countries || []}
-                    onChange={(values) => {
-                      setSelectedCountryIds(values);
-                    }}
-                  />
-                </div>
+                <ReportsCountrySelect
+                  style={{ marginLeft: 6 }}
+                  selectedCountryIds={selectedCountryIds || []}
+                  countries={countries || []}
+                  onChange={(values) => {
+                    setSelectedCountryIds(values);
+                  }}
+                />
+
+                <ReportsTicketTypeSelect
+                  style={{ marginLeft: 6 }}
+                  selectedTypes={selectedTypes || []}
+                  types={[
+                    { id: "individual", name: "Individual" },
+                    { id: "group", name: "Grupo" },
+                  ]}
+                  onChange={(values) => {
+                    setSelectedTypes(values);
+                  }}
+                />
+
+                <ReportsQueueSelect
+                  style={{ marginLeft: 6 }}
+                  selectedQueueIds={selectedQueueIds || []}
+                  userQueues={queues || []}
+                  onChange={(values) => setSelectedQueueIds(values)}
+                />
+
                 {/* {loading && <CircularProgress color="primary" size={25} />} */}
               </div>
             </div>
@@ -498,6 +470,8 @@ const Reports = () => {
                 getReportHistory({
                   selectedWhatsappIds,
                   selectedCountryIds,
+                  selectedTypes,
+                  selectedQueueIds,
                 });
               }}
               loading={loadingReportHistory}
@@ -516,7 +490,7 @@ const Reports = () => {
                 paragraph
                 style={{ display: "flex", justifyContent: "space-between" }}
               >
-                <span>Tiempo de respuesta total</span>
+                <span>Quintiles de espera actual</span>
                 <span style={{ color: "black" }}>
                   Tickets Totales:{" "}
                   {responseTimesData ? responseTimesData.length : 0}
@@ -710,7 +684,7 @@ const Reports = () => {
                 paragraph
                 style={{ display: "flex", justifyContent: "space-between" }}
               >
-                <span>Distribución de respuesta total</span>
+                <span>Distribución de tickets actual</span>
               </Typography>
 
               <Table size="medium">
@@ -1192,23 +1166,108 @@ const Reports = () => {
                   </div>
                 </div>
 
-                <ButtonWithSpinner
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    getReportHistoryWithDateRange({
-                      fromDate,
-                      toDate,
-                      selectedWhatsappIds,
-                      selectedCountryIds,
-                    });
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "1rem",
                   }}
-                  loading={loadingReportHistoryWithDateRange}
                 >
-                  Actualizar
-                </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#2de241" }}
+                    onClick={() =>
+                      getReportToExcel({
+                        fromDate,
+                        toDate,
+                      })
+                    }
+                    loading={loadingReportToExcel}
+                  >
+                    Exportar a Excel
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      getReportHistoryWithDateRange({
+                        fromDate,
+                        toDate,
+                        selectedWhatsappIds,
+                        selectedCountryIds,
+                        selectedQueueIds,
+                      });
+                    }}
+                    loading={loadingReportHistoryWithDateRange}
+                  >
+                    Actualizar
+                  </ButtonWithSpinner>
+                </div>
               </div>
             </MainHeader>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Paper className={classes.customFixedHeightPaper}>
+              <Typography
+                component="h3"
+                variant="h6"
+                color="primary"
+                paragraph
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
+                <span>Metricas por usuario</span>
+              </Typography>
+
+              <Table size="medium">
+                <TableHead>
+                  <TableRow>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      Usuario
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. tomados
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. abiertos
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. abiertos esperando
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      Tiempo prom. esperando
+                    </TableCell>
+                    <TableCell style={{ fontWeight: "bold", fontSize: "18px" }}>
+                      T. cerrados
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reportsByUser.length > 0 ? (
+                    reportsByUser.map((report) => (
+                      <TableRow key={report.name}>
+                        <TableCell>{report.name}</TableCell>
+                        <TableCell>{report.ticketCount}</TableCell>
+                        <TableCell>{report.ticketOpenCount}</TableCell>
+                        <TableCell>{report.timeWaitingCount}</TableCell>
+                        <TableCell>
+                          {report.timeWaitingSecounds / report.timeWaitingCount
+                            ? segundosAHorasMinutos(
+                                report.timeWaitingSecounds /
+                                  report.timeWaitingCount
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell>{report.ticketClosedCount}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4}>Sin hay datos</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Paper>
           </Grid>
 
           <Grid item xs={12}>
@@ -1408,36 +1467,6 @@ const Reports = () => {
                 </Grid>
               </div>
             </Paper>
-          </Grid>
-
-          <Grid item xs={12}>
-            <MainHeader>
-              <div
-                style={{
-                  display: "flex",
-                  marginTop: "1rem",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "flex" }}></div>
-                <Button
-                  variant="contained"
-                  style={{ color: "white", backgroundColor: "#2de241" }}
-                  onClick={() =>
-                    getReportToExcel({
-                      fromDate,
-                      toDate,
-                      selectedWhatsappIds,
-                      selectedCountryIds,
-                    })
-                  }
-                >
-                  Exportar a Excel
-                </Button>
-              </div>
-            </MainHeader>
           </Grid>
 
           <Grid item xs={3}>

@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 
 import Avatar from "@material-ui/core/Avatar";
 import Button from "@material-ui/core/Button";
+import Chip from "@material-ui/core/Chip";
 import Drawer from "@material-ui/core/Drawer";
 import IconButton from "@material-ui/core/IconButton";
 import InputLabel from "@material-ui/core/InputLabel";
 import Link from "@material-ui/core/Link";
 import Paper from "@material-ui/core/Paper";
+
 import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import CloseIcon from "@material-ui/icons/Close";
+import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import api from "../../services/api";
 
 import { i18n } from "../../translate/i18n";
@@ -94,6 +97,7 @@ const ContactDrawer = ({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [groupParticipants, setGroupParticipants] = useState([]);
+  const { whatsApps } = useContext(WhatsAppsContext);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -193,10 +197,31 @@ const ContactDrawer = ({
                       alignItems: "center",
                       gap: "10px",
                       maxHeight: "unset",
+                      marginBottom: "8px",
                     }}
                   >
                     <Avatar src={value.profilePicUrl} alt={value.name} />
-                    {`${value.name} - ${value.number}`}
+                    <div>
+                      {`${value.name} - ${value.number}`}
+                      {whatsApps.find(
+                        (whatsapp) => whatsapp.number === value.number
+                      ) && (
+                        <Chip
+                          style={{ height: "20px", fontSize: "11px" }}
+                          color="primary"
+                          size="small"
+                          label="Conexión nuestra"
+                        />
+                      )}
+                      {value.isCompanyMember && (
+                        <Chip
+                          style={{ height: "20px", fontSize: "11px" }}
+                          color="primary"
+                          size="small"
+                          label="Miembro de la empresa"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
