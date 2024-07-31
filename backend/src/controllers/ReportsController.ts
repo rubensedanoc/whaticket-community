@@ -30,6 +30,7 @@ type IndexQuery = {
   selectedWhatsappIds: string;
   selectedCountryIds?: string;
   selectedTypes?: string;
+  selectedQueueIds?: string;
 };
 
 function findLast<T>(array: T[], callback: any): T | undefined {
@@ -664,18 +665,34 @@ export const reportHistory = async (
   const {
     selectedWhatsappIds: selectedUserIdsAsString,
     selectedCountryIds: selectedCountryIdsAsString,
-    selectedTypes: selectedTypesAsString
+    selectedTypes: selectedTypesAsString,
+    selectedQueueIds: selectedQueueIdsAsString
   } = req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const selectedTypes = JSON.parse(selectedTypesAsString) as string[];
+  const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = " t.status IN ('pending','open') ";
   // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
   }
   if (selectedCountryIds.length > 0) {
     sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
@@ -969,12 +986,14 @@ export const reportHistoryWithDateRange = async (
     fromDate: fromDateAsString,
     toDate: toDateAsString,
     selectedWhatsappIds: selectedUserIdsAsString,
-    selectedCountryIds: selectedCountryIdsAsString
+    selectedCountryIds: selectedCountryIdsAsString,
+    selectedQueueIds: selectedQueueIdsAsString
   } = req.query as IndexQuery;
 
   console.log({ fromDateAsString, toDateAsString });
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = `t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
@@ -986,6 +1005,19 @@ export const reportHistoryWithDateRange = async (
   }
   if (selectedCountryIds.length > 0) {
     sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any = await Whatsapp.sequelize.query(
@@ -1249,25 +1281,25 @@ export const reportToExcel = async (
 ): Promise<Response> => {
   const {
     fromDate: fromDateAsString,
-    toDate: toDateAsString,
-    selectedWhatsappIds: selectedUserIdsAsString,
-    selectedCountryIds: selectedCountryIdsAsString
+    toDate: toDateAsString
+    // selectedWhatsappIds: selectedUserIdsAsString,
+    // selectedCountryIds: selectedCountryIdsAsString
   } = req.query as IndexQuery;
 
-  const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
-  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  // const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  // const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = `t.status != 'pending' and t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
 
-  if (selectedWhatsappIds.length > 0) {
-    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
-  }
-  if (selectedCountryIds.length > 0) {
-    sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
-  }
+  // if (selectedWhatsappIds.length > 0) {
+  //   sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  // }
+  // if (selectedCountryIds.length > 0) {
+  //   sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
+  // }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
     "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",
@@ -1456,44 +1488,46 @@ export const reportToExcel = async (
     });
   }
 
-  console.log(
-    "-----------:",
-    `
-    SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
-      .map(ticket => ticket.tid)
-      .join(",")}) ORDER BY tc.updatedAt DESC
-    `
-  );
+  if (ticketListFinal.length > 0) {
+    console.log(
+      "-----------:",
+      `
+      SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
+        .map(ticket => ticket.tid)
+        .join(",")}) ORDER BY tc.updatedAt DESC
+      `
+    );
 
-  let ticketListFinalCategories: any[] = await Ticket.sequelize.query(
-    `
-    SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
-      .map(ticket => ticket.tid)
-      .join(",")}) ORDER BY tc.updatedAt DESC
-    `,
-    {
-      type: QueryTypes.SELECT
-    }
-  );
-
-  ticketListFinalCategories = ticketListFinalCategories.reduce(
-    (result, currentValue: any) => {
-      const currentValueInResult = result.find(
-        ticket => ticket.ticketId === currentValue.ticketId
-      );
-      if (!currentValueInResult) {
-        result.push(currentValue);
+    let ticketListFinalCategories: any[] = await Ticket.sequelize.query(
+      `
+      SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
+        .map(ticket => ticket.tid)
+        .join(",")}) ORDER BY tc.updatedAt DESC
+      `,
+      {
+        type: QueryTypes.SELECT
       }
-      return result;
-    },
-    []
-  );
+    );
 
-  for (const ticketCategory of ticketListFinalCategories) {
-    if (ticketListFinal.find(t => t.tid === ticketCategory.ticketId)) {
-      ticketListFinal.find(
-        t => t.tid === ticketCategory.ticketId
-      ).tcategoryname = ticketCategory.name;
+    ticketListFinalCategories = ticketListFinalCategories.reduce(
+      (result, currentValue: any) => {
+        const currentValueInResult = result.find(
+          ticket => ticket.ticketId === currentValue.ticketId
+        );
+        if (!currentValueInResult) {
+          result.push(currentValue);
+        }
+        return result;
+      },
+      []
+    );
+
+    for (const ticketCategory of ticketListFinalCategories) {
+      if (ticketListFinal.find(t => t.tid === ticketCategory.ticketId)) {
+        ticketListFinal.find(
+          t => t.tid === ticketCategory.ticketId
+        ).tcategoryname = ticketCategory.name;
+      }
     }
   }
 
@@ -1514,11 +1548,13 @@ export const reportToUsers = async (
     fromDate: fromDateAsString,
     toDate: toDateAsString,
     selectedWhatsappIds: selectedUserIdsAsString,
-    selectedCountryIds: selectedCountryIdsAsString
+    selectedCountryIds: selectedCountryIdsAsString,
+    selectedQueueIds: selectedQueueIdsAsString
   } = req.query as IndexQuery;
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = `t.status != 'pending' and t.isGroup = 0 and t.createdAt between '${formatDateToMySQL(
     fromDateAsString
@@ -1530,6 +1566,19 @@ export const reportToUsers = async (
   }
   if (selectedCountryIds.length > 0) {
     sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
