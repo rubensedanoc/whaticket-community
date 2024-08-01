@@ -69,6 +69,16 @@ class Contact extends Model<Contact> {
 
   @HasMany(() => ContactCustomField)
   extraInfo: ContactCustomField[];
+
+  isExclusive: boolean;
+
+  // Sobrescribir el método toJSON para incluir isExclusive
+  toJSON() {
+    const attributes = { ...this.get() };
+    // @ts-ignore
+    attributes.isExclusive = this.isExclusive;
+    return attributes;
+  }
 }
 
 export default Contact;

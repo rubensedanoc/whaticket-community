@@ -10,6 +10,7 @@ import {
 } from "sequelize";
 
 import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
+import { searchIfNumbersAreExclusive } from "../../libs/searchIfNumbersAreExclusive";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
 import Queue from "../../models/Queue";
@@ -33,7 +34,7 @@ interface Request {
 }
 
 interface Response {
-  tickets: Ticket[];
+  tickets: any[];
   count: number;
   hasMore: boolean;
 }
@@ -316,6 +317,22 @@ const ListTicketsService = async ({
 
   const ticketsToReturnWithClientTimeWaiting =
     await getClientTimeWaitingForTickets(ticketsToReturn);
+
+  const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+    numbers: ticketsToReturnWithClientTimeWaiting
+      .map(ticket => +ticket.contact.number)
+      .filter(n => n)
+  });
+
+  for (const number in exclusiveContactsNumbers) {
+    ticketsToReturnWithClientTimeWaiting
+      .filter(t => t.contact.number === number)
+      .forEach(t => (t.contact.isExclusive = true));
+
+    // ticketsToReturnWithClientTimeWaiting.find(
+    //   t => t.contact.number === number
+    // ).contact.isExclusive = true;
+  }
 
   return {
     tickets: ticketsToReturnWithClientTimeWaiting,
