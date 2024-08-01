@@ -1,8 +1,8 @@
 import AppError from "../../errors/AppError";
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import GetDefaultWhatsApp from "../../helpers/GetDefaultWhatsApp";
+import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
-import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 import ShowContactService from "../ContactServices/ShowContactService";
 
@@ -38,8 +38,22 @@ const CreateTicketService = async ({
   const { isGroup } = await ShowContactService(contactId);
 
   if (queueId === undefined) {
-    const user = await User.findByPk(userId, { include: ["queues"] });
-    queueId = user?.queues.length === 1 ? user.queues[0].id : undefined;
+    const whatsappToUseWithQueues = await Whatsapp.findByPk(whatsappToUse.id, {
+      include: [
+        {
+          model: Queue,
+          as: "queues",
+          required: false
+        }
+      ]
+    });
+
+    if (
+      whatsappToUseWithQueues.queues &&
+      whatsappToUseWithQueues.queues.length > 0
+    ) {
+      queueId = whatsappToUseWithQueues.queues[0].id;
+    }
   }
 
   const { id }: Ticket = await whatsappToUse.$create("ticket", {

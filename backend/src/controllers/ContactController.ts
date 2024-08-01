@@ -10,6 +10,7 @@ import UpdateContactService from "../services/ContactServices/UpdateContactServi
 import { Op } from "sequelize";
 import AppError from "../errors/AppError";
 import { emitEvent } from "../libs/emitEvent";
+import { searchIfNumbersAreExclusive } from "../libs/searchIfNumbersAreExclusive";
 import { getWbot, getWbots } from "../libs/wbot";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
@@ -43,6 +44,7 @@ interface ContactData {
   email?: string;
   domain?: string;
   extraInfo?: ExtraInfo[];
+  countryId?: number;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -98,13 +100,15 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   let number = validNumber;
   let email = newContact.email;
   let extraInfo = newContact.extraInfo;
+  let countryId = newContact.countryId;
 
   const contact = await CreateContactService({
     name,
     number,
     email,
     extraInfo,
-    profilePicUrl
+    profilePicUrl,
+    countryId
   });
 
   emitEvent({
@@ -185,6 +189,18 @@ export const update = async (
   const { contactId } = req.params;
 
   const contact = await UpdateContactService({ contactData, contactId });
+
+  if (contact) {
+    const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+      numbers: [+contact.number].filter(n => n)
+    });
+
+    for (const number in exclusiveContactsNumbers) {
+      if (contact.number === number) {
+        contact.isExclusive = true;
+      }
+    }
+  }
 
   const url = process.env.NODE_URL + "/toEmit";
   fetch(url, {

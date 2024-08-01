@@ -97,8 +97,6 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
         });
       }
 
-      if (!contactId) return;
-
       if (open) {
         try {
           const { data } = await api.get(`/countries`);
@@ -109,6 +107,8 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
           toastError(err);
         }
       }
+
+      if (!contactId) return;
 
       try {
         const { data } = await api.get(`/contacts/${contactId}`);
@@ -140,7 +140,10 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
         });
         handleClose();
       } else {
-        const { data } = await api.post("/contacts", values);
+        const { data } = await api.post("/contacts", {
+          ...values,
+          countryId: chooseCountryId,
+        });
         if (onSave) {
           onSave(data);
         }
@@ -214,47 +217,46 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                     variant="outlined"
                   />
                 </div>
+                <div className={classes.extraAttr}>
+                  <Field
+                    as={TextField}
+                    name="countryId"
+                    select
+                    label="País"
+                    fullWidth
+                    margin="dense"
+                    value={chooseCountryId}
+                    onChange={(event) => {
+                      setChooseCountryId(event.target.value);
+                    }}
+                    variant="outlined"
+                    MenuProps={{
+                      anchorOrigin: {
+                        vertical: "bottom",
+                        horizontal: "left",
+                      },
+                      transformOrigin: {
+                        vertical: "top",
+                        horizontal: "left",
+                      },
+                      getContentAnchorEl: null,
+                    }}
+                    renderValue={(value) => {
+                      if (value) {
+                        return countries.find((c) => c.id === value)?.name;
+                      }
+                    }}
+                  >
+                    {countries?.length > 0 &&
+                      countries.map((c) => (
+                        <MenuItem dense key={c.id} value={c.id}>
+                          <ListItemText primary={c.name} />
+                        </MenuItem>
+                      ))}
+                  </Field>
+                </div>
                 {contactId && (
                   <>
-                    <div className={classes.extraAttr}>
-                      <Field
-                        as={TextField}
-                        name="countryId"
-                        select
-                        label="País"
-                        fullWidth
-                        margin="dense"
-                        value={chooseCountryId}
-                        onChange={(event) => {
-                          setChooseCountryId(event.target.value);
-                        }}
-                        variant="outlined"
-                        MenuProps={{
-                          anchorOrigin: {
-                            vertical: "bottom",
-                            horizontal: "left",
-                          },
-                          transformOrigin: {
-                            vertical: "top",
-                            horizontal: "left",
-                          },
-                          getContentAnchorEl: null,
-                        }}
-                        renderValue={(value) => {
-                          if (value) {
-                            return countries.find((c) => c.id === value)?.name;
-                          }
-                        }}
-                      >
-                        {countries?.length > 0 &&
-                          countries.map((c) => (
-                            <MenuItem dense key={c.id} value={c.id}>
-                              <ListItemText primary={c.name} />
-                            </MenuItem>
-                          ))}
-                      </Field>
-                    </div>
-
                     <div className={classes.extraAttr}>
                       <Button
                         style={{ flex: 1, marginTop: 8 }}

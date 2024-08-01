@@ -6,6 +6,7 @@ import { GroupChat } from "whatsapp-web.js";
 import AppError from "../errors/AppError";
 import GetTicketWbot from "../helpers/GetTicketWbot";
 import formatBody from "../helpers/Mustache";
+import { searchIfNumbersAreExclusive } from "../libs/searchIfNumbersAreExclusive";
 import { getWbot } from "../libs/wbot";
 import Contact from "../models/Contact";
 import Message from "../models/Message";
@@ -112,6 +113,18 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     userId,
     whatsappId
   });
+
+  if (ticket.contact) {
+    const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+      numbers: [ticket].map(ticket => +ticket.contact.number).filter(n => n)
+    });
+
+    for (const number in exclusiveContactsNumbers) {
+      if (ticket.contact.number === number) {
+        ticket.contact.isExclusive = true;
+      }
+    }
+  }
 
   /* const io = getIO();
   io.to(ticket.status).emit("ticket", {
