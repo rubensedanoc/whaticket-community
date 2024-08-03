@@ -125,6 +125,7 @@ const Reports = () => {
   const [queues, setQueues] = useState([]);
   const [selectedQueueIds, setSelectedQueueIds] = useState([]);
   const [loadingReportToExcel, setLoadingReportToExcel] = useState(false);
+  const [loadingReportToExcelIA, setLoadingReportToExcelIA] = useState(false);
   const [
     ticketsIdsWithResposneThatAreGroups,
     setTicketsIdsWithResposneThatAreGroups,
@@ -342,6 +343,58 @@ const Reports = () => {
 
       setLoadingReportToExcel(false);
     } catch (error) {
+      console.log(error);
+      toastError(error);
+    }
+  };
+  const reportToExcelForIA = async ({ fromDate, toDate, selectedQueueIds }) => {
+    try {
+      setLoadingReportToExcelIA(true);
+      const { data: reportToExcelForIA } = await api.get(
+        "/reportToExcelForIA",
+        {
+          params: {
+            fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+            toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
+            selectedQueueIds: JSON.stringify(selectedQueueIds),
+          },
+        }
+      );
+
+      if (reportToExcelForIA) {
+        console.log("reportToExcelForIA: ", reportToExcelForIA.ticketListFinal);
+
+        let dataToExport = reportToExcelForIA.ticketListFinal.map((row) => {
+          if (!row.IATrainingData) {
+            return null;
+          }
+
+          if (
+            row.IATrainingData?.map((data) => data.mbody).join(" ").length > 800
+          ) {
+            console.log("row.IATrainingData: ", row.IATrainingData);
+          }
+
+          return {
+            INCIDENCIA:
+              row.IATrainingData &&
+              row.IATrainingData.map((data) => data.mbody).join(" "),
+            CATEGORIA: row.tcategoryname,
+            TID: row.tid,
+          };
+        });
+
+        dataToExport = dataToExport.filter((row) => row);
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+        XLSX.writeFile(workbook, `${"WHATREST-reportToExcelForIA"}.xlsx`);
+      }
+
+      setLoadingReportToExcelIA(false);
+    } catch (error) {
+      setLoadingReportToExcelIA(false);
       console.log(error);
       toastError(error);
     }
@@ -1184,6 +1237,20 @@ const Reports = () => {
                     loading={loadingReportToExcel}
                   >
                     Exportar a Excel
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#2de241" }}
+                    onClick={() =>
+                      reportToExcelForIA({
+                        fromDate,
+                        toDate,
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportToExcelIA}
+                  >
+                    IA Excel (by departamento)
                   </ButtonWithSpinner>
                   <ButtonWithSpinner
                     variant="contained"

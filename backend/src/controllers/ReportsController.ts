@@ -18,6 +18,7 @@ import {
   groupDateWithRange,
   processMessageTicketClosed,
   processMessageTicketPendingOrOpen,
+  processTicketMessagesForReturnIATrainingData,
   secondsToDhms
 } from "../utils/util";
 
@@ -1534,6 +1535,212 @@ export const reportToExcel = async (
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
     // ticketListFind,
+    ticketListFinal,
+    sql,
+    logsTime
+  });
+};
+
+export const reportToExcelForIA = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedQueueIds: selectedQueueIdsAsString
+  } = req.query as IndexQuery;
+
+  const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
+
+  const logsTime = [];
+  let sqlWhereAdd = `t.status != 'pending' AND t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
+  }
+
+  // 5076 con grupos
+
+  logsTime.push(`Whatasappnew-inicio: ${Date()}`);
+  let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
+    "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",
+    { type: QueryTypes.SELECT }
+  );
+  logsTime.push(`Whatasappnew-fin: ${Date()}`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+
+  const sql = `SELECT
+    t.id as tid,
+    t.isGroup as tisGroup,
+    t.createdAt as tcreatedAt,
+    que.name as queuename,
+    t.status as tstatus,
+    m.id as mid,
+    m.timestamp as mtimestamp,
+    m.createdAt as mcreatedAt,
+    m.isPrivate as misPrivate,
+    m.fromMe as mfromMe,
+    m.body as mbody,
+    m.mediaType as mmediaType,
+    c.isCompanyMember as misCompanyMember,
+    c.number as cmnumber,
+    u.id as uid,
+    u.name as uname,
+    ct.id as ctid,
+    ct.name as ctname,
+    ct.number as ctnumber,
+    w.id as wid,
+    w.name as wname,
+    ctc.name as ctcname
+  FROM Tickets t
+  LEFT JOIN Users u ON t.userId = u.id
+  LEFT JOIN Whatsapps w ON t.whatsappId = w.id
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
+  LEFT JOIN Countries ctc ON ct.countryId = ctc.id
+  LEFT JOIN Messages m ON t.id = m.ticketId
+  LEFT JOIN Contacts c ON m.contactId = c.id
+  LEFT JOIN Queues que ON t.queueId = que.id
+  WHERE
+  ${sqlWhereAdd}`;
+  console.log("sql", sql);
+  logsTime.push(`sql-inicio: ${Date()}`);
+  const ticketListFinal = [];
+
+  const ticketListFind = await Ticket.sequelize.query(sql, {
+    type: QueryTypes.SELECT
+  });
+  logsTime.push(`sql-fin: ${Date()}`);
+
+  let ticketsClosed: any = ticketListFind.filter(
+    (ticket: any) => ticket?.tstatus === "closed"
+  );
+  let ticketsPendingOpen: any = ticketListFind.filter(
+    (ticket: any) => ticket?.tstatus !== "closed"
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ticketsClosed = ticketsClosed.reduce((result, currentValue: any) => {
+    if (!result[currentValue?.tid]) {
+      result[currentValue.tid] = [];
+    }
+    result[currentValue.tid].push(currentValue);
+    return result;
+  }, {});
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ticketsPendingOpen = ticketsPendingOpen.reduce(
+    (result, currentValue: any) => {
+      if (!result[currentValue?.tid]) {
+        result[currentValue.tid] = [];
+      }
+      result[currentValue.tid].push(currentValue);
+      return result;
+    },
+    {}
+  );
+  // Recorrer el objeto de tickets cerrados
+  // eslint-disable-next-line no-restricted-syntax, guard-for-in
+  for (const ticketId in ticketsClosed) {
+    const IATrainingData = processTicketMessagesForReturnIATrainingData(
+      ticketsClosed[ticketId],
+      whatasappListIDS
+    );
+
+    ticketListFinal.push({
+      tid: ticketsClosed[ticketId][0].tid,
+      uname: ticketsClosed[ticketId][0].uname,
+      ctname: ticketsClosed[ticketId][0].ctname,
+      wname: ticketsClosed[ticketId][0].wname,
+      tstatus: ticketsClosed[ticketId][0].tstatus,
+      tisGroup: ticketsClosed[ticketId][0].tisGroup,
+      ctcname: ticketsClosed[ticketId][0].ctcname,
+      ctnumber: ticketsClosed[ticketId][0].ctnumber,
+      tcreatedAt: ticketsClosed[ticketId][0].tcreatedAt,
+      queuename: ticketsClosed[ticketId][0].queuename,
+      IATrainingData
+    });
+  }
+
+  // eslint-disable-next-line no-restricted-syntax, guard-for-in
+  for (const ticketId in ticketsPendingOpen) {
+    const IATrainingData = processTicketMessagesForReturnIATrainingData(
+      ticketsPendingOpen[ticketId],
+      whatasappListIDS
+    );
+
+    ticketListFinal.push({
+      tid: ticketsPendingOpen[ticketId][0].tid,
+      uname: ticketsPendingOpen[ticketId][0].uname,
+      ctname: ticketsPendingOpen[ticketId][0].ctname,
+      wname: ticketsPendingOpen[ticketId][0].wname,
+      tstatus: ticketsPendingOpen[ticketId][0].tstatus,
+      tisGroup: ticketsPendingOpen[ticketId][0].tisGroup,
+      ctcname: ticketsPendingOpen[ticketId][0].ctcname,
+      ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
+      tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
+      queuename: ticketsPendingOpen[ticketId][0].queuename,
+      IATrainingData
+    });
+  }
+
+  if (ticketListFinal.length > 0) {
+    // console.log(
+    //   "-----------:",
+    //   `
+    //   SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
+    //     .map(ticket => ticket.tid)
+    //     .join(",")}) ORDER BY tc.updatedAt DESC
+    //   `
+    // );
+
+    let ticketListFinalCategories: any[] = await Ticket.sequelize.query(
+      `
+      SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
+        .map(ticket => ticket.tid)
+        .join(",")}) ORDER BY tc.updatedAt DESC
+      `,
+      {
+        type: QueryTypes.SELECT
+      }
+    );
+
+    ticketListFinalCategories = ticketListFinalCategories.reduce(
+      (result, currentValue: any) => {
+        const currentValueInResult = result.find(
+          ticket => ticket.ticketId === currentValue.ticketId
+        );
+        if (!currentValueInResult) {
+          result.push(currentValue);
+        }
+        return result;
+      },
+      []
+    );
+
+    for (const ticketCategory of ticketListFinalCategories) {
+      if (ticketListFinal.find(t => t.tid === ticketCategory.ticketId)) {
+        ticketListFinal.find(
+          t => t.tid === ticketCategory.ticketId
+        ).tcategoryname = ticketCategory.name;
+      }
+    }
+  }
+
+  logsTime.push(`asignacion-fin: ${Date()}`);
+  return res.status(200).json({
     ticketListFinal,
     sql,
     logsTime
