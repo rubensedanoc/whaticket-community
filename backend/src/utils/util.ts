@@ -392,3 +392,78 @@ export const processMessageTicketPendingOrOpen = (
   }
   return times;
 };
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const processTicketMessagesForReturnIATrainingData = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messageList: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  whatasappListIDS: any[]
+) => {
+  let messageListCopy = [...messageList];
+  let trainingData = [];
+
+  let messagesAreValidate = true;
+
+  if (messageList.length === 1 && messageList[0].mid === null) {
+    messagesAreValidate = false;
+  }
+
+  if (messagesAreValidate) {
+    /**
+     * Los mensajes llegan desornados
+     */
+    messageList.sort((a, b) => a.mtimestamp - b.mtimestamp);
+    messageList = messageList.filter(m => {
+      return (
+        textoNoStardWithAutomatic(m.mbody) &&
+        m.misPrivate !== 1 &&
+        !m.mbody.includes("Gracias por tu comprensión") &&
+        !m.mbody.includes("INCIDENCIA") &&
+        !m.mbody.includes("Lun-Sab  8 a 1 pm / 3 a 6 pm") &&
+        !m.mbody.includes("Mi nombre es Ariana Saldarriaga") &&
+        !m.mbody.includes("BEGIN:VCARD") &&
+        !/^[a-zA-Z0-9_-]+\.\w+$/.test(m.mbody) // avoid '1721314571690.pdf'
+      );
+    });
+
+    const firstMessage = messageList[0];
+
+    if (!firstMessage) {
+      // console.log("------------ firstMessage IS NULL: ", messageListCopy);
+    }
+
+    if (firstMessage && isMessageClient(firstMessage, whatasappListIDS)) {
+      // if (firstMessage.tid === 5571) {
+      //   console.log("------------ first Message from 5571: ", firstMessage);
+      // }
+
+      trainingData.push(firstMessage);
+
+      // eslint-disable-next-line no-restricted-syntax
+      for (const message of messageList.slice(1)) {
+        if (isMessageClient(message, whatasappListIDS)) {
+          // if (firstMessage.tid === 5571) {
+          //   console.log("------------ Message to push from 5571: ", message);
+          // }
+          trainingData.push(message);
+        } else {
+          // if (firstMessage.tid === 5571) {
+          //   console.log("------------ message que rompió el 5571: ", message);
+          // }
+          break;
+        }
+      }
+
+      // if (firstMessage.tid === 5571) {
+      //   console.log("------------ trainingData de 5571: ", trainingData);
+      // }
+    }
+  }
+
+  // if (trainingData.find(m => m === null)) {
+  //   console.log("------------ trainingData: ", trainingData);
+  // }
+
+  return trainingData.length > 0 ? trainingData : null;
+};
