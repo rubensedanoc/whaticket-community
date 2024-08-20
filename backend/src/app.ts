@@ -18,8 +18,11 @@ const app = express();
 
 app.use(
   cors({
+    origin: function (origin, callback) {
+      // Permitir cualquier origen
+      callback(null, origin || '*');
+    },
     credentials: true,
-    // origin: process.env.FRONTEND_URL
   })
 );
 app.use(cookieParser());
