@@ -14,12 +14,14 @@ import Contact from "../../models/Contact";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 
+import { Op } from "sequelize";
 import AppError from "../../errors/AppError";
 import { debounce } from "../../helpers/Debounce";
 import formatBody from "../../helpers/Mustache";
 import { getConnectedUsers } from "../../libs/connectedUsers";
 import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
+import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
 import timeoutPromise from "../../utils/timeoutPromise";
@@ -373,23 +375,49 @@ const verifyQueue = async (
         );
       }
 
-      let choosenQueueUserWithLessTickets = choosenQueueUsers.sort((a, b) => {
-        return a.tickets.length - b.tickets.length;
-      })[0];
+      if (choosenQueueUsers.length > 0) {
+        const choosenQueueUsersWithOpenTickets = await User.findAll({
+          where: {
+            id: {
+              [Op.in]: choosenQueueUsers.map(user => user.id)
+            }
+          },
+          include: [
+            {
+              model: Ticket,
+              as: "tickets",
+              required: false,
+              where: {
+                status: "open"
+              }
+            }
+          ]
+        });
 
-      await UpdateTicketService({
-        ticketData: {
-          userId: choosenQueueUserWithLessTickets.id,
-          status: "open"
-        },
-        ticketId: ticket.id
-      });
+        if (
+          choosenQueueUsersWithOpenTickets &&
+          choosenQueueUsersWithOpenTickets.length > 0
+        ) {
+          let choosenQueueUserWithLessTickets =
+            choosenQueueUsersWithOpenTickets.sort((a, b) => {
+              return a.tickets.length - b.tickets.length;
+            })[0];
 
-      verifyPrivateMessage(
-        `Se ha *asignó automáticamente* a ${choosenQueueUserWithLessTickets.name}`,
-        ticket,
-        ticket.contact
-      );
+          await UpdateTicketService({
+            ticketData: {
+              userId: choosenQueueUserWithLessTickets.id,
+              status: "open"
+            },
+            ticketId: ticket.id
+          });
+
+          verifyPrivateMessage(
+            `Se ha *asignó automáticamente* a ${choosenQueueUserWithLessTickets.name}`,
+            ticket,
+            ticket.contact
+          );
+        }
+      }
     }
 
     return;
@@ -461,23 +489,49 @@ const verifyQueue = async (
         );
       }
 
-      let choosenQueueUserWithLessTickets = choosenQueueUsers.sort((a, b) => {
-        return a.tickets.length - b.tickets.length;
-      })[0];
+      if (choosenQueueUsers.length > 0) {
+        const choosenQueueUsersWithOpenTickets = await User.findAll({
+          where: {
+            id: {
+              [Op.in]: choosenQueueUsers.map(user => user.id)
+            }
+          },
+          include: [
+            {
+              model: Ticket,
+              as: "tickets",
+              required: false,
+              where: {
+                status: "open"
+              }
+            }
+          ]
+        });
 
-      await UpdateTicketService({
-        ticketData: {
-          userId: choosenQueueUserWithLessTickets.id,
-          status: "open"
-        },
-        ticketId: ticket.id
-      });
+        if (
+          choosenQueueUsersWithOpenTickets &&
+          choosenQueueUsersWithOpenTickets.length > 0
+        ) {
+          let choosenQueueUserWithLessTickets =
+            choosenQueueUsersWithOpenTickets.sort((a, b) => {
+              return a.tickets.length - b.tickets.length;
+            })[0];
 
-      verifyPrivateMessage(
-        `Se ha *asignó automáticamente* a ${choosenQueueUserWithLessTickets.name}`,
-        ticket,
-        ticket.contact
-      );
+          await UpdateTicketService({
+            ticketData: {
+              userId: choosenQueueUserWithLessTickets.id,
+              status: "open"
+            },
+            ticketId: ticket.id
+          });
+
+          verifyPrivateMessage(
+            `Se ha *asignó automáticamente* a ${choosenQueueUserWithLessTickets.name}`,
+            ticket,
+            ticket.contact
+          );
+        }
+      }
     }
   } else {
     let options = "";

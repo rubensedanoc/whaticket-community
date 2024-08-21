@@ -2,7 +2,6 @@ import AppError from "../../errors/AppError";
 import Category from "../../models/Category";
 import ChatbotOption from "../../models/ChatbotOption";
 import Queue from "../../models/Queue";
-import Ticket from "../../models/Ticket";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 
@@ -37,14 +36,14 @@ const ShowWhatsAppService = async (id: string | number): Promise<Whatsapp> => {
           {
             model: User,
             as: "users",
-            required: false,
-            include: [
-              {
-                model: Ticket,
-                as: "tickets",
-                required: false
-              }
-            ]
+            required: false
+            // include: [
+            //   {
+            //     model: Ticket,
+            //     as: "tickets",
+            //     required: false
+            //   }
+            // ]
           }
         ]
       }
