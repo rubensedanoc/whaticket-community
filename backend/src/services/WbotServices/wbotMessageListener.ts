@@ -14,11 +14,13 @@ import Contact from "../../models/Contact";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 
+import AppError from "../../errors/AppError";
 import { debounce } from "../../helpers/Debounce";
 import formatBody from "../../helpers/Mustache";
 import { getConnectedUsers } from "../../libs/connectedUsers";
 import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
+import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
 import timeoutPromise from "../../utils/timeoutPromise";
 import verifyPrivateMessage from "../../utils/verifyPrivateMessage";
@@ -937,9 +939,52 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
   }
 };
 
-const wbotMessageListener = (wbot: Session): void => {
+const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("message_create", async msg => {
     handleMessage(msg, wbot);
+
+    try {
+      // ignorar mensajes de grupos y de estados
+      if (msg.id.remote.includes("@g") || msg.from === "status@broadcast") {
+        return false;
+      }
+      // solo aceptar mensajes de texto
+      if (msg.type === "chat") {
+        // console.log("---- wbotMessageListener - message_create event");
+
+        const freshWpp = await Whatsapp.findByPk(whatsapp.id);
+
+        // console.log("---- wbotMessageListener - freshWpp: ", freshWpp);
+
+        if (!freshWpp) {
+          throw new AppError("ERR_NO_WAPP_FOUND", 404);
+        }
+
+        if (freshWpp.webhook) {
+          // console.log(
+          //   "---- wbotMessageListener - freshWpp.webhook: ",
+          //   freshWpp.webhook
+          // );
+
+          fetch(freshWpp.webhook, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(msg)
+          }).catch(error => {
+            console.log(
+              `--- WEBHOOK ERROR WhatsappId: ${freshWpp.id}: `,
+              error
+            );
+            Sentry.captureException(error);
+          });
+        }
+      }
+    } catch (error) {
+      console.log("Error on sent message_create event to wpp webhook: ", error);
+      Sentry.captureException(error);
+    }
   });
   wbot.on("media_uploaded", async msg => {
     handleMessage(msg, wbot);
