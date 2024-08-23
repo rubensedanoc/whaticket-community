@@ -1,15 +1,14 @@
-version: '3'
+version: "3"
 
 networks:
   whaticket:
 
 services:
-
   backend:
     deploy:
       resources:
         limits:
-          cpus: '48'
+          cpus: "48"
     build:
       context: ./backend
       dockerfile: ./Dockerfile
@@ -55,7 +54,7 @@ services:
 
   mysql:
     image: ${MYSQL_ENGINE:-mariadb}:${MYSQL_VERSION:-10.6}
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin    
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
     volumes:
       - ./.docker/data/:/var/lib/mysql
     environment:
