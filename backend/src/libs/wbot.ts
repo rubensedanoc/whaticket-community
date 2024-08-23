@@ -84,13 +84,16 @@ const syncUnreadMessages = async ({
     });
 
   console.time("Loop Time");
+  console.log("Before getChats");
 
   let chats = await wbot.getChats();
+
+  console.log("After getChats");
 
   // filter chats with last message in the last 8 hours
   let last8HoursChats = chats.filter(chat =>
     chat.lastMessage
-      ? chat.lastMessage.timestamp > Date.now() / 1000 - 28800 // 8 hours in seconds
+      ? chat.lastMessage.timestamp > Date.now() / 1000 - 86400 // 24 hours in seconds
       : false
   );
 
@@ -113,7 +116,7 @@ const syncUnreadMessages = async ({
         return t.contactId === chatContact?.id;
       });
 
-      let timestampUpToFetchMessages = Date.now() / 1000 - 28800; // 8 hours in seconds
+      let timestampUpToFetchMessages = Date.now() / 1000 - 86400; // 24 hours in seconds
 
       if (
         lastTicketForThisChat &&
@@ -392,11 +395,15 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           ]
         });
 
-        syncUnreadMessages({
-          wbot,
-          allWhatsappTickets,
-          whatsapp
-        });
+        try {
+          syncUnreadMessages({
+            wbot,
+            allWhatsappTickets,
+            whatsapp
+          });
+        } catch (error) {
+          console.log("--- error on syncUnreadMessages: ", error);
+        }
 
         // io.emit("endSyncUnreadMessages");
 

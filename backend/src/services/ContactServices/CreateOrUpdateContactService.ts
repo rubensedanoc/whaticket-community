@@ -152,7 +152,7 @@ const getCountryIdOfNumber = async (number: string) => {
     { type: QueryTypes.SELECT }
   );
 
-  console.log("---- allCountries: ", allCountries);
+  // console.log("---- allCountries: ", allCountries);
 
   for (const country of allCountries) {
     if (number.startsWith(country.code)) {
