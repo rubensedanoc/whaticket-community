@@ -93,7 +93,7 @@ const syncUnreadMessages = async ({
   // filter chats with last message in the last 8 hours
   let last8HoursChats = chats.filter(chat =>
     chat.lastMessage
-      ? chat.lastMessage.timestamp > Date.now() / 1000 - 100800 // 28 hours in seconds
+      ? chat.lastMessage.timestamp > Date.now() / 1000 - 144000 // 40 hours in seconds
       : false
   );
 
@@ -116,7 +116,7 @@ const syncUnreadMessages = async ({
         return t.contactId === chatContact?.id;
       });
 
-      let timestampUpToFetchMessages = Date.now() / 1000 - 100800; // 28 hours in seconds
+      let timestampUpToFetchMessages = Date.now() / 1000 - 144000; // 40 hours in seconds
 
       if (
         lastTicketForThisChat &&
