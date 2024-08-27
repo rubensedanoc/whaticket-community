@@ -178,55 +178,75 @@ const verifyMediaMessage = async (
 
   const media = await msg.downloadMedia();
 
-  if (!media) {
-    throw new Error("ERR_WAPP_DOWNLOAD_MEDIA");
-  }
+  if (media) {
+    let randomId = makeRandomId(5);
 
-  let randomId = makeRandomId(5);
+    if (!media.filename) {
+      const ext = media.mimetype.split("/")[1].split(";")[0];
+      media.filename = `${randomId}-${new Date().getTime()}.${ext}`;
+    } else {
+      media.filename =
+        media.filename.split(".").slice(0, -1).join(".") +
+        "." +
+        randomId +
+        "." +
+        media.filename.split(".").slice(-1);
+    }
 
-  if (!media.filename) {
-    const ext = media.mimetype.split("/")[1].split(";")[0];
-    media.filename = `${randomId}-${new Date().getTime()}.${ext}`;
+    try {
+      await writeFileAsync(
+        join(__dirname, "..", "..", "..", "public", media.filename),
+        media.data,
+        "base64"
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      // @ts-ignore
+      logger.error(err);
+    }
+
+    const messageData = {
+      id: msg.id.id,
+      ticketId: ticket.id,
+      contactId: msg.fromMe ? undefined : contact.id,
+      body: msg.body || media.filename,
+      fromMe: msg.fromMe,
+      read: msg.fromMe,
+      mediaUrl: media.filename,
+      mediaType: media.mimetype.split("/")[0],
+      quotedMsgId: quotedMsg?.id,
+      timestamp: msg.timestamp
+    };
+
+    if (updateTicketLastMessage) {
+      await ticket.update({ lastMessage: msg.body || media.filename });
+    }
+    const newMessage = await CreateMessageService({ messageData });
+
+    return newMessage;
   } else {
-    media.filename =
-      media.filename.split(".").slice(0, -1).join(".") +
-      "." +
-      randomId +
-      "." +
-      media.filename.split(".").slice(-1);
+    const messageData = {
+      id: msg.id.id,
+      ticketId: ticket.id,
+      contactId: msg.fromMe ? undefined : contact.id,
+      body: msg.body
+        ? "--- *No se pudo descargar el archivo* --- " + msg.body
+        : "--- *No se pudo descargar el archivo* --- ",
+      fromMe: msg.fromMe,
+      read: msg.fromMe,
+      mediaType: msg.type,
+      quotedMsgId: quotedMsg?.id,
+      timestamp: msg.timestamp
+    };
+
+    if (updateTicketLastMessage) {
+      await ticket.update({ lastMessage: messageData.body });
+    }
+
+    const newMessage = await CreateMessageService({ messageData });
+
+    return newMessage;
   }
-
-  try {
-    await writeFileAsync(
-      join(__dirname, "..", "..", "..", "public", media.filename),
-      media.data,
-      "base64"
-    );
-  } catch (err) {
-    Sentry.captureException(err);
-    // @ts-ignore
-    logger.error(err);
-  }
-
-  const messageData = {
-    id: msg.id.id,
-    ticketId: ticket.id,
-    contactId: msg.fromMe ? undefined : contact.id,
-    body: msg.body || media.filename,
-    fromMe: msg.fromMe,
-    read: msg.fromMe,
-    mediaUrl: media.filename,
-    mediaType: media.mimetype.split("/")[0],
-    quotedMsgId: quotedMsg?.id,
-    timestamp: msg.timestamp
-  };
-
-  if (updateTicketLastMessage) {
-    await ticket.update({ lastMessage: msg.body || media.filename });
-  }
-  const newMessage = await CreateMessageService({ messageData });
-
-  return newMessage;
 };
 
 /**
