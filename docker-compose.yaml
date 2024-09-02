@@ -31,6 +31,7 @@ services:
     volumes:
       - ./backend/public/:/usr/src/app/public/
       - ./backend/.wwebjs_auth/:/usr/src/app/.wwebjs_auth/
+    restart: always
     networks:
       - whaticket
 
@@ -50,6 +51,7 @@ services:
     volumes:
       - ./ssl/certs/:/etc/nginx/ssl/
       - ./ssl/www/:/var/www/letsencrypt/
+    restart: always
     networks:
       - whaticket
 
@@ -74,5 +76,6 @@ services:
       - PMA_HOSTS=mysql
     ports:
       - ${PMA_PORT:-9000}:80
+    restart: always
     networks:
       - whaticket
