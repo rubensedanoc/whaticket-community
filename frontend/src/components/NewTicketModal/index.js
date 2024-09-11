@@ -57,7 +57,7 @@ const NewTicketModal = ({ modalOpen, onClose }) => {
         try {
           const { data } = await api.get("contacts", {
             params: {
-              searchParam: searchParam.replaceAll(" ", "").replaceAll("+", ""),
+              searchParam,
             },
           });
           console.log("data: ", data.contacts);
