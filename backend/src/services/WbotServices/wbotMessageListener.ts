@@ -763,6 +763,23 @@ const handleMessage = async (
           }
         }
       }
+    } else if (!ticket.queue && whatsapp.queues.length >= 1) {
+      // El codigo de arriba es para un flujo que tiene funciones de chatbot
+      // si el ticket no entraba en las condicionales de arriba se iba a quedar sin queue
+      // por lo que si no entra arriba (ticket en el que no deberian de activarse las funciones del chatbot)
+      // setea la primera queue que encuentre si hay
+      try {
+        await UpdateTicketService({
+          ticketData: { queueId: whatsapp.queues[0].id },
+          ticketId: ticket.id
+        });
+      } catch (error) {
+        console.log(error);
+        Sentry.captureException(
+          "--  error trying to establish queue on ticket that was not going to have " +
+            error
+        );
+      }
     }
 
     if (msg.type === "vcard") {
@@ -964,12 +981,12 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
       return;
     }
 
-    console.log(
-      "-- handleMsgAck -messageToUpdate:",
-      messageToUpdate,
-      " -ack: ",
-      ack
-    );
+    // console.log(
+    //   "-- handleMsgAck -messageToUpdate:",
+    //   messageToUpdate,
+    //   " -ack: ",
+    //   ack
+    // );
 
     await messageToUpdate.update({ ack });
 
