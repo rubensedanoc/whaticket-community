@@ -4,7 +4,7 @@ import { logger } from "../utils/logger";
 import GetTicketWbot from "./GetTicketWbot";
 
 const SetTicketMessagesAsRead = async (ticket: Ticket): Promise<void> => {
-  console.log("_________SetTicketMessagesAsRead ticketId:", ticket);
+  console.log("_________SetTicketMessagesAsRead ticketId:", ticket.id);
 
   await Message.update(
     { read: true },

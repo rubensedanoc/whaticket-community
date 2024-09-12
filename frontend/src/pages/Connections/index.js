@@ -376,6 +376,25 @@ const Connections = () => {
                       </TableCell>
                       <TableCell align="center">
                         {renderActionButtons(whatsApp)}
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="secondary"
+                          onClick={async () => {
+                            try {
+                              await api.delete(
+                                `/whatsappsession-reset/${whatsApp.id}`
+                              );
+                              toast.success(
+                                "Se ha reseteado el bot con exito!"
+                              );
+                            } catch (err) {
+                              toastError(err);
+                            }
+                          }}
+                        >
+                          RESETEAR BOT
+                        </Button>
                       </TableCell>
                       <TableCell align="center">
                         {format(parseISO(whatsApp.updatedAt), "dd/MM/yy HH:mm")}

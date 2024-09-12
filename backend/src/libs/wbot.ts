@@ -192,6 +192,11 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
     try {
       // const io = getIO();
       const sessionName = whatsapp.name;
+
+      console.log(
+        ` --- wbot initWbot --- id: ${whatsapp.id}  name: ${sessionName} sessionUuid: ${whatsapp.sessionUuid}`
+      );
+
       let sessionCfg;
 
       if (whatsapp && whatsapp.session) {
@@ -202,7 +207,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       const wbot: Session = new Client({
         session: sessionCfg,
-        authStrategy: new LocalAuth({ clientId: `bd_${whatsapp.id}` }),
+        authStrategy: new LocalAuth({
+          clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
+        }),
         puppeteer: {
           headless: true,
           ignoreHTTPSErrors: true,
@@ -224,6 +231,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         if (sessionIndex === -1) {
           wbot.id = whatsapp.id;
           sessions.push(wbot);
+        } else {
+          wbot.id = whatsapp.id;
+          sessions[sessionIndex] = wbot;
         }
 
         // io.emit("whatsappSession", {
@@ -373,6 +383,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         if (sessionIndex === -1) {
           wbot.id = whatsapp.id;
           sessions.push(wbot);
+        } else {
+          wbot.id = whatsapp.id;
+          sessions[sessionIndex] = wbot;
         }
 
         // io.emit("startSyncUnreadMessages");

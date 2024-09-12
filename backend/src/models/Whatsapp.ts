@@ -66,6 +66,10 @@ class Whatsapp extends Model<Whatsapp> {
   @Column
   webhook: string;
 
+  @AllowNull
+  @Column
+  sessionUuid: string;
+
   @CreatedAt
   createdAt: Date;
 
