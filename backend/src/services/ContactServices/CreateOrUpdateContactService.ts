@@ -146,7 +146,7 @@ const CreateOrUpdateContactService = async ({
   return contact;
 };
 
-const getCountryIdOfNumber = async (number: string) => {
+export const getCountryIdOfNumber = async (number: string) => {
   const allCountries: Country[] = await Country.sequelize.query(
     "SELECT * FROM Countries c ORDER BY LENGTH(c.code) DESC ",
     { type: QueryTypes.SELECT }
