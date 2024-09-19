@@ -133,6 +133,11 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 
   const handleSaveContact = async (values) => {
     try {
+      if (!chooseCountryId) {
+        toast.error("El país es obligatorio");
+        return;
+      }
+
       if (contactId) {
         await api.put(`/contacts/${contactId}`, {
           ...values,
