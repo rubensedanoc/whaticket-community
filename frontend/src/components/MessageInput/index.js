@@ -238,9 +238,9 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
   useEffect(() => {
     inputRef.current.focus();
     return () => {
-      setInputMessage("");
+      // setInputMessage("");
       setShowEmoji(false);
-      setMedias([]);
+      // setMedias([]);
       setReplyingMessage(null);
     };
   }, [ticketId, setReplyingMessage]);
