@@ -606,6 +606,8 @@ const handleMessage = async (
   }
 
   try {
+    console.log("---- handleMessage - wbot.id: ", wbot.id);
+
     let msgContact: WbotContact;
     let groupContact: Contact | undefined;
 
@@ -1032,6 +1034,11 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 
 const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("message_create", async msg => {
+    console.log(
+      "---- wbotMessageListener message_create - wpp id: ",
+      whatsapp.id
+    );
+
     handleMessage(msg, wbot);
 
     try {
@@ -1041,11 +1048,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
       }
       // solo aceptar mensajes de texto
       if (msg.type === "chat") {
-        // console.log("---- wbotMessageListener - message_create event");
-
         const freshWpp = await Whatsapp.findByPk(whatsapp.id);
-
-        // console.log("---- wbotMessageListener - freshWpp: ", freshWpp);
 
         if (!freshWpp) {
           throw new AppError("ERR_NO_WAPP_FOUND", 404);
@@ -1079,6 +1082,33 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   });
   wbot.on("media_uploaded", async msg => {
     handleMessage(msg, wbot);
+  });
+  wbot.on("message_edit", async msg => {
+    console.log("---- wbotMessageListener message_edit - wbot.id: ", wbot.id);
+
+    try {
+      const message = await Message.findByPk(msg.id.id);
+
+      if (!message) {
+        throw new AppError("No message found with this ID. " + msg.id.id);
+      }
+
+      await message.update({ body: msg.body, isEdited: true });
+
+      emitEvent({
+        to: [message.ticketId.toString()],
+        event: {
+          name: "appMessage",
+          data: {
+            action: "update",
+            message
+          }
+        }
+      });
+    } catch (err) {
+      console.log("Error on message_edit event: ", msg, err);
+      Sentry.captureException(err);
+    }
   });
   wbot.on("message_ack", async (msg, ack) => {
     // la libreria a veces envia null como ack y causaba error

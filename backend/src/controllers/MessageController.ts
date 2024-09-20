@@ -197,7 +197,7 @@ export const updateOnWpp = async (
   const { messageId } = req.params;
   const { body } = req.body;
 
-  console.log("updateOnWpp", messageId, body);
+  console.log("--- updateOnWpp", messageId, body);
 
   try {
     const message = await Message.findByPk(messageId, {
@@ -218,14 +218,7 @@ export const updateOnWpp = async (
 
     const messageToEdit = await GetWbotMessage(ticket, messageId);
 
-    console.log(
-      "---------------------------messageToEdit a editarr",
-      messageToEdit
-    );
-
     const editedMessage = await messageToEdit.edit(body);
-
-    console.log("-------------------- MENSAJE EDITADO", editedMessage);
 
     if (!editedMessage) {
       throw new AppError(
