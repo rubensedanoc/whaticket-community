@@ -1,6 +1,30 @@
 import { Request, Response } from "express";
+import SendApiChatbotMessage from "../services/WbotServices/SendApiChatbotMessage";
 import SendExternalWhatsAppImageMessage from "../services/WbotServices/SendExternalWhatsAppImageMessage";
 import SendExternalWhatsAppMessage from "../services/WbotServices/SendExternalWhatsAppMessage";
+
+export const sendApiChatbotMessage = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  console.log("--- CALL FOR sendApiChatbotMessage", req.body);
+
+  const { botNumber, toNumbers, messageVariables, chatbotMessageIdentifier } =
+    req.body;
+
+  const result = await SendApiChatbotMessage({
+    botNumber,
+    toNumbers,
+    messageVariables,
+    chatbotMessageIdentifier
+  });
+
+  if (!result.ok) {
+    return res.status(400).json(result);
+  }
+
+  return res.status(200).json(result);
+};
 
 export const sendMessage = async (
   req: Request,

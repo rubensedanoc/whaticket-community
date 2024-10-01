@@ -27,7 +27,7 @@ const ListMessagesV2Service = async ({
   ticketsToFetchMessagesQueue: ticketsToFetchMessagesQueueString,
   searchMessageId
 }: Request): Promise<Response> => {
-  console.log("mensaje a encontrar:", searchMessageId);
+  // console.log("mensaje a encontrar:", searchMessageId);
 
   // Parsear la cola de tickets a un objeto JSON
   const ticketsToFetchMessagesQueue: TicketsToFetchMessages[] = JSON.parse(
@@ -66,10 +66,10 @@ const ListMessagesV2Service = async ({
     hasMore = fetchResult.hasMore;
   }
 
-  console.log(
-    "se encontró el mensaje???",
-    messages.find(msg => msg.id === searchMessageId)
-  );
+  // console.log(
+  //   "se encontró el mensaje???",
+  //   messages.find(msg => msg.id === searchMessageId)
+  // );
 
   // Devolver los mensajes encontrados, la cola de tickets y si hay más mensajes por buscar
   return {
@@ -146,7 +146,7 @@ const getMessagesForTicket = async (
       }
     });
 
-    console.log("relatedTickets at getMessagesForTicket", relatedTickets);
+    // console.log("relatedTickets at getMessagesForTicket", relatedTickets);
   }
 
   // Buscar y contar mensajes con la propiedad de ordenación adecuada
@@ -168,6 +168,11 @@ const getMessagesForTicket = async (
     order: [[orderProp, "DESC"]],
     include: [
       "contact",
+      {
+        model: Ticket,
+        as: "ticket",
+        attributes: ["id", "type"]
+      },
       {
         model: Message,
         as: "quotedMsg",

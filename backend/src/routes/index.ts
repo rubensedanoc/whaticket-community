@@ -3,6 +3,7 @@ import { Router } from "express";
 import apiRoutes from "./apiRoutes";
 import authRoutes from "./authRoutes";
 import categoryRoutes from "./categoryRoutes";
+import chatbotMessageRoutes from "./chatbotMessageRoutes";
 import chatbotOptionRoutes from "./chatbotOptionRoutes";
 import contactRoutes from "./contactRoutes";
 import contryRoutes from "./countryRoutes";
@@ -35,5 +36,6 @@ routes.use(reportsRoutes);
 routes.use("/api/messages", apiRoutes);
 routes.use(contryRoutes);
 routes.use("/external", externalRoutes);
+routes.use(chatbotMessageRoutes);
 
 export default routes;

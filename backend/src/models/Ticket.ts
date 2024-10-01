@@ -47,6 +47,9 @@ class Ticket extends Model<Ticket> {
   @Column
   privateNote: string;
 
+  @Column
+  type: string;
+
   @Default(false)
   @Column
   isGroup: boolean;

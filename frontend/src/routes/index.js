@@ -7,6 +7,7 @@ import { SearchMessageProvider } from "../context/SearchMessage/SearchMessageCon
 import { UsersPresenceProvider } from "../context/UsersPresenceContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
 import LoggedInLayout from "../layout";
+import ApiChatbot from "../pages/ApiChatbot";
 import Categories from "../pages/Categories/";
 import Connections from "../pages/Connections/";
 import Contacts from "../pages/Contacts/";
@@ -36,6 +37,12 @@ const Routes = () => {
                 <LoggedInLayout>
                   <Route exact path="/" component={Dashboard} isPrivate />
                   <Route exact path="/reports" component={Reports} isPrivate />
+                  <Route
+                    exact
+                    path="/api-chatbot"
+                    component={ApiChatbot}
+                    isPrivate
+                  />
                   <Route
                     exact
                     path="/reportsv2"

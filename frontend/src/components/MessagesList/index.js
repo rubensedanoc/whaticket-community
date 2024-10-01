@@ -52,6 +52,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   messagesList: {
+    // height: "58vh",
     backgroundImage: `url(${whatsBackground})`,
     display: "flex",
     flexDirection: "column",
@@ -311,10 +312,10 @@ const useStyles = makeStyles((theme) => ({
     textAlign: "center",
     alignSelf: "center",
     width: "100%",
-    backgroundColor: "#4a4a4a",
+    backgroundColor: "#303030",
     fontSize: 18,
     color: "white",
-    margin: "30px 0px 30px",
+    margin: "16px 0px 16px",
     paddingTop: "5px",
     paddingBottom: "5px",
     borderRadius: "10px",
@@ -752,7 +753,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
           className={classes.ticketDivider}
           key={`timestamp-${message.ticketId}`}
         >
-          Ticket: {message.ticketId}
+          <div>Ticket: {message.ticketId}</div>
+          {message.ticket?.type === "non-interactive" && (
+            <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
+          )}
         </div>
       );
     }
@@ -765,7 +769,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
             className={classes.ticketDivider}
             key={`timestamp-${message.ticketId}`}
           >
-            Ticket: {message.ticketId}
+            <div>Ticket: {message.ticketId}</div>
+            {message.ticket?.type === "non-interactive" && (
+              <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
+            )}
           </div>
         );
       }

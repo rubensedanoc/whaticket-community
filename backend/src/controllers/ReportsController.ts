@@ -675,7 +675,7 @@ export const reportHistory = async (
   const selectedTypes = JSON.parse(selectedTypesAsString) as string[];
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = " t.status IN ('pending','open') ";
+  let sqlWhereAdd = " t.status IN ('pending','open') AND t.type = 'normal' ";
   // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds.length > 0) {
@@ -996,7 +996,7 @@ export const reportHistoryWithDateRange = async (
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.isGroup = 0 AND t.type = 'normal' AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
@@ -1290,7 +1290,7 @@ export const reportToExcel = async (
   // const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   // const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.status != 'pending' and t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.status != 'pending' AND t.type = 'normal' and t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
@@ -1490,15 +1490,6 @@ export const reportToExcel = async (
   }
 
   if (ticketListFinal.length > 0) {
-    console.log(
-      "-----------:",
-      `
-      SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
-        .map(ticket => ticket.tid)
-        .join(",")}) ORDER BY tc.updatedAt DESC
-      `
-    );
-
     let ticketListFinalCategories: any[] = await Ticket.sequelize.query(
       `
       SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
@@ -1554,7 +1545,7 @@ export const reportToExcelForIA = async (
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
 
   const logsTime = [];
-  let sqlWhereAdd = `t.status != 'pending' AND t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.status != 'pending' AND t.type = 'normal' AND t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
 
@@ -1763,7 +1754,7 @@ export const reportToUsers = async (
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.status != 'pending' and t.isGroup = 0 and t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.status != 'pending' AND t.type = 'normal' and t.isGroup = 0 and t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";

@@ -121,7 +121,7 @@ const TicketActionButtons = ({ ticket }) => {
     <div className={classes.actionButtons}>
       {!ticket.isGroup && (
         <>
-          {ticket.status === "closed" && (
+          {ticket.status === "closed" && ticket.type === "normal" && (
             <>
               <ButtonWithSpinner
                 loading={loading}

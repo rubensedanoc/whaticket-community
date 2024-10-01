@@ -12,6 +12,7 @@ import BarChartIcon from "@material-ui/icons/BarChart";
 import CategoryOutlinedIcon from "@material-ui/icons/CategoryOutlined";
 import ContactPhoneOutlinedIcon from "@material-ui/icons/ContactPhoneOutlined";
 import DashboardOutlinedIcon from "@material-ui/icons/DashboardOutlined";
+import HttpIcon from "@material-ui/icons/Http";
 import MessageOutlinedIcon from "@material-ui/icons/MessageOutlined";
 import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
 import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
@@ -120,6 +121,11 @@ const MainListItems = (props) => {
             <ListSubheader inset>
               {i18n.t("mainDrawer.listItems.administration")}
             </ListSubheader>
+            <ListItemLink
+              to="/api-chatbot"
+              primary={"Api Chatbot"}
+              icon={<HttpIcon />}
+            />
             <ListItemLink
               to="/reportsv2"
               primary={"Reportes"}

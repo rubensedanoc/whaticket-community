@@ -19,6 +19,7 @@ import User from "../models/User";
 import UserQueue from "../models/UserQueue";
 import Whatsapp from "../models/Whatsapp";
 import WhatsappQueue from "../models/WhatsappQueue";
+import ChatbotMessage from "../models/ChatbotMessage";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -46,7 +47,8 @@ const models = [
   ChatbotOption,
   TicketParticipantUsers,
   TicketLog,
-  Country
+  Country,
+  ChatbotMessage
 ];
 
 sequelize.addModels(models);

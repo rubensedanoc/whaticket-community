@@ -48,6 +48,9 @@ class Message extends Model<Message> {
   mediaType: string;
 
   @Column
+  identifier: string;
+
+  @Column
   timestamp: number;
 
   @Default(false)

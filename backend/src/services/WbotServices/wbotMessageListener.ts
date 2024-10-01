@@ -6,6 +6,7 @@ import { promisify } from "util";
 import WAWebJS, {
   Client,
   MessageAck,
+  MessageMedia,
   Contact as WbotContact,
   Message as WbotMessage
 } from "whatsapp-web.js";
@@ -21,6 +22,7 @@ import formatBody from "../../helpers/Mustache";
 import { getConnectedUsers } from "../../libs/connectedUsers";
 import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
+import ChatbotMessage from "../../models/ChatbotMessage";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
@@ -168,11 +170,12 @@ function makeRandomId(length: number) {
  * Create a message in the database with the passed msg and update the ticket lastMessage
  * - download the media, and save it in the public folder
  */
-const verifyMediaMessage = async (
+export const verifyMediaMessage = async (
   msg: WbotMessage,
   ticket: Ticket,
   contact: Contact,
-  updateTicketLastMessage = true
+  updateTicketLastMessage = true,
+  identifier = ""
 ): Promise<Message> => {
   const quotedMsg = await verifyQuotedMessage(msg);
 
@@ -215,7 +218,8 @@ const verifyMediaMessage = async (
       mediaUrl: media.filename,
       mediaType: media.mimetype.split("/")[0],
       quotedMsgId: quotedMsg?.id,
-      timestamp: msg.timestamp
+      timestamp: msg.timestamp,
+      ...(identifier && { identifier })
     };
 
     if (updateTicketLastMessage) {
@@ -236,7 +240,8 @@ const verifyMediaMessage = async (
       read: msg.fromMe,
       mediaType: msg.type,
       quotedMsgId: quotedMsg?.id,
-      timestamp: msg.timestamp
+      timestamp: msg.timestamp,
+      ...(identifier && { identifier })
     };
 
     if (updateTicketLastMessage) {
@@ -258,7 +263,8 @@ export const verifyMessage = async (
   ticket: Ticket,
   contact: Contact,
   isPrivate = false,
-  updateTicketLastMessage = true
+  updateTicketLastMessage = true,
+  identifier = ""
 ) => {
   if (msg.type === "location") msg = prepareLocation(msg);
 
@@ -274,7 +280,8 @@ export const verifyMessage = async (
     read: msg.fromMe,
     quotedMsgId: quotedMsg?.id,
     isPrivate,
-    timestamp: msg.timestamp
+    timestamp: msg.timestamp,
+    ...(identifier && { identifier })
   };
 
   if (updateTicketLastMessage) {
@@ -293,7 +300,7 @@ export const verifyMessage = async (
     });
   }
 
-  await CreateMessageService({ messageData });
+  return await CreateMessageService({ messageData });
 };
 
 /**
@@ -616,7 +623,10 @@ const handleMessage = async (
     if (msg.fromMe) {
       // messages sent automatically by wbot have a special character in front of it
       // if so, this message was already been stored in database;
-      if (/\u200e/.test(msg.body[0])) return;
+      if (/\u200e/.test(msg.body[0]) || /\u200B/.test(msg.body[0])) {
+        console.log("---- handleMessage - ignore bot message");
+        return;
+      }
 
       // media messages sent from me from cell phone, first comes with "hasMedia = false" and type = "image/ptt/etc"
       // in this case, return and let this message be handled by "media_uploaded" event, when it will have "hasMedia = true"
@@ -809,6 +819,152 @@ const handleMessage = async (
         }
       } catch (error) {
         console.log(error);
+      }
+    }
+
+    if (!msg.fromMe) {
+      const relatedTicketsForIncomingMessage = await Ticket.findAll({
+        attributes: ["id"],
+        where: {
+          whatsappId: ticket.whatsappId,
+          contactId: ticket.contactId
+        }
+      });
+
+      const lastBotMessageWithNumber = await Message.findOne({
+        attributes: ["id", "identifier", "body"],
+        where: {
+          ticketId: {
+            [Op.in]: relatedTicketsForIncomingMessage.map(ticket => ticket.id)
+          },
+          fromMe: true,
+          mediaType: {
+            [Op.or]: ["image", "chat"]
+          }
+        },
+        order: [["timestamp", "DESC"]]
+      });
+
+      if (lastBotMessageWithNumber && lastBotMessageWithNumber.identifier) {
+        console.log(
+          "---- handleMessage - lastBotMessageWithNumber: ",
+          lastBotMessageWithNumber
+        );
+
+        const chatbotMessage = await ChatbotMessage.findOne({
+          where: {
+            identifier: lastBotMessageWithNumber.identifier
+          },
+          include: [
+            {
+              model: ChatbotMessage,
+              as: "chatbotOptions",
+              order: [["order", "ASC"]],
+              separate: true
+            }
+          ]
+        });
+
+        if (chatbotMessage && chatbotMessage.chatbotOptions.length > 0) {
+          const chooseOption = chatbotMessage.chatbotOptions.find(co =>
+            msg.body.toLocaleLowerCase().includes(co.label.toLocaleLowerCase())
+          );
+
+          if (chooseOption) {
+            console.log("---- handleMessage - chooseOption: ", chooseOption);
+            const nextChatbotMessage = await ChatbotMessage.findOne({
+              where: {
+                id: chooseOption.id
+              },
+              include: [
+                {
+                  model: ChatbotMessage,
+                  as: "chatbotOptions",
+                  order: [["order", "ASC"]],
+                  separate: true
+                }
+              ]
+            });
+
+            if (nextChatbotMessage) {
+              let options = "";
+
+              if (nextChatbotMessage.hasSubOptions) {
+                options += "\n\n";
+                nextChatbotMessage.chatbotOptions.forEach(
+                  (chatbotOption, index) => {
+                    options += `*${
+                      chatbotOption.label
+                    }* - *${chatbotOption.title.trim()}* ${
+                      index < nextChatbotMessage.chatbotOptions.length - 1
+                        ? "\n\n"
+                        : ""
+                    }`;
+                  }
+                );
+              }
+
+              const body = formatBody(
+                `\u200e${nextChatbotMessage.value}${options}`,
+                contact
+              );
+
+              console.log("---- handleMessage - nextChatbotMessage: ", body);
+
+              if (nextChatbotMessage.mediaType === "image") {
+                const imageMedia = await MessageMedia.fromUrl(
+                  nextChatbotMessage.mediaUrl
+                );
+
+                const debouncedSentMessage = debounce(
+                  async () => {
+                    const sentMessage = await wbot.sendMessage(
+                      `${contact.number}@c.us`,
+                      imageMedia,
+                      {
+                        caption: body
+                      }
+                    );
+
+                    await verifyMediaMessage(
+                      sentMessage,
+                      ticket,
+                      contact,
+                      true,
+                      nextChatbotMessage.identifier
+                    );
+                  },
+                  1500,
+                  ticket.id
+                );
+
+                debouncedSentMessage();
+              } else {
+                const debouncedSentMessage = debounce(
+                  async () => {
+                    const sentMessage = await wbot.sendMessage(
+                      `${contact.number}@c.us`,
+                      body
+                    );
+
+                    await verifyMessage(
+                      sentMessage,
+                      ticket,
+                      contact,
+                      false,
+                      true,
+                      nextChatbotMessage.identifier
+                    );
+                  },
+                  1500,
+                  ticket.id
+                );
+
+                debouncedSentMessage();
+              }
+            }
+          }
+        }
       }
     }
 
@@ -1035,7 +1191,7 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("message_create", async msg => {
     console.log(
-      "---- wbotMessageListener message_create - wpp id: ",
+      "--- BOT wbotMessageListener message_create - wpp id: ",
       whatsapp.id
     );
 
@@ -1084,7 +1240,10 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     handleMessage(msg, wbot);
   });
   wbot.on("message_edit", async msg => {
-    console.log("---- wbotMessageListener message_edit - wbot.id: ", wbot.id);
+    console.log(
+      "--- BOT wbotMessageListener message_edit - wbot.id: ",
+      wbot.id
+    );
 
     try {
       const message = await Message.findByPk(msg.id.id);
