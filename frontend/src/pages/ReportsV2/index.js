@@ -333,6 +333,7 @@ const Reports = () => {
           "T. DE RESOLUCIÓN": row.resolution,
           "T. DE RESPEUSTA PROM.": row.avgResponse,
           QUINTAL: row.quintalHours,
+          "PRIMERA RESPUESTA": row.firstResponseMessage,
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
