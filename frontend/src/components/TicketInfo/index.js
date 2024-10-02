@@ -29,13 +29,13 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
           </div>
           <div>
             {microServiceData
-              ? microServiceData.map((data) => (
-                  <>
+              ? microServiceData.map((data, index) => (
+                  <div key={index}>
                     {" - "}
                     <a href={"https://" + data.link_dominio} target="_blank">
                       {data.link_dominio}
                     </a>
-                  </>
+                  </div>
                 ))
               : contact.domain && (
                   <a href={contact.domain} target="_blank">

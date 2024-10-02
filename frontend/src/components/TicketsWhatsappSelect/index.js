@@ -18,6 +18,7 @@ const TicketsWhatsappSelect = ({
 
   return (
     <Badge
+      overlap="rectangular"
       badgeContent={selectedWhatsappIds?.length}
       max={99999}
       color="secondary"

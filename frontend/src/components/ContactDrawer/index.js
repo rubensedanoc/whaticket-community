@@ -258,8 +258,9 @@ const ContactDrawer = ({
                       "localbi_kam",
                     ].includes(key)
                   )
-                  .map(([key, value]) => (
+                  .map(([key, value], index) => (
                     <Paper
+                      key={index}
                       square
                       variant="outlined"
                       className={classes.contactExtraInfo}

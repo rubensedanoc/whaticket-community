@@ -366,6 +366,7 @@ const TicketsManager = () => {
         {tab === "search" && (
           <>
             <Badge
+              overlap="rectangular"
               badgeContent={numberGroups.length}
               className={classes.badge}
               color="primary"
@@ -416,7 +417,12 @@ const TicketsManager = () => {
                   textTransform: "initial",
                 }}
               >
-                <Badge badgeContent={groupCount} color="primary" max={99999}>
+                <Badge
+                  overlap="rectangular"
+                  badgeContent={groupCount}
+                  color="primary"
+                  max={99999}
+                >
                   {!showOnlyMyGroups ? "Todos los grupos" : "Mis grupos"}
                 </Badge>
 
@@ -461,7 +467,12 @@ const TicketsManager = () => {
                   textTransform: "initial",
                 }}
               >
-                <Badge badgeContent={openCount} color="primary" max={99999}>
+                <Badge
+                  overlap="rectangular"
+                  badgeContent={openCount}
+                  color="primary"
+                  max={99999}
+                >
                   {/* {i18n.t("ticketsList.assignedHeader")} */}
                   {showAllTickets ? "Todos los chats" : "Mis chats"}
                 </Badge>
@@ -514,6 +525,7 @@ const TicketsManager = () => {
                 }}
               >
                 <Badge
+                  overlap="rectangular"
                   badgeContent={pendingCount}
                   color="secondary"
                   max={99999}

@@ -19,6 +19,7 @@ const ReportsQueueSelect = ({
 
   return (
     <Badge
+      overlap="rectangular"
       badgeContent={selectedQueueIds?.length}
       max={99999}
       color="primary"

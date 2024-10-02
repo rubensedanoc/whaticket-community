@@ -476,19 +476,21 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
         />
         {ticket.status === "pending" && (
           <Tooltip title="Aceptar Ticker" aria-label="Aceptar Ticker">
-            <ButtonWithSpinner
-              color="primary"
-              variant="contained"
-              className={classes.acceptButton}
-              size="small"
-              loading={loading}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAcepptTicket(ticket.id);
-              }}
-            >
-              <GroupAddIcon />
-            </ButtonWithSpinner>
+            <div>
+              <ButtonWithSpinner
+                color="primary"
+                variant="contained"
+                className={classes.acceptButton}
+                size="small"
+                loading={loading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAcepptTicket(ticket.id);
+                }}
+              >
+                <GroupAddIcon />
+              </ButtonWithSpinner>
+            </div>
           </Tooltip>
         )}
       </ListItem>

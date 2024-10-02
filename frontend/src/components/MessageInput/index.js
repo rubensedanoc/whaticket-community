@@ -562,6 +562,7 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
               onClick={() => setNewPrivateNoteModalOpen(true)}
             >
               <Badge
+                overlap="rectangular"
                 invisible={ticketPrivateNote ? false : true}
                 badgeContent={"!"}
                 color="secondary"
