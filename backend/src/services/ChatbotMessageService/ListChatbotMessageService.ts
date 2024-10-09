@@ -18,7 +18,8 @@ const ListChatbotMessageService = async ({
         model: ChatbotMessage,
         as: "chatbotOptions",
         order: [["order", "ASC"]],
-        separate: true
+        separate: true,
+        where: { wasDeleted: false }
       }
     ],
     ...(onlyFathers && { where: { fatherChatbotOptionId: null } })

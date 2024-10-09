@@ -754,7 +754,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
           key={`timestamp-${message.ticketId}`}
         >
           <div>Ticket: {message.ticketId}</div>
-          {message.ticket?.type === "non-interactive" && (
+          {message.ticket?.chatbotMessageIdentifier && (
             <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
           )}
         </div>
@@ -770,7 +770,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
             key={`timestamp-${message.ticketId}`}
           >
             <div>Ticket: {message.ticketId}</div>
-            {message.ticket?.type === "non-interactive" && (
+            {message.ticket?.chatbotMessageIdentifier && (
               <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
             )}
           </div>

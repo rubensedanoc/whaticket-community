@@ -9,14 +9,20 @@ export const sendApiChatbotMessage = async (
 ): Promise<Response> => {
   console.log("--- CALL FOR sendApiChatbotMessage", req.body);
 
-  const { botNumber, toNumbers, messageVariables, chatbotMessageIdentifier } =
-    req.body;
+  const {
+    botNumber,
+    toNumbers,
+    messageVariables,
+    chatbotMessageIdentifier,
+    localbi_id
+  } = req.body;
 
   const result = await SendApiChatbotMessage({
     botNumber,
     toNumbers,
     messageVariables,
-    chatbotMessageIdentifier
+    chatbotMessageIdentifier,
+    localbi_id
   });
 
   if (!result.ok) {

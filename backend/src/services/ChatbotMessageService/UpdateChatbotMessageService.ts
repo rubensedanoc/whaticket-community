@@ -24,7 +24,7 @@ const UpdateChatbotMessageService = async ({
     chatbotMessageData;
 
   const chatbotMessage = await ChatbotMessage.findOne({
-    where: { id: chatbotMessageId }
+    where: { id: chatbotMessageId, wasDeleted: false }
   });
 
   if (!chatbotMessage) {

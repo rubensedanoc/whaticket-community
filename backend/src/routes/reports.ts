@@ -27,4 +27,8 @@ reportsRoutes.get(
 reportsRoutes.get("/reportToExcel", ReportsController.reportToExcel);
 reportsRoutes.get("/reportToExcelForIA", ReportsController.reportToExcelForIA);
 reportsRoutes.get("/reportToUsers", ReportsController.reportToUsers);
+reportsRoutes.get(
+  "/chatbotMessagesReportToExcel",
+  ReportsController.chatbotMessagesReportToExcel
+);
 export default reportsRoutes;

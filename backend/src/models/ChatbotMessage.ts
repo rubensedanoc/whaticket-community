@@ -43,6 +43,12 @@ class ChatbotMessage extends Model<ChatbotMessage> {
   @Column
   order: number;
 
+  @Column
+  wasDeleted: boolean;
+
+  @Column
+  timeToWaitInMinutes: number;
+
   @Default(false)
   @Column
   hasSubOptions: boolean;

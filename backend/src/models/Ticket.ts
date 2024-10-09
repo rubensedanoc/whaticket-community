@@ -47,9 +47,6 @@ class Ticket extends Model<Ticket> {
   @Column
   privateNote: string;
 
-  @Column
-  type: string;
-
   @Default(false)
   @Column
   isGroup: boolean;
@@ -65,6 +62,12 @@ class Ticket extends Model<Ticket> {
 
   @UpdatedAt
   updatedAt: Date;
+
+  @Column
+  chatbotMessageIdentifier: string;
+
+  @Column
+  chatbotMessageLastStep: string;
 
   @ForeignKey(() => User)
   @Column

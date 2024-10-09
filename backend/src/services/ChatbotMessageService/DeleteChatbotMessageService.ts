@@ -3,7 +3,7 @@ import ChatbotMessage from "../../models/ChatbotMessage";
 
 const DeleteChatbotMessageService = async (id: string): Promise<void> => {
   const chatbotMessage = await ChatbotMessage.findOne({
-    where: { id }
+    where: { id, wasDeleted: false }
   });
 
   if (!chatbotMessage) {
@@ -14,11 +14,12 @@ const DeleteChatbotMessageService = async (id: string): Promise<void> => {
     // search if his fatherChatbotOption has more children
     // if not, set hasSubOptions to false
     const fatherChatbotMessage = await ChatbotMessage.findOne({
-      where: { id: chatbotMessage.fatherChatbotOptionId },
+      where: { id: chatbotMessage.fatherChatbotOptionId, wasDeleted: false },
       include: [
         {
           model: ChatbotMessage,
-          as: "chatbotOptions"
+          as: "chatbotOptions",
+          where: { wasDeleted: false }
         }
       ]
     });
@@ -31,7 +32,9 @@ const DeleteChatbotMessageService = async (id: string): Promise<void> => {
     }
   }
 
-  await chatbotMessage.destroy();
+  await chatbotMessage.update({ wasDeleted: true });
+
+  // await chatbotMessage.destroy();
 };
 
 export default DeleteChatbotMessageService;

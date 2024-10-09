@@ -35,12 +35,14 @@ const SendApiChatbotMessage = async ({
   botNumber,
   toNumbers,
   messageVariables,
-  chatbotMessageIdentifier
+  chatbotMessageIdentifier,
+  localbi_id
 }: {
   botNumber: string;
   toNumbers: string[];
   messageVariables: { [key: string]: string };
   chatbotMessageIdentifier: string;
+  localbi_id: string;
 }) => {
   const result = { ok: true, messages: [], errors: [] };
 
@@ -54,13 +56,18 @@ const SendApiChatbotMessage = async ({
 
     const wbot = getWbot(wpp.id);
     const chatbotMessage = await ChatbotMessage.findOne({
-      where: { identifier: chatbotMessageIdentifier, isActive: true },
+      where: {
+        identifier: chatbotMessageIdentifier,
+        isActive: true,
+        wasDeleted: false
+      },
       include: [
         {
           model: ChatbotMessage,
           as: "chatbotOptions",
           order: [["order", "ASC"]],
-          separate: true
+          separate: true,
+          where: { wasDeleted: false }
         }
       ]
     });
@@ -97,8 +104,12 @@ const SendApiChatbotMessage = async ({
           0,
           null,
           msg.timestamp,
-          "non-interactive"
+          chatbotMessage.identifier
         );
+
+        ticket.update({
+          privateNote: localbi_id
+        });
 
         if (media) {
           await verifyMediaMessage(
@@ -121,7 +132,10 @@ const SendApiChatbotMessage = async ({
 
         result.messages.push("Mensaje enviado a " + toNumber);
       } catch (error) {
+        console.log("--- Error en SendApiChatbotMessage", error);
+
         result.errors.push("Fallo enviar el mensaje a " + toNumber);
+        result.errors.push(error);
       }
       await new Promise(resolve => setTimeout(resolve, 1500)); // Evitar bloqueos de WhatsApp
     }

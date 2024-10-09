@@ -822,147 +822,129 @@ const handleMessage = async (
       }
     }
 
-    if (!msg.fromMe) {
-      const relatedTicketsForIncomingMessage = await Ticket.findAll({
-        attributes: ["id"],
+    if (!msg.fromMe && ticket.chatbotMessageIdentifier) {
+      const chatbotMessageReplied = await ChatbotMessage.findOne({
         where: {
-          whatsappId: ticket.whatsappId,
-          contactId: ticket.contactId
-        }
-      });
-
-      const lastBotMessageWithNumber = await Message.findOne({
-        attributes: ["id", "identifier", "body"],
-        where: {
-          ticketId: {
-            [Op.in]: relatedTicketsForIncomingMessage.map(ticket => ticket.id)
-          },
-          fromMe: true,
-          mediaType: {
-            [Op.or]: ["image", "chat"]
-          }
+          identifier:
+            ticket.chatbotMessageLastStep || ticket.chatbotMessageIdentifier
         },
-        order: [["timestamp", "DESC"]]
+        include: [
+          {
+            model: ChatbotMessage,
+            as: "chatbotOptions",
+            order: [["order", "ASC"]],
+            separate: true,
+            where: { wasDeleted: false }
+          }
+        ]
       });
 
-      if (lastBotMessageWithNumber && lastBotMessageWithNumber.identifier) {
-        console.log(
-          "---- handleMessage - lastBotMessageWithNumber: ",
-          lastBotMessageWithNumber
+      if (
+        chatbotMessageReplied &&
+        chatbotMessageReplied.chatbotOptions.length > 0
+      ) {
+        const chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
+          msg.body.toLocaleLowerCase().includes(co.label.toLocaleLowerCase())
         );
 
-        const chatbotMessage = await ChatbotMessage.findOne({
-          where: {
-            identifier: lastBotMessageWithNumber.identifier
-          },
-          include: [
-            {
-              model: ChatbotMessage,
-              as: "chatbotOptions",
-              order: [["order", "ASC"]],
-              separate: true
-            }
-          ]
-        });
+        if (chooseOption) {
+          console.log("---- handleMessage - chooseOption: ", chooseOption);
 
-        if (chatbotMessage && chatbotMessage.chatbotOptions.length > 0) {
-          const chooseOption = chatbotMessage.chatbotOptions.find(co =>
-            msg.body.toLocaleLowerCase().includes(co.label.toLocaleLowerCase())
-          );
-
-          if (chooseOption) {
-            console.log("---- handleMessage - chooseOption: ", chooseOption);
-            const nextChatbotMessage = await ChatbotMessage.findOne({
-              where: {
-                id: chooseOption.id
-              },
-              include: [
-                {
-                  model: ChatbotMessage,
-                  as: "chatbotOptions",
-                  order: [["order", "ASC"]],
-                  separate: true
-                }
-              ]
-            });
-
-            if (nextChatbotMessage) {
-              let options = "";
-
-              if (nextChatbotMessage.hasSubOptions) {
-                options += "\n\n";
-                nextChatbotMessage.chatbotOptions.forEach(
-                  (chatbotOption, index) => {
-                    options += `*${
-                      chatbotOption.label
-                    }* - *${chatbotOption.title.trim()}* ${
-                      index < nextChatbotMessage.chatbotOptions.length - 1
-                        ? "\n\n"
-                        : ""
-                    }`;
-                  }
-                );
+          const nextChatbotMessage = await ChatbotMessage.findOne({
+            where: {
+              id: chooseOption.id
+            },
+            include: [
+              {
+                model: ChatbotMessage,
+                as: "chatbotOptions",
+                order: [["order", "ASC"]],
+                separate: true,
+                where: { wasDeleted: false }
               }
+            ]
+          });
 
-              const body = formatBody(
-                `\u200e${nextChatbotMessage.value}${options}`,
-                contact
+          if (nextChatbotMessage) {
+            let options = "";
+
+            if (nextChatbotMessage.hasSubOptions) {
+              options += "\n\n";
+              nextChatbotMessage.chatbotOptions.forEach(
+                (chatbotOption, index) => {
+                  options += `*${
+                    chatbotOption.label
+                  }* - *${chatbotOption.title.trim()}* ${
+                    index < nextChatbotMessage.chatbotOptions.length - 1
+                      ? "\n\n"
+                      : ""
+                  }`;
+                }
+              );
+            }
+
+            const body = formatBody(
+              `\u200e${nextChatbotMessage.value}${options}`,
+              contact
+            );
+
+            console.log("---- handleMessage - nextChatbotMessage: ", body);
+
+            if (nextChatbotMessage.mediaType === "image") {
+              const imageMedia = await MessageMedia.fromUrl(
+                nextChatbotMessage.mediaUrl
               );
 
-              console.log("---- handleMessage - nextChatbotMessage: ", body);
+              const debouncedSentMessage = debounce(
+                async () => {
+                  const sentMessage = await wbot.sendMessage(
+                    `${contact.number}@c.us`,
+                    imageMedia,
+                    {
+                      caption: body
+                    }
+                  );
 
-              if (nextChatbotMessage.mediaType === "image") {
-                const imageMedia = await MessageMedia.fromUrl(
-                  nextChatbotMessage.mediaUrl
-                );
+                  await verifyMediaMessage(
+                    sentMessage,
+                    ticket,
+                    contact,
+                    true,
+                    nextChatbotMessage.identifier
+                  );
+                },
+                1500,
+                ticket.id
+              );
 
-                const debouncedSentMessage = debounce(
-                  async () => {
-                    const sentMessage = await wbot.sendMessage(
-                      `${contact.number}@c.us`,
-                      imageMedia,
-                      {
-                        caption: body
-                      }
-                    );
+              debouncedSentMessage();
+            } else {
+              const debouncedSentMessage = debounce(
+                async () => {
+                  const sentMessage = await wbot.sendMessage(
+                    `${contact.number}@c.us`,
+                    body
+                  );
 
-                    await verifyMediaMessage(
-                      sentMessage,
-                      ticket,
-                      contact,
-                      true,
-                      nextChatbotMessage.identifier
-                    );
-                  },
-                  1500,
-                  ticket.id
-                );
+                  await verifyMessage(
+                    sentMessage,
+                    ticket,
+                    contact,
+                    false,
+                    true,
+                    nextChatbotMessage.identifier
+                  );
+                },
+                1500,
+                ticket.id
+              );
 
-                debouncedSentMessage();
-              } else {
-                const debouncedSentMessage = debounce(
-                  async () => {
-                    const sentMessage = await wbot.sendMessage(
-                      `${contact.number}@c.us`,
-                      body
-                    );
-
-                    await verifyMessage(
-                      sentMessage,
-                      ticket,
-                      contact,
-                      false,
-                      true,
-                      nextChatbotMessage.identifier
-                    );
-                  },
-                  1500,
-                  ticket.id
-                );
-
-                debouncedSentMessage();
-              }
+              debouncedSentMessage();
             }
+
+            ticket.update({
+              chatbotMessageLastStep: nextChatbotMessage.identifier
+            });
           }
         }
       }

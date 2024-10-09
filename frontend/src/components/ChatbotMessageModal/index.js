@@ -15,6 +15,7 @@ import TextField from "@material-ui/core/TextField";
 import { green } from "@material-ui/core/colors";
 import { makeStyles } from "@material-ui/core/styles";
 import UndoIcon from "@material-ui/icons/Undo";
+import ConfirmationModal from "../../components/ConfirmationModal";
 
 import { i18n } from "../../translate/i18n";
 
@@ -75,6 +76,8 @@ const ChatbotOptionList = ({
   const [activeChatbotOptionIndex, setActiveChatbotOptionIndex] =
     useState(null);
   const [activeChatbotOption, setActiveChatbotOption] = useState(null);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmModalItemOpen, setConfirmModalItemOpen] = useState(null);
 
   useEffect(() => {
     if (chatbotOptionsFromProps) {
@@ -118,186 +121,203 @@ const ChatbotOptionList = ({
   }, [activeChatbotOption]);
 
   return (
-    <Stepper
-      activeStep={activeChatbotOptionIndex}
-      nonLinear
-      orientation="vertical"
-    >
-      {chatbotOptions.map((chatbotOption, chatbotOptionIndex) => (
-        <Step
-          key={chatbotOption.id || chatbotOption.temporalId}
-          onClick={() => {
-            if (chatbotOption.isTextField) {
-              return;
-            }
-
-            // Add text field
-            if (chatbotOption.isAddMoreOption) {
-              const newTextFieldElement = {
-                isTextField: true,
-                temporalId: Date.now(),
-              };
-
+    <>
+      <ConfirmationModal
+        title={
+          confirmModalItemOpen &&
+          `Estas seguro de borrar ${confirmModalItemOpen.title}??? primero avisa a un programador`
+        }
+        open={confirmModalOpen}
+        onClose={() => {
+          setConfirmModalOpen(false);
+          setConfirmModalItemOpen(null);
+        }}
+        onConfirm={async () => {
+          try {
+            if (confirmModalItemOpen.id) {
+              await api.delete(`/chatbotMessage/${confirmModalItemOpen.id}`);
               setChatbotOptions((oldChatbotOptions) => {
                 const newChatbotOptions = [...oldChatbotOptions];
 
-                if (newChatbotOptions.length === 1) {
-                  newChatbotOptions.unshift(newTextFieldElement);
-                  return newChatbotOptions;
-                }
+                const confirmModalItemOpenIndex = newChatbotOptions.findIndex(
+                  (c) => c.id === confirmModalItemOpen.id
+                );
 
-                if (newChatbotOptions.length > 1) {
-                  newChatbotOptions.splice(
-                    newChatbotOptions.length - 1,
-                    0,
-                    newTextFieldElement
-                  );
-                  return newChatbotOptions;
-                }
+                newChatbotOptions.splice(confirmModalItemOpenIndex, 1);
+                return newChatbotOptions;
               });
-
-              return;
+              setActiveChatbotOptionIndex(false);
+              setConfirmModalOpen(false);
+              setConfirmModalItemOpen(null);
+              toast.success("Opcion eliminada correctamente");
             }
+          } catch (err) {
+            toastError(err);
+          }
+        }}
+      >
+        Estas seguro de borrar esta opción?
+      </ConfirmationModal>
+      <Stepper
+        activeStep={activeChatbotOptionIndex}
+        nonLinear
+        orientation="vertical"
+      >
+        {chatbotOptions.map((chatbotOption, chatbotOptionIndex) => (
+          <Step
+            key={chatbotOption.id || chatbotOption.temporalId}
+            onClick={() => {
+              if (chatbotOption.isTextField) {
+                return;
+              }
 
-            setActiveChatbotOptionIndex(chatbotOptionIndex);
-            setActiveChatbotOption(chatbotOption);
-          }}
-        >
-          <StepLabel style={{ cursor: "pointer" }}>
-            {chatbotOption.isTextField ? (
-              <>
-                <ChatbotOptionTextField
-                  chatbotOptionIndex={chatbotOptionIndex}
-                  fatherChatbotMessageId={fatherChatbotMessageId}
-                  chatbotOption={chatbotOption}
-                  onDelete={(temporalId) => {
-                    if (chatbotOption.id) {
-                      setChatbotOptions((oldChatbotOptions) => {
-                        const newChatbotOptions = [...oldChatbotOptions];
-                        newChatbotOptions.splice(chatbotOptionIndex, 1, {
-                          ...chatbotOption,
-                          isTextField: false,
-                        });
-                        return newChatbotOptions;
-                      });
-                    } else {
-                      setChatbotOptions((oldChatbotOptions) => {
-                        console.log("oldChatbotOptions", [
-                          ...oldChatbotOptions,
-                        ]);
-                        console.log("chatbotOption.temporalId", chatbotOption);
+              // Add text field
+              if (chatbotOption.isAddMoreOption) {
+                const newTextFieldElement = {
+                  isTextField: true,
+                  temporalId: Date.now(),
+                };
 
-                        const newChatbotOptions = oldChatbotOptions.filter(
-                          (c) => c.temporalId !== temporalId
-                        );
-                        console.log("newChatbotOptions", newChatbotOptions);
+                setChatbotOptions((oldChatbotOptions) => {
+                  const newChatbotOptions = [...oldChatbotOptions];
 
-                        return newChatbotOptions;
-                      });
-                    }
-                  }}
-                  onSave={(newChatbotOption) => {
-                    setChatbotOptions((oldChatbotOptions) => {
-                      const newChatbotOptions = [...oldChatbotOptions];
-                      newChatbotOptions.splice(
-                        chatbotOptionIndex,
-                        1,
-                        newChatbotOption
-                      );
-                      return newChatbotOptions;
-                    });
-                  }}
-                />
-              </>
-            ) : (
-              <div
-                style={{ display: "flex", gap: "6px", alignItems: "center" }}
-              >
-                {chatbotOption.isAddMoreOption ? (
-                  <div style={{ fontSize: "20px" }}>{chatbotOption.title}</div>
-                ) : (
-                  <div style={{ fontSize: "20px" }}>
-                    Identificador: {chatbotOption.label} || Opción:
-                    {chatbotOption.title} || Orden: {chatbotOption.order}
-                  </div>
-                )}
+                  if (newChatbotOptions.length === 1) {
+                    newChatbotOptions.unshift(newTextFieldElement);
+                    return newChatbotOptions;
+                  }
 
-                {!chatbotOption.isAddMoreOption && (
-                  <div>
-                    <CreateOutlinedIcon
-                      onClick={() => {
+                  if (newChatbotOptions.length > 1) {
+                    newChatbotOptions.splice(
+                      newChatbotOptions.length - 1,
+                      0,
+                      newTextFieldElement
+                    );
+                    return newChatbotOptions;
+                  }
+                });
+
+                return;
+              }
+
+              setActiveChatbotOptionIndex(chatbotOptionIndex);
+              setActiveChatbotOption(chatbotOption);
+            }}
+          >
+            <StepLabel style={{ cursor: "pointer" }}>
+              {chatbotOption.isTextField ? (
+                <>
+                  <ChatbotOptionTextField
+                    chatbotOptionIndex={chatbotOptionIndex}
+                    fatherChatbotMessageId={fatherChatbotMessageId}
+                    chatbotOption={chatbotOption}
+                    onDelete={(temporalId) => {
+                      if (chatbotOption.id) {
                         setChatbotOptions((oldChatbotOptions) => {
                           const newChatbotOptions = [...oldChatbotOptions];
-
                           newChatbotOptions.splice(chatbotOptionIndex, 1, {
                             ...chatbotOption,
-                            isTextField: true,
+                            isTextField: false,
                           });
+                          return newChatbotOptions;
+                        });
+                      } else {
+                        setChatbotOptions((oldChatbotOptions) => {
+                          // console.log("oldChatbotOptions", [
+                          //   ...oldChatbotOptions,
+                          // ]);
+                          // console.log(
+                          //   "chatbotOption.temporalId",
+                          //   chatbotOption
+                          // );
+
+                          const newChatbotOptions = oldChatbotOptions.filter(
+                            (c) => c.temporalId !== temporalId
+                          );
+                          // console.log("newChatbotOptions", newChatbotOptions);
 
                           return newChatbotOptions;
                         });
-                      }}
-                    />
-                    <DeleteOutlineOutlinedIcon
-                      onClick={async () => {
-                        try {
-                          if (chatbotOption.id) {
-                            await api.delete(
-                              `/chatbotMessage/${chatbotOption.id}`
-                            );
-                            setChatbotOptions((oldChatbotOptions) => {
-                              const newChatbotOptions = [...oldChatbotOptions];
-                              newChatbotOptions.splice(chatbotOptionIndex, 1);
-                              return newChatbotOptions;
-                            });
-                            setActiveChatbotOptionIndex(false);
-                            toast.success("Opcion eliminada correctamente");
-                          } else {
-                            setChatbotOptions((oldChatbotOptions) => {
-                              const newChatbotOptions = [...oldChatbotOptions];
+                      }
+                    }}
+                    onSave={(newChatbotOption) => {
+                      setChatbotOptions((oldChatbotOptions) => {
+                        const newChatbotOptions = [...oldChatbotOptions];
+                        newChatbotOptions.splice(
+                          chatbotOptionIndex,
+                          1,
+                          newChatbotOption
+                        );
+                        return newChatbotOptions;
+                      });
+                    }}
+                  />
+                </>
+              ) : (
+                <div
+                  style={{ display: "flex", gap: "6px", alignItems: "center" }}
+                >
+                  {chatbotOption.isAddMoreOption ? (
+                    <div style={{ fontSize: "20px" }}>
+                      {chatbotOption.title}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: "20px" }}>
+                      Identificador: {chatbotOption.label} || Opción:
+                      {chatbotOption.title} || Orden: {chatbotOption.order}
+                    </div>
+                  )}
 
-                              console.log(
-                                "--- newChatbotOptions",
-                                newChatbotOptions
-                              );
+                  {!chatbotOption.isAddMoreOption && (
+                    <div>
+                      <CreateOutlinedIcon
+                        onClick={() => {
+                          setChatbotOptions((oldChatbotOptions) => {
+                            const newChatbotOptions = [...oldChatbotOptions];
 
-                              // newChatbotOptions.splice(chatbotOptionIndex, 1);
-                              return newChatbotOptions;
+                            newChatbotOptions.splice(chatbotOptionIndex, 1, {
+                              ...chatbotOption,
+                              isTextField: true,
                             });
-                          }
-                        } catch (err) {
-                          toastError(err);
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </StepLabel>
-          <StepContent>
-            {!chatbotOption.isTextField && !chatbotOption.isAddMoreOption && (
-              <>
-                <div>
-                  <b>RESPUESTA:</b> {chatbotOption.value}
+
+                            return newChatbotOptions;
+                          });
+                        }}
+                      />
+                      <DeleteOutlineOutlinedIcon
+                        onClick={async () => {
+                          setConfirmModalOpen(true);
+                          setConfirmModalItemOpen(chatbotOption);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
-                <br />
-                {chatbotOption.mediaType === "image" && (
+              )}
+            </StepLabel>
+            <StepContent>
+              {!chatbotOption.isTextField && !chatbotOption.isAddMoreOption && (
+                <>
                   <div>
-                    <b>IMAGEN:</b> {chatbotOption.mediaUrl}
+                    <b>RESPUESTA:</b> {chatbotOption.value}
                   </div>
-                )}
+                  <br />
+                  {chatbotOption.mediaType === "image" && (
+                    <div>
+                      <b>IMAGEN:</b> {chatbotOption.mediaUrl}
+                    </div>
+                  )}
 
-                <ChatbotOptionList
-                  fatherChatbotMessageId={chatbotOption.id}
-                  chatbotOptionsFromProps={subChatbotOptions}
-                />
-              </>
-            )}
-          </StepContent>
-        </Step>
-      ))}
-    </Stepper>
+                  <ChatbotOptionList
+                    fatherChatbotMessageId={chatbotOption.id}
+                    chatbotOptionsFromProps={subChatbotOptions}
+                  />
+                </>
+              )}
+            </StepContent>
+          </Step>
+        ))}
+      </Stepper>
+    </>
   );
 };
 
@@ -313,7 +333,7 @@ const ChatbotOptionTextField = ({
   const [withImage, setWithImage] = useState(false);
   const [mediaUrl, setMediaUrl] = useState("");
   const [label, setLabel] = useState(chatbotOptionIndex + 1);
-  const [order, setOrder] = useState(0);
+  const [order, setOrder] = useState(chatbotOptionIndex + 1);
 
   useEffect(() => {
     if (chatbotOption.id) {

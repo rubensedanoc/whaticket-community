@@ -171,7 +171,7 @@ const getMessagesForTicket = async (
       {
         model: Ticket,
         as: "ticket",
-        attributes: ["id", "type"]
+        attributes: ["id", "chatbotMessageIdentifier"]
       },
       {
         model: Message,
