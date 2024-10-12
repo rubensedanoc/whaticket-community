@@ -266,7 +266,12 @@ const LoggedInLayout = ({ children }) => {
             </Typography>
             <img src={`/ollita2.png`} alt="logo" style={{ width: "26px" }} />
             <div
-              style={{ fontStyle: "italic", marginLeft: 8, fontWeight: "bold" }}
+              style={{
+                fontStyle: "italic",
+                marginLeft: 8,
+                fontWeight: "bold",
+                fontSize: 20,
+              }}
             >
               LITE
             </div>
