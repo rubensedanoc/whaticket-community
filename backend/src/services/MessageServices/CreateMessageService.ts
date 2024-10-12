@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
+import Category from "../../models/Category";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
@@ -93,6 +94,12 @@ const CreateMessageService = async ({
             model: Whatsapp,
             as: "whatsapp",
             attributes: ["name"]
+          },
+          {
+            model: Category,
+            as: "categories",
+            attributes: ["id", "name", "color"],
+            required: false
           },
           {
             model: User,

@@ -6,45 +6,53 @@ import Paper from "@material-ui/core/Paper";
 import Tab from "@material-ui/core/Tab";
 import Tabs from "@material-ui/core/Tabs";
 import { makeStyles, withStyles } from "@material-ui/core/styles";
-import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import CheckBoxIcon from "@material-ui/icons/CheckBox";
 import MoveToInboxIcon from "@material-ui/icons/MoveToInbox";
 import SearchIcon from "@material-ui/icons/Search";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 
-import Menu from "@material-ui/core/Menu";
-import { Can } from "../Can";
-
 import { IconButton } from "@material-ui/core";
 import NumberGroupsModal from "../NumberGroupsModal";
 import TicketsWhatsappSelect from "../TicketsWhatsappSelect";
 
-import MenuItem from "@material-ui/core/MenuItem";
 import PeopleOutlineIcon from "@material-ui/icons/PeopleOutline";
+import { Can } from "../Can";
 import NewTicketModal from "../NewTicketModal";
 import TabPanel from "../TabPanel";
 import TicketsList from "../TicketsList";
 
-import { Button } from "@material-ui/core";
+import { Button, Divider } from "@material-ui/core";
+import Menu from "@material-ui/core/Menu";
+import MenuItem from "@material-ui/core/MenuItem";
+import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
+import { toast } from "react-toastify";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
 import TicketsQueueSelect from "../TicketsQueueSelect";
+
+import "./styles.css";
 
 const useStyles = makeStyles((theme) => ({
   ticketsWrapper: {
     position: "relative",
     display: "flex",
     height: "100%",
+    width: "100%",
     flexDirection: "column",
     overflow: "hidden",
     borderTopRightRadius: 0,
     borderBottomRightRadius: 0,
+    background: "#fafafa",
   },
 
   tabsHeader: {
     flex: "none",
-    backgroundColor: "#eee",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    outline: "0 0 0 5 black",
+    // backgroundColor: "#eee",
   },
 
   settingsIcon: {
@@ -56,26 +64,29 @@ const useStyles = makeStyles((theme) => ({
   tab: {
     minWidth: 120,
     width: 120,
+    fontSize: 12,
   },
 
   ticketOptionsBox: {
     display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    // flexWrap: "wrap",
+    justifyContent: "end",
+    gap: 16,
     alignItems: "center",
-    background: "#fafafa",
-    padding: theme.spacing(1),
+    padding: "8px 16px",
   },
 
   serachInputWrapper: {
     // minWidth: 200,
-    minWidth: "100%",
+    // minWidth: "100%",
+    width: "25rem",
     flex: 1,
     background: "#fff",
     display: "flex",
     borderRadius: 40,
     padding: 4,
     marginRight: theme.spacing(1),
+    border: "1px solid #ccc",
   },
 
   searchIcon: {
@@ -116,13 +127,13 @@ const TicketsManager = () => {
   const [tabOpen, setTabOpen] = useState("open");
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
   const [showAllTickets, setShowAllTickets] = useState(false);
-  const [showOnlyMyGroups, setShowOnlyMyGroups] = useState(false);
+  // const [showOnlyMyGroups, setShowOnlyMyGroups] = useState(false);
   const searchInputRef = useRef();
   const { user } = useContext(AuthContext);
 
-  const [groupCount, setGroupCount] = useState(0);
-  const [openCount, setOpenCount] = useState(0);
-  const [pendingCount, setPendingCount] = useState(0);
+  // const [groupCount, setGroupCount] = useState(0);
+  // const [openCount, setOpenCount] = useState(0);
+  // const [pendingCount, setPendingCount] = useState(0);
 
   const userQueueIds = [...user.queues.map((q) => q.id), null];
   const { whatsApps, loading } = useContext(WhatsAppsContext);
@@ -137,7 +148,8 @@ const TicketsManager = () => {
   const [numberGroupsModalIsOpen, setNumberGroupsModalIsOpen] = useState(false);
 
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [anchorEl2, setAnchorEl2] = useState(null);
+
+  const [categories, setCategories] = useState([]);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -146,17 +158,7 @@ const TicketsManager = () => {
     setAnchorEl(null);
   };
 
-  const handleClick2 = (event) => {
-    setAnchorEl2(event.currentTarget);
-  };
-  const handleClose2 = () => {
-    setAnchorEl2(null);
-  };
-
   useEffect(() => {
-    // localStorage.getItem("selectedTypes") &&
-    //   setSelectedTypeIds(JSON.parse(localStorage.getItem("selectedTypes")));
-
     localStorage.getItem("selectedWhatsappIds") &&
       setSelectedWhatsappIds(
         JSON.parse(localStorage.getItem("selectedWhatsappIds"))
@@ -175,6 +177,18 @@ const TicketsManager = () => {
       setShowAllTickets(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get("/categories");
+        setCategories(data);
+      } catch (error) {
+        toast.error("Error al cargar las categorias");
+        console.log("Error al cargar las categorias - ", error);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -211,15 +225,15 @@ const TicketsManager = () => {
 
     clearTimeout(searchTimeout);
 
-    if (searchedTerm === "") {
-      // setSearchParam(searchedTerm);
-      // setTab("open");
-      return;
-    }
+    // if (searchedTerm === "") {
+    //   // setSearchParam(searchedTerm);
+    //   // setTab("open");
+    //   return;
+    // }
 
     searchTimeout = setTimeout(() => {
       setSearchParam(searchedTerm);
-    }, 500);
+    }, 250);
   };
 
   const handleChangeTab = (e, newValue) => {
@@ -244,11 +258,10 @@ const TicketsManager = () => {
       />
 
       {/* TABS */}
-      <Paper elevation={0} square className={classes.tabsHeader}>
+      <Paper elevation={1} square className={classes.tabsHeader}>
         <Tabs
           value={tab}
           onChange={handleChangeTab}
-          variant="fullWidth"
           indicatorColor="primary"
           textColor="primary"
           aria-label="icon label tabs example"
@@ -256,7 +269,7 @@ const TicketsManager = () => {
           {/* open */}
           <Tab
             value={"open"}
-            icon={<MoveToInboxIcon />}
+            icon={<MoveToInboxIcon style={{ fontSize: 21 }} />}
             label={i18n.t("tickets.tabs.open.title")}
             classes={{ root: classes.tab }}
           />
@@ -265,26 +278,24 @@ const TicketsManager = () => {
           {/* closed */}
           <Tab
             value={"closed"}
-            icon={<CheckBoxIcon />}
+            icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
             label={i18n.t("tickets.tabs.closed.title")}
             classes={{ root: classes.tab }}
           />
           {/* - closed */}
 
           {/* search */}
-          <Tab
+          {/* <Tab
             value={"search"}
-            icon={<SearchIcon />}
+            icon={<SearchIcon style={{ fontSize: 21 }} />}
             label={i18n.t("tickets.tabs.search.title")}
             classes={{ root: classes.tab }}
-          />
+          /> */}
           {/* - search */}
         </Tabs>
-      </Paper>
-      {/* - TABS */}
 
-      <Paper square elevation={0} className={classes.ticketOptionsBox}>
-        {tab === "search" ? (
+        <div className={classes.ticketOptionsBox}>
+          {/* {tab === "search" ? ( */}
           <>
             {/* // SEARCH INPUT */}
             <div className={classes.serachInputWrapper}>
@@ -292,14 +303,14 @@ const TicketsManager = () => {
               <InputBase
                 className={classes.searchInput}
                 inputRef={searchInputRef}
-                placeholder={i18n.t("tickets.search.placeholder")}
+                placeholder="Buscar tickets"
                 type="search"
                 onChange={handleSearch}
               />
             </div>
             {/* - SEARCH INPUT */}
           </>
-        ) : (
+          {/* ) : ( */}
           <>
             {/* ADD TICKECT BUTTON */}
             <Button
@@ -335,71 +346,65 @@ const TicketsManager = () => {
             /> */}
             {/* - SHOW ALL TICKETS SWITCH */}
           </>
-        )}
+          {/* )} */}
 
-        {/* QUEUE SELECT */}
-        {/* <TicketsTypeSelect
-          style={{ marginLeft: 6 }}
-          selectedTypeIds={selectedTypeIds || []}
-          onChange={(values) => setSelectedTypeIds(values)}
-        /> */}
-        {/* - QUEUE SELECT */}
+          {/* WPP SELECT */}
+          <TicketsWhatsappSelect
+            style={{ marginLeft: 6 }}
+            selectedWhatsappIds={selectedWhatsappIds || []}
+            userWhatsapps={whatsApps || []}
+            onChange={(values) => setSelectedWhatsappIds(values)}
+          />
+          {/* - WPP SELECT */}
 
-        {/* QUEUE SELECT */}
-        <TicketsWhatsappSelect
-          style={{ marginLeft: 6 }}
-          selectedWhatsappIds={selectedWhatsappIds || []}
-          userWhatsapps={whatsApps || []}
-          onChange={(values) => setSelectedWhatsappIds(values)}
-        />
-        {/* - QUEUE SELECT */}
+          {/* QUEUE SELECT */}
+          <TicketsQueueSelect
+            style={{ marginLeft: 6 }}
+            selectedQueueIds={selectedQueueIds}
+            userQueues={user?.queues}
+            onChange={(values) => setSelectedQueueIds(values)}
+          />
+          {/* - QUEUE SELECT */}
 
-        {/* QUEUE SELECT */}
-        <TicketsQueueSelect
-          style={{ marginLeft: 6 }}
-          selectedQueueIds={selectedQueueIds}
-          userQueues={user?.queues}
-          onChange={(values) => setSelectedQueueIds(values)}
-        />
-        {/* - QUEUE SELECT */}
-
-        {tab === "search" && (
-          <>
-            <Badge
-              overlap="rectangular"
-              badgeContent={numberGroups.length}
-              className={classes.badge}
-              color="primary"
-              max={99999}
-              invisible={numberGroups.length === 0}
-            >
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setNumberGroupsModalIsOpen(true);
-                }}
-                // style={{ position: "relative", left: "-5px" }}
-                style={{ marginRight: "5px" }}
+          {tab === "search" && (
+            <>
+              <Badge
+                overlap="rectangular"
+                badgeContent={numberGroups.length}
+                className={classes.badge}
+                color="primary"
+                max={99999}
+                invisible={numberGroups.length === 0}
               >
-                <PeopleOutlineIcon fontSize="large" />
-              </IconButton>
-            </Badge>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setNumberGroupsModalIsOpen(true);
+                  }}
+                  // style={{ position: "relative", left: "-5px" }}
+                  style={{ marginRight: "5px" }}
+                >
+                  <PeopleOutlineIcon fontSize="large" />
+                </IconButton>
+              </Badge>
 
-            <NumberGroupsModal
-              modalOpen={numberGroupsModalIsOpen}
-              onClose={() => setNumberGroupsModalIsOpen(false)}
-              number={searchParam}
-              groups={numberGroups}
-            />
-          </>
-        )}
+              <NumberGroupsModal
+                modalOpen={numberGroupsModalIsOpen}
+                onClose={() => setNumberGroupsModalIsOpen(false)}
+                number={searchParam}
+                groups={numberGroups}
+              />
+            </>
+          )}
+        </div>
       </Paper>
+      {/* - TABS */}
 
-      {/* open TAB CONTENT  */}
+      {/* INBOX TAB CONTENT  */}
       <TabPanel value={tab} name="open" className={classes.ticketsWrapper}>
         {/* TABS */}
-        <Tabs
+        {/* <Tabs
           value={tabOpen}
           onChange={handleChangeTabOpen}
           indicatorColor="primary"
@@ -473,7 +478,6 @@ const TicketsManager = () => {
                   color="primary"
                   max={99999}
                 >
-                  {/* {i18n.t("ticketsList.assignedHeader")} */}
                   {showAllTickets ? "Todos los chats" : "Mis chats"}
                 </Badge>
 
@@ -536,49 +540,156 @@ const TicketsManager = () => {
             }
             value={"pending"}
           />
-        </Tabs>
+        </Tabs> */}
         {/* - TABS */}
 
         {/* TABS CONTENT */}
-        <Paper className={classes.ticketsWrapper}>
-          {/*  */}
-          <TicketsList
-            status="open"
-            showAll={true}
-            showOnlyMyGroups={showOnlyMyGroups}
-            selectedTypeIds={typeIdsForGroups}
-            selectedWhatsappIds={selectedWhatsappIds}
-            selectedQueueIds={selectedQueueIds}
-            updateCount={(val) => {
-              setGroupCount(val);
+        <Paper
+          className={classes.ticketsWrapper}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: "16 0",
+            overflow: "auto",
+          }}
+        >
+          <Can
+            role={user.profile}
+            perform="tickets-manager:showall"
+            yes={() => (
+              <>
+                {tab === "open" && (
+                  <>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        alignItems: "center",
+                        marginLeft: "auto",
+                        padding: "8px 16px 0px",
+                      }}
+                    >
+                      <div>
+                        INDIVIDUALES - {showAllTickets ? "TODOS" : "MÍOS"}
+                      </div>
+                      <ArrowDropDownIcon
+                        fontSize="medium"
+                        style={{
+                          cursor: "pointer",
+                          scale: "1.5",
+                        }}
+                        onClick={handleClick}
+                      />
+
+                      <Menu
+                        anchorEl={anchorEl}
+                        open={Boolean(anchorEl)}
+                        onClose={handleClose}
+                      >
+                        <MenuItem
+                          onClick={(e) => {
+                            setShowAllTickets(true);
+                            handleClose(e);
+                          }}
+                        >
+                          Todos los chats
+                        </MenuItem>
+                        <MenuItem
+                          onClick={(e) => {
+                            setShowAllTickets(false);
+                            handleClose(e);
+                          }}
+                        >
+                          Mis chats
+                        </MenuItem>
+                      </Menu>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 16,
+              padding: "16px 16px 16px",
+              overflow: "auto",
+              flexGrow: 1,
             }}
-            style={applyPanelStyle("groups")}
-          />
-          <TicketsList
-            status="open"
-            showAll={showAllTickets}
-            selectedTypeIds={typeIdsForIndividuals}
-            selectedWhatsappIds={selectedWhatsappIds}
-            selectedQueueIds={selectedQueueIds}
-            updateCount={(val) => setOpenCount(val)}
-            style={applyPanelStyle("open")}
-          />
-          <TicketsList
-            status="pending"
-            selectedTypeIds={typeIdsForAll}
-            selectedWhatsappIds={selectedWhatsappIds}
-            selectedQueueIds={selectedQueueIds}
-            updateCount={(val) => setPendingCount(val)}
-            style={applyPanelStyle("pending")}
-          />
+          >
+            {/*  */}
+            <TicketsList
+              status="open"
+              showAll={true}
+              searchParam={searchParam}
+              // showOnlyMyGroups={showOnlyMyGroups}
+              selectedTypeIds={typeIdsForGroups}
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              // updateCount={(val) => {
+              //   setGroupCount(val);
+              // }}
+              ticketsType="groups"
+            />
+
+            {/* <Divider orientation="vertical" flexItem /> */}
+
+            <TicketsList
+              status="pending"
+              searchParam={searchParam}
+              selectedTypeIds={typeIdsForAll}
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              // updateCount={(val) => setPendingCount(val)}
+              ticketsType="pendings"
+            />
+
+            <Divider orientation="vertical" flexItem />
+
+            <TicketsList
+              status="open"
+              searchParam={searchParam}
+              showAll={showAllTickets}
+              selectedTypeIds={typeIdsForIndividuals}
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              // updateCount={(val) => setOpenCount(val)}
+              ticketsType="no-category"
+            />
+
+            {categories.map((category) => (
+              <TicketsList
+                key={category.id}
+                searchParam={searchParam}
+                category={category}
+                status="open"
+                showAll={showAllTickets}
+                selectedTypeIds={typeIdsForIndividuals}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                // updateCount={(val) => setOpenCount(val)}
+              />
+            ))}
+          </div>
         </Paper>
         {/* - TABS CONTENT */}
       </TabPanel>
-      {/* - open TAB CONTENT  */}
+      {/* - INBOX TAB CONTENT  */}
 
       {/* closed TAB CONTENT */}
-      <TabPanel value={tab} name="closed" className={classes.ticketsWrapper}>
+      <TabPanel
+        value={tab}
+        name="closed"
+        className={classes.ticketsWrapper}
+        style={{
+          padding: "16 0",
+        }}
+      >
         <TicketsList
+          searchParam={searchParam}
           status="closed"
           showAll={true}
           selectedTypeIds={typeIdsForAll}
@@ -589,7 +700,7 @@ const TicketsManager = () => {
       {/* - closed TAB CONTENT */}
 
       {/* search TAB CONTENT */}
-      <TabPanel value={tab} name="search" className={classes.ticketsWrapper}>
+      {/* <TabPanel value={tab} name="search" className={classes.ticketsWrapper}>
         <TicketsList
           searchParam={searchParam}
           showAll={true}
@@ -597,7 +708,7 @@ const TicketsManager = () => {
           selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}
         />
-      </TabPanel>
+      </TabPanel> */}
       {/* - search TAB CONTENT */}
     </Paper>
   );

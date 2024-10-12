@@ -35,6 +35,8 @@ import TicketListItemLastMessageTime from "../TicketListItemLastMessageTime";
 const useStyles = makeStyles((theme) => ({
   ticket: {
     position: "relative",
+    // cursor: "pointer",
+    // userSelect: "none",
   },
 
   pendingTicket: {
@@ -84,7 +86,7 @@ const useStyles = makeStyles((theme) => ({
 
   contactLastMessage: {
     paddingRight: 20,
-    maxWidth: "calc(100% - 100px)",
+    maxWidth: "calc(100% - 25px)",
   },
 
   newMessagesCount: {
@@ -188,160 +190,221 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
 
   return (
     <React.Fragment key={ticket.id}>
-      <ListItem
-        dense
-        button
-        onClick={(e) => {
-          // if (ticket.status === "pending") return;
-          handleSelectTicket(ticket.id);
-        }}
-        selected={ticketId && +ticketId === ticket.id}
-        className={clsx(
-          classes.ticket,
-          {
-            [classes.pendingTicket]: ticket.status === "pending",
-          },
-          {
-            [classes.exclusiveTicket]: ticket?.contact?.isExclusive,
-          }
-        )}
-      >
-        <Tooltip
-          arrow
-          placement="right"
-          title={ticket.queue?.name || "Sin departamento"}
+      <div style={{ position: "relative" }}>
+        <ListItem
+          dense
+          button
+          style={{ paddingRight: 8 }}
+          onClick={(e) => {
+            // if (ticket.status === "pending") return;
+            handleSelectTicket(ticket.id);
+          }}
+          selected={ticketId && +ticketId === ticket.id}
+          className={clsx(
+            classes.ticket,
+            {
+              [classes.pendingTicket]: ticket.status === "pending",
+            },
+            {
+              [classes.exclusiveTicket]: ticket?.contact?.isExclusive,
+            }
+          )}
         >
-          <span
-            style={{ backgroundColor: ticket.queue?.color || "#7C7C7C" }}
-            className={classes.ticketQueueColor}
-          ></span>
-        </Tooltip>
-        <ListItemAvatar>
-          <Avatar src={ticket?.contact?.profilePicUrl} />
-        </ListItemAvatar>
-        <ListItemText
-          disableTypography
-          primary={
-            <span className={classes.contactNameWrapper}>
-              {/* CONTACT NAME */}
-              <Typography
-                noWrap
-                component="span"
-                variant="body2"
-                color="textPrimary"
-              >
-                {ticket.contact?.name}
-              </Typography>
-              {/* - CONTACT NAME */}
-
-              <div style={{ display: "flex", gap: "4px" }}>
-                {ticket.participantUsers?.find((hu) => hu.id === user?.id) && (
-                  // HELP BADGE
-                  // <Badge
-                  //   className={classes.closedBadge}
-                  //   badgeContent={"Apoyo"}
-                  //   color="primary"
-                  // />
-                  <Chip
-                    style={{ height: "20px", fontSize: "11px" }}
-                    color="primary"
-                    size="small"
-                    label="Participando"
-                  />
-                  // HELP BADGE
-                )}
-
-                {/* // HELP BADGE */}
-                {ticket.helpUsers?.length > 0 ? (
-                  ticket.helpUsers?.find((hu) => hu.id === user?.id) ? (
-                    <Chip
-                      style={{ height: "20px", fontSize: "11px" }}
-                      color="primary"
-                      size="small"
-                      label="Apoyando"
-                    />
-                  ) : (
-                    <Chip
-                      style={{ height: "20px", fontSize: "11px" }}
-                      color="primary"
-                      size="small"
-                      label="Con apoyo"
-                    />
-                  )
-                ) : null}
-
-                {/* // TRANFER BADGE */}
-                {ticket.transferred && (
-                  <Chip
-                    style={{ height: "20px", fontSize: "11px" }}
-                    color="primary"
-                    size="small"
-                    label="Transferido"
-                  />
-                )}
-                {/* // TRANFER BADGE */}
-
-                {ticket.status === "closed" && (
-                  // CLOSED BADGE
-                  // <Badge
-                  //   className={classes.closedBadge}
-                  //   badgeContent={"Resuelto"}
-                  //   color="primary"
-                  // />
-                  <Chip
-                    style={{ height: "20px", fontSize: "11px" }}
-                    color="primary"
-                    size="small"
-                    label="Resuelto"
-                  />
-                  // CLOSED BADGE
-                )}
-
-                {(() => {
-                  if (!ticket.clientTimeWaiting) {
-                    return null;
-                  }
-
-                  return (
-                    <TicketListItemLastMessageTime
-                      clientTimeWaiting={ticket.clientTimeWaiting}
-                    />
-                  );
-                })()}
-
-                {ticket.lastMessageTimestamp && (
-                  // LAST MESSAGE TIME
-                  <Typography
-                    className={classes.lastMessageTime}
-                    component="span"
-                    variant="body2"
-                    color="textSecondary"
-                  >
-                    {isSameDay(
-                      fromUnixTime(ticket.lastMessageTimestamp),
-                      new Date()
-                    ) ? (
-                      <>
-                        {format(
-                          fromUnixTime(ticket.lastMessageTimestamp),
-                          "HH:mm"
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {format(
-                          fromUnixTime(ticket.lastMessageTimestamp),
-                          "dd/MM/yyyy"
-                        )}
-                      </>
-                    )}
-                  </Typography>
-                  // - LAST MESSAGE TIME
-                )}
-              </div>
-
+          <Tooltip
+            arrow
+            placement="right"
+            title={ticket.queue?.name || "Sin departamento"}
+          >
+            <span
+              style={{ backgroundColor: ticket.queue?.color || "#7C7C7C" }}
+              className={classes.ticketQueueColor}
+            ></span>
+          </Tooltip>
+          <ListItemAvatar
+            style={{
+              minWidth: "fit-content",
+              marginRight: 10,
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+              }}
+            >
+              <Avatar
+                style={{ width: 38, height: 38 }}
+                src={ticket?.contact?.profilePicUrl}
+              />
+              {/* COUNTRY */}
+              {ticket.contact?.countryId && (
+                <img
+                  src={`/paises/${ticket.contact?.countryId}.png`}
+                  alt={`País: ${ticket.contact?.countryId}`}
+                  width="18"
+                  style={{
+                    position: "absolute",
+                    bottom: -4,
+                    left: -4,
+                    zIndex: 1,
+                  }}
+                />
+              )}
+              {/* COUNTRY */}
               {/* WPP */}
-              {/* {ticket.whatsappId && (
+              {ticket.whatsappId && (
+                <Tooltip
+                  title={`CONEXIÓN: ${ticket.whatsapp?.name}`}
+                  aria-label="add"
+                >
+                  <WhatsAppIcon
+                    style={{
+                      color: "green",
+                      fontSize: 18,
+                      position: "absolute",
+                      bottom: -4,
+                      right: -4,
+                      backgroundColor: "white",
+                      overflow: "hidden",
+                      borderRadius: "50%",
+                    }}
+                  />
+                </Tooltip>
+              )}
+              {/* WPP */}
+            </div>
+          </ListItemAvatar>
+          <ListItemText
+            disableTypography
+            primary={
+              <span className={classes.contactNameWrapper}>
+                {/* CONTACT NAME */}
+                <Typography
+                  noWrap
+                  component="span"
+                  variant="body2"
+                  color="textPrimary"
+                >
+                  {ticket.contact?.name}
+                </Typography>
+                {/* - CONTACT NAME */}
+
+                <div style={{ display: "flex", gap: "4px" }}>
+                  {ticket.participantUsers?.find(
+                    (hu) => hu.id === user?.id
+                  ) && (
+                    // HELP BADGE
+                    // <Badge
+                    //   className={classes.closedBadge}
+                    //   badgeContent={"Apoyo"}
+                    //   color="primary"
+                    // />
+                    <Chip
+                      style={{ height: "16px", fontSize: "9px" }}
+                      color="primary"
+                      size="small"
+                      label="Partici"
+                    />
+                    // HELP BADGE
+                  )}
+
+                  {/* // HELP BADGE */}
+                  {ticket.helpUsers?.length > 0 ? (
+                    ticket.helpUsers?.find((hu) => hu.id === user?.id) ? (
+                      <Chip
+                        style={{
+                          height: "16px",
+                          fontSize: "9px",
+                        }}
+                        color="primary"
+                        size="small"
+                        label="Apoy"
+                      />
+                    ) : (
+                      <Chip
+                        style={{
+                          height: "16px",
+                          fontSize: "9px",
+                        }}
+                        color="primary"
+                        size="small"
+                        label="Con apoy"
+                      />
+                    )
+                  ) : null}
+
+                  {/* // TRANFER BADGE */}
+                  {ticket.transferred && (
+                    <Chip
+                      style={{ height: "16px", fontSize: "9px" }}
+                      color="primary"
+                      size="small"
+                      label="Transf"
+                    />
+                  )}
+                  {/* // TRANFER BADGE */}
+
+                  {ticket.status === "closed" && (
+                    // CLOSED BADGE
+                    // <Badge
+                    //   className={classes.closedBadge}
+                    //   badgeContent={"Resuelto"}
+                    //   color="primary"
+                    // />
+                    <Chip
+                      style={{ height: "16px", fontSize: "9px" }}
+                      color="primary"
+                      size="small"
+                      label="Cerrado"
+                    />
+                    // CLOSED BADGE
+                  )}
+
+                  {(() => {
+                    if (!ticket.clientTimeWaiting) {
+                      return null;
+                    }
+
+                    return (
+                      <TicketListItemLastMessageTime
+                        clientTimeWaiting={ticket.clientTimeWaiting}
+                      />
+                    );
+                  })()}
+
+                  {ticket.lastMessageTimestamp && (
+                    // LAST MESSAGE TIME
+                    <Typography
+                      className={classes.lastMessageTime}
+                      component="span"
+                      variant="body2"
+                      color="textSecondary"
+                      style={{ fontSize: 10 }}
+                    >
+                      {isSameDay(
+                        fromUnixTime(ticket.lastMessageTimestamp),
+                        new Date()
+                      ) ? (
+                        <>
+                          {format(
+                            fromUnixTime(ticket.lastMessageTimestamp),
+                            "HH:mm"
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {format(
+                            fromUnixTime(ticket.lastMessageTimestamp),
+                            "dd/MM/yy"
+                          )}
+                        </>
+                      )}
+                    </Typography>
+                    // - LAST MESSAGE TIME
+                  )}
+                </div>
+
+                {/* WPP */}
+                {/* {ticket.whatsappId && (
                 <SyncAltIcon />
 
                 // <div
@@ -351,150 +414,163 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                 //   {ticket.whatsapp?.name}
                 // </div>
               )} */}
-              {/* WPP */}
-            </span>
-          }
-          secondary={
-            <>
-              <span className={classes.contactNameWrapper}>
-                {/* CATEGORY OR LAST MESSAGE */}
-                <Typography
-                  className={classes.contactLastMessage}
-                  noWrap
-                  component="span"
-                  variant="body2"
-                  color="textSecondary"
-                >
-                  {ticket.lastMessage ? (
-                    <MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper>
-                  ) : (
-                    <br />
-                  )}
-                </Typography>
-                {/* - CATEGORY OR LAST MESSAGE */}
+                {/* WPP */}
+              </span>
+            }
+            secondary={
+              <>
+                <span className={classes.contactNameWrapper}>
+                  {/* CATEGORY OR LAST MESSAGE */}
+                  <Typography
+                    className={classes.contactLastMessage}
+                    noWrap
+                    component="span"
+                    variant="body2"
+                    color="textSecondary"
+                  >
+                    {ticket.lastMessage ? (
+                      <MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper>
+                    ) : (
+                      <br />
+                    )}
+                  </Typography>
+                  {/* - CATEGORY OR LAST MESSAGE */}
 
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {ticket.contact?.countryId && (
-                    <>
-                      <img
-                        src={`/paises/${ticket.contact?.countryId}.png`}
-                        alt={`País: ${ticket.contact?.countryId}`}
-                        width="25"
-                      />
-                    </>
-                  )}
-                  {/* USER */}
-                  {ticket.isGroup && ticket.participantUsers.length > 0 && (
-                    <Tooltip
-                      title={`PARTICIPANDO: 
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* COUNTRY */}
+                    {/* {ticket.contact?.countryId && (
+                      <>
+                        <img
+                          src={`/paises/${ticket.contact?.countryId}.png`}
+                          alt={`País: ${ticket.contact?.countryId}`}
+                          width="18"
+                        />
+                      </>
+                    )} */}
+                    {/* COUNTRY */}
+                    {/* USER */}
+                    {ticket.isGroup && ticket.participantUsers.length > 0 && (
+                      <Tooltip
+                        title={`PARTICIPANDO: 
                             ${[...ticket.participantUsers]
                               .map((u) => u.name)
                               .join(" - ")}`}
-                      aria-label="add"
-                    >
-                      <PeopleAltIcon fontSize="small" />
-                    </Tooltip>
-                  )}
-                  {/* - USER */}
-                  {/* USER */}
-                  {!ticket.isGroup && ticket.userId && (
-                    <Tooltip
-                      title={`ASIGNADO: ${ticket.user?.name}${
-                        ticket.helpUsers?.length > 0
-                          ? ` | APOYO: ${ticket.helpUsers
-                              .map((hu) => hu.name)
-                              .join(" - ")}`
-                          : ""
-                      }`}
-                      aria-label="add"
-                    >
-                      <PeopleAltIcon fontSize="small" />
-                    </Tooltip>
-                  )}
-                  {/* - USER */}
-                  {/* WPP */}
-                  {ticket.whatsappId && (
-                    <Tooltip
-                      title={`CONEXIÓN: ${ticket.whatsapp?.name}`}
-                      aria-label="add"
-                    >
-                      <WhatsAppIcon
-                        style={{ color: "green" }}
-                        fontSize="small"
-                      />
-                    </Tooltip>
-                  )}
-                  {/* WPP */}
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPreviewModalIsOpen(true);
-                    }}
-                  >
-                    <VisibilityOutlinedIcon fontSize="medium" />
-                  </IconButton>
-                  <TicketPreviewModal
-                    ticket={ticket}
-                    open={previewModalIsOpen}
-                    onClose={() => setPreviewModalIsOpen(false)}
-                  />
-                  {/* UNREAD MESSAGES */}
-                  {ticket.unreadMessages > 0 && (
-                    <Chip
-                      label={ticket.unreadMessages}
+                        aria-label="add"
+                      >
+                        <PeopleAltIcon style={{ fontSize: 16 }} />
+                      </Tooltip>
+                    )}
+                    {/* - USER */}
+                    {/* USER */}
+                    {!ticket.isGroup && ticket.userId && (
+                      <Tooltip
+                        title={`ASIGNADO: ${ticket.user?.name}${
+                          ticket.helpUsers?.length > 0
+                            ? ` | APOYO: ${ticket.helpUsers
+                                .map((hu) => hu.name)
+                                .join(" - ")}`
+                            : ""
+                        }`}
+                        aria-label="add"
+                      >
+                        <PeopleAltIcon style={{ fontSize: 16 }} />
+                      </Tooltip>
+                    )}
+                    {/* - USER */}
+                    {/* WPP */}
+                    {/* {ticket.whatsappId && (
+                      <Tooltip
+                        title={`CONEXIÓN: ${ticket.whatsapp?.name}`}
+                        aria-label="add"
+                      >
+                        <WhatsAppIcon
+                          style={{ color: "green", fontSize: 18 }}
+                        />
+                      </Tooltip>
+                    )} */}
+                    {/* WPP */}
+                    <IconButton
                       size="small"
-                      style={{ backgroundColor: green[500], color: "white" }}
-                    />
-                  )}
-                  {/* - UNREAD MESSAGES */}
-                </div>
-              </span>
-
-              {ticket.categories?.length > 0 && (
-                <div style={{ display: "flex", justifyContent: "end" }}>
-                  {ticket.categories.map((category) => (
-                    <Chip
-                      key={category.id}
-                      style={{
-                        backgroundColor: category.color,
-                        height: "20px",
-                        fontSize: "11px",
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPreviewModalIsOpen(true);
                       }}
-                      variant="outlined"
-                      label={category.name}
-                      className={classes.chip}
+                    >
+                      <VisibilityOutlinedIcon style={{ fontSize: 20 }} />
+                    </IconButton>
+                    <TicketPreviewModal
+                      ticket={ticket}
+                      open={previewModalIsOpen}
+                      onClose={() => setPreviewModalIsOpen(false)}
                     />
-                  ))}
-                </div>
-              )}
-            </>
-          }
-        />
-        {ticket.status === "pending" && (
-          <Tooltip title="Aceptar Ticker" aria-label="Aceptar Ticker">
-            <div>
-              <ButtonWithSpinner
-                color="primary"
-                variant="contained"
-                className={classes.acceptButton}
-                size="small"
-                loading={loading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAcepptTicket(ticket.id);
-                }}
-              >
-                <GroupAddIcon />
-              </ButtonWithSpinner>
-            </div>
-          </Tooltip>
-        )}
-      </ListItem>
-      <Divider variant="inset" component="li" />
+                    {/* UNREAD MESSAGES */}
+                    {ticket.unreadMessages > 0 && (
+                      <Chip
+                        label={ticket.unreadMessages}
+                        size="small"
+                        style={{
+                          backgroundColor: green[500],
+                          color: "white",
+                          scale: "0.7",
+                        }}
+                      />
+                    )}
+                    {/* - UNREAD MESSAGES */}
+                  </div>
+                </span>
+
+                {/* {ticket.status !== "open" && ticket.categories?.length > 0 && ( */}
+                {ticket.categories?.length > 0 && (
+                  <div style={{ display: "flex", justifyContent: "end" }}>
+                    {ticket.categories.map((category) => (
+                      <Chip
+                        key={category.id}
+                        style={{
+                          backgroundColor: category.color,
+                          color: "white",
+                          height: "16px",
+                          fontSize: "9px",
+                        }}
+                        variant="outlined"
+                        label={category.name}
+                        className={classes.chip}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            }
+          />
+          {ticket.status === "pending" && (
+            <Tooltip title="Aceptar Ticker" aria-label="Aceptar Ticker">
+              <div>
+                <ButtonWithSpinner
+                  color="primary"
+                  variant="contained"
+                  className={classes.acceptButton}
+                  size="small"
+                  loading={loading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAcepptTicket(ticket.id);
+                  }}
+                  style={{ padding: 4 }}
+                >
+                  <GroupAddIcon style={{ width: 20, height: 20 }} />
+                </ButtonWithSpinner>
+              </div>
+            </Tooltip>
+          )}
+        </ListItem>
+      </div>
+
+      <Divider component="li" />
     </React.Fragment>
   );
 };

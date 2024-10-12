@@ -39,7 +39,11 @@ function ListItemLink(props) {
   return (
     <li>
       <ListItem button component={renderLink} className={className}>
-        {icon ? <ListItemIcon>{icon}</ListItemIcon> : null}
+        {icon ? (
+          <ListItemIcon style={{ minWidth: "fit-content", marginRight: 12 }}>
+            {icon}
+          </ListItemIcon>
+        ) : null}
         <ListItemText primary={primary} />
       </ListItem>
     </li>
@@ -113,7 +117,8 @@ const MainListItems = (props) => {
       />
       <ListItemLink
         to="/quickAnswers"
-        primary={i18n.t("mainDrawer.listItems.quickAnswers")}
+        // primary={i18n.t("mainDrawer.listItems.quickAnswers")}
+        primary={"Resp. Rápidas"}
         icon={<QuestionAnswerOutlinedIcon />}
       />
       <Can
@@ -122,7 +127,7 @@ const MainListItems = (props) => {
         yes={() => (
           <>
             <Divider />
-            <ListSubheader inset>
+            <ListSubheader inset style={{ padding: 0, paddingLeft: 52 }}>
               {i18n.t("mainDrawer.listItems.administration")}
             </ListSubheader>
             <ListItemLink

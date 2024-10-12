@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
-import Routes from "./routes";
+import React, { useEffect, useState } from "react";
 import "react-toastify/dist/ReactToastify.css";
+import Routes from "./routes";
 
-import { createTheme, ThemeProvider } from "@material-ui/core/styles";
 import { ptBR } from "@material-ui/core/locale";
+import { createTheme, ThemeProvider } from "@material-ui/core/styles";
+import "./styles.css";
 
 const App = () => {
   const [locale, setLocale] = useState();
@@ -12,12 +13,13 @@ const App = () => {
     {
       scrollbarStyles: {
         "&::-webkit-scrollbar": {
-          width: "8px",
+          width: "6px",
           height: "8px",
         },
         "&::-webkit-scrollbar-thumb": {
           boxShadow: "inset 0 0 6px rgba(0, 0, 0, 0.3)",
           backgroundColor: "#e8e8e8",
+          // borderRadius: "8px",
         },
       },
       palette: {
@@ -26,6 +28,10 @@ const App = () => {
     },
     locale
   );
+
+  theme.typography.body2 = {
+    fontSize: "0.8rem",
+  };
 
   useEffect(() => {
     const i18nlocale = localStorage.getItem("i18nextLng");

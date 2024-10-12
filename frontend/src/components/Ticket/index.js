@@ -138,9 +138,9 @@ const Ticket = () => {
           setRelatedTickets(relatedTickets);
           setSelectRelatedTicketId(ticketId);
 
-          await searchForMicroServiceData(data.contact?.number);
-
           setLoading(false);
+
+          await searchForMicroServiceData(data.contact?.number);
         } catch (err) {
           setLoading(false);
           toastError(err);
@@ -159,7 +159,7 @@ const Ticket = () => {
     socket.on("ticket", (data) => {
       if (data.action === "update") {
         setTicket(data.ticket);
-        console.log("ticker actulizado", data.ticket);
+        // console.log("ticker actulizado", data.ticket);
       }
 
       if (data.action === "delete") {

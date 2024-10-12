@@ -10,7 +10,6 @@ import {
 } from "sequelize";
 
 import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
-import { searchIfNumbersAreExclusive } from "../../libs/searchIfNumbersAreExclusive";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
 import Queue from "../../models/Queue";
@@ -31,6 +30,7 @@ interface Request {
   queueIds: Array<number>;
   typeIds: Array<string>;
   showOnlyMyGroups: boolean;
+  categoryId?: number;
 }
 
 interface Response {
@@ -50,7 +50,8 @@ const ListTicketsService = async ({
   showAll,
   userId,
   withUnreadMessages,
-  showOnlyMyGroups
+  showOnlyMyGroups,
+  categoryId
 }: Request): Promise<Response> => {
   let whereCondition: Filterable["where"] = {
     [Op.or]: [
@@ -86,6 +87,17 @@ const ListTicketsService = async ({
           [Op.or]: [whatsappIds]
         }
       })
+    }),
+    ...(categoryId === 0 && {
+      [Op.and]: [
+        Sequelize.literal(`
+          NOT EXISTS (
+            SELECT 1
+            FROM \`TicketCategories\`
+            WHERE \`TicketCategories\`.\`ticketId\`  = \`Ticket\`.\`id\`
+          )
+        `)
+      ]
     })
   };
   let includeCondition: Includeable[];
@@ -117,7 +129,13 @@ const ListTicketsService = async ({
     {
       model: Category,
       as: "categories",
-      attributes: ["id", "name", "color"]
+      attributes: ["id", "name", "color"],
+      ...(categoryId > 0 && {
+        where: {
+          id: categoryId
+        },
+        required: true
+      })
     },
     {
       model: User,
@@ -170,6 +188,18 @@ const ListTicketsService = async ({
             [Op.or]: [whatsappIds]
           }
         })
+      }),
+
+      ...(categoryId === 0 && {
+        [Op.and]: [
+          Sequelize.literal(`
+          NOT EXISTS (
+            SELECT 1
+            FROM \`TicketCategories\`
+            WHERE \`TicketCategories\`.\`ticketId\`  = \`Ticket\`.\`id\`
+          )
+        `)
+        ]
       })
     };
   }
@@ -318,21 +348,21 @@ const ListTicketsService = async ({
   const ticketsToReturnWithClientTimeWaiting =
     await getClientTimeWaitingForTickets(ticketsToReturn);
 
-  const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
-    numbers: ticketsToReturnWithClientTimeWaiting
-      .map(ticket => +ticket.contact.number)
-      .filter(n => n)
-  });
+  // const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+  //   numbers: ticketsToReturnWithClientTimeWaiting
+  //     .map(ticket => +ticket.contact.number)
+  //     .filter(n => n)
+  // });
 
-  for (const number in exclusiveContactsNumbers) {
-    ticketsToReturnWithClientTimeWaiting
-      .filter(t => t.contact.number === number)
-      .forEach(t => (t.contact.isExclusive = true));
+  // for (const number in exclusiveContactsNumbers) {
+  //   ticketsToReturnWithClientTimeWaiting
+  //     .filter(t => t.contact.number === number)
+  //     .forEach(t => (t.contact.isExclusive = true));
 
-    // ticketsToReturnWithClientTimeWaiting.find(
-    //   t => t.contact.number === number
-    // ).contact.isExclusive = true;
-  }
+  //   // ticketsToReturnWithClientTimeWaiting.find(
+  //   //   t => t.contact.number === number
+  //   // ).contact.isExclusive = true;
+  // }
 
   return {
     tickets: ticketsToReturnWithClientTimeWaiting,

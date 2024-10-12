@@ -5,6 +5,7 @@ import Badge from "@material-ui/core/Badge";
 import FormControl from "@material-ui/core/FormControl";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
+import "./styles.css";
 
 const TicketsWhatsappSelect = ({
   userWhatsapps,
@@ -23,9 +24,10 @@ const TicketsWhatsappSelect = ({
       max={99999}
       color="secondary"
       invisible={selectedWhatsappIds?.length === 0}
+      className="TicketsWhatsappSelect"
     >
-      <div style={{ width: 140 }}>
-        <FormControl fullWidth margin="dense">
+      <div style={{}}>
+        <FormControl>
           <Select
             multiple
             displayEmpty

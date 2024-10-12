@@ -28,7 +28,8 @@ import { UsersPresenceContext } from "../context/UsersPresenceContext";
 import { i18n } from "../translate/i18n";
 import MainListItems from "./MainListItems";
 
-const drawerWidth = 240;
+// const drawerWidth = 240;
+const drawerWidth = 190;
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -52,7 +53,7 @@ const useStyles = makeStyles((theme) => ({
   appBar: {
     zIndex: theme.zIndex.drawer + 1,
     // background: "#31FB48",
-    background: "#2de241",
+    background: "#3b82f6",
     color: "#fff",
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
@@ -93,7 +94,8 @@ const useStyles = makeStyles((theme) => ({
     }),
     width: theme.spacing(7),
     [theme.breakpoints.up("sm")]: {
-      width: theme.spacing(9),
+      // width: theme.spacing(7),
+      width: 53,
     },
   },
   appBarSpacer: {
@@ -128,9 +130,9 @@ const LoggedInLayout = ({ children }) => {
   const { setConnectedUsers } = useContext(UsersPresenceContext);
 
   useEffect(() => {
-    if (document.body.offsetWidth > 600) {
-      setDrawerOpen(true);
-    }
+    // if (document.body.offsetWidth > 600) {
+    //   setDrawerOpen(true);
+    // }
 
     const socket = openSocket();
 
@@ -251,7 +253,6 @@ const LoggedInLayout = ({ children }) => {
               flexGrow: 1,
               display: "flex",
               alignItems: "center",
-              gap: 8,
             }}
           >
             <Typography
@@ -263,12 +264,15 @@ const LoggedInLayout = ({ children }) => {
             >
               WhatRestaurant
             </Typography>
-            <span>by</span>
-            <img
-              src="https://restaurant.pe/wp-content/uploads/2022/05/cropped-restaurantpelogo-300x59.png"
-              alt="logo"
-              style={{ width: "125px" }}
-            />
+            <img src={`/ollita2.png`} alt="logo" style={{ width: "26px" }} />
+            <div
+              style={{ fontStyle: "italic", marginLeft: 8, fontWeight: "bold" }}
+            >
+              LITE
+            </div>
+
+            {/* <span>by</span> */}
+            {/* <img src="https://restaurant.pe/wp-content/uploads/2022/05/cropped-restaurantpelogo-300x59.png" /> */}
           </div>
           {user.id && <NotificationsPopOver />}
 

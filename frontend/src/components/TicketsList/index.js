@@ -5,12 +5,18 @@ import List from "@material-ui/core/List";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
 
-import TicketListItem from "../TicketListItem";
-import TicketsListSkeleton from "../TicketsListSkeleton";
-
+import { blue } from "@material-ui/core/colors";
+import Menu from "@material-ui/core/Menu";
+import MenuItem from "@material-ui/core/MenuItem";
+import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import useTickets from "../../hooks/useTickets";
+import TicketsListSkeleton from "../TicketsListSkeleton";
+
+import CircularProgress from "@material-ui/core/CircularProgress";
 import { i18n } from "../../translate/i18n";
+
+import TicketListItem from "../TicketListItem";
 
 const useStyles = makeStyles((theme) => ({
   ticketsListWrapper: {
@@ -27,7 +33,6 @@ const useStyles = makeStyles((theme) => ({
     flex: 1,
     overflowY: "scroll",
     ...theme.scrollbarStyles,
-    borderTop: "2px solid rgba(0, 0, 0, 0.12)",
   },
 
   ticketsListHeader: {
@@ -63,11 +68,20 @@ const useStyles = makeStyles((theme) => ({
 
   noTicketsDiv: {
     display: "flex",
-    height: "100px",
-    margin: 40,
+    // height: "100px",
+    padding: 40,
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  buttonProgress: {
+    color: blue[500],
+    position: "absolute",
+    bottom: "50%",
+    left: "50%",
+    marginTop: -12,
+    marginLeft: -12,
   },
 }));
 
@@ -128,38 +142,15 @@ const reducer = (state, action) => {
     return [...state];
   }
 
-  if (action.type === "VERIFY_IF_TICKET_IS_IN_TICKETlIST_TO_REMOVE_IT") {
-    const { ticket, setUpdatedCount } = action.payload;
-
-    const ticketIndex = state.findIndex((t) => t.id === ticket.id);
-
-    if (ticketIndex !== -1) {
-      state.splice(ticketIndex, 1);
-      setUpdatedCount((oldCount) => oldCount - 1);
-    }
-
-    return [...state];
-  }
-
   if (action.type === "UPDATE_TICKET_UNREAD_MESSAGES") {
     const { ticket, setUpdatedCount } = action.payload;
 
     const ticketIndex = state.findIndex((t) => t.id === ticket.id);
-    if (ticketIndex !== -1) {
-      // console.log(
-      //   "UPDATE_TICKET_UNREAD_MESSAGES ticket old:",
-      //   JSON.parse(JSON.stringify(state[ticketIndex]))
-      // );
 
+    if (ticketIndex !== -1) {
       if (state[ticketIndex]?.contact?.isExclusive && ticket.contact) {
         ticket.contact.isExclusive = true;
       }
-
-      // console.log(
-      //   "UPDATE_TICKET_UNREAD_MESSAGES ticket new:",
-      //   JSON.parse(JSON.stringify(ticket))
-      // );
-
       state[ticketIndex] = {
         ...state[ticketIndex],
         ...ticket,
@@ -170,11 +161,6 @@ const reducer = (state, action) => {
       state.unshift(ticket);
       setUpdatedCount((oldCount) => oldCount + 1);
     }
-
-    // console.log(
-    //   "UPDATE_TICKET_UNREAD_MESSAGES after:",
-    //   JSON.parse(JSON.stringify(state))
-    // );
 
     return [...state];
   }
@@ -212,9 +198,11 @@ const TicketsList = (props) => {
     selectedWhatsappIds,
     selectedQueueIds,
     selectedTypeIds,
-    updateCount,
+    // updateCount,
     style,
-    showOnlyMyGroups = false,
+    // showOnlyMyGroups = false,
+    ticketsType,
+    category,
   } = props;
   const classes = useStyles();
   const [pageNumber, setPageNumber] = useState(1);
@@ -222,6 +210,15 @@ const TicketsList = (props) => {
   const [updatedCount, setUpdatedCount] = useState(0);
   const [microServiceLoading, setMicroServiceLoading] = useState(false);
   const { user } = useContext(AuthContext);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [showOnlyMyGroups, setShowOnlyMyGroups] = useState(false);
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   useEffect(() => {
     // console.log("RESET: ");
@@ -248,6 +245,8 @@ const TicketsList = (props) => {
     queueIds: JSON.stringify(selectedQueueIds),
     typeIds: JSON.stringify(selectedTypeIds),
     showOnlyMyGroups,
+    ...(category && { categoryId: category.id }),
+    ...(ticketsType === "no-category" && { categoryId: 0 }),
   });
 
   useEffect(() => {
@@ -255,12 +254,6 @@ const TicketsList = (props) => {
     if (!status && !searchParam) return;
 
     (async () => {
-      // setMicroServiceLoading(true);
-
-      // let ticketsToDispatch = await searchIfTicketsContactIsExclusive(tickets);
-
-      // setMicroServiceLoading(false);
-
       dispatch({
         type: "LOAD_TICKETS",
         payload: tickets,
@@ -272,43 +265,38 @@ const TicketsList = (props) => {
     setUpdatedCount(count);
   }, [count]);
 
-  useEffect(() => {
-    if (typeof updateCount === "function") {
-      updateCount(updatedCount);
-    }
-  }, [updatedCount]);
+  // useEffect(() => {
+  //   if (typeof updateCount === "function") {
+  //     updateCount(updatedCount);
+  //   }
+  // }, [updatedCount]);
 
   useEffect(() => {
     const socket = openSocket();
 
     const shouldUpdateTicket = (ticket) => {
-      // console.log({ selectedQueueIds });
-      // console.log("shouldUpdateTicket: ", ticket);
-      // console.log("USER: ", user);
+      const noSearchParamCondition = !searchParam;
 
-      const noSearchParam = !searchParam;
+      const TypeCondition =
+        (!ticket.isGroup && selectedTypeIds?.includes("individual")) ||
+        (ticket.isGroup && selectedTypeIds?.includes("group"));
+
       const userCondition =
-        (!ticket.userId && !ticket.isGroup) ||
-        (ticket.userId === user?.id && !ticket.isGroup) ||
-        (ticket.helpUsers?.find((hu) => hu.id === user?.id) &&
-          !ticket.isGroup) ||
-        (ticket.participantUsers?.find((pu) => pu.id === user?.id) &&
-          ticket.isGroup) ||
         (!ticket.isGroup &&
-          showAll &&
-          selectedTypeIds.length === 1 &&
-          selectedTypeIds[0] === "individual") ||
+          ((!ticket.userId && status === "pending") ||
+            (ticket.userId === user?.id && status === "open") ||
+            (ticket.helpUsers?.find((hu) => hu.id === user?.id) &&
+              status === "open") ||
+            showAll)) ||
         (ticket.isGroup &&
-          !showOnlyMyGroups &&
-          selectedTypeIds.length === 1 &&
-          selectedTypeIds[0] === "group");
+          (ticket.participantUsers?.find((pu) => pu.id === user?.id) ||
+            !showOnlyMyGroups));
+
       const queueCondition =
         (!ticket.queueId && selectedQueueIds.includes(null)) ||
         selectedQueueIds.indexOf(ticket.queueId) !== -1 ||
         selectedQueueIds?.length === 0;
-      const typeCondition =
-        (ticket.isGroup && selectedTypeIds[0] === "group") ||
-        (!ticket.isGroup && selectedTypeIds[0] === "individual");
+
       const whatsappCondition =
         selectedWhatsappIds?.indexOf(ticket.whatsappId) > -1 ||
         selectedWhatsappIds?.length === 0;
@@ -323,31 +311,39 @@ const TicketsList = (props) => {
           selectedTypeIds[0] === "group" &&
           showOnlyMyGroups);
 
-      const isConditionMet =
-        noSearchParam &&
-        userCondition &&
-        typeCondition &&
-        (ignoreConditions || (queueCondition && whatsappCondition));
+      const categoryCondition =
+        (!category && ticketsType !== "no-category") ||
+        (category && ticket.categories.find((tc) => tc.id === category.id)) ||
+        (ticketsType === "no-category" && !ticket.categories?.length);
 
-      // console.log("noSearchParam", noSearchParam);
-      // console.log("userCondition", userCondition);
-      // console.log("typeCondition", typeCondition);
-      // console.log("ignoreConditions", ignoreConditions);
-      // console.log("||||||||||queueCondition", queueCondition);
-      // console.log("whatsappCondition", whatsappCondition);
-      // console.log(isConditionMet ? "PASÓ" : "NO PASÓ");
+      console.log({
+        noSearchParamCondition,
+        TypeCondition,
+        userCondition,
+        queueCondition,
+        whatsappCondition,
+        ignoreConditions,
+        categoryCondition,
+      });
+
+      const isConditionMet =
+        noSearchParamCondition &&
+        TypeCondition &&
+        userCondition &&
+        (ignoreConditions || (queueCondition && whatsappCondition)) &&
+        categoryCondition;
 
       return isConditionMet;
     };
 
-    const notBelongsToUserQueues = (ticket) => {
-      const queueCondition =
-        (!ticket.queueId && selectedQueueIds.includes(null)) ||
-        selectedQueueIds.indexOf(ticket.queueId) !== -1 ||
-        selectedQueueIds?.length === 0;
+    // const notBelongsToUserQueues = (ticket) => {
+    //   const queueCondition =
+    //     (!ticket.queueId && selectedQueueIds.includes(null)) ||
+    //     selectedQueueIds.indexOf(ticket.queueId) !== -1 ||
+    //     selectedQueueIds?.length === 0;
 
-      return !queueCondition;
-    };
+    //   return !queueCondition;
+    // };
 
     // const notBelongsToUserQueues = (ticket) =>
     //   ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;
@@ -361,54 +357,63 @@ const TicketsList = (props) => {
     });
 
     socket.on("ticket", async (data) => {
-      // console.log("ticket socket::::::::::::::::::::", data);
-      // console.log("selectedWhatsappIds: ", selectedWhatsappIds);
+      console.log("ticket socket::::::::::::::::::::", data, {
+        status,
+        searchParam,
+        showAll,
+        selectedWhatsappIds,
+        selectedQueueIds,
+        selectedTypeIds,
+        style,
+        ticketsType,
+        category,
+      });
 
       if (data.action === "updateUnread") {
         dispatch({
-          type: "RESET_UNREAD",
+          type: "RESET_UNREAD", // si encuentra el ticket en el estado le resetea los mensajes no leidos
           payload: data.ticketId,
         });
       }
 
-      if (data.action === "update" && shouldUpdateTicket(data.ticket)) {
-        // const ticketToDispatch = (
-        //   await searchIfTicketsContactIsExclusive([data.ticket])
-        // )[0];
-
-        dispatch({
-          type: "UPDATE_TICKET",
-          payload: {
-            ticket: data.ticket,
-            setUpdatedCount,
-          },
-        });
-      }
-
-      if (data.action === "update" && notBelongsToUserQueues(data.ticket)) {
-        dispatch({
-          type: "DELETE_TICKET",
-          payload: { ticketId: data.ticket.id, setUpdatedCount },
-        });
+      if (data.action === "update") {
+        if (shouldUpdateTicket(data.ticket)) {
+          dispatch({
+            type: "UPDATE_TICKET", // si encuentra el ticket en el estado lo actualiza sino lo agrega
+            payload: {
+              ticket: data.ticket,
+              setUpdatedCount,
+            },
+          });
+        } else {
+          dispatch({
+            type: "DELETE_TICKET", // si encuentra el ticket en el estado lo elimina
+            payload: { ticketId: data.ticket?.id, user, setUpdatedCount },
+          });
+        }
       }
 
       if (data.action === "delete") {
         dispatch({
-          type: "DELETE_TICKET",
+          type: "DELETE_TICKET", // si encuentra el ticket en el estado lo elimina
           payload: { ticketId: data.ticketId, setUpdatedCount },
-        });
-      }
-
-      if (data.action === "update" && !shouldUpdateTicket(data.ticket)) {
-        dispatch({
-          type: "VERIFY_IF_TICKET_IS_IN_TICKETlIST_TO_REMOVE_IT",
-          payload: { ticket: data.ticket, user, setUpdatedCount },
         });
       }
     });
 
     socket.on("appMessage", (data) => {
-      // console.log("appMessage socket::::::::::::::::::::", data);
+      console.log("ticket socket::::::::::::::::::::", data, {
+        status,
+        searchParam,
+        showAll,
+        selectedWhatsappIds,
+        selectedQueueIds,
+        selectedTypeIds,
+        style,
+        ticketsType,
+        category,
+      });
+
       if (data.action === "create" && shouldUpdateTicket(data.ticket)) {
         dispatch({
           type: "UPDATE_TICKET_UNREAD_MESSAGES",
@@ -420,17 +425,6 @@ const TicketsList = (props) => {
     socket.on("contact", async (data) => {
       // console.log("contact socket::::::::::::::::::::", data);
       if (data.action === "update") {
-        // const contactIsExclusive = await searchIfContactIsExclusive(
-        //   data.contact?.number
-        // );
-
-        // console.log("contact socket::::::::::::::::::::", data);
-        // console.log("contactIsExclusive: ", contactIsExclusive);
-
-        // if (contactIsExclusive) {
-        //   data.contact.isExclusive = true;
-        // }
-
         dispatch({
           type: "UPDATE_TICKET_CONTACT",
           payload: data.contact,
@@ -452,80 +446,6 @@ const TicketsList = (props) => {
     showOnlyMyGroups,
   ]);
 
-  // async function searchIfTicketsContactIsExclusive(tickets) {
-  //   let ticketsCopy = JSON.parse(JSON.stringify(tickets));
-
-  //   const contactNumbersOfTicket = ticketsCopy
-  //     ?.map((ticket) => ticket?.contact?.number)
-  //     .filter((number) => number);
-
-  //   if (contactNumbersOfTicket?.length) {
-  //     try {
-  //       let { data: newTicketsContactsNumbersMicroserviceData } =
-  //         await microserviceApi.post(
-  //           "/backendrestaurantpe/public/rest/common/localbi/searchPhoneList",
-  //           contactNumbersOfTicket
-  //         );
-
-  //       // console.log(
-  //       //   "newTicketsContactsNumbersMicroserviceData: ",
-  //       //   newTicketsContactsNumbersMicroserviceData
-  //       // );
-
-  //       newTicketsContactsNumbersMicroserviceData =
-  //         newTicketsContactsNumbersMicroserviceData?.data;
-
-  //       newTicketsContactsNumbersMicroserviceData = Object.fromEntries(
-  //         Object.entries(newTicketsContactsNumbersMicroserviceData).filter(
-  //           ([key, value]) => value.some((entry) => entry.isExclusive === true)
-  //         )
-  //       );
-
-  //       Object.keys(newTicketsContactsNumbersMicroserviceData).forEach(
-  //         (key) => {
-  //           ticketsCopy.forEach((ticket) => {
-  //             if (ticket.contact && ticket.contact.number === key) {
-  //               ticket.contact.isExclusive = true;
-  //               // console.log("||||||||||||||ticket encontrado", ticket);
-  //             }
-  //           });
-  //         }
-  //       );
-  //     } catch (error) {
-  //       console.log("error", error);
-  //     }
-  //   }
-
-  //   return ticketsCopy;
-  // }
-
-  // async function searchIfContactIsExclusive(contactNumber) {
-  //   if (contactNumber) {
-  //     try {
-  //       let { data } = await microserviceApi.post(
-  //         "/backendrestaurantpe/public/rest/common/localbi/searchPhoneList",
-  //         [contactNumber]
-  //       );
-
-  //       console.log("searchIfContactIsExclusive:", data.data);
-
-  //       if (data.data && data.data[contactNumber]) {
-  //         return true;
-  //       }
-  //     } catch (error) {
-  //       console.log("error", error);
-  //     }
-  //   }
-  //   return false;
-  // }
-
-  // useEffect(() => {
-  //   if (typeof updateCount === "function") {
-  //     updateCount(ticketsList.length);
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [ticketsList]);
-
   const loadMore = () => {
     setPageNumber((prevState) => prevState + 1);
   };
@@ -542,7 +462,98 @@ const TicketsList = (props) => {
   };
 
   return (
-    <Paper className={classes.ticketsListWrapper} style={style}>
+    <Paper
+      className={classes.ticketsListWrapper}
+      style={{ ...style, width: "20rem", borderRadius: 8, flexShrink: 0 }}
+    >
+      <div
+        style={{
+          // background: blue[500],
+          background: category?.color || "rgb(181 181 181)",
+          color: "white",
+          fontWeight: "500",
+          padding: "0.75rem",
+          textAlign: "center",
+          fontZize: "20px",
+          letterSpacing: "1px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "0.5rem",
+        }}
+      >
+        <div
+          style={{
+            background: "#2576d2",
+            padding: "4px 6px",
+            borderRadius: "999px",
+            fontSize: "11px",
+            lineHeight: "14px",
+          }}
+        >
+          {updatedCount}
+        </div>
+
+        {ticketsType === "groups" && (
+          <>
+            <div>GRUPOS - {!showOnlyMyGroups ? "TODOS" : "PARTICIPANDO"}</div>
+
+            <ArrowDropDownIcon
+              fontSize="medium"
+              onClick={handleClick}
+              // style={{ cursor: "pointer", color: "black", scale: "1.5" }}
+              style={{
+                cursor: "pointer",
+                // transform: "translateY(-2px) translateX(5px)",
+                scale: "1.5",
+              }}
+            />
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleClose}
+            >
+              <MenuItem
+                onClick={(e) => {
+                  setShowOnlyMyGroups(false);
+                  handleClose(e);
+                }}
+              >
+                Todos los grupos
+              </MenuItem>
+              <MenuItem
+                onClick={(e) => {
+                  setShowOnlyMyGroups(true);
+                  handleClose(e);
+                }}
+              >
+                Mis grupos
+              </MenuItem>
+            </Menu>
+          </>
+        )}
+
+        {ticketsType === "pendings" && (
+          <>
+            <div>PENDIENTES</div>
+          </>
+        )}
+
+        {ticketsType === "no-category" && (
+          <>
+            <div>Sin Categoria</div>
+          </>
+        )}
+
+        {category && (
+          <>
+            <div>{category.name}</div>
+          </>
+        )}
+
+        {status === "closed" && <div>CERRADOS</div>}
+      </div>
       <Paper
         square
         name="closed"
@@ -550,7 +561,14 @@ const TicketsList = (props) => {
         className={classes.ticketsList}
         onScroll={handleScroll}
       >
-        <List style={{ paddingTop: 0 }}>
+        <List
+          style={{
+            paddingTop: 0,
+            height: "100%",
+            borderRadius: 8,
+            position: "relative",
+          }}
+        >
           {ticketsList.length === 0 && !loading && !microServiceLoading ? (
             <div className={classes.noTicketsDiv}>
               <span className={classes.noTicketsTitle}>
@@ -567,7 +585,12 @@ const TicketsList = (props) => {
               ))}
             </>
           )}
-          {(loading || microServiceLoading) && <TicketsListSkeleton />}
+          {(loading || microServiceLoading) && ticketsList.length > 0 && (
+            <TicketsListSkeleton />
+          )}
+          {(loading || microServiceLoading) && ticketsList.length === 0 && (
+            <CircularProgress size={44} className={classes.buttonProgress} />
+          )}
         </List>
       </Paper>
     </Paper>

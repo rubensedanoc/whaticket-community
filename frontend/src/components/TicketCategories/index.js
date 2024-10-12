@@ -18,10 +18,10 @@ const TicketCategories = ({ ticket }) => {
 
   useEffect(() => {
     if (ticket && ticket.categories) {
-      console.log(
-        "_____ TicketCategories ticket categories",
-        ticket.categories
-      );
+      // console.log(
+      //   "_____ TicketCategories ticket categories",
+      //   ticket.categories
+      // );
       setAutocompleteValue([
         ...ticket.categories?.map((category) => {
           return {

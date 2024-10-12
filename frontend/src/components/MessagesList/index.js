@@ -52,7 +52,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   messagesList: {
-    // height: "58vh",
+    height: "61vh",
     backgroundImage: `url(${whatsBackground})`,
     display: "flex",
     flexDirection: "column",
