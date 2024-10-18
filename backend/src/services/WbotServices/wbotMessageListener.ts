@@ -1221,6 +1221,49 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("media_uploaded", async msg => {
     handleMessage(msg, wbot);
   });
+  wbot.on("group_update", async contact => {
+    if (contact?.type !== "subject") {
+      return;
+    }
+
+    console.log(
+      "--- BOT wbotMessageListener group_update - wbot.id: ",
+      wbot.id,
+      contact
+    );
+
+    try {
+      const groupContact = await Contact.findOne({
+        where: { number: contact.chatId.split("@")[0] }
+      });
+
+      if (!groupContact) {
+        throw new AppError(
+          "No group contact found with this ID. " + contact.chatId
+        );
+      }
+
+      // console.log("groupContact: ", groupContact);
+
+      groupContact.update({
+        name: contact.body
+      });
+
+      emitEvent({
+        event: {
+          name: "contact",
+          data: {
+            action: "update",
+            contact: groupContact
+          }
+        }
+      });
+    } catch (err) {
+      console.log("Error on group_update event: ", contact, err);
+      Sentry.captureException(err);
+    }
+  });
+
   wbot.on("message_edit", async msg => {
     console.log(
       "--- BOT wbotMessageListener message_edit - wbot.id: ",
