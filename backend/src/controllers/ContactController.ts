@@ -10,7 +10,6 @@ import UpdateContactService from "../services/ContactServices/UpdateContactServi
 import { Op } from "sequelize";
 import AppError from "../errors/AppError";
 import { emitEvent } from "../libs/emitEvent";
-import { searchIfNumbersAreExclusive } from "../libs/searchIfNumbersAreExclusive";
 import { getWbot, getWbots } from "../libs/wbot";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
@@ -190,17 +189,17 @@ export const update = async (
 
   const contact = await UpdateContactService({ contactData, contactId });
 
-  if (contact) {
-    const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
-      numbers: [+contact.number].filter(n => n)
-    });
+  // if (contact) {
+  //   const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+  //     numbers: [+contact.number].filter(n => n)
+  //   });
 
-    for (const number in exclusiveContactsNumbers) {
-      if (contact.number === number) {
-        contact.isExclusive = true;
-      }
-    }
-  }
+  //   for (const number in exclusiveContactsNumbers) {
+  //     if (contact.number === number) {
+  //       contact.isExclusive = true;
+  //     }
+  //   }
+  // }
 
   const url = process.env.NODE_URL + "/toEmit";
   fetch(url, {

@@ -266,7 +266,7 @@ const ListTicketsServicev2 = async (request: Request): Promise<Response> => {
   let whereCondition = buildWhereCondition(request);
   let includeCondition = buildIncludeCondition(request);
 
-  console.log("--- whereCondition", whereCondition);
+  // console.log("--- whereCondition", whereCondition);
 
   const limit = 40;
   const offset = limit * (+pageNumber - 1);

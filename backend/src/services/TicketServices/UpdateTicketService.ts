@@ -1,5 +1,4 @@
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
-import { searchIfNumbersAreExclusive } from "../../libs/searchIfNumbersAreExclusive";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
 
@@ -132,17 +131,17 @@ const UpdateTicketService = async ({
       });
   }
 
-  if (ticket.contact) {
-    const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
-      numbers: [ticket].map(ticket => +ticket.contact.number).filter(n => n)
-    });
+  // if (ticket.contact) {
+  //   const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+  //     numbers: [ticket].map(ticket => +ticket.contact.number).filter(n => n)
+  //   });
 
-    for (const number in exclusiveContactsNumbers) {
-      if (ticket.contact.number === number) {
-        ticket.contact.isExclusive = true;
-      }
-    }
-  }
+  //   for (const number in exclusiveContactsNumbers) {
+  //     if (ticket.contact.number === number) {
+  //       ticket.contact.isExclusive = true;
+  //     }
+  //   }
+  // }
 
   /* io.to(ticket.status)
     .to("notification")
