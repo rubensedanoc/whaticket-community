@@ -717,17 +717,24 @@ const TicketsManager = () => {
                         }}
                       >
                         <div>
-                          {principalTicketType === "individuals"
-                            ? "INDIVIDUALES"
-                            : "GRUPOS"}{" "}
+                          {principalTicketType === "groups"
+                            ? "GRUPOS"
+                            : "INDIVIDUALES"}{" "}
                           -{" "}
-                          {principalTicketType === "individuals"
+                          {/* {principalTicketType === "groups"
                             ? showAll
                               ? "TODOS"
                               : "MÍOS"
                             : showOnlyMyGroups
                             ? "PARTICIPANDO"
-                            : "TODOS"}
+                            : "TODOS"} */}
+                          {principalTicketType === "groups"
+                            ? showOnlyMyGroups
+                              ? "PARTICIPANDO"
+                              : "TODOS"
+                            : showAll
+                            ? "TODOS"
+                            : "MÍOS"}
                         </div>
                         <ArrowDropDownIcon
                           fontSize="medium"
