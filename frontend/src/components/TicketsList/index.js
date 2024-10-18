@@ -89,7 +89,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const reducer = (state, action) => {
-  console.log("REDUCER: ", action.type, action.payload);
+  // console.log("REDUCER: ", action.type, action.payload);
 
   if (action.type === "LOAD_TICKETS") {
     const newTickets = action.payload;
@@ -363,17 +363,17 @@ const TicketsList = (props) => {
     });
 
     socket.on("ticket", async (data) => {
-      console.log("ticket socket::::::::::::::::::::", data, {
-        status,
-        searchParam,
-        showAll,
-        selectedWhatsappIds,
-        selectedQueueIds,
-        selectedTypeIds,
-        style,
-        ticketsType,
-        category,
-      });
+      // console.log("ticket socket::::::::::::::::::::", data, {
+      //   status,
+      //   searchParam,
+      //   showAll,
+      //   selectedWhatsappIds,
+      //   selectedQueueIds,
+      //   selectedTypeIds,
+      //   style,
+      //   ticketsType,
+      //   category,
+      // });
 
       if (data.action === "updateUnread") {
         dispatch({
@@ -408,17 +408,17 @@ const TicketsList = (props) => {
     });
 
     socket.on("appMessage", (data) => {
-      console.log("ticket socket::::::::::::::::::::", data, {
-        status,
-        searchParam,
-        showAll,
-        selectedWhatsappIds,
-        selectedQueueIds,
-        selectedTypeIds,
-        style,
-        ticketsType,
-        category,
-      });
+      // console.log("ticket socket::::::::::::::::::::", data, {
+      //   status,
+      //   searchParam,
+      //   showAll,
+      //   selectedWhatsappIds,
+      //   selectedQueueIds,
+      //   selectedTypeIds,
+      //   style,
+      //   ticketsType,
+      //   category,
+      // });
 
       if (data.action === "create" && shouldUpdateTicket(data.ticket)) {
         dispatch({
