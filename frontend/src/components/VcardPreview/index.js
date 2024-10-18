@@ -93,6 +93,7 @@ const VcardPreview = ({ contact, numbers }) => {
               Conversar
             </Button>
             <TicketListModal
+              preSelectedContactId={selectedContact.id}
               modalOpen={ticketListModalOpen}
               onClose={() => setTicketListModalOpen(false)}
               title={ticketListModalTitle}

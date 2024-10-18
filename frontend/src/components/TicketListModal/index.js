@@ -26,7 +26,14 @@ const useRowStyles = makeStyles({
   },
 });
 
-const TicketListModal = ({ modalOpen, onClose, title, tickets, newView }) => {
+const TicketListModal = ({
+  preSelectedContactId,
+  modalOpen,
+  onClose,
+  title,
+  tickets,
+  newView,
+}) => {
   const [loading, setLoading] = useState(false);
   const [ticketsData, setTicketsData] = useState([]);
   const { whatsApps } = useContext(WhatsAppsContext);
@@ -75,6 +82,7 @@ const TicketListModal = ({ modalOpen, onClose, title, tickets, newView }) => {
   return (
     <>
       <NewTicketModal
+        preSelectedContactId={preSelectedContactId}
         modalOpen={newTicketModalOpen}
         onClose={(e) => setNewTicketModalOpen(false)}
       />

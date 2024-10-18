@@ -1,6 +1,7 @@
 import AppError from "../../errors/AppError";
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import GetDefaultWhatsApp from "../../helpers/GetDefaultWhatsApp";
+import Category from "../../models/Category";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
@@ -64,7 +65,17 @@ const CreateTicketService = async ({
     queueId
   });
 
-  const ticket = await Ticket.findByPk(id, { include: ["contact"] });
+  const ticket = await Ticket.findByPk(id, {
+    include: [
+      "contact",
+      {
+        model: Category,
+        as: "categories",
+        attributes: ["id", "name", "color"],
+        required: false
+      }
+    ]
+  });
 
   if (!ticket) {
     throw new AppError("ERR_CREATING_TICKET");
