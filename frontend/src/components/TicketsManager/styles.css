@@ -1,3 +1,8 @@
 .MuiTab-labelIcon {
   min-height: 65px !important;
 }
+
+.TicketsManager .MuiOutlinedInput-input {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+}

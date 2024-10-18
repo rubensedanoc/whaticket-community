@@ -1,8 +1,12 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 
+import { Checkbox, ListItemText } from "@material-ui/core";
 import Badge from "@material-ui/core/Badge";
+import FormControl from "@material-ui/core/FormControl";
 import InputBase from "@material-ui/core/InputBase";
+import MenuItem from "@material-ui/core/MenuItem";
 import Paper from "@material-ui/core/Paper";
+import Select from "@material-ui/core/Select";
 import Tab from "@material-ui/core/Tab";
 import Tabs from "@material-ui/core/Tabs";
 import { makeStyles, withStyles } from "@material-ui/core/styles";
@@ -10,6 +14,7 @@ import CheckBoxIcon from "@material-ui/icons/CheckBox";
 import MoveToInboxIcon from "@material-ui/icons/MoveToInbox";
 import SearchIcon from "@material-ui/icons/Search";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
+import "./styles.css";
 
 import { IconButton } from "@material-ui/core";
 import NumberGroupsModal from "../NumberGroupsModal";
@@ -23,7 +28,6 @@ import TicketsList from "../TicketsList";
 
 import { Button, Divider } from "@material-ui/core";
 import Menu from "@material-ui/core/Menu";
-import MenuItem from "@material-ui/core/MenuItem";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../context/Auth/AuthContext";
@@ -126,44 +130,48 @@ const TicketsManager = () => {
   const [tab, setTab] = useState("open");
   const [tabOpen, setTabOpen] = useState("open");
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
-  const [showAllTickets, setShowAllTickets] = useState(false);
-  // const [showOnlyMyGroups, setShowOnlyMyGroups] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [showOnlyMyGroups, setShowOnlyMyGroups] = useState(false);
   const searchInputRef = useRef();
   const { user } = useContext(AuthContext);
 
-  // const [groupCount, setGroupCount] = useState(0);
-  // const [openCount, setOpenCount] = useState(0);
-  // const [pendingCount, setPendingCount] = useState(0);
-
   const userQueueIds = [...user.queues.map((q) => q.id), null];
-  const { whatsApps, loading } = useContext(WhatsAppsContext);
+  const { whatsApps } = useContext(WhatsAppsContext);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
-  // const [selectedTypeIds] = useState(["individual"]);
+  const [principalTicketType, setPrincipalTicketType] = useState("");
+
   const [typeIdsForAll] = useState(["individual", "group"]);
   const [typeIdsForIndividuals] = useState(["individual"]);
   const [typeIdsForGroups] = useState(["group"]);
+
   const [selectedQueueIds, setSelectedQueueIds] = useState(userQueueIds || []);
 
   const [numberGroups, setNumberGroups] = useState([]);
   const [numberGroupsModalIsOpen, setNumberGroupsModalIsOpen] = useState(false);
 
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorEl2, setAnchorEl2] = useState(null);
 
   const [categories, setCategories] = useState([]);
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const [categoriesVisible, setCategoriesVisible] = useState([]);
 
   useEffect(() => {
+    localStorage.getItem("principalTicketType") &&
+      setPrincipalTicketType(
+        JSON.parse(localStorage.getItem("principalTicketType"))
+      );
+
+    localStorage.getItem("showAll") &&
+      setShowAll(JSON.parse(localStorage.getItem("showAll")));
+
+    localStorage.getItem("showOnlyMyGroups") &&
+      setShowOnlyMyGroups(JSON.parse(localStorage.getItem("showOnlyMyGroups")));
+
     localStorage.getItem("selectedWhatsappIds") &&
       setSelectedWhatsappIds(
         JSON.parse(localStorage.getItem("selectedWhatsappIds"))
       );
-
     localStorage.getItem("selectedQueueIds") &&
       setSelectedQueueIds(JSON.parse(localStorage.getItem("selectedQueueIds")));
   }, []);
@@ -172,18 +180,58 @@ const TicketsManager = () => {
   //   console.log("selectedTypeIds", selectedTypeIds);
   // }, [selectedTypeIds]);
 
-  useEffect(() => {
-    if (user.profile.toUpperCase() === "ADMIN") {
-      setShowAllTickets(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // useEffect(() => {
+  //   if (user.profile.toUpperCase() === "ADMIN") {
+  //     setShowAll(true);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.get("/categories");
-        setCategories(data);
+
+        const categoriesOrder =
+          JSON.parse(localStorage.getItem("categoriesOrder")) || [];
+
+        const sortedCategories = ["no-category", ...data].sort((a, b) => {
+          const indexA = categoriesOrder.indexOf(a.name || a);
+          const indexB = categoriesOrder.indexOf(b.name || b);
+
+          if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+          }
+
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+
+          return 0;
+        });
+
+        console.log("sortedCategories", sortedCategories);
+
+        setCategories(sortedCategories);
+
+        let categoriesVisible = localStorage.getItem("categoriesVisible");
+
+        if (categoriesVisible) {
+          categoriesVisible = JSON.parse(categoriesVisible);
+        } else {
+          localStorage.setItem(
+            "categoriesVisible",
+            JSON.stringify([
+              ...sortedCategories.map((category) => category.name || category),
+            ])
+          );
+          categoriesVisible = [
+            ...sortedCategories.map((category) => category.name || category),
+          ];
+        }
+
+        setCategoriesVisible(categoriesVisible);
+
+        console.log("categoriesVisible", categoriesVisible);
       } catch (error) {
         toast.error("Error al cargar las categorias");
         console.log("Error al cargar las categorias - ", error);
@@ -248,6 +296,29 @@ const TicketsManager = () => {
     if (tabOpen !== status) {
       return { width: 0, height: 0 };
     }
+  };
+
+  const onMove = (oldIndex, direction) => {
+    const newCategories = [...categories];
+
+    if (direction === "left") {
+      if (oldIndex === 0) return; // Si ya está en la posición más alta, no hacer nada
+      const elemento = newCategories.splice(oldIndex, 1)[0];
+      newCategories.splice(oldIndex - 1, 0, elemento);
+    } else {
+      if (oldIndex === newCategories.length - 1) return; // Si ya está en la posición más baja, no hacer nada
+      const elemento = newCategories.splice(oldIndex, 1)[0];
+      newCategories.splice(oldIndex + 1, 0, elemento);
+    }
+
+    const categoryIds = newCategories.map(
+      (category) => category.name || "no-category"
+    );
+    localStorage.setItem("categoriesOrder", JSON.stringify(categoryIds));
+
+    console.log("newCategories", newCategories);
+
+    setCategories(newCategories);
   };
 
   return (
@@ -553,62 +624,315 @@ const TicketsManager = () => {
             overflow: "auto",
           }}
         >
-          <Can
-            role={user.profile}
-            perform="tickets-manager:showall"
-            yes={() => (
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px 0px",
+            }}
+          >
+            {tab === "open" && (
               <>
-                {tab === "open" && (
-                  <>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        alignItems: "center",
-                        marginLeft: "auto",
-                        padding: "8px 16px 0px",
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "center",
+                    padding: "0px 16px 0px",
+                  }}
+                >
+                  <div>
+                    DIVIDIR POR -{" "}
+                    {principalTicketType === "groups"
+                      ? "GRUPALES"
+                      : "INDIVIDUALES"}
+                  </div>
+                  <ArrowDropDownIcon
+                    fontSize="medium"
+                    style={{
+                      cursor: "pointer",
+                      scale: "1.5",
+                    }}
+                    onClick={(e) => {
+                      setAnchorEl2(e.currentTarget);
+                    }}
+                  />
+
+                  <Menu
+                    anchorEl={anchorEl2}
+                    open={Boolean(anchorEl2)}
+                    onClose={() => setAnchorEl2(null)}
+                  >
+                    <MenuItem
+                      onClick={() => {
+                        localStorage.setItem(
+                          "principalTicketType",
+                          JSON.stringify("individuals")
+                        );
+                        setPrincipalTicketType("individuals");
+                        setAnchorEl2(null);
                       }}
                     >
-                      <div>
-                        INDIVIDUALES - {showAllTickets ? "TODOS" : "MÍOS"}
-                      </div>
-                      <ArrowDropDownIcon
-                        fontSize="medium"
-                        style={{
-                          cursor: "pointer",
-                          scale: "1.5",
-                        }}
-                        onClick={handleClick}
-                      />
-
-                      <Menu
-                        anchorEl={anchorEl}
-                        open={Boolean(anchorEl)}
-                        onClose={handleClose}
-                      >
-                        <MenuItem
-                          onClick={(e) => {
-                            setShowAllTickets(true);
-                            handleClose(e);
-                          }}
-                        >
-                          Todos los chats
-                        </MenuItem>
-                        <MenuItem
-                          onClick={(e) => {
-                            setShowAllTickets(false);
-                            handleClose(e);
-                          }}
-                        >
-                          Mis chats
-                        </MenuItem>
-                      </Menu>
-                    </div>
-                  </>
-                )}
+                      Chats individuales
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => {
+                        localStorage.setItem(
+                          "principalTicketType",
+                          JSON.stringify("groups")
+                        );
+                        setPrincipalTicketType("groups");
+                        setAnchorEl2(null);
+                      }}
+                    >
+                      Chats grupales
+                    </MenuItem>
+                  </Menu>
+                </div>
               </>
             )}
-          />
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                marginLeft: "auto",
+              }}
+            >
+              <Can
+                role={user.profile}
+                perform="tickets-manager:showall"
+                yes={() => (
+                  <>
+                    {tab === "open" && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          alignItems: "center",
+                          marginLeft: "auto",
+                          padding: "0px 16px 0px",
+                        }}
+                      >
+                        <div>
+                          {principalTicketType === "individuals"
+                            ? "INDIVIDUALES"
+                            : "GRUPOS"}{" "}
+                          -{" "}
+                          {principalTicketType === "individuals"
+                            ? showAll
+                              ? "TODOS"
+                              : "MÍOS"
+                            : showOnlyMyGroups
+                            ? "PARTICIPANDO"
+                            : "TODOS"}
+                        </div>
+                        <ArrowDropDownIcon
+                          fontSize="medium"
+                          style={{
+                            cursor: "pointer",
+                            scale: "1.5",
+                          }}
+                          onClick={(e) => {
+                            setAnchorEl(e.currentTarget);
+                          }}
+                        />
+
+                        <Menu
+                          anchorEl={anchorEl}
+                          open={Boolean(anchorEl)}
+                          onClose={() => {
+                            setAnchorEl(null);
+                          }}
+                        >
+                          <MenuItem
+                            onClick={(e) => {
+                              if (principalTicketType === "groups") {
+                                localStorage.setItem(
+                                  "showOnlyMyGroups",
+                                  JSON.stringify(false)
+                                );
+                                setShowOnlyMyGroups(false);
+                              } else {
+                                localStorage.setItem(
+                                  "showAll",
+                                  JSON.stringify(true)
+                                );
+                                setShowAll(true);
+                              }
+
+                              setAnchorEl(null);
+                            }}
+                          >
+                            {principalTicketType === "groups"
+                              ? "Todos los grupos"
+                              : "Todos los tickets"}
+                          </MenuItem>
+                          <MenuItem
+                            onClick={(e) => {
+                              if (principalTicketType === "groups") {
+                                localStorage.setItem(
+                                  "showOnlyMyGroups",
+                                  JSON.stringify(true)
+                                );
+                                setShowOnlyMyGroups(true);
+                              } else {
+                                localStorage.setItem(
+                                  "showAll",
+                                  JSON.stringify(false)
+                                );
+                                setShowAll(false);
+                              }
+
+                              setAnchorEl(null);
+                            }}
+                          >
+                            {principalTicketType === "groups"
+                              ? "En los que participo"
+                              : "Mis tickets"}
+                          </MenuItem>
+                        </Menu>
+                      </div>
+                    )}
+                  </>
+                )}
+                no={() =>
+                  principalTicketType === "groups" ? (
+                    <>
+                      {tab === "open" && (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 6,
+                            alignItems: "center",
+                            marginLeft: "auto",
+                            padding: "0px 16px 0px",
+                          }}
+                        >
+                          <div>
+                            GRUPOS -{" "}
+                            {showOnlyMyGroups ? "PARTICIPANDO" : "TODOS"}
+                          </div>
+                          <ArrowDropDownIcon
+                            fontSize="medium"
+                            style={{
+                              cursor: "pointer",
+                              scale: "1.5",
+                            }}
+                            onClick={(e) => {
+                              setAnchorEl(e.currentTarget);
+                            }}
+                          />
+
+                          <Menu
+                            anchorEl={anchorEl}
+                            open={Boolean(anchorEl)}
+                            onClose={() => {
+                              setAnchorEl(null);
+                            }}
+                          >
+                            <MenuItem
+                              onClick={(e) => {
+                                if (principalTicketType === "groups") {
+                                  localStorage.setItem(
+                                    "showOnlyMyGroups",
+                                    JSON.stringify(false)
+                                  );
+                                  setShowOnlyMyGroups(false);
+                                }
+                                setAnchorEl(null);
+                              }}
+                            >
+                              Todos los grupos
+                            </MenuItem>
+                            <MenuItem
+                              onClick={(e) => {
+                                if (principalTicketType === "groups") {
+                                  localStorage.setItem(
+                                    "showOnlyMyGroups",
+                                    JSON.stringify(true)
+                                  );
+                                  setShowOnlyMyGroups(true);
+                                }
+                                setAnchorEl(null);
+                              }}
+                            >
+                              En los que participo
+                            </MenuItem>
+                          </Menu>
+                        </div>
+                      )}
+                    </>
+                  ) : null
+                }
+              />
+
+              <Badge
+                overlap="rectangular"
+                badgeContent={categoriesVisible?.length}
+                max={99999}
+                color="secondary"
+                invisible={categoriesVisible?.length === 0}
+                className="TicketsWhatsappSelect"
+              >
+                <div style={{}}>
+                  <FormControl>
+                    <Select
+                      multiple
+                      displayEmpty
+                      variant="outlined"
+                      value={categoriesVisible}
+                      onChange={(e) => {
+                        console.log("e.target.value", e.target.value);
+                        localStorage.setItem(
+                          "categoriesVisible",
+                          JSON.stringify(e.target.value)
+                        );
+                        setCategoriesVisible(e.target.value);
+                      }}
+                      MenuProps={{
+                        anchorOrigin: {
+                          vertical: "bottom",
+                          horizontal: "left",
+                        },
+                        transformOrigin: {
+                          vertical: "top",
+                          horizontal: "left",
+                        },
+                        getContentAnchorEl: null,
+                      }}
+                      renderValue={() => "Categorias"}
+                    >
+                      {categories?.length > 0 &&
+                        categories.map((category) => (
+                          <MenuItem
+                            dense
+                            key={category.name || category}
+                            value={category.name || category}
+                          >
+                            <Checkbox
+                              style={{
+                                color: "black",
+                              }}
+                              size="small"
+                              color="primary"
+                              checked={
+                                categoriesVisible.indexOf(
+                                  category.name || category
+                                ) >= 0
+                              }
+                            />
+                            <ListItemText primary={category.name || category} />
+                          </MenuItem>
+                        ))}
+                    </Select>
+                  </FormControl>
+                </div>
+              </Badge>
+            </div>
+          </div>
 
           <div
             style={{
@@ -623,19 +947,22 @@ const TicketsManager = () => {
             {/*  */}
             <TicketsList
               status="open"
-              showAll={true}
               searchParam={searchParam}
-              // showOnlyMyGroups={showOnlyMyGroups}
-              selectedTypeIds={typeIdsForGroups}
+              showAll={showAll}
+              setShowAll={setShowAll}
+              showOnlyMyGroups={showOnlyMyGroups}
+              setShowOnlyMyGroups={setShowOnlyMyGroups}
+              selectedTypeIds={
+                principalTicketType === "groups"
+                  ? typeIdsForIndividuals
+                  : typeIdsForGroups
+              }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
-              // updateCount={(val) => {
-              //   setGroupCount(val);
-              // }}
-              ticketsType="groups"
+              ticketsType={
+                principalTicketType === "groups" ? "individuals" : "groups"
+              }
             />
-
-            {/* <Divider orientation="vertical" flexItem /> */}
 
             <TicketsList
               status="pending"
@@ -643,36 +970,55 @@ const TicketsManager = () => {
               selectedTypeIds={typeIdsForAll}
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
-              // updateCount={(val) => setPendingCount(val)}
               ticketsType="pendings"
             />
 
             <Divider orientation="vertical" flexItem />
-
-            <TicketsList
-              status="open"
-              searchParam={searchParam}
-              showAll={showAllTickets}
-              selectedTypeIds={typeIdsForIndividuals}
-              selectedWhatsappIds={selectedWhatsappIds}
-              selectedQueueIds={selectedQueueIds}
-              // updateCount={(val) => setOpenCount(val)}
-              ticketsType="no-category"
-            />
-
-            {categories.map((category) => (
-              <TicketsList
-                key={category.id}
-                searchParam={searchParam}
-                category={category}
-                status="open"
-                showAll={showAllTickets}
-                selectedTypeIds={typeIdsForIndividuals}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                // updateCount={(val) => setOpenCount(val)}
-              />
-            ))}
+            {categories.map((category, categoryIndex) => {
+              return category === "no-category" ? (
+                <TicketsList
+                  key="no-category"
+                  status="open"
+                  searchParam={searchParam}
+                  showAll={showAll}
+                  showOnlyMyGroups={showOnlyMyGroups}
+                  selectedTypeIds={
+                    principalTicketType === "groups"
+                      ? typeIdsForGroups
+                      : typeIdsForIndividuals
+                  }
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  ticketsType="no-category"
+                  onMoveToLeft={() => onMove(categoryIndex, "left")}
+                  onMoveToRight={() => {
+                    onMove(categoryIndex, "right");
+                  }}
+                  categoriesVisible={categoriesVisible}
+                />
+              ) : (
+                <TicketsList
+                  key={category.name}
+                  status="open"
+                  searchParam={searchParam}
+                  category={category}
+                  showAll={showAll}
+                  showOnlyMyGroups={showOnlyMyGroups}
+                  selectedTypeIds={
+                    principalTicketType === "groups"
+                      ? typeIdsForGroups
+                      : typeIdsForIndividuals
+                  }
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  onMoveToLeft={() => onMove(categoryIndex, "left")}
+                  onMoveToRight={() => {
+                    onMove(categoryIndex, "right");
+                  }}
+                  categoriesVisible={categoriesVisible}
+                />
+              );
+            })}
           </div>
         </Paper>
         {/* - TABS CONTENT */}
@@ -689,9 +1035,9 @@ const TicketsManager = () => {
         }}
       >
         <TicketsList
-          searchParam={searchParam}
           status="closed"
-          showAll={true}
+          searchParam={searchParam}
+          // showAll={true}
           selectedTypeIds={typeIdsForAll}
           selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}

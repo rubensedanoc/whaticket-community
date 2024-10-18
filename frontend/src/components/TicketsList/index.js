@@ -9,12 +9,15 @@ import { blue } from "@material-ui/core/colors";
 import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
+import ArrowLeftIcon from "@material-ui/icons/ArrowLeft";
+import ArrowRightIcon from "@material-ui/icons/ArrowRight";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import useTickets from "../../hooks/useTickets";
 import TicketsListSkeleton from "../TicketsListSkeleton";
 
 import CircularProgress from "@material-ui/core/CircularProgress";
 import { i18n } from "../../translate/i18n";
+import { Can } from "../Can";
 
 import TicketListItem from "../TicketListItem";
 
@@ -195,23 +198,28 @@ const TicketsList = (props) => {
     status,
     searchParam,
     showAll,
+    setShowAll,
     selectedWhatsappIds,
     selectedQueueIds,
     selectedTypeIds,
-    // updateCount,
     style,
-    // showOnlyMyGroups = false,
+    showOnlyMyGroups,
+    setShowOnlyMyGroups,
     ticketsType,
     category,
+    onMoveToLeft,
+    onMoveToRight,
+    categoriesVisible,
   } = props;
+
   const classes = useStyles();
-  const [pageNumber, setPageNumber] = useState(1);
+  const { user } = useContext(AuthContext);
+
   const [ticketsList, dispatch] = useReducer(reducer, []);
+  const [pageNumber, setPageNumber] = useState(1);
   const [updatedCount, setUpdatedCount] = useState(0);
   const [microServiceLoading, setMicroServiceLoading] = useState(false);
-  const { user } = useContext(AuthContext);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [showOnlyMyGroups, setShowOnlyMyGroups] = useState(false);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -221,8 +229,6 @@ const TicketsList = (props) => {
   };
 
   useEffect(() => {
-    // console.log("RESET: ");
-
     dispatch({ type: "RESET" });
     setPageNumber(1);
   }, [
@@ -230,10 +236,10 @@ const TicketsList = (props) => {
     searchParam,
     dispatch,
     showAll,
+    showOnlyMyGroups,
     selectedWhatsappIds,
     selectedQueueIds,
     selectedTypeIds,
-    showOnlyMyGroups,
   ]);
 
   const { tickets, hasMore, loading, count } = useTickets({
@@ -464,7 +470,34 @@ const TicketsList = (props) => {
   return (
     <Paper
       className={classes.ticketsListWrapper}
-      style={{ ...style, width: "20rem", borderRadius: 8, flexShrink: 0 }}
+      style={{
+        ...style,
+        width: "20rem",
+        borderRadius: 8,
+        flexShrink: 0,
+        // Es la lista sin categoria o es lista de categoria
+        ...((ticketsType === "no-category" || category) &&
+        // la categoria esta marcada como no visible
+        !categoriesVisible.includes(category?.name || ticketsType) &&
+        // Tenemos almenos un ticket y no estamos viendo mis tickets en caso de solo estar viendo solo individuales
+        !(
+          !showAll &&
+          ticketsList.length > 0 &&
+          selectedTypeIds.length === 1 &&
+          selectedTypeIds[0] === "individual"
+        ) &&
+        // Tenemos almenos un ticket y no estamos viendo mis grupos en caso de solo esta viendo solo grupos
+        !(
+          showOnlyMyGroups &&
+          ticketsList.length > 0 &&
+          selectedTypeIds.length === 1 &&
+          selectedTypeIds[0] === "group"
+        ) // si todo eso se cumple ocultamos la lista
+          ? {
+              display: "none",
+            }
+          : null),
+      }}
     >
       <div
         style={{
@@ -494,43 +527,135 @@ const TicketsList = (props) => {
           {updatedCount}
         </div>
 
-        {ticketsType === "groups" && (
+        {(ticketsType === "groups" || ticketsType === "individuals") && (
           <>
-            <div>GRUPOS - {!showOnlyMyGroups ? "TODOS" : "PARTICIPANDO"}</div>
+            <div>
+              {ticketsType === "groups" ? "GRUPOS" : "INDIVIDUALES"} -{" "}
+              {ticketsType === "groups"
+                ? !showOnlyMyGroups
+                  ? "TODOS"
+                  : "PARTICIPANDO"
+                : showAll
+                ? "TODOS"
+                : "MIOS"}
+            </div>
 
-            <ArrowDropDownIcon
-              fontSize="medium"
-              onClick={handleClick}
-              // style={{ cursor: "pointer", color: "black", scale: "1.5" }}
-              style={{
-                cursor: "pointer",
-                // transform: "translateY(-2px) translateX(5px)",
-                scale: "1.5",
-              }}
+            <Can
+              role={user.profile}
+              perform="tickets-manager:showall"
+              yes={() => (
+                <>
+                  <ArrowDropDownIcon
+                    fontSize="medium"
+                    onClick={handleClick}
+                    style={{
+                      cursor: "pointer",
+                      scale: "1.5",
+                    }}
+                  />
+
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleClose}
+                  >
+                    <MenuItem
+                      onClick={(e) => {
+                        if (ticketsType === "groups") {
+                          localStorage.setItem(
+                            "showOnlyMyGroups",
+                            JSON.stringify(false)
+                          );
+                          setShowOnlyMyGroups(false);
+                        } else {
+                          localStorage.setItem("showAll", JSON.stringify(true));
+                          setShowAll(true);
+                        }
+
+                        handleClose(e);
+                      }}
+                    >
+                      {ticketsType === "groups"
+                        ? "Todos los grupos"
+                        : "Todos los tickets"}
+                    </MenuItem>
+                    <MenuItem
+                      onClick={(e) => {
+                        if (ticketsType === "groups") {
+                          localStorage.setItem(
+                            "showOnlyMyGroups",
+                            JSON.stringify(true)
+                          );
+                          setShowOnlyMyGroups(true);
+                        } else {
+                          localStorage.setItem(
+                            "showAll",
+                            JSON.stringify(false)
+                          );
+                          setShowAll(false);
+                        }
+                        handleClose(e);
+                      }}
+                    >
+                      {ticketsType === "groups"
+                        ? "En los que participo"
+                        : "Mis tickets"}
+                    </MenuItem>
+                  </Menu>
+                </>
+              )}
+              no={() =>
+                ticketsType === "groups" ? (
+                  <>
+                    <ArrowDropDownIcon
+                      fontSize="medium"
+                      onClick={handleClick}
+                      style={{
+                        cursor: "pointer",
+                        scale: "1.5",
+                      }}
+                    />
+
+                    <Menu
+                      anchorEl={anchorEl}
+                      open={Boolean(anchorEl)}
+                      onClose={handleClose}
+                    >
+                      <MenuItem
+                        onClick={(e) => {
+                          if (ticketsType === "groups") {
+                            localStorage.setItem(
+                              "showOnlyMyGroups",
+                              JSON.stringify(false)
+                            );
+                            setShowOnlyMyGroups(false);
+                          }
+
+                          handleClose(e);
+                        }}
+                      >
+                        Todos los grupos
+                      </MenuItem>
+                      <MenuItem
+                        onClick={(e) => {
+                          if (ticketsType === "groups") {
+                            localStorage.setItem(
+                              "showOnlyMyGroups",
+                              JSON.stringify(true)
+                            );
+                            setShowOnlyMyGroups(true);
+                          }
+
+                          handleClose(e);
+                        }}
+                      >
+                        En los que participo
+                      </MenuItem>
+                    </Menu>
+                  </>
+                ) : null
+              }
             />
-
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-            >
-              <MenuItem
-                onClick={(e) => {
-                  setShowOnlyMyGroups(false);
-                  handleClose(e);
-                }}
-              >
-                Todos los grupos
-              </MenuItem>
-              <MenuItem
-                onClick={(e) => {
-                  setShowOnlyMyGroups(true);
-                  handleClose(e);
-                }}
-              >
-                Mis grupos
-              </MenuItem>
-            </Menu>
           </>
         )}
 
@@ -542,13 +667,53 @@ const TicketsList = (props) => {
 
         {ticketsType === "no-category" && (
           <>
+            <ArrowLeftIcon
+              fontSize="medium"
+              style={{
+                cursor: "pointer",
+                scale: "1.5",
+                position: "absolute",
+                left: "1rem",
+              }}
+              onClick={() => onMoveToLeft()}
+            />
             <div>Sin Categoria</div>
+            <ArrowRightIcon
+              fontSize="medium"
+              style={{
+                cursor: "pointer",
+                scale: "1.5",
+                position: "absolute",
+                right: "1rem",
+              }}
+              onClick={() => onMoveToRight()}
+            />
           </>
         )}
 
         {category && (
           <>
+            <ArrowLeftIcon
+              fontSize="medium"
+              style={{
+                cursor: "pointer",
+                scale: "1.5",
+                position: "absolute",
+                left: "1rem",
+              }}
+              onClick={() => onMoveToLeft()}
+            />
             <div>{category.name}</div>
+            <ArrowRightIcon
+              fontSize="medium"
+              style={{
+                cursor: "pointer",
+                scale: "1.5",
+                position: "absolute",
+                right: "1rem",
+              }}
+              onClick={() => onMoveToRight()}
+            />
           </>
         )}
 

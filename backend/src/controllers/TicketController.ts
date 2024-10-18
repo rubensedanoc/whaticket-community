@@ -14,6 +14,7 @@ import Ticket from "../models/Ticket";
 import TicketLog from "../models/TicketLog";
 import CreateTicketService from "../services/TicketServices/CreateTicketService";
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
+// import ListTicketsServicev2 from "../services/TicketServices/ListTicketsServicev2";
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
@@ -108,6 +109,21 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showOnlyMyGroups,
     categoryId
   });
+
+  // const { tickets, count, hasMore } = await ListTicketsServicev2({
+  //   searchParam,
+  //   pageNumber,
+  //   status,
+  //   date,
+  //   showAll,
+  //   userId,
+  //   whatsappIds,
+  //   queueIds,
+  //   typeIds,
+  //   withUnreadMessages,
+  //   showOnlyMyGroups,
+  //   categoryId
+  // });
 
   return res.status(200).json({ tickets, count, hasMore });
 };
