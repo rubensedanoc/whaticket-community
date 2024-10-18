@@ -1274,7 +1274,9 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
       const message = await Message.findByPk(msg.id.id);
 
       if (!message) {
-        throw new AppError("No message found with this ID. " + msg.id.id);
+        // throw new AppError("No message found with this ID. " + msg.id.id);
+        console.log("No message found with this ID. " + msg.id.id);
+        return;
       }
 
       await message.update({ body: msg.body, isEdited: true });
