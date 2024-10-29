@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/node";
 import { Client } from "whatsapp-web.js";
 
 import { emitEvent } from "../../libs/emitEvent";
-import { getIO } from "../../libs/socket";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
 import { StartWhatsAppSession } from "./StartWhatsAppSession";
@@ -15,7 +14,6 @@ const wbotMonitor = async (
   wbot: Session,
   whatsapp: Whatsapp
 ): Promise<void> => {
-  const io = getIO();
   const sessionName = whatsapp.name;
 
   try {
@@ -37,11 +35,6 @@ const wbotMonitor = async (
           }
         }
       });
-
-      // io.emit("whatsappSession", {
-      //   action: "update",
-      //   session: whatsapp
-      // });
     });
 
     wbot.on("change_battery", async batteryInfo => {
@@ -66,11 +59,6 @@ const wbotMonitor = async (
           }
         }
       });
-
-      // io.emit("whatsappSession", {
-      //   action: "update",
-      //   session: whatsapp
-      // });
     });
 
     wbot.on("disconnected", async reason => {
@@ -91,11 +79,6 @@ const wbotMonitor = async (
           }
         }
       });
-
-      // io.emit("whatsappSession", {
-      //   action: "update",
-      //   session: whatsapp
-      // });
 
       setTimeout(() => StartWhatsAppSession(whatsapp), 2000);
     });

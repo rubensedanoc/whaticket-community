@@ -23,9 +23,9 @@ export function emitEvent({
       return response.json();
     })
     .then(data => {
-      console.log("Success:", data);
+      // console.log("Success:", data);
     })
     .catch(error => {
-      console.error("Error:", error);
+      console.error("EmitEvent Error:", error);
     });
 }

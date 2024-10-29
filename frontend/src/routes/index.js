@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Switch } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
+import NotificationManager from "../components/NotificationManager";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { SearchMessageProvider } from "../context/SearchMessage/SearchMessageContext";
 import { UsersPresenceProvider } from "../context/UsersPresenceContext";
@@ -93,6 +94,7 @@ const Routes = () => {
                     component={Categories}
                     isPrivate
                   />
+                  <NotificationManager />
                 </LoggedInLayout>
               </SearchMessageProvider>
             </UsersPresenceProvider>

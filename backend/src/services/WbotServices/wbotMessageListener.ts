@@ -3,7 +3,7 @@ import { writeFile } from "fs";
 import { join } from "path";
 import { promisify } from "util";
 
-import WAWebJS, {
+import {
   Client,
   MessageAck,
   MessageMedia,
@@ -32,8 +32,8 @@ import ShowChatbotOptionService from "../ChatbotOptionService/ShowChatbotOptionS
 import CreateContactService from "../ContactServices/CreateContactService";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
-import FindOrCreateTicketLiteService from "../TicketServices/FindOrCreateTicketLiteService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
+import SearchTicketForAMessageService from "../TicketServices/SearchTicketForAMessageService";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
 
@@ -258,14 +258,21 @@ export const verifyMediaMessage = async (
  * Create a message in the database with the passed msg and update the ticket lastMessage
  * - If the message is a location, prepare the message to include the location description and gmaps url
  */
-export const verifyMessage = async (
-  msg: WbotMessage,
-  ticket: Ticket,
-  contact: Contact,
+export const verifyMessage = async ({
+  msg,
+  ticket,
+  contact,
   isPrivate = false,
   updateTicketLastMessage = true,
   identifier = ""
-) => {
+}: {
+  msg: WbotMessage;
+  ticket: Ticket;
+  contact: Contact;
+  isPrivate?: boolean;
+  updateTicketLastMessage?: boolean;
+  identifier?: string;
+}) => {
   if (msg.type === "location") msg = prepareLocation(msg);
 
   const quotedMsg = await verifyQuotedMessage(msg);
@@ -377,7 +384,7 @@ const verifyQueue = async (
             body
           );
 
-          await verifyMessage(sentMessage, ticket, contact);
+          await verifyMessage({ msg: sentMessage, ticket, contact });
         },
         3000,
         ticket.id
@@ -492,7 +499,7 @@ const verifyQueue = async (
           body
         );
 
-        await verifyMessage(sentMessage, ticket, contact);
+        await verifyMessage({ msg: sentMessage, ticket, contact });
       },
       3000,
       ticket.id
@@ -575,7 +582,7 @@ const verifyQueue = async (
           `${contact.number}@c.us`,
           body
         );
-        verifyMessage(sentMessage, ticket, contact);
+        verifyMessage({ msg: sentMessage, ticket, contact });
       },
       3000,
       ticket.id
@@ -603,18 +610,22 @@ const isValidMsg = (msg: WbotMessage): boolean => {
   return false;
 };
 
-const handleMessage = async (
-  msg: WbotMessage,
-  wbot: Session,
-  syncUnreadMessagesProccess = false
-): Promise<void> => {
+const handleMessage = async ({
+  msg,
+  wbot,
+  syncUnreadMessagesProccess = false,
+  searchForUnSaveMessages = false
+}: {
+  msg: WbotMessage;
+  wbot: Session;
+  syncUnreadMessagesProccess?: boolean;
+  searchForUnSaveMessages?: boolean;
+}): Promise<void> => {
   if (!isValidMsg(msg)) {
     return;
   }
 
   try {
-    console.log("---- handleMessage - wbot.id: ", wbot.id);
-
     let msgContact: WbotContact;
     let groupContact: Contact | undefined;
 
@@ -684,26 +695,38 @@ const handleMessage = async (
       });
 
       if (ticket) {
-        await verifyMessage(msg, ticket, contact);
+        await verifyMessage({ msg, ticket, contact });
       }
 
       return;
     }
 
-    // find, create or update a ticket from the contact or groupContact and from whatsappId
-    // always update the ticket unreadMessages
-    const ticket = await FindOrCreateTicketService(
-      contact,
-      wbot.id!,
-      unreadMessages,
-      groupContact,
-      msg.timestamp
-    );
+    let ticket: Ticket | null;
+
+    if (searchForUnSaveMessages) {
+      ticket = await SearchTicketForAMessageService({
+        contactId: groupContact ? groupContact.id : contact.id,
+        whatsappId: whatsapp.id,
+        message: msg
+      });
+    }
+
+    if (!ticket) {
+      // find, create or update a ticket from the contact or groupContact and from whatsappId
+      // always update the ticket unreadMessages
+      ticket = await FindOrCreateTicketService({
+        contact,
+        whatsappId: whatsapp.id,
+        unreadMessages,
+        groupContact,
+        lastMessageTimestamp: msg.timestamp
+      });
+    }
 
     if (msg.hasMedia) {
       await verifyMediaMessage(msg, ticket, contact);
     } else {
-      await verifyMessage(msg, ticket, contact);
+      await verifyMessage({ msg, ticket, contact });
     }
 
     // If the message is not from a group or from me,
@@ -745,7 +768,7 @@ const handleMessage = async (
                   body
                 );
 
-                await verifyMessage(sentMessage, ticket, contact);
+                await verifyMessage({ msg: sentMessage, ticket, contact });
               },
               3000,
               ticket.id
@@ -765,7 +788,7 @@ const handleMessage = async (
                   body
                 );
 
-                await verifyMessage(sentMessage, ticket, contact);
+                await verifyMessage({ msg: sentMessage, ticket, contact });
               },
               3000,
               ticket.id
@@ -926,14 +949,12 @@ const handleMessage = async (
                     body
                   );
 
-                  await verifyMessage(
-                    sentMessage,
+                  await verifyMessage({
+                    msg: sentMessage,
                     ticket,
                     contact,
-                    false,
-                    true,
-                    nextChatbotMessage.identifier
-                  );
+                    identifier: nextChatbotMessage.identifier
+                  });
                 },
                 1500,
                 ticket.id
@@ -1017,90 +1038,6 @@ const handleMessage = async (
   }
 };
 
-const handleMessageForSyncUnreadMessages = async (
-  msg: WbotMessage,
-  wbot: Session,
-  chat: WAWebJS.Chat,
-  ignoreMyMessages = true
-): Promise<{ ticket: Ticket; contact: Contact } | undefined> => {
-  if (!isValidMsg(msg)) {
-    return;
-  }
-
-  try {
-    let msgContact: WbotContact;
-    let groupContact: Contact | undefined;
-
-    // if i sent the message, msgContact is the contact that received the message
-    // if i received the message, msgContact is the contact that sent the message
-    if (msg.fromMe) {
-      // messages sent automatically by wbot have a special character in front of it
-      // if so, this message was already been stored in database;
-      if (ignoreMyMessages) {
-        if (/\u200e/.test(msg.body[0])) return;
-      }
-
-      // media messages sent from me from cell phone, first comes with "hasMedia = false" and type = "image/ptt/etc"
-      // in this case, return and let this message be handled by "media_uploaded" event, when it will have "hasMedia = true"
-      if (
-        !msg.hasMedia &&
-        msg.type !== "location" &&
-        msg.type !== "chat" &&
-        msg.type !== "vcard"
-        //&& msg.type !== "multi_vcard"
-      )
-        return;
-
-      msgContact = await wbot.getContactById(msg.to);
-    } else {
-      msgContact = await msg.getContact();
-    }
-
-    // if the message is from a group,
-    // and i sent the message, groupContact is the contact that received the message
-    // and if i received the message, groupContact is the contact that sent the message
-    // in any case, save the group contact in the database
-    if (chat.isGroup) {
-      let msgGroupContact;
-
-      if (msg.fromMe) {
-        msgGroupContact = await wbot.getContactById(msg.to);
-      } else {
-        msgGroupContact = await wbot.getContactById(msg.from);
-      }
-
-      groupContact = await verifyContactForSyncUnreadMessages(msgGroupContact);
-    }
-
-    // if i sent the message, unreadMessages = 0 otherwise unreadMessages = chat.unreadCount
-    const unreadMessages = msg.fromMe ? 0 : chat.unreadCount;
-
-    const contact = await verifyContactForSyncUnreadMessages(msgContact);
-
-    // find, create or update a ticket from the contact or groupContact and from whatsappId
-    // always update the ticket unreadMessages
-    const ticket = await FindOrCreateTicketLiteService(
-      contact,
-      wbot.id!,
-      unreadMessages,
-      groupContact,
-      msg.timestamp
-    );
-
-    if (msg.hasMedia) {
-      await verifyMediaMessage(msg, ticket, contact, false);
-    } else {
-      await verifyMessage(msg, ticket, contact, false, false);
-    }
-
-    return { ticket, contact };
-  } catch (err) {
-    logger.error(`Error handling whatsapp message: Err: ${err}`);
-    console.log(err);
-    Sentry.captureException(err);
-  }
-};
-
 const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
   await new Promise(r => setTimeout(r, 600));
 
@@ -1172,12 +1109,11 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 
 const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("message_create", async msg => {
-    console.log(
-      "--- BOT wbotMessageListener message_create - wpp id: ",
-      whatsapp.id
+    logger.info(
+      `BOT wbotMessageListener message_create - wpp id: ${whatsapp.id} - from: ${msg.from} - type ${msg.type}`
     );
 
-    handleMessage(msg, wbot);
+    handleMessage({ msg, wbot });
 
     try {
       // ignorar mensajes de grupos y de estados
@@ -1193,11 +1129,6 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
         }
 
         if (freshWpp.webhook) {
-          // console.log(
-          //   "---- wbotMessageListener - freshWpp.webhook: ",
-          //   freshWpp.webhook
-          // );
-
           fetch(freshWpp.webhook, {
             method: "POST",
             headers: {
@@ -1219,7 +1150,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     }
   });
   wbot.on("media_uploaded", async msg => {
-    handleMessage(msg, wbot);
+    handleMessage({ msg, wbot });
   });
   wbot.on("group_update", async contact => {
     if (contact?.type !== "subject") {
@@ -1307,8 +1238,4 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   });
 };
 
-export {
-  handleMessage,
-  handleMessageForSyncUnreadMessages,
-  wbotMessageListener
-};
+export { handleMessage, isValidMsg, wbotMessageListener };

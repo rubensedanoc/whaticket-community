@@ -98,14 +98,14 @@ const SendApiChatbotMessage = async ({
         const msgContact = await wbot.getContactById(msg.to);
         const contact = await verifyContact(msgContact);
 
-        const ticket = await FindOrCreateTicketService(
+        const ticket = await FindOrCreateTicketService({
           contact,
-          wbot.id!,
-          0,
-          null,
-          msg.timestamp,
-          chatbotMessage.identifier
-        );
+          whatsappId: wpp.id,
+          unreadMessages: 0,
+          groupContact: null,
+          lastMessageTimestamp: msg.timestamp,
+          chatbotMessageIdentifier: chatbotMessage.identifier
+        });
 
         ticket.update({
           privateNote: localbi_id
@@ -120,14 +120,12 @@ const SendApiChatbotMessage = async ({
             chatbotMessage.identifier
           );
         } else {
-          await verifyMessage(
+          await verifyMessage({
             msg,
             ticket,
             contact,
-            false,
-            true,
-            chatbotMessage.identifier
-          );
+            identifier: chatbotMessage.identifier
+          });
         }
 
         result.messages.push("Mensaje enviado a " + toNumber);

@@ -19,22 +19,24 @@ import ShowTicketService from "./ShowTicketService";
  *
  * at the end, find the ticket from the service ShowTicketService and return it
  */
-const FindOrCreateTicketService = async (
-  contact: Contact,
-  whatsappId: number,
-  unreadMessages: number,
-  groupContact?: Contact,
-  lastMessageTimestamp?: number,
-  chatbotMessageIdentifier?: string
-): Promise<Ticket> => {
-  let ticket = await findTicket(
+const FindOrCreateTicketService = async (props: {
+  contact: Contact;
+  whatsappId: number;
+  unreadMessages: number;
+  groupContact?: Contact;
+  lastMessageTimestamp?: number;
+  chatbotMessageIdentifier?: string;
+}): Promise<Ticket> => {
+  const {
     contact,
     whatsappId,
     unreadMessages,
     groupContact,
     lastMessageTimestamp,
     chatbotMessageIdentifier
-  );
+  } = props;
+
+  let ticket = await findTicket(props);
 
   // if ticket not exists, create a ticket from the contact or groupContact, with status pending, isGroup prop,
   // unreadMessages and from the whatsappId
@@ -68,13 +70,7 @@ const FindOrCreateTicketService = async (
 
       Sentry.captureException(error);
 
-      ticket = await findTicket(
-        contact,
-        whatsappId,
-        unreadMessages,
-        groupContact,
-        lastMessageTimestamp
-      );
+      ticket = await findTicket(props);
 
       if (!ticket) {
         ticket = await Ticket.create({
@@ -102,14 +98,21 @@ const FindOrCreateTicketService = async (
   return ticket;
 };
 
-const findTicket = async (
-  contact: Contact,
-  whatsappId: number,
-  unreadMessages: number,
-  groupContact?: Contact,
-  lastMessageTimestamp?: number,
-  chatbotMessageIdentifier?: string
-) => {
+const findTicket = async ({
+  contact,
+  whatsappId,
+  unreadMessages,
+  groupContact,
+  lastMessageTimestamp,
+  chatbotMessageIdentifier
+}: {
+  contact: Contact;
+  whatsappId: number;
+  unreadMessages: number;
+  groupContact?: Contact;
+  lastMessageTimestamp?: number;
+  chatbotMessageIdentifier?: string;
+}) => {
   // find a ticket with status open or pending, from the contact or groupContact and  from the whatsappId
   let ticket = await Ticket.findOne({
     where: {
@@ -189,8 +192,6 @@ const findTicket = async (
   // if ticket not exists and groupContact is falsy, find a ticket updated in the last 2 hours from the contact and from the whatsappId
   // if this time the ticket exists, update his status to pending and set his userId to null and update his unreadMessages
   if (!ticket && !groupContact && !chatbotMessageIdentifier) {
-    console.log("xxx Buscamos ticket antiguo con el contacto");
-
     // bsucamos el ultimo ticket asi sean no interactivos
     ticket = await Ticket.findOne({
       where: {
@@ -211,16 +212,10 @@ const findTicket = async (
     });
 
     if (ticket) {
-      console.log("xxx Ticket antiguo encontrado");
-
       const twoHoursAgo = subHours(new Date(), 2);
       let validTime = twoHoursAgo;
 
       if (ticket.chatbotMessageIdentifier && !ticket.userId) {
-        console.log(
-          "xxx Ticket antiguo tiene chatbotMessageIdentifier y no ha tenido usuario"
-        );
-
         const chatbotMessage = await ChatbotMessage.findOne({
           where: {
             identifier: ticket.chatbotMessageIdentifier,
@@ -230,18 +225,9 @@ const findTicket = async (
         });
 
         if (chatbotMessage && chatbotMessage.timeToWaitInMinutes) {
-          console.log(
-            "xxx ChatbotMessage del ticlet antiguo tiene timeToWaitInMinutes " +
-              chatbotMessage.timeToWaitInMinutes
-          );
-
           validTime = subMinutes(
             new Date(),
             chatbotMessage.timeToWaitInMinutes
-          );
-        } else {
-          console.log(
-            "xxx ChatbotMessage del ticlet antiguo no tiene timeToWaitInMinutes  se va a usar el validTime de 2 horas"
           );
         }
       } else {
@@ -253,13 +239,7 @@ const findTicket = async (
       console.log("xxx validTime", validTime);
 
       if (new Date(ticket.updatedAt) < validTime) {
-        console.log(
-          "xxx Ticket antiguo es no valido y se va a ignorar para crear uno nuevo"
-        );
-
         ticket = null;
-      } else {
-        console.log("xxx Ticket antiguo es valido");
       }
     }
 
