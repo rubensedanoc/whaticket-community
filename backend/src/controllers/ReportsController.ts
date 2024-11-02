@@ -426,7 +426,7 @@ export const getATicketsList = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  console.log("---------------getATicketsList");
+  // console.log("---------------getATicketsList");
 
   const { ticketIds: ticketIdsAsString } = req.query as {
     ticketIds: string;
@@ -463,7 +463,15 @@ export const getATicketsList = async (
         model: Whatsapp,
         as: "whatsapp",
         attributes: ["name"],
-        required: false
+        required: false,
+        include: [
+          {
+            model: User,
+            attributes: ["id"],
+            as: "userWhatsapps",
+            required: false
+          }
+        ]
       },
       {
         model: Category,
@@ -487,13 +495,13 @@ export const getATicketsList = async (
     tickets
   );
 
-  console.log(
-    "ticketsWithClientTimeWaiting: ",
-    ticketsWithClientTimeWaiting.map(t => ({
-      id: t.id,
-      clientTimeWaiting: t.clientTimeWaiting
-    }))
-  );
+  // console.log(
+  //   "ticketsWithClientTimeWaiting: ",
+  //   ticketsWithClientTimeWaiting.map(t => ({
+  //     id: t.id,
+  //     clientTimeWaiting: t.clientTimeWaiting
+  //   }))
+  // );
 
   return res.status(200).json({
     tickets: ticketsWithClientTimeWaiting

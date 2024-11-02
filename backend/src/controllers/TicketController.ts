@@ -92,20 +92,21 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     categoryId = JSON.parse(categoryIdStringified);
   }
 
-  const { tickets, count, hasMore } = await ListTicketsService({
-    searchParam,
-    pageNumber,
-    status,
-    date,
-    showAll,
-    userId,
-    whatsappIds,
-    queueIds,
-    typeIds,
-    withUnreadMessages,
-    showOnlyMyGroups,
-    categoryId
-  });
+  const { tickets, count, hasMore, whereCondition, includeCondition } =
+    await ListTicketsService({
+      searchParam,
+      pageNumber,
+      status,
+      date,
+      showAll,
+      userId,
+      whatsappIds,
+      queueIds,
+      typeIds,
+      withUnreadMessages,
+      showOnlyMyGroups,
+      categoryId
+    });
 
   // const { tickets, count, hasMore } = await ListTicketsServicev2({
   //   searchParam,
@@ -122,7 +123,9 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   //   categoryId
   // });
 
-  return res.status(200).json({ tickets, count, hasMore });
+  return res
+    .status(200)
+    .json({ tickets, count, hasMore, whereCondition, includeCondition });
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {

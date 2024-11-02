@@ -34,7 +34,7 @@ const CreateOrUpdateContactService = async ({
   contact = await Contact.findOne({ where: { number } });
 
   if (contact) {
-    if (profilePicUrl) {
+    if (profilePicUrl && contact.profilePicUrl !== profilePicUrl) {
       contact.update({ profilePicUrl });
 
       emitEvent({

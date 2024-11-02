@@ -30,6 +30,7 @@ import {
 
 import TextsmsOutlinedIcon from "@material-ui/icons/TextsmsOutlined";
 import whatsBackground from "../../assets/wa-background.png";
+import TicketListModal from "../../components/TicketListModal";
 import { SearchMessageContext } from "../../context/SearchMessage/SearchMessageContext";
 import useWhatsApps from "../../hooks/useWhatsApps";
 import LocationPreview from "../LocationPreview";
@@ -446,6 +447,11 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   const { searchingMessageId, setSearchingMessageId } =
     useContext(SearchMessageContext);
 
+  const [ticketListModalOpen, setTicketListModalOpen] = useState(false);
+  const [ticketListModalTitle, setTicketListModalTitle] = useState("");
+  const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
+  const [selectedContactId, setSelectedContactId] = useState(null);
+
   useEffect(() => {
     dispatch({ type: "RESET" });
     setTicketsQueue([
@@ -506,6 +512,32 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
       console.log("_____________err: ", err);
       setLoading(false);
       toastError(err);
+    }
+  };
+
+  const onWppNumberClickHandler = async (wppNumber) => {
+    try {
+      const { data: contactData } = await api.post("/contact", {
+        name: wppNumber,
+        number: wppNumber,
+        checkIsAValidWppNumber: true,
+      });
+
+      const { data: contactTicketSummary } = await api.post(
+        "/contacts/getContactTicketSummary",
+        {
+          contactId: contactData.id,
+          onlyIds: true,
+        }
+      );
+
+      setSelectedContactId(contactData.id);
+      setTicketListModalTitle("Todos los tickets de " + contactData.name);
+      setTicketListModalOpen(true);
+      setTicketListModalTickets(contactTicketSummary?.map((t) => t.id) || []);
+    } catch (error) {
+      console.log(error);
+      toastError(error);
     }
   };
 
@@ -986,7 +1018,12 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
                   checkMessageMedia(message)}
                 <div className={classes.textContentItem}>
                   {message.quotedMsg && renderQuotedMessage(message)}
-                  <MarkdownWrapper>{message.body}</MarkdownWrapper>
+                  <MarkdownWrapper
+                    checkForWppNumbers={true}
+                    onWppNumberClick={onWppNumberClickHandler}
+                  >
+                    {message.body}
+                  </MarkdownWrapper>
                   <span className={classes.timestamp}>
                     {format(
                       messagesList[index].timestamp
@@ -1049,7 +1086,12 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
                     />
                   )}
                   {message.quotedMsg && renderQuotedMessage(message)}
-                  <MarkdownWrapper>{message.body}</MarkdownWrapper>
+                  <MarkdownWrapper
+                    checkForWppNumbers={true}
+                    onWppNumberClick={onWppNumberClickHandler}
+                  >
+                    {message.body}
+                  </MarkdownWrapper>
                   <span className={classes.timestamp}>
                     {format(
                       messagesList[index].timestamp
@@ -1091,6 +1133,17 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
           !whatsApps.find((w) => w.number === selectedMessage.contact?.number)
         }
       />
+
+      <TicketListModal
+        modalOpen={ticketListModalOpen}
+        title={ticketListModalTitle}
+        tickets={ticketListModalTickets}
+        preSelectedContactId={selectedContactId}
+        orderTicketsAsOriginalOrder={true}
+        newView={true}
+        onClose={() => setTicketListModalOpen(false)}
+      />
+
       <div
         id="messagesList"
         className={classes.messagesList}

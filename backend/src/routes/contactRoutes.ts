@@ -22,6 +22,12 @@ contactRoutes.get(
   ContactController.showWithActualTicketIds
 );
 
+contactRoutes.post(
+  "/contacts/getContactTicketSummary",
+  isAuth,
+  ContactController.getContactTicketSummary
+);
+
 contactRoutes.get(
   "/getNumberGroups/:number",
   isAuth,

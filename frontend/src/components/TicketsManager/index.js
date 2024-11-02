@@ -156,6 +156,9 @@ const TicketsManager = () => {
 
   const [categoriesVisible, setCategoriesVisible] = useState([]);
 
+  const [pendingColumnSide, setPendingColumnSide] = useState("left");
+  const [secondaryColumnSide, setSecondaryColumnSide] = useState("left");
+
   useEffect(() => {
     localStorage.getItem("principalTicketType") &&
       setPrincipalTicketType(
@@ -174,6 +177,16 @@ const TicketsManager = () => {
       );
     localStorage.getItem("selectedQueueIds") &&
       setSelectedQueueIds(JSON.parse(localStorage.getItem("selectedQueueIds")));
+
+    localStorage.getItem("pendingColumnSide") &&
+      setPendingColumnSide(
+        JSON.parse(localStorage.getItem("pendingColumnSide"))
+      );
+
+    localStorage.getItem("secondaryColumnSide") &&
+      setSecondaryColumnSide(
+        JSON.parse(localStorage.getItem("secondaryColumnSide"))
+      );
   }, []);
 
   // useEffect(() => {
@@ -298,7 +311,21 @@ const TicketsManager = () => {
     }
   };
 
-  const onMove = (oldIndex, direction) => {
+  const onMoveSecondaryColumn = (direction) => {
+    if (direction === secondaryColumnSide) return;
+
+    setSecondaryColumnSide(direction);
+    localStorage.setItem("secondaryColumnSide", JSON.stringify(direction));
+  };
+
+  const onMovePendingColumn = (direction) => {
+    if (direction === pendingColumnSide) return;
+
+    setPendingColumnSide(direction);
+    localStorage.setItem("pendingColumnSide", JSON.stringify(direction));
+  };
+
+  const onMoveCategoryColumn = (oldIndex, direction) => {
     const newCategories = [...categories];
 
     if (direction === "left") {
@@ -945,13 +972,12 @@ const TicketsManager = () => {
             style={{
               display: "flex",
               flexDirection: "row",
-              gap: 16,
+              gap: 12,
               padding: "16px 16px 16px",
               overflow: "auto",
               flexGrow: 1,
             }}
           >
-            {/*  */}
             <TicketsList
               status="open"
               searchParam={searchParam}
@@ -969,6 +995,15 @@ const TicketsManager = () => {
               ticketsType={
                 principalTicketType === "groups" ? "individuals" : "groups"
               }
+              onMoveToLeft={() => onMoveSecondaryColumn("left")}
+              onMoveToRight={() => {
+                onMoveSecondaryColumn("right");
+              }}
+              style={{
+                ...(secondaryColumnSide === "left"
+                  ? { order: 0 }
+                  : { order: 2 }),
+              }}
             />
 
             <TicketsList
@@ -978,9 +1013,22 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               ticketsType="pendings"
+              onMoveToLeft={() => onMovePendingColumn("left")}
+              onMoveToRight={() => {
+                onMovePendingColumn("right");
+              }}
+              style={{
+                ...(pendingColumnSide === "left" ? { order: 0 } : { order: 1 }),
+              }}
             />
 
-            <Divider orientation="vertical" flexItem />
+            {/* <Divider orientation="vertical" flexItem /> */}
+
+            {(secondaryColumnSide === "left" ||
+              pendingColumnSide === "left") && (
+              <Divider orientation="vertical" flexItem />
+            )}
+
             {categories.map((category, categoryIndex) => {
               return category === "no-category" ? (
                 <TicketsList
@@ -997,9 +1045,11 @@ const TicketsManager = () => {
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
                   ticketsType="no-category"
-                  onMoveToLeft={() => onMove(categoryIndex, "left")}
+                  onMoveToLeft={() =>
+                    onMoveCategoryColumn(categoryIndex, "left")
+                  }
                   onMoveToRight={() => {
-                    onMove(categoryIndex, "right");
+                    onMoveCategoryColumn(categoryIndex, "right");
                   }}
                   categoriesVisible={categoriesVisible}
                 />
@@ -1018,14 +1068,21 @@ const TicketsManager = () => {
                   }
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
-                  onMoveToLeft={() => onMove(categoryIndex, "left")}
+                  onMoveToLeft={() =>
+                    onMoveCategoryColumn(categoryIndex, "left")
+                  }
                   onMoveToRight={() => {
-                    onMove(categoryIndex, "right");
+                    onMoveCategoryColumn(categoryIndex, "right");
                   }}
                   categoriesVisible={categoriesVisible}
                 />
               );
             })}
+
+            {(secondaryColumnSide === "right" ||
+              pendingColumnSide === "right") && (
+              <Divider orientation="vertical" flexItem />
+            )}
           </div>
         </Paper>
         {/* - TABS CONTENT */}

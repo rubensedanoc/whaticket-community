@@ -211,9 +211,7 @@ const TransferTicketModal = ({
             )}
           />
           <FormControl variant="outlined" className={classes.maxWidth}>
-            <InputLabel>
-              {i18n.t("transferTicketModal.fieldQueueLabel")}
-            </InputLabel>
+            <InputLabel>Transferir de departamento</InputLabel>
             <Select
               value={selectedQueue}
               onChange={(e) => setSelectedQueue(e.target.value)}

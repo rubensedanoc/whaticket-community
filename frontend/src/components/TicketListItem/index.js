@@ -235,7 +235,7 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                 style={{ width: 38, height: 38 }}
                 src={ticket?.contact?.profilePicUrl}
               />
-              {/* COUNTRY */}
+              {/* COUNTRY ICON */}
               {ticket.contact?.countryId && (
                 <img
                   src={`/paises/${ticket.contact?.countryId}.png`}
@@ -243,14 +243,15 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                   width="18"
                   style={{
                     position: "absolute",
-                    bottom: -4,
+                    bottom: -8,
                     left: -4,
                     zIndex: 1,
                   }}
                 />
               )}
-              {/* COUNTRY */}
-              {/* WPP */}
+              {/* COUNTRY ICON */}
+
+              {/* WPP ICON */}
               {ticket.whatsappId && (
                 <Tooltip
                   title={`CONEXIÓN: ${ticket.whatsapp?.name}`}
@@ -258,19 +259,27 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                 >
                   <WhatsAppIcon
                     style={{
-                      color: "green",
                       fontSize: 18,
                       position: "absolute",
-                      bottom: -4,
+                      bottom: -8,
                       right: -4,
-                      backgroundColor: "white",
                       overflow: "hidden",
                       borderRadius: "50%",
+                      backgroundColor: ticket.whatsapp?.userWhatsapps?.some(
+                        (uw) => uw.id === user.id
+                      )
+                        ? "green"
+                        : "white",
+                      color: ticket.whatsapp?.userWhatsapps?.some(
+                        (uw) => uw.id === user.id
+                      )
+                        ? "white"
+                        : "green",
                     }}
                   />
                 </Tooltip>
               )}
-              {/* WPP */}
+              {/* WPP ICON */}
             </div>
           </ListItemAvatar>
           <ListItemText
@@ -289,25 +298,20 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                 {/* - CONTACT NAME */}
 
                 <div style={{ display: "flex", gap: "4px" }}>
+                  {/* PARTICIPANTS BADGE */}
                   {ticket.participantUsers?.find(
                     (hu) => hu.id === user?.id
                   ) && (
-                    // HELP BADGE
-                    // <Badge
-                    //   className={classes.closedBadge}
-                    //   badgeContent={"Apoyo"}
-                    //   color="primary"
-                    // />
                     <Chip
                       style={{ height: "16px", fontSize: "9px" }}
                       color="primary"
                       size="small"
                       label="Partici"
                     />
-                    // HELP BADGE
                   )}
+                  {/* PARTICIPANTS BADGE */}
 
-                  {/* // HELP BADGE */}
+                  {/* HELP BADGE */}
                   {ticket.helpUsers?.length > 0 ? (
                     ticket.helpUsers?.find((hu) => hu.id === user?.id) ? (
                       <Chip
@@ -331,8 +335,9 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                       />
                     )
                   ) : null}
+                  {/* HELP BADGE */}
 
-                  {/* // TRANFER BADGE */}
+                  {/* TRANFER BADGE */}
                   {ticket.transferred && (
                     <Chip
                       style={{ height: "16px", fontSize: "9px" }}
@@ -341,23 +346,18 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                       label="Transf"
                     />
                   )}
-                  {/* // TRANFER BADGE */}
+                  {/* TRANFER BADGE */}
 
+                  {/* CLOSED BADGE */}
                   {ticket.status === "closed" && (
-                    // CLOSED BADGE
-                    // <Badge
-                    //   className={classes.closedBadge}
-                    //   badgeContent={"Resuelto"}
-                    //   color="primary"
-                    // />
                     <Chip
                       style={{ height: "16px", fontSize: "9px" }}
                       color="primary"
                       size="small"
                       label="Cerrado"
                     />
-                    // CLOSED BADGE
                   )}
+                  {/* CLOSED BADGE */}
 
                   {(() => {
                     if (!ticket.clientTimeWaiting) {
@@ -371,8 +371,8 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     );
                   })()}
 
+                  {/* LAST MESSAGE TIMESTAMP */}
                   {ticket.lastMessageTimestamp && (
-                    // LAST MESSAGE TIME
                     <Typography
                       className={classes.lastMessageTime}
                       component="span"
@@ -399,22 +399,9 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                         </>
                       )}
                     </Typography>
-                    // - LAST MESSAGE TIME
                   )}
+                  {/* LAST MESSAGE TIMESTAMP */}
                 </div>
-
-                {/* WPP */}
-                {/* {ticket.whatsappId && (
-                <SyncAltIcon />
-
-                // <div
-                //   className={classes.userTag}
-                //   title={i18n.t("ticketsList.connectionTitle")}
-                // >
-                //   {ticket.whatsapp?.name}
-                // </div>
-              )} */}
-                {/* WPP */}
               </span>
             }
             secondary={
@@ -443,18 +430,7 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* COUNTRY */}
-                    {/* {ticket.contact?.countryId && (
-                      <>
-                        <img
-                          src={`/paises/${ticket.contact?.countryId}.png`}
-                          alt={`País: ${ticket.contact?.countryId}`}
-                          width="18"
-                        />
-                      </>
-                    )} */}
-                    {/* COUNTRY */}
-                    {/* USER */}
+                    {/* PARTICIPANTS ICON */}
                     {ticket.isGroup && ticket.participantUsers.length > 0 && (
                       <Tooltip
                         title={`PARTICIPANDO: 
@@ -463,11 +439,21 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                               .join(" - ")}`}
                         aria-label="add"
                       >
-                        <PeopleAltIcon style={{ fontSize: 16 }} />
+                        <PeopleAltIcon
+                          style={{
+                            fontSize: 16,
+                            ...(ticket.participantUsers.find(
+                              (u) => u.id === user?.id
+                            ) && {
+                              color: "#3b82f6",
+                            }),
+                          }}
+                        />
                       </Tooltip>
                     )}
-                    {/* - USER */}
-                    {/* USER */}
+                    {/* - PARTICIPANTS ICON */}
+
+                    {/* USER ICON */}
                     {!ticket.isGroup && ticket.userId && (
                       <Tooltip
                         title={`ASIGNADO: ${ticket.user?.name}${
@@ -479,22 +465,19 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                         }`}
                         aria-label="add"
                       >
-                        <PeopleAltIcon style={{ fontSize: 16 }} />
-                      </Tooltip>
-                    )}
-                    {/* - USER */}
-                    {/* WPP */}
-                    {/* {ticket.whatsappId && (
-                      <Tooltip
-                        title={`CONEXIÓN: ${ticket.whatsapp?.name}`}
-                        aria-label="add"
-                      >
-                        <WhatsAppIcon
-                          style={{ color: "green", fontSize: 18 }}
+                        <PeopleAltIcon
+                          style={{
+                            fontSize: 16,
+                            ...(ticket.userId === user?.id && {
+                              color: "#3b82f6",
+                            }),
+                          }}
                         />
                       </Tooltip>
-                    )} */}
-                    {/* WPP */}
+                    )}
+                    {/* - USER ICON */}
+
+                    {/* SEE PREVIEW BTN */}
                     <IconButton
                       size="small"
                       onClick={(e) => {
@@ -504,12 +487,14 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     >
                       <VisibilityOutlinedIcon style={{ fontSize: 20 }} />
                     </IconButton>
+                    {/* SEE PREVIEW BTN */}
+
                     <TicketPreviewModal
                       ticket={ticket}
                       open={previewModalIsOpen}
                       onClose={() => setPreviewModalIsOpen(false)}
                     />
-                    {/* UNREAD MESSAGES */}
+                    {/* UNREAD MESSAGES BADGE */}
                     {ticket.unreadMessages > 0 && (
                       <Chip
                         label={ticket.unreadMessages}
@@ -521,11 +506,11 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                         }}
                       />
                     )}
-                    {/* - UNREAD MESSAGES */}
+                    {/* - UNREAD MESSAGES BADGE */}
                   </div>
                 </span>
 
-                {/* {ticket.status !== "open" && ticket.categories?.length > 0 && ( */}
+                {/* CATEGORIES BADGES */}
                 {ticket.categories?.length > 0 && (
                   <div style={{ display: "flex", justifyContent: "end" }}>
                     {ticket.categories.map((category) => (
@@ -544,10 +529,12 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     ))}
                   </div>
                 )}
+                {/* CATEGORIES BADGES */}
               </>
             }
           />
           {ticket.status === "pending" && (
+            // ACEPPT TICKET BUTTON
             <Tooltip title="Aceptar Ticker" aria-label="Aceptar Ticker">
               <div>
                 <ButtonWithSpinner
@@ -566,6 +553,7 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                 </ButtonWithSpinner>
               </div>
             </Tooltip>
+            // ACEPPT TICKET BUTTON
           )}
         </ListItem>
       </div>

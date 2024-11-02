@@ -13,6 +13,7 @@ import { emitEvent } from "../libs/emitEvent";
 import { getWbot, getWbots } from "../libs/wbot";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
+import Message from "../models/Message";
 import Queue from "../models/Queue";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
@@ -31,6 +32,7 @@ type IndexQuery = {
 type IndexGetContactQuery = {
   name: string;
   number: string;
+  checkIsAValidWppNumber?: boolean;
 };
 
 interface ExtraInfo {
@@ -61,11 +63,13 @@ export const getContact = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { name, number } = req.body as IndexGetContactQuery;
+  const { name, number, checkIsAValidWppNumber } =
+    req.body as IndexGetContactQuery;
 
   const contact = await GetContactService({
     name,
-    number
+    number,
+    checkIsAValidWppNumber
   });
 
   return res.status(200).json(contact);
@@ -161,6 +165,68 @@ export const showWithActualTicketIds = async (
   }
 
   return res.status(200).json(contact);
+};
+
+export const getContactTicketSummary = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { contactId, onlyIds } = req.body;
+
+  const contact = await Contact.findByPk(contactId, {
+    include: [
+      {
+        model: Ticket,
+        as: "tickets",
+        ...(onlyIds && {
+          attributes: ["id", "whatsappId"]
+        }),
+        required: false,
+        include: [
+          {
+            model: Message,
+            as: "messages",
+            required: false,
+            attributes: ["id", "body", "timestamp"],
+            order: [["timestamp", "DESC"]],
+            limit: 1
+            // separate: true
+          }
+        ]
+      }
+    ]
+  });
+
+  if (!contact) {
+    throw new AppError("ERR_NO_CONTACT_FOUND", 404);
+  }
+
+  // Solo mostrar los ultimos tickets del contacto con el mismo whatsappId
+  let ticketsFilteredAndSorted = contact.tickets.reduce(
+    (result: Ticket[], ticket) => {
+      const relatedTicketIndexToReplace = result.findIndex(
+        rt =>
+          rt.whatsappId === ticket.whatsappId &&
+          rt.messages?.[0]?.timestamp < ticket.messages?.[0]?.timestamp
+      );
+
+      if (relatedTicketIndexToReplace > -1) {
+        result[relatedTicketIndexToReplace] = ticket;
+      } else if (!result.find(rt => rt.whatsappId === ticket.whatsappId)) {
+        result.push(ticket);
+      }
+
+      return result;
+    },
+    []
+  );
+
+  // ordenar desc por id
+  ticketsFilteredAndSorted.sort((a, b) => {
+    return b.id - a.id;
+  });
+
+  return res.status(200).json(ticketsFilteredAndSorted);
 };
 
 export const update = async (
@@ -335,7 +401,15 @@ export const getNumberGroups = async (
                   model: Whatsapp,
                   as: "whatsapp",
                   attributes: ["name"],
-                  required: false
+                  required: false,
+                  include: [
+                    {
+                      model: User,
+                      attributes: ["id"],
+                      as: "userWhatsapps",
+                      required: false
+                    }
+                  ]
                 },
                 {
                   model: Category,
@@ -431,7 +505,15 @@ export const getNumberGroups = async (
                           model: Whatsapp,
                           as: "whatsapp",
                           attributes: ["name"],
-                          required: false
+                          required: false,
+                          include: [
+                            {
+                              model: User,
+                              attributes: ["id"],
+                              as: "userWhatsapps",
+                              required: false
+                            }
+                          ]
                         },
                         {
                           model: Category,

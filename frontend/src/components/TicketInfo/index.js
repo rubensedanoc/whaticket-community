@@ -10,7 +10,7 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
       titleTypographyProps={{ noWrap: true }}
       subheaderTypographyProps={{ noWrap: true }}
       avatar={<Avatar src={contact.profilePicUrl} alt="contact_image" />}
-      title={`${contact.name} #${ticket.id}`}
+      title={`${contact.name} #${contact.id}`}
       subheader={
         <>
           <div>{`Conexión: ${ticket?.whatsapp?.name}`}</div>
@@ -35,6 +35,7 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
                     <a href={"https://" + data.link_dominio} target="_blank">
                       {data.link_dominio}
                     </a>
+                    <span> cs: {data.localbi_kam}</span>
                   </div>
                 ))
               : contact.domain && (

@@ -107,6 +107,8 @@ const Contacts = () => {
   const [ticketListModalTitle, setTicketListModalTitle] = useState("");
   const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
   const [hasMore, setHasMore] = useState(false);
+  const [ticketListModalContactId, setTicketListModalContactId] =
+    useState(null);
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -254,6 +256,7 @@ const Contacts = () => {
       </ConfirmationModal>
 
       <TicketListModal
+        preSelectedContactId={ticketListModalContactId}
         modalOpen={ticketListModalOpen}
         onClose={() => setTicketListModalOpen(false)}
         title={ticketListModalTitle}
@@ -276,13 +279,13 @@ const Contacts = () => {
               ),
             }}
           />
-          <Button
+          {/* <Button
             variant="contained"
             color="primary"
             onClick={(e) => setConfirmOpen(true)}
           >
             {i18n.t("contacts.buttons.import")}
-          </Button>
+          </Button> */}
           <Button
             variant="contained"
             color="primary"
@@ -331,6 +334,7 @@ const Contacts = () => {
                           "/contacts-showWithActualTickets/" + contact.id
                         );
 
+                        setTicketListModalContactId(contact.id);
                         setTicketListModalTitle("Tickets de " + contact.name);
                         setTicketListModalOpen(true);
                         setTicketListModalTickets(

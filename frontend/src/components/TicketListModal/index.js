@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import Dialog from "@material-ui/core/Dialog";
 
@@ -11,20 +11,7 @@ import TicketListItem from "../TicketListItem";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
-import { makeStyles } from "@material-ui/core/styles";
-import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import api from "../../services/api";
-
-const useRowStyles = makeStyles({
-  root: {
-    "& > *": {
-      borderBottom: "unset",
-    },
-  },
-  collapseColumn: {
-    width: 40, // Ajusta este valor según tus necesidades
-  },
-});
 
 const TicketListModal = ({
   preSelectedContactId,
@@ -33,14 +20,14 @@ const TicketListModal = ({
   title,
   tickets,
   newView,
+  orderTicketsAsOriginalOrder = false,
 }) => {
   const [loading, setLoading] = useState(false);
   const [ticketsData, setTicketsData] = useState([]);
-  const { whatsApps } = useContext(WhatsAppsContext);
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
 
   useEffect(() => {
-    console.log("tickets", tickets);
+    console.log("TicketListModal tickets", tickets);
 
     const delayDebounceFn = setTimeout(async () => {
       if (tickets.length > 0) {
@@ -55,14 +42,19 @@ const TicketListModal = ({
             ),
           },
         });
-        console.log("tickets data", data.tickets);
-        // console.log(
-        //   "ticketsWithClientTimeWaiting: ",
-        //   data.tickets.map((t) => ({
-        //     id: t.id,
-        //     clientTimeWaiting: t.clientTimeWaiting,
-        //   }))
-        // );
+
+        if (orderTicketsAsOriginalOrder) {
+          // Crear un objeto para mapear los IDs a sus índices
+          const ticketsOrderObject = {};
+          tickets.forEach((id, index) => {
+            ticketsOrderObject[id] = index;
+          });
+
+          // Ordenar los datos en base al array original de IDs
+          data.tickets.sort((a, b) => {
+            return ticketsOrderObject[a.id] - ticketsOrderObject[b.id];
+          });
+        }
 
         setTicketsData(data.tickets);
         setLoading(false);

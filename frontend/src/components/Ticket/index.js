@@ -7,6 +7,8 @@ import openSocket from "../../services/socket-io";
 
 import { Paper, makeStyles } from "@material-ui/core";
 
+import { Button } from "@material-ui/core";
+import TicketListModal from "../../components/TicketListModal";
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import { SearchMessageContext } from "../../context/SearchMessage/SearchMessageContext";
 import toastError from "../../errors/toastError";
@@ -95,6 +97,10 @@ const Ticket = () => {
   const [microServiceData, setMicroServiceData] = useState(null);
   const [selectRelatedTicketId, setSelectRelatedTicketId] = useState(null);
   const { setSearchingMessageId } = useContext(SearchMessageContext);
+  const [ticketListModalOpen, setTicketListModalOpen] = useState(false);
+  const [ticketListModalTitle, setTicketListModalTitle] = useState("");
+  const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
+  const [selectedContactId, setSelectedContactId] = useState(null);
 
   async function searchForMicroServiceData(contactNumber) {
     try {
@@ -172,7 +178,6 @@ const Ticket = () => {
       if (data.action === "update") {
         setContact((prevState) => {
           if (prevState.id === data.contact?.id) {
-            console.log("se actualiza la nueva data del contacto");
             searchForMicroServiceData(data.contact?.number);
             return { ...prevState, ...data.contact };
           }
@@ -194,6 +199,26 @@ const Ticket = () => {
     setDrawerOpen(false);
   };
 
+  const onSeeMoreTicketsClickHandler = async () => {
+    try {
+      const { data: contactTicketSummary } = await api.post(
+        "/contacts/getContactTicketSummary",
+        {
+          contactId: contact.id,
+          onlyIds: true,
+        }
+      );
+
+      setSelectedContactId(contact.id);
+      setTicketListModalTitle("Todos los tickets de " + contact.name);
+      setTicketListModalOpen(true);
+      setTicketListModalTickets(contactTicketSummary?.map((t) => t.id) || []);
+    } catch (error) {
+      console.log(error);
+      toastError(error);
+    }
+  };
+
   return (
     <div className={classes.root} id="drawer-container">
       <Paper
@@ -213,8 +238,8 @@ const Ticket = () => {
             />
           </div>
 
-          <div>
-            <FormControl fullWidth margin="dense" variant="outlined">
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <FormControl margin="dense" variant="outlined">
               <InputLabel>Ticket</InputLabel>
               <Select
                 labelWidth={60}
@@ -249,6 +274,15 @@ const Ticket = () => {
                 ))}
               </Select>
             </FormControl>
+
+            <Button
+              size="small"
+              variant="text"
+              color="primary"
+              onClick={onSeeMoreTicketsClickHandler}
+            >
+              Ver más tickets
+            </Button>
           </div>
 
           <div className={classes.ticketActionButtons}>
@@ -279,6 +313,15 @@ const Ticket = () => {
         ticketId={ticketId}
         loading={loading}
         microServiceData={microServiceData}
+      />
+      <TicketListModal
+        modalOpen={ticketListModalOpen}
+        title={ticketListModalTitle}
+        tickets={ticketListModalTickets}
+        preSelectedContactId={selectedContactId}
+        orderTicketsAsOriginalOrder={true}
+        newView={true}
+        onClose={() => setTicketListModalOpen(false)}
       />
     </div>
   );

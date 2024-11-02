@@ -322,15 +322,15 @@ const TicketsList = (props) => {
         (category && ticket.categories.find((tc) => tc.id === category.id)) ||
         (ticketsType === "no-category" && !ticket.categories?.length);
 
-      console.log({
-        noSearchParamCondition,
-        TypeCondition,
-        userCondition,
-        queueCondition,
-        whatsappCondition,
-        ignoreConditions,
-        categoryCondition,
-      });
+      // console.log({
+      //   noSearchParamCondition,
+      //   TypeCondition,
+      //   userCondition,
+      //   queueCondition,
+      //   whatsappCondition,
+      //   ignoreConditions,
+      //   categoryCondition,
+      // });
 
       const isConditionMet =
         noSearchParamCondition &&
@@ -507,7 +507,7 @@ const TicketsList = (props) => {
           fontWeight: "500",
           padding: "0.75rem",
           textAlign: "center",
-          fontZize: "20px",
+          fontSize: "12px",
           letterSpacing: "1px",
           display: "flex",
           justifyContent: "center",
@@ -667,57 +667,43 @@ const TicketsList = (props) => {
 
         {ticketsType === "no-category" && (
           <>
-            <ArrowLeftIcon
-              fontSize="medium"
-              style={{
-                cursor: "pointer",
-                scale: "1.5",
-                position: "absolute",
-                left: "1rem",
-              }}
-              onClick={() => onMoveToLeft()}
-            />
             <div>Sin Categoria</div>
-            <ArrowRightIcon
-              fontSize="medium"
-              style={{
-                cursor: "pointer",
-                scale: "1.5",
-                position: "absolute",
-                right: "1rem",
-              }}
-              onClick={() => onMoveToRight()}
-            />
           </>
         )}
 
         {category && (
           <>
-            <ArrowLeftIcon
-              fontSize="medium"
-              style={{
-                cursor: "pointer",
-                scale: "1.5",
-                position: "absolute",
-                left: "1rem",
-              }}
-              onClick={() => onMoveToLeft()}
-            />
             <div>{category.name}</div>
-            <ArrowRightIcon
-              fontSize="medium"
-              style={{
-                cursor: "pointer",
-                scale: "1.5",
-                position: "absolute",
-                right: "1rem",
-              }}
-              onClick={() => onMoveToRight()}
-            />
           </>
         )}
 
         {status === "closed" && <div>CERRADOS</div>}
+
+        {onMoveToLeft && (
+          <ArrowLeftIcon
+            fontSize="medium"
+            style={{
+              cursor: "pointer",
+              scale: "1.5",
+              position: "absolute",
+              left: "1rem",
+            }}
+            onClick={() => onMoveToLeft()}
+          />
+        )}
+
+        {onMoveToRight && (
+          <ArrowRightIcon
+            fontSize="medium"
+            style={{
+              cursor: "pointer",
+              scale: "1.5",
+              position: "absolute",
+              right: "1rem",
+            }}
+            onClick={() => onMoveToRight()}
+          />
+        )}
       </div>
       <Paper
         square

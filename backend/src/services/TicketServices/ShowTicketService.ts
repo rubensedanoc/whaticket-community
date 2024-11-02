@@ -49,7 +49,15 @@ const ShowTicketService = async (
     {
       model: Whatsapp,
       as: "whatsapp",
-      attributes: ["name"]
+      attributes: ["name"],
+      include: [
+        {
+          model: User,
+          attributes: ["id"],
+          as: "userWhatsapps",
+          required: false
+        }
+      ]
     },
     {
       model: Category,

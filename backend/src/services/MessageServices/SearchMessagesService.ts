@@ -2,6 +2,7 @@ import { Op, Sequelize } from "sequelize";
 import Contact from "../../models/Contact";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
+import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 
 interface Request {
@@ -55,7 +56,15 @@ const SearchMessagesService = async ({
           {
             model: Whatsapp,
             as: "whatsapp",
-            required: false
+            required: false,
+            include: [
+              {
+                model: User,
+                attributes: ["id"],
+                as: "userWhatsapps",
+                required: false
+              }
+            ]
           }
         ]
       }

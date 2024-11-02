@@ -29,12 +29,15 @@ interface Request {
   typeIds: Array<string>;
   showOnlyMyGroups: boolean;
   categoryId?: number;
+  userWhatsappsId?: number[];
 }
 
 interface Response {
   tickets: any[];
   count: number;
   hasMore: boolean;
+  whereCondition: Filterable["where"];
+  includeCondition: Includeable[];
 }
 
 // Función para construir la condición where principal
@@ -49,7 +52,8 @@ const buildWhereCondition = ({
   searchParam,
   status,
   date,
-  withUnreadMessages
+  withUnreadMessages,
+  userWhatsappsId
 }: Request): Filterable["where"] => {
   let baseCondition: Filterable["where"] = {};
 
@@ -63,15 +67,19 @@ const buildWhereCondition = ({
     const sanitizedSearchParam = searchParam.toLowerCase().trim();
     baseCondition = {
       ...baseCondition,
-      [Op.or]: [
+      [Op.and]: [
         {
-          "$contact.name$": where(
-            fn("LOWER", col("contact.name")),
-            "LIKE",
-            `%${sanitizedSearchParam}%`
-          )
-        },
-        { "$contact.number$": { [Op.like]: `%${sanitizedSearchParam}%` } }
+          [Op.or]: [
+            {
+              "$contact.name$": where(
+                fn("LOWER", col("contact.name")),
+                "LIKE",
+                `%${sanitizedSearchParam}%`
+              )
+            },
+            { "$contact.number$": { [Op.like]: `%${sanitizedSearchParam}%` } }
+          ]
+        }
       ]
     };
   }
@@ -89,21 +97,34 @@ const buildWhereCondition = ({
   if (showAll !== "true" && typeIds[0] === "individual" && status === "open") {
     baseCondition = {
       ...baseCondition,
-      [Op.or]: [
-        { userId },
+      [Op.and]: [
+        ...(baseCondition[Op.and] || []),
         {
-          id: {
-            [Op.in]: Sequelize.literal(
-              `(SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` = ${userId})`
-            )
-          }
+          [Op.or]: [
+            { userId },
+            {
+              id: {
+                [Op.in]: Sequelize.literal(
+                  `(SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` = ${userId})`
+                )
+              }
+            },
+            ...(searchParam &&
+              userWhatsappsId.length && [
+                {
+                  whatsappId: {
+                    [Op.in]: userWhatsappsId
+                  }
+                }
+              ])
+          ]
         }
       ]
     };
   }
 
-  // Si estoy viendo solo mis grupos o solo mis individuales abiertos
-  // no voy a filtrar nada por departamento o conexión
+  // Si no estoy viendo solo mis grupos o solo mis individuales abiertos O si no hay searchparam
+  // voy a permitir filtrar por departamento o conexión
   if (
     !(
       typeIds.length === 1 &&
@@ -111,7 +132,8 @@ const buildWhereCondition = ({
         typeIds[0] === "individual" &&
         status === "open") ||
         (showOnlyMyGroups && typeIds[0] === "group"))
-    )
+    ) ||
+    !searchParam
   ) {
     if (queueIds?.length) {
       baseCondition = {
@@ -139,6 +161,7 @@ const buildWhereCondition = ({
     baseCondition = {
       ...baseCondition,
       [Op.and]: [
+        ...(baseCondition[Op.and] || []),
         Sequelize.literal(
           `NOT EXISTS (
             SELECT 1
@@ -220,7 +243,15 @@ const buildIncludeCondition = ({
     {
       model: Whatsapp,
       as: "whatsapp",
-      attributes: ["name"]
+      attributes: ["name"],
+      include: [
+        {
+          model: User,
+          attributes: ["id"],
+          as: "userWhatsapps",
+          required: false
+        }
+      ]
     },
     {
       model: Category,
@@ -263,6 +294,23 @@ const buildIncludeCondition = ({
 const ListTicketsServicev2 = async (request: Request): Promise<Response> => {
   const { pageNumber = "1", status } = request;
 
+  // console.log("--- ListTicketsServicev2", request);
+  const user = await User.findByPk(+request.userId, {
+    attributes: ["id"],
+    include: [
+      {
+        model: Whatsapp,
+        attributes: ["id"],
+        as: "userWhatsapps",
+        required: false
+      }
+    ]
+  });
+
+  request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
+
+  // console.log("--- user", user.userWhatsapps);
+
   let whereCondition = buildWhereCondition(request);
   let includeCondition = buildIncludeCondition(request);
 
@@ -292,7 +340,9 @@ const ListTicketsServicev2 = async (request: Request): Promise<Response> => {
   return {
     tickets: ticketsToReturnWithClientTimeWaiting,
     count,
-    hasMore
+    hasMore,
+    whereCondition,
+    includeCondition
   };
 };
 
