@@ -109,14 +109,15 @@ const buildWhereCondition = ({
                 )
               }
             },
-            ...(searchParam &&
-              userWhatsappsId.length && [
-                {
-                  whatsappId: {
-                    [Op.in]: userWhatsappsId
+            ...(searchParam && userWhatsappsId.length > 0
+              ? [
+                  {
+                    whatsappId: {
+                      [Op.in]: userWhatsappsId
+                    }
                   }
-                }
-              ])
+                ]
+              : [])
           ]
         }
       ]
