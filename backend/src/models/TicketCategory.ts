@@ -19,6 +19,9 @@ class TicketCategory extends Model<TicketCategory> {
   @Column
   CategoryId: number;
 
+  @Column
+  byAI: boolean;
+
   @CreatedAt
   createdAt: Date;
 

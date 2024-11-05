@@ -383,7 +383,8 @@ export const getNumberGroups = async (
                     "name",
                     "number",
                     "domain",
-                    "profilePicUrl"
+                    "profilePicUrl",
+                    "isCompanyMember"
                   ]
                 },
                 {
@@ -487,7 +488,8 @@ export const getNumberGroups = async (
                             "name",
                             "number",
                             "domain",
-                            "profilePicUrl"
+                            "profilePicUrl",
+                            "isCompanyMember"
                           ]
                         },
                         {

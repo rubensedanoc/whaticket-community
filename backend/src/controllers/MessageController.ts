@@ -75,7 +75,7 @@ export const indexV2 = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  console.log("--- CALL FOR MessageController indexV2");
+  // console.log("--- CALL FOR MessageController indexV2");
 
   const {
     setTicketMessagesAsRead,
@@ -102,17 +102,17 @@ export const indexV2 = async (
       nextTicketsToFetchMessagesQueue[0].ticket &&
       typeof nextTicketsToFetchMessagesQueue[0].ticket.update === "function"
     ) {
-      console.log(
-        "--- MessageController index2 SetTicketMessagesAsRead TICKET: ",
-        nextTicketsToFetchMessagesQueue[0].ticket.id
-      );
+      // console.log(
+      //   "--- MessageController index2 SetTicketMessagesAsRead TICKET: ",
+      //   nextTicketsToFetchMessagesQueue[0].ticket.id
+      // );
       SetTicketMessagesAsRead(nextTicketsToFetchMessagesQueue[0].ticket);
     } else {
-      console.log(
-        "--- MessageController index2 SetTicketMessagesAsRead TICKET: ",
-        nextTicketsToFetchMessagesQueue[0].ticket.id,
-        "WAS NOT POSSIBLE"
-      );
+      // console.log(
+      //   "--- MessageController index2 SetTicketMessagesAsRead TICKET: ",
+      //   nextTicketsToFetchMessagesQueue[0].ticket.id,
+      //   "WAS NOT POSSIBLE"
+      // );
     }
   }
 

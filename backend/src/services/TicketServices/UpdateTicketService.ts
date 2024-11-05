@@ -1,5 +1,6 @@
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import Ticket from "../../models/Ticket";
+import TicketCategory from "../../models/TicketCategory";
 import ShowTicketService from "./ShowTicketService";
 
 interface TicketData {
@@ -12,6 +13,7 @@ interface TicketData {
   helpUsersIds?: number[];
   participantUsersIds?: number[];
   transferred?: boolean;
+  categorizedByAI?: boolean;
 }
 
 interface Request {
@@ -38,7 +40,8 @@ const UpdateTicketService = async ({
     categoriesIds,
     helpUsersIds,
     participantUsersIds,
-    transferred
+    transferred,
+    categorizedByAI
   } = ticketData;
 
   const ticket = await ShowTicketService(ticketId, true);
@@ -60,7 +63,8 @@ const UpdateTicketService = async ({
     queueId,
     userId,
     privateNote,
-    ...(transferred === true && { transferred })
+    ...(transferred === true && { transferred }),
+    ...(categorizedByAI === true && { categorizedByAI })
   });
 
   if (whatsappId) {
@@ -71,6 +75,20 @@ const UpdateTicketService = async ({
 
   if (categoriesIds) {
     await ticket.$set("categories", categoriesIds);
+
+    if (categorizedByAI) {
+      for (const categoryId of categoriesIds) {
+        await TicketCategory.update(
+          { byAI: true },
+          {
+            where: {
+              ticketId: ticket.id,
+              categoryId: categoryId
+            }
+          }
+        );
+      }
+    }
   }
 
   if (helpUsersIds) {

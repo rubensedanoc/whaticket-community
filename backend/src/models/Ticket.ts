@@ -57,6 +57,9 @@ class Ticket extends Model<Ticket> {
   @Column
   transferred: boolean;
 
+  @Column
+  categorizedByAI: boolean;
+
   @CreatedAt
   createdAt: Date;
 

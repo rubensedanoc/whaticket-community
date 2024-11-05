@@ -22,7 +22,8 @@ const ShowTicketService = async (
         "number",
         "domain",
         "profilePicUrl",
-        "isGroup"
+        "isGroup",
+        "isCompanyMember"
       ],
       include: ["extraInfo"]
     },

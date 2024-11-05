@@ -95,6 +95,7 @@ const Users = () => {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
+  const [totalCount, setTotalCount] = useState(null);
   const [users, dispatch] = useReducer(reducer, []);
   const { connectedUsers } = useContext(UsersPresenceContext);
 
@@ -113,6 +114,7 @@ const Users = () => {
           });
           dispatch({ type: "LOAD_USERS", payload: data.users });
           setHasMore(data.hasMore);
+          setTotalCount(data.count);
           setLoading(false);
         } catch (err) {
           toastError(err);
@@ -173,6 +175,7 @@ const Users = () => {
   };
 
   const loadMore = () => {
+    setLoading(true);
     setPageNumber((prevState) => prevState + 1);
   };
 
@@ -205,91 +208,101 @@ const Users = () => {
         aria-labelledby="form-dialog-title"
         userId={selectedUser && selectedUser.id}
       />
-      <MainHeader>
-        <Title>{i18n.t("users.title")}</Title>
-        <MainHeaderButtonsWrapper>
-          <TextField
-            placeholder={i18n.t("contacts.searchPlaceholder")}
-            type="search"
-            value={searchParam}
-            onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon style={{ color: "gray" }} />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenUserModal}
-          >
-            {i18n.t("users.buttons.add")}
-          </Button>
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
-      <Paper
-        className={classes.mainPaper}
-        variant="outlined"
-        onScroll={handleScroll}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell align="center">Estado</TableCell>
-              <TableCell align="center">{i18n.t("users.table.name")}</TableCell>
-              <TableCell align="center">
-                {i18n.t("users.table.email")}
-              </TableCell>
-              <TableCell align="center">
-                {i18n.t("users.table.profile")}
-              </TableCell>
-              <TableCell align="center">
-                {i18n.t("users.table.whatsapp")}
-              </TableCell>
-              <TableCell align="center">
-                {i18n.t("users.table.actions")}
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell align="center">
-                    {connectedUsers.find((id) => id === user.id) ? "🟢" : "🟡"}
-                  </TableCell>
-                  <TableCell align="center">{user.name}</TableCell>
-                  <TableCell align="center">{user.email}</TableCell>
-                  <TableCell align="center">{user.profile}</TableCell>
-                  <TableCell align="center">{user.whatsapp?.name}</TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditUser(user)}
-                    >
-                      <EditIcon />
-                    </IconButton>
 
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        setConfirmModalOpen(true);
-                        setDeletingUser(user);
-                      }}
-                    >
-                      <DeleteOutlineIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {loading && <TableRowSkeleton columns={4} />}
-            </>
-          </TableBody>
-        </Table>
-      </Paper>
+      <div style={{ padding: "2rem", height: "85%" }}>
+        <MainHeader>
+          <Title>
+            {i18n.t("users.title")} - {totalCount}
+          </Title>
+          <MainHeaderButtonsWrapper>
+            <TextField
+              placeholder={i18n.t("contacts.searchPlaceholder")}
+              type="search"
+              value={searchParam}
+              onChange={handleSearch}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon style={{ color: "gray" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleOpenUserModal}
+            >
+              {i18n.t("users.buttons.add")}
+            </Button>
+          </MainHeaderButtonsWrapper>
+        </MainHeader>
+        <Paper
+          className={classes.mainPaper}
+          variant="outlined"
+          onScroll={handleScroll}
+          style={{ height: "100%" }}
+        >
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell align="center">Estado</TableCell>
+                <TableCell align="center">
+                  {i18n.t("users.table.name")}
+                </TableCell>
+                <TableCell align="center">
+                  {i18n.t("users.table.email")}
+                </TableCell>
+                <TableCell align="center">
+                  {i18n.t("users.table.profile")}
+                </TableCell>
+                <TableCell align="center">
+                  {i18n.t("users.table.whatsapp")}
+                </TableCell>
+                <TableCell align="center">
+                  {i18n.t("users.table.actions")}
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell align="center">
+                      {connectedUsers.find((id) => id === user.id)
+                        ? "🟢"
+                        : "🟡"}
+                    </TableCell>
+                    <TableCell align="center">{user.name}</TableCell>
+                    <TableCell align="center">{user.email}</TableCell>
+                    <TableCell align="center">{user.profile}</TableCell>
+                    <TableCell align="center">{user.whatsapp?.name}</TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditUser(user)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          setConfirmModalOpen(true);
+                          setDeletingUser(user);
+                        }}
+                      >
+                        <DeleteOutlineIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {loading && <TableRowSkeleton columns={4} />}
+              </>
+            </TableBody>
+          </Table>
+        </Paper>
+      </div>
     </MainContainer>
   );
 };

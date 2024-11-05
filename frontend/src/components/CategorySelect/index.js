@@ -18,7 +18,11 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const CategorySelect = ({ selectedCategoryIds, onChange }) => {
+const CategorySelect = ({
+  selectedCategoryIds,
+  onChange,
+  onLoadCategories,
+}) => {
   const classes = useStyles();
   const [categorys, setCategorys] = useState([]);
 
@@ -27,6 +31,9 @@ const CategorySelect = ({ selectedCategoryIds, onChange }) => {
       try {
         const { data } = await api.get("/categories");
         setCategorys(data);
+        if (onLoadCategories) {
+          onLoadCategories(data);
+        }
       } catch (err) {
         toastError(err);
       }

@@ -14,6 +14,7 @@ import ListItem from "@material-ui/core/ListItem";
 import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import ListItemText from "@material-ui/core/ListItemText";
 import Tooltip from "@material-ui/core/Tooltip";
+import AndroidIcon from "@material-ui/icons/Android";
 import PeopleAltIcon from "@material-ui/icons/PeopleAlt";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import TicketPreviewModal from "../TicketPreviewModal";
@@ -190,7 +191,14 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
 
   return (
     <React.Fragment key={ticket.id}>
-      <div style={{ position: "relative" }}>
+      <div
+        style={{
+          position: "relative",
+          ...(ticket?.contact?.isCompanyMember && {
+            backgroundColor: "rgb(220 248 198 / 50%)",
+          }),
+        }}
+      >
         <ListItem
           dense
           button
@@ -510,26 +518,47 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                   </div>
                 </span>
 
-                {/* CATEGORIES BADGES */}
-                {ticket.categories?.length > 0 && (
-                  <div style={{ display: "flex", justifyContent: "end" }}>
-                    {ticket.categories.map((category) => (
-                      <Chip
-                        key={category.id}
-                        style={{
-                          backgroundColor: category.color,
-                          color: "white",
-                          height: "16px",
-                          fontSize: "9px",
-                        }}
-                        variant="outlined"
-                        label={category.name}
-                        className={classes.chip}
-                      />
-                    ))}
-                  </div>
-                )}
-                {/* CATEGORIES BADGES */}
+                <div style={{ display: "flex", justifyContent: "end" }}>
+                  {ticket.categorizedByAI && (
+                    <AndroidIcon
+                      style={{ fontSize: 16, transform: "translate(0px, 1px)" }}
+                    />
+                  )}
+
+                  {/* CATEGORIES BADGES */}
+                  {ticket.categories?.length > 0 && (
+                    <>
+                      {ticket.categories.map((category) => (
+                        <Chip
+                          key={category.id}
+                          style={{
+                            backgroundColor: category.color,
+                            color: "white",
+                            height: "16px",
+                            fontSize: "9px",
+                          }}
+                          variant="outlined"
+                          label={
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              {category?.TicketCategory?.byAI && (
+                                <AndroidIcon style={{ fontSize: 16 }} />
+                              )}
+                              {category.name}
+                            </div>
+                          }
+                          className={classes.chip}
+                        />
+                      ))}
+                    </>
+                  )}
+                  {/* CATEGORIES BADGES */}
+                </div>
               </>
             }
           />
