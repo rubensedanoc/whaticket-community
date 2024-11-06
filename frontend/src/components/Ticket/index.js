@@ -7,6 +7,8 @@ import openSocket from "../../services/socket-io";
 
 import { Paper, makeStyles } from "@material-ui/core";
 
+import { Button } from "@material-ui/core";
+import TicketListModal from "../../components/TicketListModal";
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import { SearchMessageContext } from "../../context/SearchMessage/SearchMessageContext";
 import toastError from "../../errors/toastError";
@@ -95,6 +97,12 @@ const Ticket = () => {
   const [microServiceData, setMicroServiceData] = useState(null);
   const [selectRelatedTicketId, setSelectRelatedTicketId] = useState(null);
   const { setSearchingMessageId } = useContext(SearchMessageContext);
+  const [ticketListModalOpen, setTicketListModalOpen] = useState(false);
+  const [ticketListModalTitle, setTicketListModalTitle] = useState("");
+  const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
+  const [selectedContactId, setSelectedContactId] = useState(null);
+  const [marketingCampaigns, setMarketingCampaigns] = useState([]);
+  const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
 
   async function searchForMicroServiceData(contactNumber) {
     try {
@@ -118,6 +126,13 @@ const Ticket = () => {
   }
 
   useEffect(() => {
+    (async () => {
+      const { data: marketingCampaigns } = await api.get("/marketingCampaigns");
+      setMarketingCampaigns(marketingCampaigns);
+    })();
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
     const delayDebounceFn = setTimeout(() => {
       const fetchTicket = async () => {
@@ -125,6 +140,7 @@ const Ticket = () => {
           const { data } = await api.get("/tickets/" + ticketId);
 
           setContact(data.contact);
+          setSelectMarketingCampaign(data.marketingCampaignId || 0);
           setTicket(data);
 
           // console.log("________ticket:", data);
@@ -138,9 +154,9 @@ const Ticket = () => {
           setRelatedTickets(relatedTickets);
           setSelectRelatedTicketId(ticketId);
 
-          await searchForMicroServiceData(data.contact?.number);
-
           setLoading(false);
+
+          await searchForMicroServiceData(data.contact?.number);
         } catch (err) {
           setLoading(false);
           toastError(err);
@@ -159,6 +175,7 @@ const Ticket = () => {
     socket.on("ticket", (data) => {
       if (data.action === "update") {
         setTicket(data.ticket);
+        setSelectMarketingCampaign(data.ticket.marketingCampaignId || 0);
         console.log("ticker actulizado", data.ticket);
       }
 
@@ -172,7 +189,6 @@ const Ticket = () => {
       if (data.action === "update") {
         setContact((prevState) => {
           if (prevState.id === data.contact?.id) {
-            console.log("se actualiza la nueva data del contacto");
             searchForMicroServiceData(data.contact?.number);
             return { ...prevState, ...data.contact };
           }
@@ -194,6 +210,26 @@ const Ticket = () => {
     setDrawerOpen(false);
   };
 
+  const onSeeMoreTicketsClickHandler = async () => {
+    try {
+      const { data: contactTicketSummary } = await api.post(
+        "/contacts/getContactTicketSummary",
+        {
+          contactId: contact.id,
+          onlyIds: true,
+        }
+      );
+
+      setSelectedContactId(contact.id);
+      setTicketListModalTitle("Todos los tickets de " + contact.name);
+      setTicketListModalOpen(true);
+      setTicketListModalTickets(contactTicketSummary?.map((t) => t.id) || []);
+    } catch (error) {
+      console.log(error);
+      toastError(error);
+    }
+  };
+
   return (
     <div className={classes.root} id="drawer-container">
       <Paper
@@ -213,8 +249,8 @@ const Ticket = () => {
             />
           </div>
 
-          <div>
-            <FormControl fullWidth margin="dense" variant="outlined">
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <FormControl margin="dense" variant="outlined">
               <InputLabel>Ticket</InputLabel>
               <Select
                 labelWidth={60}
@@ -244,11 +280,20 @@ const Ticket = () => {
               >
                 {relatedTickets.map((rt) => (
                   <MenuItem key={rt.id} value={rt.id}>
-                    Ticket: {rt.id}
+                    {rt.id}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
+            <Button
+              size="small"
+              variant="text"
+              color="primary"
+              onClick={onSeeMoreTicketsClickHandler}
+            >
+              Ver más tickets
+            </Button>
           </div>
 
           <div className={classes.ticketActionButtons}>
@@ -256,7 +301,53 @@ const Ticket = () => {
           </div>
         </TicketHeader>
 
-        <TicketCategories ticket={ticket} />
+        <div style={{ display: "flex" }}>
+          <div style={{ flexGrow: "1" }}>
+            <TicketCategories ticket={ticket} />
+          </div>
+          <div style={{ flexGrow: "1" }}>
+            <Select
+              style={{ height: "100%", padding: "0 16px" }}
+              onChange={async (e) => {
+                try {
+                  await api.put(`/tickets/${ticket.id}`, {
+                    marketingCampaignId:
+                      e.target.value === 0 ? null : e.target.value,
+                  });
+
+                  toast.success(
+                    "Campaña de marketing actualizada correctamente."
+                  );
+                } catch (err) {
+                  console.log(err);
+                  toastError(err);
+                }
+
+                setSelectMarketingCampaign(e.target.value);
+              }}
+              fullWidth
+              value={selectMarketingCampaign}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: "bottom",
+                  horizontal: "left",
+                },
+                transformOrigin: {
+                  vertical: "top",
+                  horizontal: "left",
+                },
+                getContentAnchorEl: null,
+              }}
+            >
+              <MenuItem value={0}>Sin campaña</MenuItem>
+              {marketingCampaigns.map((mc) => (
+                <MenuItem key={mc.id} value={mc.id}>
+                  {mc.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </div>
+        </div>
 
         <ReplyMessageProvider>
           <MessagesList
@@ -279,6 +370,15 @@ const Ticket = () => {
         ticketId={ticketId}
         loading={loading}
         microServiceData={microServiceData}
+      />
+      <TicketListModal
+        modalOpen={ticketListModalOpen}
+        title={ticketListModalTitle}
+        tickets={ticketListModalTickets}
+        preSelectedContactId={selectedContactId}
+        orderTicketsAsOriginalOrder={true}
+        newView={true}
+        onClose={() => setTicketListModalOpen(false)}
       />
     </div>
   );

@@ -18,6 +18,7 @@ import UserQueue from "./UserQueue";
 import Category from "./Category";
 import ChatbotOption from "./ChatbotOption";
 import QueueCategory from "./QueueCategory";
+import Ticket from "./Ticket";
 import Whatsapp from "./Whatsapp";
 import WhatsappQueue from "./WhatsappQueue";
 
@@ -57,6 +58,12 @@ class Queue extends Model<Queue> {
   @Column
   automaticAssignmentForOfflineUsers: boolean;
 
+  @Column
+  categorizeTicketsWithAI: boolean;
+
+  @Column
+  categorizationOpenAIModel: string;
+
   @BelongsToMany(() => Whatsapp, () => WhatsappQueue)
   whatsapps: Array<Whatsapp & { WhatsappQueue: WhatsappQueue }>;
 
@@ -64,10 +71,13 @@ class Queue extends Model<Queue> {
   users: Array<User & { UserQueue: UserQueue }>;
 
   @BelongsToMany(() => Category, () => QueueCategory)
-  categories: Category[];
+  categories: Array<Category & { QueueCategory: QueueCategory }>;
 
   @HasMany(() => ChatbotOption)
   chatbotOptions: ChatbotOption[];
+
+  @HasMany(() => Ticket)
+  tickets: Ticket[];
 }
 
 export default Queue;

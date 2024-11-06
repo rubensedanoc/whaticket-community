@@ -76,7 +76,7 @@ const TicketOptionsMenu = ({
         onClose={handleClose}
       >
         {ticket.isGroup ? (
-          <>
+          <div>
             <MenuItem
               onClick={async () => {
                 try {
@@ -114,9 +114,9 @@ const TicketOptionsMenu = ({
             >
               Resolver ticket
             </MenuItem>
-          </>
+          </div>
         ) : (
-          <>
+          <div>
             <MenuItem
               onClick={() => {
                 handleUpdateTicketStatus({
@@ -139,7 +139,7 @@ const TicketOptionsMenu = ({
                 </MenuItem>
               )}
             />
-          </>
+          </div>
         )}
       </Menu>
       <ConfirmationModal

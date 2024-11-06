@@ -87,12 +87,12 @@ const MessageOptionsMenu = ({
         onClose={handleClose}
       >
         {message.fromMe && (
-          <>
-            <MenuItem onClick={handleOpenConfirmationModal}>
-              {i18n.t("messageOptionsMenu.delete")}
-            </MenuItem>
-            <MenuItem onClick={handleOpenEditMessageModal}>Editar</MenuItem>
-          </>
+          <MenuItem onClick={handleOpenConfirmationModal}>
+            {i18n.t("messageOptionsMenu.delete")}
+          </MenuItem>
+        )}
+        {message.fromMe && (
+          <MenuItem onClick={handleOpenEditMessageModal}>Editar</MenuItem>
         )}
         {canChangeTheIsCompanyMemberFromTheContact && (
           <MenuItem

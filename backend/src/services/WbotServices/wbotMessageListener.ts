@@ -3,9 +3,10 @@ import { writeFile } from "fs";
 import { join } from "path";
 import { promisify } from "util";
 
-import WAWebJS, {
+import {
   Client,
   MessageAck,
+  MessageMedia,
   Contact as WbotContact,
   Message as WbotMessage
 } from "whatsapp-web.js";
@@ -21,6 +22,7 @@ import formatBody from "../../helpers/Mustache";
 import { getConnectedUsers } from "../../libs/connectedUsers";
 import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
+import ChatbotMessage from "../../models/ChatbotMessage";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
@@ -30,8 +32,8 @@ import ShowChatbotOptionService from "../ChatbotOptionService/ShowChatbotOptionS
 import CreateContactService from "../ContactServices/CreateContactService";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
-import FindOrCreateTicketLiteService from "../TicketServices/FindOrCreateTicketLiteService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
+import SearchTicketForAMessageService from "../TicketServices/SearchTicketForAMessageService";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
 
@@ -168,78 +170,109 @@ function makeRandomId(length: number) {
  * Create a message in the database with the passed msg and update the ticket lastMessage
  * - download the media, and save it in the public folder
  */
-const verifyMediaMessage = async (
+export const verifyMediaMessage = async (
   msg: WbotMessage,
   ticket: Ticket,
   contact: Contact,
-  updateTicketLastMessage = true
+  updateTicketLastMessage = true,
+  identifier = ""
 ): Promise<Message> => {
   const quotedMsg = await verifyQuotedMessage(msg);
 
   const media = await msg.downloadMedia();
 
-  if (!media) {
-    throw new Error("ERR_WAPP_DOWNLOAD_MEDIA");
-  }
+  if (media) {
+    let randomId = makeRandomId(5);
 
-  let randomId = makeRandomId(5);
+    if (!media.filename) {
+      const ext = media.mimetype.split("/")[1].split(";")[0];
+      media.filename = `${randomId}-${new Date().getTime()}.${ext}`;
+    } else {
+      media.filename =
+        media.filename.split(".").slice(0, -1).join(".") +
+        "." +
+        randomId +
+        "." +
+        media.filename.split(".").slice(-1);
+    }
 
-  if (!media.filename) {
-    const ext = media.mimetype.split("/")[1].split(";")[0];
-    media.filename = `${randomId}-${new Date().getTime()}.${ext}`;
+    try {
+      await writeFileAsync(
+        join(__dirname, "..", "..", "..", "public", media.filename),
+        media.data,
+        "base64"
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      // @ts-ignore
+      logger.error(err);
+    }
+
+    const messageData = {
+      id: msg.id.id,
+      ticketId: ticket.id,
+      contactId: msg.fromMe ? undefined : contact.id,
+      body: msg.body || media.filename,
+      fromMe: msg.fromMe,
+      read: msg.fromMe,
+      mediaUrl: media.filename,
+      mediaType: media.mimetype.split("/")[0],
+      quotedMsgId: quotedMsg?.id,
+      timestamp: msg.timestamp,
+      ...(identifier && { identifier })
+    };
+
+    if (updateTicketLastMessage) {
+      await ticket.update({ lastMessage: msg.body || media.filename });
+    }
+    const newMessage = await CreateMessageService({ messageData });
+
+    return newMessage;
   } else {
-    media.filename =
-      media.filename.split(".").slice(0, -1).join(".") +
-      "." +
-      randomId +
-      "." +
-      media.filename.split(".").slice(-1);
+    const messageData = {
+      id: msg.id.id,
+      ticketId: ticket.id,
+      contactId: msg.fromMe ? undefined : contact.id,
+      body: msg.body
+        ? "--- *No se pudo descargar el archivo* --- " + msg.body
+        : "--- *No se pudo descargar el archivo* --- ",
+      fromMe: msg.fromMe,
+      read: msg.fromMe,
+      mediaType: msg.type,
+      quotedMsgId: quotedMsg?.id,
+      timestamp: msg.timestamp,
+      ...(identifier && { identifier })
+    };
+
+    if (updateTicketLastMessage) {
+      await ticket.update({ lastMessage: messageData.body });
+    }
+
+    const newMessage = await CreateMessageService({ messageData });
+
+    return newMessage;
   }
-
-  try {
-    await writeFileAsync(
-      join(__dirname, "..", "..", "..", "public", media.filename),
-      media.data,
-      "base64"
-    );
-  } catch (err) {
-    Sentry.captureException(err);
-    // @ts-ignore
-    logger.error(err);
-  }
-
-  const messageData = {
-    id: msg.id.id,
-    ticketId: ticket.id,
-    contactId: msg.fromMe ? undefined : contact.id,
-    body: msg.body || media.filename,
-    fromMe: msg.fromMe,
-    read: msg.fromMe,
-    mediaUrl: media.filename,
-    mediaType: media.mimetype.split("/")[0],
-    quotedMsgId: quotedMsg?.id,
-    timestamp: msg.timestamp
-  };
-
-  if (updateTicketLastMessage) {
-    await ticket.update({ lastMessage: msg.body || media.filename });
-  }
-  const newMessage = await CreateMessageService({ messageData });
-
-  return newMessage;
 };
 
 /**
  * Create a message in the database with the passed msg and update the ticket lastMessage
  * - If the message is a location, prepare the message to include the location description and gmaps url
  */
-export const verifyMessage = async (
-  msg: WbotMessage,
-  ticket: Ticket,
-  contact: Contact,
+export const verifyMessage = async ({
+  msg,
+  ticket,
+  contact,
   isPrivate = false,
-  updateTicketLastMessage = true
-) => {
+  updateTicketLastMessage = true,
+  identifier = ""
+}: {
+  msg: WbotMessage;
+  ticket: Ticket;
+  contact: Contact;
+  isPrivate?: boolean;
+  updateTicketLastMessage?: boolean;
+  identifier?: string;
+}) => {
   if (msg.type === "location") msg = prepareLocation(msg);
 
   const quotedMsg = await verifyQuotedMessage(msg);
@@ -254,7 +287,8 @@ export const verifyMessage = async (
     read: msg.fromMe,
     quotedMsgId: quotedMsg?.id,
     isPrivate,
-    timestamp: msg.timestamp
+    timestamp: msg.timestamp,
+    ...(identifier && { identifier })
   };
 
   if (updateTicketLastMessage) {
@@ -273,7 +307,7 @@ export const verifyMessage = async (
     });
   }
 
-  await CreateMessageService({ messageData });
+  return await CreateMessageService({ messageData });
 };
 
 /**
@@ -350,7 +384,7 @@ const verifyQueue = async (
             body
           );
 
-          await verifyMessage(sentMessage, ticket, contact);
+          await verifyMessage({ msg: sentMessage, ticket, contact });
         },
         3000,
         ticket.id
@@ -465,7 +499,7 @@ const verifyQueue = async (
           body
         );
 
-        await verifyMessage(sentMessage, ticket, contact);
+        await verifyMessage({ msg: sentMessage, ticket, contact });
       },
       3000,
       ticket.id
@@ -548,7 +582,7 @@ const verifyQueue = async (
           `${contact.number}@c.us`,
           body
         );
-        verifyMessage(sentMessage, ticket, contact);
+        verifyMessage({ msg: sentMessage, ticket, contact });
       },
       3000,
       ticket.id
@@ -576,11 +610,17 @@ const isValidMsg = (msg: WbotMessage): boolean => {
   return false;
 };
 
-const handleMessage = async (
-  msg: WbotMessage,
-  wbot: Session,
-  syncUnreadMessagesProccess = false
-): Promise<void> => {
+const handleMessage = async ({
+  msg,
+  wbot,
+  syncUnreadMessagesProccess = false,
+  searchForUnSaveMessages = false
+}: {
+  msg: WbotMessage;
+  wbot: Session;
+  syncUnreadMessagesProccess?: boolean;
+  searchForUnSaveMessages?: boolean;
+}): Promise<void> => {
   if (!isValidMsg(msg)) {
     return;
   }
@@ -594,7 +634,10 @@ const handleMessage = async (
     if (msg.fromMe) {
       // messages sent automatically by wbot have a special character in front of it
       // if so, this message was already been stored in database;
-      if (/\u200e/.test(msg.body[0])) return;
+      if (/\u200e/.test(msg.body[0]) || /\u200B/.test(msg.body[0])) {
+        console.log("---- handleMessage - ignore bot message");
+        return;
+      }
 
       // media messages sent from me from cell phone, first comes with "hasMedia = false" and type = "image/ptt/etc"
       // in this case, return and let this message be handled by "media_uploaded" event, when it will have "hasMedia = true"
@@ -652,26 +695,38 @@ const handleMessage = async (
       });
 
       if (ticket) {
-        await verifyMessage(msg, ticket, contact);
+        await verifyMessage({ msg, ticket, contact });
       }
 
       return;
     }
 
-    // find, create or update a ticket from the contact or groupContact and from whatsappId
-    // always update the ticket unreadMessages
-    const ticket = await FindOrCreateTicketService(
-      contact,
-      wbot.id!,
-      unreadMessages,
-      groupContact,
-      msg.timestamp
-    );
+    let ticket: Ticket | null;
+
+    if (searchForUnSaveMessages) {
+      ticket = await SearchTicketForAMessageService({
+        contactId: groupContact ? groupContact.id : contact.id,
+        whatsappId: whatsapp.id,
+        message: msg
+      });
+    }
+
+    if (!ticket) {
+      // find, create or update a ticket from the contact or groupContact and from whatsappId
+      // always update the ticket unreadMessages
+      ticket = await FindOrCreateTicketService({
+        contact,
+        whatsappId: whatsapp.id,
+        unreadMessages,
+        groupContact,
+        lastMessageTimestamp: msg.timestamp
+      });
+    }
 
     if (msg.hasMedia) {
       await verifyMediaMessage(msg, ticket, contact);
     } else {
-      await verifyMessage(msg, ticket, contact);
+      await verifyMessage({ msg, ticket, contact });
     }
 
     // If the message is not from a group or from me,
@@ -713,7 +768,7 @@ const handleMessage = async (
                   body
                 );
 
-                await verifyMessage(sentMessage, ticket, contact);
+                await verifyMessage({ msg: sentMessage, ticket, contact });
               },
               3000,
               ticket.id
@@ -733,7 +788,7 @@ const handleMessage = async (
                   body
                 );
 
-                await verifyMessage(sentMessage, ticket, contact);
+                await verifyMessage({ msg: sentMessage, ticket, contact });
               },
               3000,
               ticket.id
@@ -742,6 +797,23 @@ const handleMessage = async (
             debouncedSentMessage();
           }
         }
+      }
+    } else if (!ticket.queue && whatsapp.queues.length >= 1) {
+      // El codigo de arriba es para un flujo que tiene funciones de chatbot
+      // si el ticket no entraba en las condicionales de arriba se iba a quedar sin queue
+      // por lo que si no entra arriba (ticket en el que no deberian de activarse las funciones del chatbot)
+      // setea la primera queue que encuentre si hay
+      try {
+        await UpdateTicketService({
+          ticketData: { queueId: whatsapp.queues[0].id },
+          ticketId: ticket.id
+        });
+      } catch (error) {
+        console.log(error);
+        Sentry.captureException(
+          "--  error trying to establish queue on ticket that was not going to have " +
+            error
+        );
       }
     }
 
@@ -770,6 +842,132 @@ const handleMessage = async (
         }
       } catch (error) {
         console.log(error);
+      }
+    }
+
+    if (!msg.fromMe && ticket.chatbotMessageIdentifier) {
+      const chatbotMessageReplied = await ChatbotMessage.findOne({
+        where: {
+          identifier:
+            ticket.chatbotMessageLastStep || ticket.chatbotMessageIdentifier
+        },
+        include: [
+          {
+            model: ChatbotMessage,
+            as: "chatbotOptions",
+            order: [["order", "ASC"]],
+            separate: true,
+            where: { wasDeleted: false }
+          }
+        ]
+      });
+
+      if (
+        chatbotMessageReplied &&
+        chatbotMessageReplied.chatbotOptions.length > 0
+      ) {
+        const chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
+          msg.body.toLocaleLowerCase().includes(co.label.toLocaleLowerCase())
+        );
+
+        if (chooseOption) {
+          console.log("---- handleMessage - chooseOption: ", chooseOption);
+
+          const nextChatbotMessage = await ChatbotMessage.findOne({
+            where: {
+              id: chooseOption.id
+            },
+            include: [
+              {
+                model: ChatbotMessage,
+                as: "chatbotOptions",
+                order: [["order", "ASC"]],
+                separate: true,
+                where: { wasDeleted: false }
+              }
+            ]
+          });
+
+          if (nextChatbotMessage) {
+            let options = "";
+
+            if (nextChatbotMessage.hasSubOptions) {
+              options += "\n\n";
+              nextChatbotMessage.chatbotOptions.forEach(
+                (chatbotOption, index) => {
+                  options += `*${
+                    chatbotOption.label
+                  }* - *${chatbotOption.title.trim()}* ${
+                    index < nextChatbotMessage.chatbotOptions.length - 1
+                      ? "\n\n"
+                      : ""
+                  }`;
+                }
+              );
+            }
+
+            const body = formatBody(
+              `\u200e${nextChatbotMessage.value}${options}`,
+              contact
+            );
+
+            console.log("---- handleMessage - nextChatbotMessage: ", body);
+
+            if (nextChatbotMessage.mediaType === "image") {
+              const imageMedia = await MessageMedia.fromUrl(
+                nextChatbotMessage.mediaUrl
+              );
+
+              const debouncedSentMessage = debounce(
+                async () => {
+                  const sentMessage = await wbot.sendMessage(
+                    `${contact.number}@c.us`,
+                    imageMedia,
+                    {
+                      caption: body
+                    }
+                  );
+
+                  await verifyMediaMessage(
+                    sentMessage,
+                    ticket,
+                    contact,
+                    true,
+                    nextChatbotMessage.identifier
+                  );
+                },
+                1500,
+                ticket.id
+              );
+
+              debouncedSentMessage();
+            } else {
+              const debouncedSentMessage = debounce(
+                async () => {
+                  const sentMessage = await wbot.sendMessage(
+                    `${contact.number}@c.us`,
+                    body
+                  );
+
+                  await verifyMessage({
+                    msg: sentMessage,
+                    ticket,
+                    contact,
+                    identifier: nextChatbotMessage.identifier
+                  });
+                },
+                1500,
+                ticket.id
+              );
+
+              debouncedSentMessage();
+            }
+
+            ticket.update({
+              chatbotMessageLastStep: nextChatbotMessage.identifier
+            });
+          }
+        }
       }
     }
 
@@ -840,90 +1038,6 @@ const handleMessage = async (
   }
 };
 
-const handleMessageForSyncUnreadMessages = async (
-  msg: WbotMessage,
-  wbot: Session,
-  chat: WAWebJS.Chat,
-  ignoreMyMessages = true
-): Promise<{ ticket: Ticket; contact: Contact } | undefined> => {
-  if (!isValidMsg(msg)) {
-    return;
-  }
-
-  try {
-    let msgContact: WbotContact;
-    let groupContact: Contact | undefined;
-
-    // if i sent the message, msgContact is the contact that received the message
-    // if i received the message, msgContact is the contact that sent the message
-    if (msg.fromMe) {
-      // messages sent automatically by wbot have a special character in front of it
-      // if so, this message was already been stored in database;
-      if (ignoreMyMessages) {
-        if (/\u200e/.test(msg.body[0])) return;
-      }
-
-      // media messages sent from me from cell phone, first comes with "hasMedia = false" and type = "image/ptt/etc"
-      // in this case, return and let this message be handled by "media_uploaded" event, when it will have "hasMedia = true"
-      if (
-        !msg.hasMedia &&
-        msg.type !== "location" &&
-        msg.type !== "chat" &&
-        msg.type !== "vcard"
-        //&& msg.type !== "multi_vcard"
-      )
-        return;
-
-      msgContact = await wbot.getContactById(msg.to);
-    } else {
-      msgContact = await msg.getContact();
-    }
-
-    // if the message is from a group,
-    // and i sent the message, groupContact is the contact that received the message
-    // and if i received the message, groupContact is the contact that sent the message
-    // in any case, save the group contact in the database
-    if (chat.isGroup) {
-      let msgGroupContact;
-
-      if (msg.fromMe) {
-        msgGroupContact = await wbot.getContactById(msg.to);
-      } else {
-        msgGroupContact = await wbot.getContactById(msg.from);
-      }
-
-      groupContact = await verifyContactForSyncUnreadMessages(msgGroupContact);
-    }
-
-    // if i sent the message, unreadMessages = 0 otherwise unreadMessages = chat.unreadCount
-    const unreadMessages = msg.fromMe ? 0 : chat.unreadCount;
-
-    const contact = await verifyContactForSyncUnreadMessages(msgContact);
-
-    // find, create or update a ticket from the contact or groupContact and from whatsappId
-    // always update the ticket unreadMessages
-    const ticket = await FindOrCreateTicketLiteService(
-      contact,
-      wbot.id!,
-      unreadMessages,
-      groupContact,
-      msg.timestamp
-    );
-
-    if (msg.hasMedia) {
-      await verifyMediaMessage(msg, ticket, contact, false);
-    } else {
-      await verifyMessage(msg, ticket, contact, false, false);
-    }
-
-    return { ticket, contact };
-  } catch (err) {
-    logger.error(`Error handling whatsapp message: Err: ${err}`);
-    console.log(err);
-    Sentry.captureException(err);
-  }
-};
-
 const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
   await new Promise(r => setTimeout(r, 600));
 
@@ -944,12 +1058,12 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
       return;
     }
 
-    console.log(
-      "-- handleMsgAck -messageToUpdate:",
-      messageToUpdate,
-      " -ack: ",
-      ack
-    );
+    // console.log(
+    //   "-- handleMsgAck -messageToUpdate:",
+    //   messageToUpdate,
+    //   " -ack: ",
+    //   ack
+    // );
 
     await messageToUpdate.update({ ack });
 
@@ -995,7 +1109,11 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 
 const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("message_create", async msg => {
-    handleMessage(msg, wbot);
+    logger.info(
+      `BOT wbotMessageListener message_create - wpp id: ${whatsapp.id} - from: ${msg.from} - type ${msg.type}`
+    );
+
+    handleMessage({ msg, wbot });
 
     try {
       // ignorar mensajes de grupos y de estados
@@ -1004,22 +1122,13 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
       }
       // solo aceptar mensajes de texto
       if (msg.type === "chat") {
-        // console.log("---- wbotMessageListener - message_create event");
-
         const freshWpp = await Whatsapp.findByPk(whatsapp.id);
-
-        // console.log("---- wbotMessageListener - freshWpp: ", freshWpp);
 
         if (!freshWpp) {
           throw new AppError("ERR_NO_WAPP_FOUND", 404);
         }
 
         if (freshWpp.webhook) {
-          // console.log(
-          //   "---- wbotMessageListener - freshWpp.webhook: ",
-          //   freshWpp.webhook
-          // );
-
           fetch(freshWpp.webhook, {
             method: "POST",
             headers: {
@@ -1041,7 +1150,82 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     }
   });
   wbot.on("media_uploaded", async msg => {
-    handleMessage(msg, wbot);
+    handleMessage({ msg, wbot });
+  });
+  wbot.on("group_update", async contact => {
+    if (contact?.type !== "subject") {
+      return;
+    }
+
+    console.log(
+      "--- BOT wbotMessageListener group_update - wbot.id: ",
+      wbot.id,
+      contact
+    );
+
+    try {
+      const groupContact = await Contact.findOne({
+        where: { number: contact.chatId.split("@")[0] }
+      });
+
+      if (!groupContact) {
+        throw new AppError(
+          "No group contact found with this ID. " + contact.chatId
+        );
+      }
+
+      // console.log("groupContact: ", groupContact);
+
+      groupContact.update({
+        name: contact.body
+      });
+
+      emitEvent({
+        event: {
+          name: "contact",
+          data: {
+            action: "update",
+            contact: groupContact
+          }
+        }
+      });
+    } catch (err) {
+      console.log("Error on group_update event: ", contact, err);
+      Sentry.captureException(err);
+    }
+  });
+
+  wbot.on("message_edit", async msg => {
+    console.log(
+      "--- BOT wbotMessageListener message_edit - wbot.id: ",
+      wbot.id
+    );
+
+    try {
+      const message = await Message.findByPk(msg.id.id);
+
+      if (!message) {
+        // throw new AppError("No message found with this ID. " + msg.id.id);
+        console.log("No message found with this ID. " + msg.id.id);
+        return;
+      }
+
+      await message.update({ body: msg.body, isEdited: true });
+
+      emitEvent({
+        to: [message.ticketId.toString()],
+        event: {
+          name: "appMessage",
+          data: {
+            action: "update",
+            message
+          }
+        }
+      });
+    } catch (err) {
+      console.log("Error on message_edit event: ", msg, err);
+      Sentry.captureException(err);
+    }
   });
   wbot.on("message_ack", async (msg, ack) => {
     // la libreria a veces envia null como ack y causaba error
@@ -1054,8 +1238,4 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   });
 };
 
-export {
-  handleMessage,
-  handleMessageForSyncUnreadMessages,
-  wbotMessageListener
-};
+export { handleMessage, isValidMsg, wbotMessageListener };

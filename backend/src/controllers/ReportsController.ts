@@ -4,6 +4,7 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { Request, Response } from "express";
 import { Op, QueryTypes } from "sequelize";
+import AppError from "../errors/AppError";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
 import Message from "../models/Message";
@@ -32,6 +33,7 @@ type IndexQuery = {
   selectedCountryIds?: string;
   selectedTypes?: string;
   selectedQueueIds?: string;
+  selectedChatbotMessagesIds?: string;
 };
 
 function findLast<T>(array: T[], callback: any): T | undefined {
@@ -424,7 +426,7 @@ export const getATicketsList = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  console.log("---------------getATicketsList");
+  // console.log("---------------getATicketsList");
 
   const { ticketIds: ticketIdsAsString } = req.query as {
     ticketIds: string;
@@ -461,7 +463,15 @@ export const getATicketsList = async (
         model: Whatsapp,
         as: "whatsapp",
         attributes: ["name"],
-        required: false
+        required: false,
+        include: [
+          {
+            model: User,
+            attributes: ["id"],
+            as: "userWhatsapps",
+            required: false
+          }
+        ]
       },
       {
         model: Category,
@@ -485,13 +495,13 @@ export const getATicketsList = async (
     tickets
   );
 
-  console.log(
-    "ticketsWithClientTimeWaiting: ",
-    ticketsWithClientTimeWaiting.map(t => ({
-      id: t.id,
-      clientTimeWaiting: t.clientTimeWaiting
-    }))
-  );
+  // console.log(
+  //   "ticketsWithClientTimeWaiting: ",
+  //   ticketsWithClientTimeWaiting.map(t => ({
+  //     id: t.id,
+  //     clientTimeWaiting: t.clientTimeWaiting
+  //   }))
+  // );
 
   return res.status(200).json({
     tickets: ticketsWithClientTimeWaiting
@@ -658,6 +668,8 @@ export const getClientTimeWaitingForTickets = async (tickets: Ticket[]) => {
 
   return tickets;
 };
+
+// ----------------- reports page
 
 export const reportHistory = async (
   req: Request,
@@ -996,7 +1008,7 @@ export const reportHistoryWithDateRange = async (
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.isGroup = 0 AND ( t.chatbotMessageIdentifier IS NULL || (t.chatbotMessageIdentifier IS NOT NULL AND ( t.chatbotMessageLastStep IS NOT NULL OR t.userId ) ) ) AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
@@ -1290,7 +1302,7 @@ export const reportToExcel = async (
   // const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   // const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.status != 'pending' and t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = `t.status != 'pending' AND ( t.chatbotMessageIdentifier IS NULL || (t.chatbotMessageIdentifier IS NOT NULL AND ( t.chatbotMessageLastStep IS NOT NULL OR t.userId ) ) ) and (ct.isCompanyMember = 0 or ct.isCompanyMember is null) and t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
   // const sqlWhereAdd = " t.id = 3318 ";
@@ -1342,7 +1354,7 @@ export const reportToExcel = async (
   LEFT JOIN Queues que ON t.queueId = que.id
   WHERE
   ${sqlWhereAdd}`;
-  console.log("sql", sql);
+  // console.log("sql", sql);
   logsTime.push(`sql-inicio: ${Date()}`);
   const ticketListFinal = [];
   /**
@@ -1490,15 +1502,6 @@ export const reportToExcel = async (
   }
 
   if (ticketListFinal.length > 0) {
-    console.log(
-      "-----------:",
-      `
-      SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
-        .map(ticket => ticket.tid)
-        .join(",")}) ORDER BY tc.updatedAt DESC
-      `
-    );
-
     let ticketListFinalCategories: any[] = await Ticket.sequelize.query(
       `
       SELECT * FROM TicketCategories tc LEFT JOIN Categories c ON c.id = tc.categoryId WHERE tc.ticketId in (${ticketListFinal
@@ -1528,6 +1531,43 @@ export const reportToExcel = async (
         ticketListFinal.find(
           t => t.tid === ticketCategory.ticketId
         ).tcategoryname = ticketCategory.name;
+      }
+    }
+  }
+
+  if (ticketListFinal.length > 0) {
+    const contactNumber = ticketListFinal
+      .filter(t => !t.tisGroup && Number(t.ctnumber))
+      .map(t => t.ctnumber);
+
+    if (contactNumber.length > 0) {
+      try {
+        // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
+        const response = await fetch(
+          "https://microservices.restaurant.pe/backendrestaurantpe/public/rest/common/contactobi/searchphoneListToWppticket",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(contactNumber)
+          }
+        );
+
+        if (!response.ok) {
+          throw new AppError(response.statusText);
+        }
+
+        const data = await response.json();
+
+        for (const number in data.data) {
+          if (ticketListFinal.find(t => t.ctnumber === number)) {
+            ticketListFinal.find(t => t.ctnumber === number).microserviceData =
+              data.data[number];
+          }
+        }
+      } catch (error) {
+        console.log("--- Error in searchIfNumbersAreExclusive", error);
       }
     }
   }
@@ -2039,6 +2079,124 @@ export const reportToUsers = async (
   return res.status(200).json({
     usersListAll,
     // usersListFind,
+    sql,
+    logsTime
+  });
+};
+
+// ----------------- API chatbotMessages page
+
+export const chatbotMessagesReportToExcel = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedChatbotMessagesIds: selectedChatbotMessagesIdsAsString
+  } = req.query as IndexQuery;
+
+  const selectedChatbotMessagesIds = JSON.parse(
+    selectedChatbotMessagesIdsAsString
+  ) as string[];
+
+  const logsTime = [];
+
+  let sqlWhereAdd = `t.chatbotMessageIdentifier IS NOT NULL AND m.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' AND '${formatDateToMySQL(toDateAsString)}' `;
+
+  if (selectedChatbotMessagesIds.length > 0) {
+    sqlWhereAdd += ` AND t.chatbotMessageIdentifier IN (${selectedChatbotMessagesIds
+      .map(i => "'" + i + "'")
+      .join(",")}) AND m.identifier IN (${selectedChatbotMessagesIds
+      .map(i => "'" + i + "'")
+      .join(",")})`;
+  }
+
+  const sql = `SELECT
+    t.id as ticket_id,
+    t.createdAt as ticket_createdAt,
+    t.status as ticket_status,
+    t.chatbotMessageIdentifier as ticket_chatbotMessageIdentifier,
+    cm.title as ticket_chatbotMessageLastStep,
+    t.chatbotMessageLastStep as ticket_chatbotMessageLastStepIdentifier,
+    t.privateNote as ticket_privateNote,
+    u.id as user_id,
+    u.name as user_name,
+    ct.id as ticketContact_tid,
+    ct.name as ticketContact_name,
+    ct.number as ticketContact_number,
+    ctc.name as ticketContactCountry_name,
+    w.id as whatsapp_id,
+    w.name as whatsapp_name,
+    m.id as message_id,
+    m.timestamp as message_timestamp,
+    m.body as message_body
+  FROM Tickets t
+  LEFT JOIN Users u ON t.userId = u.id
+  LEFT JOIN Whatsapps w ON t.whatsappId = w.id
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
+  LEFT JOIN Countries ctc ON ct.countryId = ctc.id
+  LEFT JOIN Messages m ON t.id = m.ticketId
+  LEFT JOIN ChatbotMessages cm ON t.chatbotMessageLastStep = cm.identifier
+  WHERE ${sqlWhereAdd}`;
+
+  // console.log("sql", sql);
+
+  logsTime.push(`sql-inicio: ${Date()}`);
+
+  const ticketList: any[] = await Ticket.sequelize.query(sql, {
+    type: QueryTypes.SELECT
+  });
+
+  logsTime.push(`sql-fin: ${Date()}`);
+
+  if (ticketList.length > 0) {
+    const ticketLocalIds = ticketList
+      .filter(t => t.ticket_privateNote)
+      .map(t => t.ticket_privateNote);
+
+    if (ticketLocalIds.length > 0) {
+      try {
+        // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
+        const response = await fetch(
+          "https://microservices.restaurant.pe/backendrestaurantpe/public/rest/common/obtenerLocalesBiByIds",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              localbi_id: ticketLocalIds
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new AppError(response.statusText);
+        }
+
+        const data = await response.json();
+
+        data.data.forEach(localData => {
+          const ticketToAddData = ticketList.filter(
+            t => t.ticket_privateNote === localData.localbi_id
+          );
+
+          ticketToAddData.forEach(ticket => {
+            ticket.microserviceData = localData;
+          });
+        });
+      } catch (error) {
+        console.log("--- Error in obtenerLocalesBiByIds", error);
+      }
+    }
+  }
+
+  logsTime.push(`asignacion-fin: ${Date()}`);
+  return res.status(200).json({
+    ticketList,
     sql,
     logsTime
   });

@@ -21,6 +21,7 @@ const ReportsCountrySelect = ({
 
   return (
     <Badge
+      overlap="rectangular"
       badgeContent={selectedCountryIds.length}
       color="primary"
       max={99999}

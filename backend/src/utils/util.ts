@@ -231,7 +231,8 @@ export const processMessageTicketClosed = (
     avgResponse: null,
     resolution: null,
     waiting: null,
-    quintalHours: null
+    quintalHours: null,
+    firstResponseMessage: null
   };
   let isValidate = true;
   if (messageList.length === 1 && messageList[0].mid === null) {
@@ -279,6 +280,7 @@ export const processMessageTicketClosed = (
               new Date(lastSenderMessageTime * 1000)
             )
           );
+          times.firstResponseMessage = message.mbody;
         }
         responseTimes.push(responseTime);
         lastSenderMessageTime = null; // Reset para el próximo par de mensajes
@@ -308,7 +310,8 @@ export const processMessageTicketPendingOrOpen = (
     avgResponse: null,
     resolution: null,
     waiting: null,
-    quintalHours: null
+    quintalHours: null,
+    firstResponseMessage: null
   };
   let isValidate = true;
   if (messageList.length === 1 && messageList[0].mid === null) {
@@ -370,6 +373,7 @@ export const processMessageTicketPendingOrOpen = (
         );
         if (times.firstResponse === null) {
           times.firstResponse = secondsToDhms(responseTime);
+          times.firstResponseMessage = message.mbody;
         }
         responseTimes.push(responseTime);
         lastSenderMessageTime = null; // Reset para el próximo par de mensajes

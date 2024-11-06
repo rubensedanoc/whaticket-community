@@ -32,7 +32,7 @@ const filter = createFilterOptions({
   trim: true,
 });
 
-const NewTicketModal = ({ modalOpen, onClose }) => {
+const NewTicketModal = ({ preSelectedContactId, modalOpen, onClose }) => {
   const history = useHistory();
 
   const [options, setOptions] = useState([]);
@@ -57,7 +57,7 @@ const NewTicketModal = ({ modalOpen, onClose }) => {
         try {
           const { data } = await api.get("contacts", {
             params: {
-              searchParam: searchParam.replaceAll(" ", "").replaceAll("+", ""),
+              searchParam,
             },
           });
           console.log("data: ", data.contacts);
@@ -115,7 +115,9 @@ const NewTicketModal = ({ modalOpen, onClose }) => {
     if (newValue?.number) {
       setSelectedContact(newValue);
     } else if (newValue?.name) {
-      setNewContact({ name: newValue.name });
+      setNewContact({
+        number: newValue.name.replaceAll(" ", "").replaceAll("+", ""),
+      });
       setContactModalOpen(true);
     }
   };
@@ -170,47 +172,51 @@ const NewTicketModal = ({ modalOpen, onClose }) => {
           {i18n.t("newTicketModal.title")}
         </DialogTitle>
         <DialogContent style={{ overflow: "visible" }}>
-          <Autocomplete
-            options={options}
-            loading={loading}
-            style={{ width: 300 }}
-            clearOnBlur
-            autoHighlight
-            freeSolo
-            clearOnEscape
-            key={key}
-            getOptionLabel={renderOptionLabel}
-            renderOption={renderOption}
-            filterOptions={createAddContactOption}
-            onChange={(e, newValue) => handleSelectOption(e, newValue)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label={i18n.t("newTicketModal.fieldLabel")}
-                variant="outlined"
-                autoFocus
-                onChange={(e) => setSearchParam(e.target.value)}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <React.Fragment>
-                      {loading ? (
-                        <CircularProgress color="inherit" size={20} />
-                      ) : null}
-                      {params.InputProps.endAdornment}
-                    </React.Fragment>
-                  ),
-                }}
+          {!preSelectedContactId && (
+            <>
+              <Autocomplete
+                options={options}
+                loading={loading}
+                style={{ width: 300 }}
+                clearOnBlur
+                autoHighlight
+                freeSolo
+                clearOnEscape
+                key={key}
+                getOptionLabel={renderOptionLabel}
+                renderOption={renderOption}
+                filterOptions={createAddContactOption}
+                onChange={(e, newValue) => handleSelectOption(e, newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={i18n.t("newTicketModal.fieldLabel")}
+                    variant="outlined"
+                    autoFocus
+                    onChange={(e) => setSearchParam(e.target.value)}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <React.Fragment>
+                          {loading ? (
+                            <CircularProgress color="inherit" size={20} />
+                          ) : null}
+                          {params.InputProps.endAdornment}
+                        </React.Fragment>
+                      ),
+                    }}
+                  />
+                )}
               />
-            )}
-          />
-          <br />
+              <br />
+            </>
+          )}
 
           <FormControl
             fullWidth={true}
             margin="dense"
             variant="outlined"
-            style={{ width: "100%" }}
+            style={{ width: "300px" }}
           >
             <InputLabel>Conexion</InputLabel>
 
@@ -304,9 +310,14 @@ const NewTicketModal = ({ modalOpen, onClose }) => {
           <ButtonWithSpinner
             variant="contained"
             type="button"
-            disabled={!selectedContact || !selectedWhatsappId}
+            disabled={
+              (!preSelectedContactId && !selectedContact) || !selectedWhatsappId
+            }
             onClick={() =>
-              handleSaveTicket(selectedContact.id, selectedWhatsappId)
+              handleSaveTicket(
+                selectedContact?.id || preSelectedContactId,
+                selectedWhatsappId
+              )
             }
             color="primary"
             loading={loading}

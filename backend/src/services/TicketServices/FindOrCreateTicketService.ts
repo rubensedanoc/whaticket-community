@@ -1,6 +1,8 @@
-import { subHours } from "date-fns";
+import * as Sentry from "@sentry/node";
+import { subHours, subMinutes } from "date-fns";
 import { Op } from "sequelize";
 import Category from "../../models/Category";
+import ChatbotMessage from "../../models/ChatbotMessage";
 import ChatbotOption from "../../models/ChatbotOption";
 import Contact from "../../models/Contact";
 import Queue from "../../models/Queue";
@@ -17,13 +19,100 @@ import ShowTicketService from "./ShowTicketService";
  *
  * at the end, find the ticket from the service ShowTicketService and return it
  */
-const FindOrCreateTicketService = async (
-  contact: Contact,
-  whatsappId: number,
-  unreadMessages: number,
-  groupContact?: Contact,
-  lastMessageTimestamp?: number
-): Promise<Ticket> => {
+const FindOrCreateTicketService = async (props: {
+  contact: Contact;
+  whatsappId: number;
+  unreadMessages: number;
+  groupContact?: Contact;
+  lastMessageTimestamp?: number;
+  chatbotMessageIdentifier?: string;
+}): Promise<Ticket> => {
+  const {
+    contact,
+    whatsappId,
+    unreadMessages,
+    groupContact,
+    lastMessageTimestamp,
+    chatbotMessageIdentifier
+  } = props;
+
+  let ticket = await findTicket(props);
+
+  // if ticket not exists, create a ticket from the contact or groupContact, with status pending, isGroup prop,
+  // unreadMessages and from the whatsappId
+  if (!ticket) {
+    try {
+      ticket = await Ticket.create({
+        contactId: groupContact ? groupContact.id : contact.id,
+        status: chatbotMessageIdentifier
+          ? "closed"
+          : !!groupContact
+          ? "open"
+          : "pending",
+        isGroup: !!groupContact,
+        unreadMessages,
+        whatsappId,
+        lastMessageTimestamp,
+        ...(chatbotMessageIdentifier && {
+          chatbotMessageIdentifier
+        })
+      });
+
+      // find the ticket from the service ShowTicketService and return it
+      ticket = await ShowTicketService(ticket.id);
+    } catch (error) {
+      console.log("--- Error en FindOrCreateTicketService", error);
+
+      // Esperar 200 ms antes de reintentar
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      console.log("--- Reintentando otra vez vez");
+
+      Sentry.captureException(error);
+
+      ticket = await findTicket(props);
+
+      if (!ticket) {
+        ticket = await Ticket.create({
+          contactId: groupContact ? groupContact.id : contact.id,
+          status: chatbotMessageIdentifier
+            ? "closed"
+            : !!groupContact
+            ? "open"
+            : "pending",
+          isGroup: !!groupContact,
+          unreadMessages,
+          whatsappId,
+          lastMessageTimestamp,
+          ...(chatbotMessageIdentifier && {
+            chatbotMessageIdentifier
+          })
+        });
+      }
+
+      // find the ticket from the service ShowTicketService and return it
+      ticket = await ShowTicketService(ticket.id);
+    }
+  }
+
+  return ticket;
+};
+
+const findTicket = async ({
+  contact,
+  whatsappId,
+  unreadMessages,
+  groupContact,
+  lastMessageTimestamp,
+  chatbotMessageIdentifier
+}: {
+  contact: Contact;
+  whatsappId: number;
+  unreadMessages: number;
+  groupContact?: Contact;
+  lastMessageTimestamp?: number;
+  chatbotMessageIdentifier?: string;
+}) => {
   // find a ticket with status open or pending, from the contact or groupContact and  from the whatsappId
   let ticket = await Ticket.findOne({
     where: {
@@ -63,6 +152,9 @@ const FindOrCreateTicketService = async (
       unreadMessages,
       ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
         lastMessageTimestamp
+      }),
+      ...(chatbotMessageIdentifier && {
+        chatbotMessageIdentifier
       })
     });
   }
@@ -99,12 +191,13 @@ const FindOrCreateTicketService = async (
 
   // if ticket not exists and groupContact is falsy, find a ticket updated in the last 2 hours from the contact and from the whatsappId
   // if this time the ticket exists, update his status to pending and set his userId to null and update his unreadMessages
-  if (!ticket && !groupContact) {
+  if (!ticket && !groupContact && !chatbotMessageIdentifier) {
+    // bsucamos el ultimo ticket asi sean no interactivos
     ticket = await Ticket.findOne({
       where: {
-        updatedAt: {
-          [Op.between]: [+subHours(new Date(), 2), +new Date()]
-        },
+        // updatedAt: {
+        //   [Op.between]: [+subHours(new Date(), 2), +new Date()]
+        // },
         contactId: contact.id,
         whatsappId: whatsappId
       },
@@ -119,30 +212,51 @@ const FindOrCreateTicketService = async (
     });
 
     if (ticket) {
+      const twoHoursAgo = subHours(new Date(), 2);
+      let validTime = twoHoursAgo;
+
+      if (ticket.chatbotMessageIdentifier && !ticket.userId) {
+        const chatbotMessage = await ChatbotMessage.findOne({
+          where: {
+            identifier: ticket.chatbotMessageIdentifier,
+            isActive: true,
+            wasDeleted: false
+          }
+        });
+
+        if (chatbotMessage && chatbotMessage.timeToWaitInMinutes) {
+          validTime = subMinutes(
+            new Date(),
+            chatbotMessage.timeToWaitInMinutes
+          );
+        }
+      } else {
+        console.log(
+          "xxx Ticket antiguo no tiene chatbotMessageIdentifier o ya ha tenido usuario se va a usar el validTime de 2 horas"
+        );
+      }
+
+      console.log("xxx validTime", validTime);
+
+      if (new Date(ticket.updatedAt) < validTime) {
+        ticket = null;
+      }
+    }
+
+    if (ticket) {
       await ticket.update({
-        status: "open",
+        status: !ticket.userId ? "pending" : "open",
         // userId: null,
         unreadMessages,
-        lastMessageTimestamp
+        ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
+          lastMessageTimestamp
+        }),
+        ...(chatbotMessageIdentifier && {
+          chatbotMessageIdentifier
+        })
       });
     }
   }
-
-  // if ticket not exists, create a ticket from the contact or groupContact, with status pending, isGroup prop,
-  // unreadMessages and from the whatsappId
-  if (!ticket) {
-    ticket = await Ticket.create({
-      contactId: groupContact ? groupContact.id : contact.id,
-      status: !!groupContact ? "open" : "pending",
-      isGroup: !!groupContact,
-      unreadMessages,
-      whatsappId,
-      lastMessageTimestamp
-    });
-  }
-
-  // find the ticket from the service ShowTicketService and return it
-  ticket = await ShowTicketService(ticket.id);
 
   return ticket;
 };

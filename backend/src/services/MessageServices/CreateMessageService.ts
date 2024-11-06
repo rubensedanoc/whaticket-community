@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
+import { emitEvent } from "../../libs/emitEvent";
+import Category from "../../models/Category";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
@@ -24,12 +26,6 @@ interface Request {
 const CreateMessageService = async ({
   messageData
 }: Request): Promise<Message> => {
-  console.log(
-    "--- CreateMessageService messageData.id: ",
-    messageData.id,
-    messageData.body
-  );
-
   // Guardar una copia del ID original
   const originalId = messageData.id;
 
@@ -37,17 +33,10 @@ const CreateMessageService = async ({
     let messageAlreadyCreated = await Message.findByPk(originalId);
 
     if (messageAlreadyCreated) {
-      console.log(
-        "---- El mensaje ya existe, generando un nuevo ID y marcando como duplicado"
-      );
       // Generar un nuevo ID y marcar como duplicado si ya existe
       messageData.id = uuidv4();
       messageData.isDuplicated = true;
-    } else {
-      console.log("---- El mensaje no existe");
     }
-
-    console.log("--- Creando el mensaje");
 
     // Crear el mensaje
     await Message.create(messageData);
@@ -92,7 +81,21 @@ const CreateMessageService = async ({
           {
             model: Whatsapp,
             as: "whatsapp",
-            attributes: ["name"]
+            attributes: ["name"],
+            include: [
+              {
+                model: User,
+                attributes: ["id"],
+                as: "userWhatsapps",
+                required: false
+              }
+            ]
+          },
+          {
+            model: Category,
+            as: "categories",
+            attributes: ["id", "name", "color"],
+            required: false
           },
           {
             model: User,
@@ -132,49 +135,18 @@ const CreateMessageService = async ({
     )[0];
   }
 
-  // const io = getIO();
-  /* io.to(message.ticketId.toString())
-    .to(message.ticket.status)
-    .to("notification")
-    .emit("appMessage", {
-      action: "create",
-      message,
-      ticket: message.ticket,
-      contact: message.ticket.contact
-    }); */
-  // Define la URL a la que se va a enviar la solicitud
-  const url = process.env.NODE_URL + "/toEmit";
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      to: [message.ticketId.toString(), message.ticket.status, "notification"],
-      event: {
-        name: "appMessage",
-        data: {
-          action: "create",
-          message,
-          ticket: message.ticket,
-          contact: message.ticket.contact
-        }
+  emitEvent({
+    to: [message.ticketId.toString(), message.ticket.status, "notification"],
+    event: {
+      name: "appMessage",
+      data: {
+        action: "create",
+        message,
+        ticket: message.ticket,
+        contact: message.ticket.contact
       }
-    })
-  })
-    .then(response => {
-      if (!response.ok) {
-        console.log("---------- response NOT OK");
-        throw new Error("Network response was not ok " + response.statusText);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log("------------ Success:", data);
-    })
-    .catch(error => {
-      console.error("Error:", error);
-    });
+    }
+  });
 
   return message;
 };

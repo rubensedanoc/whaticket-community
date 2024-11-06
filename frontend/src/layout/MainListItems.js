@@ -12,6 +12,8 @@ import BarChartIcon from "@material-ui/icons/BarChart";
 import CategoryOutlinedIcon from "@material-ui/icons/CategoryOutlined";
 import ContactPhoneOutlinedIcon from "@material-ui/icons/ContactPhoneOutlined";
 import DashboardOutlinedIcon from "@material-ui/icons/DashboardOutlined";
+import FacebookIcon from "@material-ui/icons/Facebook";
+import HttpIcon from "@material-ui/icons/Http";
 import MessageOutlinedIcon from "@material-ui/icons/MessageOutlined";
 import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
 import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
@@ -38,7 +40,11 @@ function ListItemLink(props) {
   return (
     <li>
       <ListItem button component={renderLink} className={className}>
-        {icon ? <ListItemIcon>{icon}</ListItemIcon> : null}
+        {icon ? (
+          <ListItemIcon style={{ minWidth: "fit-content", marginRight: 12 }}>
+            {icon}
+          </ListItemIcon>
+        ) : null}
         <ListItemText primary={primary} />
       </ListItem>
     </li>
@@ -84,7 +90,11 @@ const MainListItems = (props) => {
         to="/connections"
         primary={i18n.t("mainDrawer.listItems.connections")}
         icon={
-          <Badge badgeContent={connectionWarning ? "!" : 0} color="error">
+          <Badge
+            overlap="rectangular"
+            badgeContent={connectionWarning ? "!" : 0}
+            color="error"
+          >
             <SyncAltIcon />
           </Badge>
         }
@@ -108,7 +118,8 @@ const MainListItems = (props) => {
       />
       <ListItemLink
         to="/quickAnswers"
-        primary={i18n.t("mainDrawer.listItems.quickAnswers")}
+        // primary={i18n.t("mainDrawer.listItems.quickAnswers")}
+        primary={"Resp. Rápidas"}
         icon={<QuestionAnswerOutlinedIcon />}
       />
       <Can
@@ -117,9 +128,14 @@ const MainListItems = (props) => {
         yes={() => (
           <>
             <Divider />
-            <ListSubheader inset>
+            <ListSubheader inset style={{ padding: 0, paddingLeft: 52 }}>
               {i18n.t("mainDrawer.listItems.administration")}
             </ListSubheader>
+            <ListItemLink
+              to="/api-chatbot"
+              primary={"Api Chatbot"}
+              icon={<HttpIcon />}
+            />
             <ListItemLink
               to="/reportsv2"
               primary={"Reportes"}
@@ -144,6 +160,11 @@ const MainListItems = (props) => {
               to="/categories"
               primary={"Categorias"}
               icon={<CategoryOutlinedIcon />}
+            />
+            <ListItemLink
+              to="/marketingCampaigns"
+              primary={"Campañas de Mrkt"}
+              icon={<FacebookIcon />}
             />
             <ListItemLink
               to="/settings"

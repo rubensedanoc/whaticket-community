@@ -17,6 +17,7 @@ const ReportsTicketTypeSelect = ({ types, selectedTypes = [], onChange }) => {
 
   return (
     <Badge
+      overlap="rectangular"
       badgeContent={selectedTypes.length}
       color="primary"
       max={99999}

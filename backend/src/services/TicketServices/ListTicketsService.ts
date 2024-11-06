@@ -8,16 +8,13 @@ import {
   fn,
   where
 } from "sequelize";
-
 import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
-import { searchIfNumbersAreExclusive } from "../../libs/searchIfNumbersAreExclusive";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
-import ShowUserService from "../UserServices/ShowUserService";
 
 interface Request {
   searchParam?: string;
@@ -31,48 +28,172 @@ interface Request {
   queueIds: Array<number>;
   typeIds: Array<string>;
   showOnlyMyGroups: boolean;
+  categoryId?: number;
+  userWhatsappsId?: number[];
 }
 
 interface Response {
   tickets: any[];
   count: number;
   hasMore: boolean;
+  whereCondition: Filterable["where"];
+  includeCondition: Includeable[];
 }
 
-const ListTicketsService = async ({
-  searchParam = "",
-  pageNumber = "1",
-  whatsappIds,
-  queueIds,
+// Función para construir la condición where principal
+const buildWhereCondition = ({
+  userId,
   typeIds,
+  queueIds,
+  whatsappIds,
+  categoryId,
+  showAll,
+  showOnlyMyGroups,
+  searchParam,
   status,
   date,
-  showAll,
-  userId,
   withUnreadMessages,
-  showOnlyMyGroups
-}: Request): Promise<Response> => {
-  let whereCondition: Filterable["where"] = {
-    [Op.or]: [
-      { userId },
-      {
-        id: {
-          [Op.in]: Sequelize.literal(
-            `(
-          SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` = ${userId}
-        )`
-          )
+  userWhatsappsId
+}: Request): Filterable["where"] => {
+  let baseCondition: Filterable["where"] = {};
+
+  // si tengo status, entonces filtro por status
+  if (status) {
+    baseCondition = { ...baseCondition, status };
+  }
+
+  //  si tengo searchParam, entonces tmb busco por nombre o número
+  if (searchParam) {
+    const sanitizedSearchParam = searchParam.toLowerCase().trim();
+    baseCondition = {
+      ...baseCondition,
+      [Op.and]: [
+        {
+          [Op.or]: [
+            {
+              "$contact.name$": where(
+                fn("LOWER", col("contact.name")),
+                "LIKE",
+                `%${sanitizedSearchParam}%`
+              )
+            },
+            { "$contact.number$": { [Op.like]: `%${sanitizedSearchParam}%` } }
+          ]
         }
-      },
-      { status: "pending" }
-    ],
-    ...(typeIds?.length && {
-      isGroup: {
-        [Op.or]: typeIds?.map(typeId => (typeId === "group" ? true : false))
+      ]
+    };
+  }
+
+  // si tengo typeIs ("group" o "individual" o los 2)
+  // entonces uso el isGroup del ticket para filtrar
+  if (typeIds?.length) {
+    baseCondition = {
+      ...baseCondition,
+      isGroup: { [Op.or]: typeIds.map(typeId => typeId === "group") }
+    };
+  }
+
+  // si solo estoy viendo mis individuales abiertos, entonces muestro los tickets que tengan mi userId o en los que este ayudando
+  if (showAll !== "true" && typeIds[0] === "individual" && status === "open") {
+    baseCondition = {
+      ...baseCondition,
+      [Op.and]: [
+        ...(baseCondition[Op.and] || []),
+        {
+          [Op.or]: [
+            { userId },
+            {
+              id: {
+                [Op.in]: Sequelize.literal(
+                  `(SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` = ${userId})`
+                )
+              }
+            },
+            ...(searchParam && userWhatsappsId.length > 0
+              ? [
+                  {
+                    whatsappId: {
+                      [Op.in]: userWhatsappsId
+                    }
+                  }
+                ]
+              : [])
+          ]
+        }
+      ]
+    };
+  }
+
+  // Si no estoy viendo solo mis grupos o solo mis individuales abiertos O si no hay searchparam
+  // voy a permitir filtrar por departamento o conexión
+  if (
+    !(
+      typeIds.length === 1 &&
+      ((showAll !== "true" &&
+        typeIds[0] === "individual" &&
+        status === "open") ||
+        (showOnlyMyGroups && typeIds[0] === "group"))
+    ) ||
+    !searchParam
+  ) {
+    if (queueIds?.length) {
+      baseCondition = {
+        ...baseCondition,
+        queueId: {
+          [Op.or]: queueIds.includes(null)
+            ? [queueIds.filter(id => id !== null), null]
+            : [queueIds]
+        }
+      };
+    }
+    if (whatsappIds?.length) {
+      baseCondition = {
+        ...baseCondition,
+        whatsappId: {
+          [Op.or]: whatsappIds
+        }
+      };
+    }
+  }
+
+  // si tengo categoryId = 0, entonces busco solo los tickets que no
+  // tienen ninguna categoria asignada
+  if (categoryId === 0) {
+    baseCondition = {
+      ...baseCondition,
+      [Op.and]: [
+        ...(baseCondition[Op.and] || []),
+        Sequelize.literal(
+          `NOT EXISTS (
+            SELECT 1
+            FROM \`TicketCategories\`
+            WHERE \`TicketCategories\`.\`ticketId\`  = \`Ticket\`.\`id\`
+          )`
+        )
+      ]
+    };
+  }
+
+  // REINICIO DE LA CONDICIÓN BASE
+  // y valido solo el created at del ticket
+  if (date) {
+    baseCondition = {
+      createdAt: {
+        [Op.between]: [+startOfDay(parseISO(date)), +endOfDay(parseISO(date))]
       }
-    }),
-    // si no estoy viendo la tab de mis chats, entonces aplico filtros de queues y whatsapp
-    ...(!(typeIds.length === 1 && typeIds[0] === "individual") && {
+    };
+  }
+
+  // REINICIO DE LA CONDICIÓN BASE
+  // ya no me acuerdo el pq de estas condiciones xd
+  if (withUnreadMessages === "true") {
+    baseCondition = {
+      [Op.or]: [{ userId }, { status: "pending" }],
+      ...(typeIds?.length && {
+        isGroup: {
+          [Op.or]: typeIds?.map(typeId => (typeId === "group" ? true : false))
+        }
+      }),
       ...(queueIds?.length && {
         queueId: {
           // @ts-ignore
@@ -85,12 +206,23 @@ const ListTicketsService = async ({
         whatsappId: {
           [Op.or]: [whatsappIds]
         }
-      })
-    })
-  };
-  let includeCondition: Includeable[];
+      }),
+      unreadMessages: { [Op.gt]: 0 }
+    };
+  }
 
-  includeCondition = [
+  return baseCondition;
+};
+
+// Función para construir la condición include
+const buildIncludeCondition = ({
+  searchParam,
+  categoryId,
+  userId,
+  showOnlyMyGroups,
+  typeIds
+}: Request): Includeable[] => {
+  const includeCondition: Includeable[] = [
     {
       model: Contact,
       as: "contact",
@@ -100,7 +232,8 @@ const ListTicketsService = async ({
         "number",
         "domain",
         "profilePicUrl",
-        "countryId"
+        "countryId",
+        "isCompanyMember"
       ],
       ...(searchParam && { required: true })
     },
@@ -112,12 +245,26 @@ const ListTicketsService = async ({
     {
       model: Whatsapp,
       as: "whatsapp",
-      attributes: ["name"]
+      attributes: ["name"],
+      include: [
+        {
+          model: User,
+          attributes: ["id"],
+          as: "userWhatsapps",
+          required: false
+        }
+      ]
     },
     {
       model: Category,
       as: "categories",
-      attributes: ["id", "name", "color"]
+      attributes: ["id", "name", "color"],
+      ...(categoryId > 0 && {
+        where: {
+          id: categoryId
+        },
+        required: true
+      })
     },
     {
       model: User,
@@ -143,141 +290,36 @@ const ListTicketsService = async ({
     }
   ];
 
-  if (showAll === "true") {
-    whereCondition = {
-      ...(typeIds?.length && {
-        isGroup: {
-          [Op.or]: typeIds?.map(typeId => (typeId === "group" ? true : false))
-        }
-      }),
+  return includeCondition;
+};
 
-      // si no estoy viendo la tab de mis grupos, entonces aplico filtros de queues y whatsapp
-      ...(!(
-        typeIds.length === 1 &&
-        typeIds[0] === "group" &&
-        showOnlyMyGroups
-      ) && {
-        ...(queueIds?.length && {
-          queueId: {
-            // @ts-ignore
-            [Op.or]: queueIds?.includes(null)
-              ? [queueIds.filter(id => id !== null), null]
-              : [queueIds]
-          }
-        }),
-        ...(whatsappIds?.length && {
-          whatsappId: {
-            [Op.or]: [whatsappIds]
-          }
-        })
-      })
-    };
-  }
+const ListTicketsServicev2 = async (request: Request): Promise<Response> => {
+  const { pageNumber = "1", status } = request;
 
-  if (status) {
-    whereCondition = {
-      ...whereCondition,
-      status
-    };
-  }
-
-  if (searchParam) {
-    const sanitizedSearchParam = searchParam.toLocaleLowerCase().trim();
-
-    includeCondition = [
-      ...includeCondition
-      // {
-      //   model: Message,
-      //   as: "messages",
-      //   attributes: ["id", "body"],
-      //   where: {
-      //     body: where(
-      //       fn("LOWER", col("body")),
-      //       "LIKE",
-      //       `%${sanitizedSearchParam}%`
-      //     )
-      //   },
-      //   required: false,
-      //   duplicating: false
-      // }
-    ];
-
-    whereCondition = {
-      ...whereCondition,
-      [Op.or]: [
-        {
-          "$contact.name$": where(
-            fn("LOWER", col("contact.name")),
-            "LIKE",
-            `%${sanitizedSearchParam}%`
-          )
-        },
-        { "$contact.number$": { [Op.like]: `%${sanitizedSearchParam}%` } }
-        // {
-        //   "$message.body$": where(
-        //     fn("LOWER", col("body")),
-        //     "LIKE",
-        //     `%${sanitizedSearchParam}%`
-        //   )
-        // }
-      ]
-    };
-  }
-
-  if (date) {
-    whereCondition = {
-      createdAt: {
-        [Op.between]: [+startOfDay(parseISO(date)), +endOfDay(parseISO(date))]
+  // console.log("--- ListTicketsServicev2", request);
+  const user = await User.findByPk(+request.userId, {
+    attributes: ["id"],
+    include: [
+      {
+        model: Whatsapp,
+        attributes: ["id"],
+        as: "userWhatsapps",
+        required: false
       }
-    };
-  }
+    ]
+  });
 
-  if (withUnreadMessages === "true") {
-    const user = await ShowUserService(userId);
-    const userQueueIds = user.queues.map(queue => queue.id);
+  request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
 
-    whereCondition = {
-      [Op.or]: [{ userId }, { status: "pending" }],
-      ...(typeIds?.length && {
-        isGroup: {
-          [Op.or]: typeIds?.map(typeId => (typeId === "group" ? true : false))
-        }
-      }),
-      ...(queueIds?.length && {
-        queueId: {
-          // @ts-ignore
-          [Op.or]: queueIds?.includes(null)
-            ? [queueIds.filter(id => id !== null), null]
-            : [queueIds]
-        }
-      }),
-      ...(whatsappIds?.length && {
-        whatsappId: {
-          [Op.or]: [whatsappIds]
-        }
-      }),
-      unreadMessages: { [Op.gt]: 0 }
-    };
-  }
+  // console.log("--- user", user.userWhatsapps);
+
+  let whereCondition = buildWhereCondition(request);
+  let includeCondition = buildIncludeCondition(request);
+
+  // console.log("--- whereCondition", whereCondition);
 
   const limit = 40;
   const offset = limit * (+pageNumber - 1);
-
-  console.log("________-whereCondition", whereCondition);
-
-  // console.log(
-  //   typeIds,
-  //   "Ticket.findAndCountAll where shoGroups",
-  //   // @ts-ignore
-  //   whereCondition?.isGroup
-  // );
-  // // @ts-ignore
-  // console.log("Ticket.findAndCountAll where queId", whereCondition?.queueId);
-  // console.log(
-  //   "Ticket.findAndCountAll where whatsappId",
-  //   // @ts-ignore
-  //   whereCondition?.whatsappId
-  // );
 
   const { count, rows: tickets } = await Ticket.findAndCountAll({
     where: whereCondition,
@@ -288,57 +330,49 @@ const ListTicketsService = async ({
     order: [["lastMessageTimestamp", "DESC"]]
   });
 
-  let filteredTickets: Ticket[] | null = null;
-
-  // @ts-ignore
-  if (whereCondition.status === "closed") {
-    console.log("______SE PIDIERON SOLO LOS TICKETS CERRADOS");
-
-    filteredTickets = (
-      await Promise.all(
-        tickets.map(async ticket => {
-          const similiarTicketsButOpensOrPendings = await Ticket.findAll({
-            where: {
-              whatsappId: ticket.whatsappId,
-              contactId: ticket.contactId,
-              status: ["pending", "open"]
-            }
-          });
-
-          return similiarTicketsButOpensOrPendings.length === 0 ? ticket : null;
-        })
-      )
-    ).filter(ticket => ticket !== null) as Ticket[];
-  }
-
   const hasMore = count > offset + tickets.length;
+
+  const filteredTickets = await filterWhenAksForClosedTickets(tickets, status);
 
   const ticketsToReturn = filteredTickets || tickets;
 
   const ticketsToReturnWithClientTimeWaiting =
     await getClientTimeWaitingForTickets(ticketsToReturn);
 
-  const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
-    numbers: ticketsToReturnWithClientTimeWaiting
-      .map(ticket => +ticket.contact.number)
-      .filter(n => n)
-  });
-
-  for (const number in exclusiveContactsNumbers) {
-    ticketsToReturnWithClientTimeWaiting
-      .filter(t => t.contact.number === number)
-      .forEach(t => (t.contact.isExclusive = true));
-
-    // ticketsToReturnWithClientTimeWaiting.find(
-    //   t => t.contact.number === number
-    // ).contact.isExclusive = true;
-  }
-
   return {
     tickets: ticketsToReturnWithClientTimeWaiting,
     count,
-    hasMore
+    hasMore,
+    whereCondition,
+    includeCondition
   };
 };
 
-export default ListTicketsService;
+// Función para filtrar solamente cuando piden los tickets cerrados
+// hace un filtrado para devolver los cerrados que no tengan
+// un ticket hermano abierto o pendiente
+const filterWhenAksForClosedTickets = async (
+  tickets: Ticket[],
+  status: string | undefined
+): Promise<Ticket[] | null> => {
+  if (status !== "closed") return null;
+
+  return (
+    await Promise.all(
+      tickets.map(async ticket => {
+        const similarTicket = await Ticket.findOne({
+          attributes: ["id"],
+          where: {
+            whatsappId: ticket.whatsappId,
+            contactId: ticket.contactId,
+            status: ["pending", "open"]
+          }
+        });
+
+        return !similarTicket ? ticket : null;
+      })
+    )
+  ).filter(ticket => ticket !== null) as Ticket[];
+};
+
+export default ListTicketsServicev2;

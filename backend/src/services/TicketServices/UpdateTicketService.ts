@@ -1,6 +1,6 @@
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
-import { searchIfNumbersAreExclusive } from "../../libs/searchIfNumbersAreExclusive";
 import Ticket from "../../models/Ticket";
+import TicketCategory from "../../models/TicketCategory";
 import ShowTicketService from "./ShowTicketService";
 
 interface TicketData {
@@ -13,6 +13,9 @@ interface TicketData {
   helpUsersIds?: number[];
   participantUsersIds?: number[];
   transferred?: boolean;
+  categorizedByAI?: boolean;
+  marketingCampaignId?: number;
+  wasSentToZapier?: boolean;
 }
 
 interface Request {
@@ -39,7 +42,10 @@ const UpdateTicketService = async ({
     categoriesIds,
     helpUsersIds,
     participantUsersIds,
-    transferred
+    transferred,
+    categorizedByAI,
+    marketingCampaignId,
+    wasSentToZapier
   } = ticketData;
 
   const ticket = await ShowTicketService(ticketId, true);
@@ -61,7 +67,10 @@ const UpdateTicketService = async ({
     queueId,
     userId,
     privateNote,
-    ...(transferred === true && { transferred })
+    ...(transferred === true && { transferred }),
+    ...(categorizedByAI === true && { categorizedByAI }),
+    marketingCampaignId,
+    ...(wasSentToZapier && { wasSentToZapier })
   });
 
   if (whatsappId) {
@@ -72,6 +81,20 @@ const UpdateTicketService = async ({
 
   if (categoriesIds) {
     await ticket.$set("categories", categoriesIds);
+
+    if (categorizedByAI) {
+      for (const categoryId of categoriesIds) {
+        await TicketCategory.update(
+          { byAI: true },
+          {
+            where: {
+              ticketId: ticket.id,
+              categoryId: categoryId
+            }
+          }
+        );
+      }
+    }
   }
 
   if (helpUsersIds) {
@@ -132,17 +155,17 @@ const UpdateTicketService = async ({
       });
   }
 
-  if (ticket.contact) {
-    const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
-      numbers: [ticket].map(ticket => +ticket.contact.number).filter(n => n)
-    });
+  // if (ticket.contact) {
+  //   const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+  //     numbers: [ticket].map(ticket => +ticket.contact.number).filter(n => n)
+  //   });
 
-    for (const number in exclusiveContactsNumbers) {
-      if (ticket.contact.number === number) {
-        ticket.contact.isExclusive = true;
-      }
-    }
-  }
+  //   for (const number in exclusiveContactsNumbers) {
+  //     if (ticket.contact.number === number) {
+  //       ticket.contact.isExclusive = true;
+  //     }
+  //   }
+  // }
 
   /* io.to(ticket.status)
     .to("notification")

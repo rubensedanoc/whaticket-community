@@ -15,6 +15,7 @@ const useTickets = ({
   withUnreadMessages,
   typeIds,
   showOnlyMyGroups,
+  categoryId,
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -42,6 +43,7 @@ const useTickets = ({
               typeIds,
               withUnreadMessages,
               showOnlyMyGroups,
+              categoryId,
             },
           });
           setTickets(data.tickets);

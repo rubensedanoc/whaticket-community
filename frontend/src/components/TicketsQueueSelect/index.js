@@ -6,6 +6,7 @@ import FormControl from "@material-ui/core/FormControl";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import { i18n } from "../../translate/i18n";
+import "./styles.css";
 
 const TicketsQueueSelect = ({
   userQueues,
@@ -19,13 +20,15 @@ const TicketsQueueSelect = ({
 
   return (
     <Badge
+      overlap="rectangular"
       badgeContent={selectedQueueIds?.length}
       max={99999}
       color="secondary"
       invisible={selectedQueueIds?.length === 0}
+      className="TicketsQueueSelect"
     >
-      <div style={{ width: 160 }}>
-        <FormControl fullWidth margin="dense">
+      <div style={{}}>
+        <FormControl fullWidth>
           <Select
             multiple
             displayEmpty

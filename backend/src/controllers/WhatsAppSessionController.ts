@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { v4 as uuidv4 } from "uuid";
 import { GroupChat } from "whatsapp-web.js";
 import AppError from "../errors/AppError";
 import { getWbot } from "../libs/wbot";
@@ -41,6 +42,39 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
   wbot.logout();
 
   return res.status(200).json({ message: "Session disconnected." });
+};
+
+const reset = async (req: Request, res: Response): Promise<Response> => {
+  console.log("--- WhatsAppSessionController reset ---", req.params);
+
+  const { whatsappId } = req.params;
+
+  try {
+    const whatsapp = await ShowWhatsAppService(whatsappId);
+
+    const wbot = getWbot(whatsapp.id);
+
+    try {
+      wbot.logout();
+    } catch (error) {
+      console.error("Error on logout:", error);
+    }
+
+    try {
+      wbot.destroy();
+    } catch (error) {
+      console.error("Error on destroy:", error);
+    }
+
+    await whatsapp.update({ sessionUuid: uuidv4() });
+    await whatsapp.reload();
+
+    setTimeout(() => StartWhatsAppSession(whatsapp), 2000);
+
+    return res.status(200).json({ message: "Session disconnected." });
+  } catch (error) {
+    return res.status(500).json({ message: "Error on reset session.", error });
+  }
 };
 
 const updateWppChatslastMessageTimestamp = async (
@@ -304,6 +338,7 @@ const syncGroupContactsTable = async (
 export default {
   store,
   remove,
+  reset,
   update,
   updateWppChatslastMessageTimestamp,
   syncGroupContactsTable

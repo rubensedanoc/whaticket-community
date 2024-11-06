@@ -14,6 +14,7 @@ import { i18n } from "../../translate/i18n";
 
 import AskForHelpTicketModal from "../AskForHelpTicketModal";
 import AskForParticipationTicketModal from "../AskForParticipationTicketModal";
+import BeforeSendTicketDataToZapierModal from "../BeforeSendTicketDataToZapierModal";
 import CloseTicketModal from "../CloseTicketModal";
 
 import ButtonWithSpinner from "../ButtonWithSpinner";
@@ -39,6 +40,10 @@ const TicketActionButtons = ({ ticket }) => {
   const [addCategoryToTicketModalOpen, setAddCategoryToTicketModalOpen] =
     useState(false);
   const [closeTicketModalOpen, setCloseTicketModalOpen] = useState(false);
+  const [
+    beforeSendTicketDataToZapierModalOpen,
+    setBeforeSendTicketDataToZapierModalOpen,
+  ] = useState(false);
   const [askForHelpTicketModalOpen, setAskForHelpTicketModalOpen] =
     useState(false);
   const [
@@ -121,7 +126,7 @@ const TicketActionButtons = ({ ticket }) => {
     <div className={classes.actionButtons}>
       {!ticket.isGroup && (
         <>
-          {ticket.status === "closed" && (
+          {ticket.status === "closed" && ticket.user && (
             <>
               <ButtonWithSpinner
                 loading={loading}
@@ -265,6 +270,19 @@ const TicketActionButtons = ({ ticket }) => {
                 </>
               )}
 
+              {true && (
+                <Button
+                  size="small"
+                  variant={!ticket.wasSentToZapier ? "contained" : "outlined"}
+                  color="default"
+                  onClick={async () => {
+                    setBeforeSendTicketDataToZapierModalOpen(true);
+                  }}
+                >
+                  Crear en Hubspot
+                </Button>
+              )}
+
               <AskForHelpTicketModal
                 modalOpen={askForHelpTicketModalOpen}
                 onClose={() => {
@@ -280,6 +298,7 @@ const TicketActionButtons = ({ ticket }) => {
               )}
             </>
           )}
+
           {ticket.status === "pending" && (
             <ButtonWithSpinner
               loading={loading}
@@ -384,6 +403,15 @@ const TicketActionButtons = ({ ticket }) => {
         menuOpen={ticketOptionsMenuOpen}
         handleClose={handleCloseTicketOptionsMenu}
         handleUpdateTicketStatus={handleUpdateTicketStatus}
+      />
+
+      <BeforeSendTicketDataToZapierModal
+        open={beforeSendTicketDataToZapierModalOpen}
+        onClose={() => {
+          setBeforeSendTicketDataToZapierModalOpen(false);
+        }}
+        loggerUserName={user?.name}
+        ticketId={ticket.id}
       />
     </div>
   );

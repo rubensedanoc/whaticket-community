@@ -368,6 +368,13 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
   const [users, setUsers] = useState([]);
   const greetingRef = useRef();
   const { connectedUsers } = useContext(UsersPresenceContext);
+  const [categorizeTicketsWithAI, setCategorizeTicketsWithAI] = useState(false);
+  const [categorizationOpenAIModel, setCategorizationOpenAIModel] =
+    useState("");
+  const [categories, setCategories] = useState([]);
+  const [queueCategorysData, setQueueCategorysData] = useState([]);
+  const [isSubmittingCategoriesPage, setIsSubmittingCategoriesPage] =
+    useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -385,6 +392,9 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
   useEffect(() => {
     if (queuesCategories) {
       setSelectedCategoryIds(queuesCategories.map((category) => category.id));
+      setQueueCategorysData(
+        queuesCategories.map((category) => category.QueueCategory)
+      );
     }
   }, [queuesCategories]);
 
@@ -403,6 +413,14 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
           data.automaticAssignmentForOfflineUsers
             ? data.automaticAssignmentForOfflineUsers
             : false
+        );
+
+        setCategorizeTicketsWithAI(
+          data.categorizeTicketsWithAI ? data.categorizeTicketsWithAI : false
+        );
+
+        setCategorizationOpenAIModel(
+          data.categorizationOpenAIModel ? data.categorizationOpenAIModel : ""
         );
 
         setQueue((prevState) => {
@@ -439,7 +457,8 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
   };
 
   const handleSaveQueue = async (values) => {
-    const queueData = { ...values, categoriesIds: selectedCategoryIds };
+    // const queueData = { ...values, categoriesIds: selectedCategoryIds };
+    const queueData = { ...values };
 
     delete queueData["chatbotOptions"];
 
@@ -454,6 +473,25 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
     } catch (err) {
       toastError(err);
     }
+  };
+
+  const handleSaveCategoriesPage = async () => {
+    setIsSubmittingCategoriesPage(true);
+    try {
+      const queueData = {
+        categorizeTicketsWithAI,
+        categorizationOpenAIModel,
+        categoriesIds: selectedCategoryIds,
+        categoriesQueueData: queueCategorysData,
+        validate: false,
+      };
+
+      await api.put(`/queue/${queueId}`, queueData);
+      toast.success("Categorías guardadas correctamente");
+    } catch (err) {
+      toastError(err);
+    }
+    setIsSubmittingCategoriesPage(false);
   };
 
   return (
@@ -474,6 +512,7 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
           centered
         >
           <Tab label="DEPARTAMENTO" />
+          <Tab label="CATEGORIAS" />
           <Tab label="USUARIOS Y ASIGNACIÓN" />
         </Tabs>
 
@@ -559,7 +598,7 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
                         type="greetingMessage"
                         multiline
                         inputRef={greetingRef}
-                        rows={5}
+                        minRows={5}
                         fullWidth
                         name="greetingMessage"
                         error={
@@ -573,10 +612,6 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
                         margin="dense"
                       />
                     </div>
-                    <CategorySelect
-                      selectedCategoryIds={selectedCategoryIds}
-                      onChange={(values) => setSelectedCategoryIds(values)}
-                    />
 
                     <ChatbotOptionList
                       fatherChatbotOptionId={null}
@@ -617,6 +652,164 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
           </>
         </TabPanel>
         <TabPanel value={tabValue} index={1}>
+          <DialogContent dividers>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div>
+                <h3 style={{ marginBottom: 0 }}>
+                  Habilitar categorización automática
+                </h3>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <p style={{ marginTop: 0 }}>
+                    Al habilitar esta opción, la IA analizara los mensajes de
+                    los tickets pendientes del departamento y los catagorizará
+                    segun las descripciones de las categorias.
+                  </p>
+                  <Switch
+                    checked={categorizeTicketsWithAI ? true : false}
+                    onChange={async (e) => {
+                      try {
+                        const { data } = await api.put(`/queue/${queueId}`, {
+                          ...queue,
+                          categorizeTicketsWithAI: e.target.checked,
+                        });
+
+                        setCategorizeTicketsWithAI(
+                          data.categorizeTicketsWithAI
+                        );
+                      } catch (err) {
+                        toastError(err);
+                      }
+                    }}
+                    color="primary"
+                    inputProps={{ "aria-label": "primary checkbox" }}
+                  />
+                </div>
+              </div>
+              <div
+                style={{
+                  marginBottom: "1rem",
+                  opacity: categorizeTicketsWithAI ? "1" : "0.5",
+                }}
+              >
+                <TextField
+                  label={"OpenAi Model ID"}
+                  type=""
+                  fullWidth
+                  variant="outlined"
+                  margin="dense"
+                  disabled={!categorizeTicketsWithAI}
+                  value={categorizationOpenAIModel}
+                  onChange={(e) => {
+                    setCategorizationOpenAIModel(e.target.value);
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <CategorySelect
+                  selectedCategoryIds={selectedCategoryIds}
+                  onChange={(values) => setSelectedCategoryIds(values)}
+                  onLoadCategories={(categories) => {
+                    console.log(categories);
+                    setCategories(categories);
+                  }}
+                />
+              </div>
+
+              <div style={{ maxHeight: "14rem" }}>
+                {selectedCategoryIds.map((categoryId) => {
+                  return (
+                    <TextField
+                      key={categoryId}
+                      style={{
+                        marginBottom: "1rem",
+                      }}
+                      label={`Descripción de ${
+                        categories.find(
+                          (category) => category.id === categoryId
+                        )?.name
+                      }`}
+                      multiline
+                      minRows={2}
+                      type=""
+                      fullWidth
+                      variant="outlined"
+                      margin="dense"
+                      value={
+                        queueCategorysData.find(
+                          (queueCategory) =>
+                            queueCategory.categoryId === categoryId
+                        )?.descriptionForAICategorization
+                      }
+                      onChange={(e) => {
+                        e.persist();
+
+                        setQueueCategorysData((oldQueueCategorysData) => {
+                          const newQueueCategorysData = [
+                            ...oldQueueCategorysData,
+                          ];
+                          const index = newQueueCategorysData.findIndex(
+                            (queueCategory) =>
+                              queueCategory.categoryId === categoryId
+                          );
+
+                          if (index === -1) {
+                            newQueueCategorysData.push({
+                              categoryId,
+                              descriptionForAICategorization: e.target.value,
+                            });
+                            return newQueueCategorysData;
+                          }
+
+                          newQueueCategorysData[index] = {
+                            ...newQueueCategorysData[index],
+                            descriptionForAICategorization: e.target.value,
+                          };
+                          return newQueueCategorysData;
+                        });
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </DialogContent>
+
+          <DialogActions>
+            <Button
+              onClick={handleClose}
+              color="secondary"
+              disabled={isSubmittingCategoriesPage}
+              variant="outlined"
+            >
+              {i18n.t("queueModal.buttons.cancel")}
+            </Button>
+            <Button
+              onClick={handleSaveCategoriesPage}
+              color="primary"
+              disabled={isSubmittingCategoriesPage}
+              variant="contained"
+              className={classes.btnWrapper}
+            >
+              {queueId
+                ? `${i18n.t("queueModal.buttons.okEdit")}`
+                : `${i18n.t("queueModal.buttons.okAdd")}`}
+              {isSubmittingCategoriesPage && (
+                <CircularProgress
+                  size={24}
+                  className={classes.buttonProgress}
+                />
+              )}
+            </Button>
+          </DialogActions>
+        </TabPanel>
+        <TabPanel value={tabValue} index={2}>
           <DialogContent dividers>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div>

@@ -21,6 +21,7 @@ const ReportsWhatsappSelect = ({
 
   return (
     <Badge
+      overlap="rectangular"
       badgeContent={selectedWhatsappIds.length}
       color="primary"
       max={99999}

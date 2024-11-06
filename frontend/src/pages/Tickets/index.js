@@ -1,15 +1,17 @@
 import Grid from "@material-ui/core/Grid";
-import Paper from "@material-ui/core/Paper";
+// import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
 import React from "react";
 import { useParams } from "react-router-dom";
 
-import Ticket from "../../components/Ticket/";
+import { useHistory } from "react-router-dom";
+import TicketModal from "../../components/TicketModal/";
+// import Ticket from "../../components/Ticket/";
 import TicketsManager from "../../components/TicketsManager/";
 
-import Hidden from "@material-ui/core/Hidden";
+// import Hidden from "@material-ui/core/Hidden";
 
-import { i18n } from "../../translate/i18n";
+// import { i18n } from "../../translate/i18n";
 
 const useStyles = makeStyles((theme) => ({
   chatContainer: {
@@ -66,6 +68,7 @@ const useStyles = makeStyles((theme) => ({
 const Chat = () => {
   const classes = useStyles();
   const { ticketId } = useParams();
+  const history = useHistory();
 
   return (
     <div className={classes.chatContainer}>
@@ -73,21 +76,31 @@ const Chat = () => {
         <Grid container spacing={0}>
           {/* <Grid item xs={4} className={classes.contactsWrapper}> */}
           {/* LEFT | TICKETS VIEW ADMINISTRATION */}
-          <Grid
+          {/* <Grid
             item
             xs={12}
             md={4}
             className={
               ticketId ? classes.contactsWrapperSmall : classes.contactsWrapper
             }
-          >
-            <TicketsManager />
-          </Grid>
+          > */}
+          <TicketsManager />
+          {/* </Grid> */}
           {/* LEFT | TICKETS VIEW ADMINISTRATION */}
 
+          {ticketId && (
+            <>
+              <TicketModal
+                open={true}
+                onClose={() => {
+                  history.push(`/tickets/`);
+                }}
+              />
+            </>
+          )}
+
           {/* RIGHT | SELECTED TICKET */}
-          <Grid item xs={12} md={8} className={classes.messagessWrapper}>
-            {/* <Grid item xs={8} className={classes.messagessWrapper}> */}
+          {/* <Grid item xs={12} md={8} className={classes.messagessWrapper}>
             {ticketId ? (
               <>
                 <Ticket />
@@ -95,12 +108,11 @@ const Chat = () => {
             ) : (
               <Hidden only={["sm", "xs"]}>
                 <Paper className={classes.welcomeMsg}>
-                  {/* <Paper square variant="outlined" className={classes.welcomeMsg}> */}
                   <span>{i18n.t("chat.noTicketMessage")}</span>
                 </Paper>
               </Hidden>
             )}
-          </Grid>
+          </Grid> */}
           {/* - RIGHT | SELECTED TICKET */}
         </Grid>
       </div>

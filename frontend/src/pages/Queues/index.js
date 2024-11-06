@@ -179,89 +179,91 @@ const Queues = () => {
         queueId={selectedQueue?.id}
         queuesCategories={selectedQueue?.categories}
       />
-      <MainHeader>
-        <Title>{i18n.t("queues.title")}</Title>
-        <MainHeaderButtonsWrapper>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenQueueModal}
-          >
-            {i18n.t("queues.buttons.add")}
-          </Button>
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
-      <Paper className={classes.mainPaper} variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell align="center">
-                {i18n.t("queues.table.name")}
-              </TableCell>
-              <TableCell align="center">
-                {i18n.t("queues.table.color")}
-              </TableCell>
-              <TableCell align="center">
-                {i18n.t("queues.table.greeting")}
-              </TableCell>
-              <TableCell align="center">
-                {i18n.t("queues.table.actions")}
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <>
-              {queues.map((queue) => (
-                <TableRow key={queue.id}>
-                  <TableCell align="center">{queue.name}</TableCell>
-                  <TableCell align="center">
-                    <div className={classes.customTableCell}>
-                      <span
-                        style={{
-                          backgroundColor: queue.color,
-                          width: 60,
-                          height: 20,
-                          alignSelf: "center",
-                        }}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell align="center">
-                    <div className={classes.customTableCell}>
-                      <Typography
-                        style={{ width: 300, align: "center" }}
-                        noWrap
-                        variant="body2"
+      <div style={{ padding: "2rem", height: "85%" }}>
+        <MainHeader>
+          <Title>{i18n.t("queues.title")}</Title>
+          <MainHeaderButtonsWrapper>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleOpenQueueModal}
+            >
+              {i18n.t("queues.buttons.add")}
+            </Button>
+          </MainHeaderButtonsWrapper>
+        </MainHeader>
+        <Paper className={classes.mainPaper} variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell align="center">
+                  {i18n.t("queues.table.name")}
+                </TableCell>
+                <TableCell align="center">
+                  {i18n.t("queues.table.color")}
+                </TableCell>
+                <TableCell align="center">
+                  {i18n.t("queues.table.greeting")}
+                </TableCell>
+                <TableCell align="center">
+                  {i18n.t("queues.table.actions")}
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <>
+                {queues.map((queue) => (
+                  <TableRow key={queue.id}>
+                    <TableCell align="center">{queue.name}</TableCell>
+                    <TableCell align="center">
+                      <div className={classes.customTableCell}>
+                        <span
+                          style={{
+                            backgroundColor: queue.color,
+                            width: 60,
+                            height: 20,
+                            alignSelf: "center",
+                          }}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell align="center">
+                      <div className={classes.customTableCell}>
+                        <Typography
+                          style={{ width: 300, align: "center" }}
+                          noWrap
+                          variant="body2"
+                        >
+                          {queue.greetingMessage}
+                        </Typography>
+                      </div>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditQueue(queue)}
                       >
-                        {queue.greetingMessage}
-                      </Typography>
-                    </div>
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditQueue(queue)}
-                    >
-                      <Edit />
-                    </IconButton>
+                        <Edit />
+                      </IconButton>
 
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setSelectedQueue(queue);
-                        setConfirmModalOpen(true);
-                      }}
-                    >
-                      <DeleteOutline />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {loading && <TableRowSkeleton columns={4} />}
-            </>
-          </TableBody>
-        </Table>
-      </Paper>
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setSelectedQueue(queue);
+                          setConfirmModalOpen(true);
+                        }}
+                      >
+                        <DeleteOutline />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {loading && <TableRowSkeleton columns={4} />}
+              </>
+            </TableBody>
+          </Table>
+        </Paper>
+      </div>
     </MainContainer>
   );
 };

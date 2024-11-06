@@ -1,12 +1,10 @@
 import { Request, Response } from "express";
 
-import { parseISO } from "date-fns";
 import { Op, Sequelize } from "sequelize";
 import { GroupChat } from "whatsapp-web.js";
 import AppError from "../errors/AppError";
 import GetTicketWbot from "../helpers/GetTicketWbot";
 import formatBody from "../helpers/Mustache";
-import { searchIfNumbersAreExclusive } from "../libs/searchIfNumbersAreExclusive";
 import { getWbot } from "../libs/wbot";
 import Contact from "../models/Contact";
 import Message from "../models/Message";
@@ -14,11 +12,11 @@ import Ticket from "../models/Ticket";
 import TicketLog from "../models/TicketLog";
 import CreateTicketService from "../services/TicketServices/CreateTicketService";
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
+// import ListTicketsServicev2 from "../services/TicketServices/ListTicketsServicev2";
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
-import { handleMessageForSyncUnreadMessages } from "../services/WbotServices/wbotMessageListener";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 
 type IndexQuery = {
@@ -32,6 +30,7 @@ type IndexQuery = {
   whatsappIds: string;
   typeIds: string;
   showOnlyMyGroups: string;
+  categoryId: string;
 };
 
 interface TicketData {
@@ -61,7 +60,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     queueIds: queueIdsStringified,
     typeIds: typeIdsStringified,
     withUnreadMessages,
-    showOnlyMyGroups: showOnlyMyGroupsStringified
+    showOnlyMyGroups: showOnlyMyGroupsStringified,
+    categoryId: categoryIdStringified
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -70,6 +70,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let whatsappIds: number[] = [];
   let typeIds: string[] = [];
   let showOnlyMyGroups: boolean = false;
+  let categoryId: number | null = null;
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -87,21 +88,44 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showOnlyMyGroups = JSON.parse(showOnlyMyGroupsStringified);
   }
 
-  const { tickets, count, hasMore } = await ListTicketsService({
-    searchParam,
-    pageNumber,
-    status,
-    date,
-    showAll,
-    userId,
-    whatsappIds,
-    queueIds,
-    typeIds,
-    withUnreadMessages,
-    showOnlyMyGroups
-  });
+  if (categoryIdStringified) {
+    categoryId = JSON.parse(categoryIdStringified);
+  }
 
-  return res.status(200).json({ tickets, count, hasMore });
+  const { tickets, count, hasMore, whereCondition, includeCondition } =
+    await ListTicketsService({
+      searchParam,
+      pageNumber,
+      status,
+      date,
+      showAll,
+      userId,
+      whatsappIds,
+      queueIds,
+      typeIds,
+      withUnreadMessages,
+      showOnlyMyGroups,
+      categoryId
+    });
+
+  // const { tickets, count, hasMore } = await ListTicketsServicev2({
+  //   searchParam,
+  //   pageNumber,
+  //   status,
+  //   date,
+  //   showAll,
+  //   userId,
+  //   whatsappIds,
+  //   queueIds,
+  //   typeIds,
+  //   withUnreadMessages,
+  //   showOnlyMyGroups,
+  //   categoryId
+  // });
+
+  return res
+    .status(200)
+    .json({ tickets, count, hasMore, whereCondition, includeCondition });
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
@@ -114,17 +138,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     whatsappId
   });
 
-  if (ticket.contact) {
-    const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
-      numbers: [ticket].map(ticket => +ticket.contact.number).filter(n => n)
-    });
+  // if (ticket.contact) {
+  //   const exclusiveContactsNumbers = await searchIfNumbersAreExclusive({
+  //     numbers: [ticket].map(ticket => +ticket.contact.number).filter(n => n)
+  //   });
 
-    for (const number in exclusiveContactsNumbers) {
-      if (ticket.contact.number === number) {
-        ticket.contact.isExclusive = true;
-      }
-    }
-  }
+  //   for (const number in exclusiveContactsNumbers) {
+  //     if (ticket.contact.number === number) {
+  //       ticket.contact.isExclusive = true;
+  //     }
+  //   }
+  // }
 
   /* const io = getIO();
   io.to(ticket.status).emit("ticket", {
@@ -336,82 +360,6 @@ export const remove = async (
     });
 
   return res.status(200).json({ message: "ticket deleted" });
-};
-
-export const recoverAllMessages = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const { ticketId } = req.params;
-
-  const ticket = await ShowTicketService(ticketId);
-
-  const whatsapp = await ShowWhatsAppService(ticket.whatsappId);
-
-  const wbot = getWbot(whatsapp.id);
-
-  const ticketChat = await wbot.getChatById(
-    `${ticket.contact.number}${ticket.contact.isGroup ? "@g.us" : "@c.us"}`
-  );
-
-  const ticketMessages = await ticketChat.fetchMessages({ limit: 100000 });
-
-  console.log("se van a recuperar: ", ticketMessages.length, "mensajes");
-
-  if (ticketMessages && ticketMessages.length > 0) {
-    console.log("se eliminan los mensajes del ticket:", ticketId);
-
-    await Message.destroy({
-      where: {
-        ticketId,
-        isPrivate: {
-          [Op.or]: [false, null]
-        }
-      }
-    });
-
-    const privateMessages = await Message.findAll({
-      where: {
-        ticketId,
-        isPrivate: true
-      }
-    });
-
-    await Promise.all(
-      privateMessages.map(async message => {
-        try {
-          const timestamp = parseISO(message.createdAt.toISOString()).getTime();
-          await message.update({ timestamp: Math.floor(timestamp / 1000) });
-        } catch (error) {
-          console.log(error);
-        }
-      })
-    );
-
-    const BATCH_SIZE = 30;
-
-    for (let i = 0; i < ticketMessages.length; i += BATCH_SIZE) {
-      const batch = ticketMessages.slice(i, i + BATCH_SIZE);
-
-      const updatePromises = batch.map(async message => {
-        try {
-          await handleMessageForSyncUnreadMessages(
-            message,
-            wbot,
-            ticketChat,
-            false
-          );
-        } catch (error) {
-          console.error(`Error actualizando el mensaje ${message}:`, error);
-        }
-      });
-      await Promise.all(updatePromises);
-    }
-  }
-
-  console.log("se recuperaron los mensajes");
-
-  return res.status(200).json({ message: "success" });
 };
 
 export const showAllRelatedTickets = async (

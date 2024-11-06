@@ -1,38 +1,46 @@
 import AppError from "../../errors/AppError";
 import Contact from "../../models/Contact";
+import CheckIsValidContact from "../WbotServices/CheckIsValidContact";
 import CreateContactService from "./CreateContactService";
 
 interface ExtraInfo {
-    name: string;
-    value: string;
+  name: string;
+  value: string;
 }
 
 interface Request {
-    name: string;
-    number: string;
-    email?: string;
-    profilePicUrl?: string;
-    extraInfo?: ExtraInfo[];
+  name: string;
+  number: string;
+  email?: string;
+  profilePicUrl?: string;
+  extraInfo?: ExtraInfo[];
+  checkIsAValidWppNumber?: boolean;
 }
 
-const GetContactService = async ({ name, number }: Request): Promise<Contact> => {
-    const numberExists = await Contact.findOne({
-        where: { number }
-    });
+const GetContactService = async ({
+  name,
+  number,
+  checkIsAValidWppNumber
+}: Request): Promise<Contact> => {
+  const numberExists = await Contact.findOne({
+    where: { number }
+  });
 
-    if (!numberExists) {
-        const contact = await CreateContactService({
-            name,
-            number,
-        })
-
-        if (contact == null)
-            throw new AppError("CONTACT_NOT_FIND")
-        else
-            return contact
+  if (!numberExists) {
+    if (checkIsAValidWppNumber) {
+      await CheckIsValidContact(number);
     }
 
-    return numberExists
+    const contact = await CreateContactService({
+      name,
+      number
+    });
+
+    if (contact == null) throw new AppError("CONTACT_NOT_FIND");
+    else return contact;
+  }
+
+  return numberExists;
 };
 
 export default GetContactService;

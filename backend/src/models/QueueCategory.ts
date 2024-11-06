@@ -19,6 +19,9 @@ class QueueCategory extends Model<QueueCategory> {
   @Column
   categoryId: number;
 
+  @Column
+  descriptionForAICategorization: string;
+
   @CreatedAt
   createdAt: Date;
 

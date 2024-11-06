@@ -34,7 +34,7 @@ const CreateOrUpdateContactService = async ({
   contact = await Contact.findOne({ where: { number } });
 
   if (contact) {
-    if (profilePicUrl) {
+    if (profilePicUrl && contact.profilePicUrl !== profilePicUrl) {
       contact.update({ profilePicUrl });
 
       emitEvent({
@@ -146,13 +146,13 @@ const CreateOrUpdateContactService = async ({
   return contact;
 };
 
-const getCountryIdOfNumber = async (number: string) => {
+export const getCountryIdOfNumber = async (number: string) => {
   const allCountries: Country[] = await Country.sequelize.query(
     "SELECT * FROM Countries c ORDER BY LENGTH(c.code) DESC ",
     { type: QueryTypes.SELECT }
   );
 
-  console.log("---- allCountries: ", allCountries);
+  // console.log("---- allCountries: ", allCountries);
 
   for (const country of allCountries) {
     if (number.startsWith(country.code)) {

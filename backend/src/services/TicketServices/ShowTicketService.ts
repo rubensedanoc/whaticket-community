@@ -3,6 +3,8 @@ import { getClientTimeWaitingForTickets } from "../../controllers/ReportsControl
 import AppError from "../../errors/AppError";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
+import Country from "../../models/Country";
+import MarketingCampaign from "../../models/MarketingCampaign";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
@@ -16,15 +18,14 @@ const ShowTicketService = async (
     {
       model: Contact,
       as: "contact",
-      attributes: [
-        "id",
-        "name",
-        "number",
-        "domain",
-        "profilePicUrl",
-        "isGroup"
-      ],
-      include: ["extraInfo"]
+      include: [
+        "extraInfo",
+        {
+          model: Country,
+          as: "country",
+          required: false
+        }
+      ]
     },
     {
       model: User,
@@ -49,12 +50,25 @@ const ShowTicketService = async (
     {
       model: Whatsapp,
       as: "whatsapp",
-      attributes: ["name"]
+      attributes: ["name"],
+      include: [
+        {
+          model: User,
+          attributes: ["id"],
+          as: "userWhatsapps",
+          required: false
+        }
+      ]
     },
     {
       model: Category,
       as: "categories",
       attributes: ["id", "name", "color"]
+    },
+    {
+      model: MarketingCampaign,
+      as: "marketingCampaign",
+      required: false
     }
   ];
 

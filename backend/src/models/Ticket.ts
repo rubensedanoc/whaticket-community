@@ -15,6 +15,7 @@ import {
 
 import Category from "./Category";
 import Contact from "./Contact";
+import MarketingCampaign from "./MarketingCampaign";
 import Message from "./Message";
 import Queue from "./Queue";
 import TicketCategory from "./TicketCategory";
@@ -55,7 +56,13 @@ class Ticket extends Model<Ticket> {
   userHadContact: boolean;
 
   @Column
+  wasSentToZapier: boolean;
+
+  @Column
   transferred: boolean;
+
+  @Column
+  categorizedByAI: boolean;
 
   @CreatedAt
   createdAt: Date;
@@ -63,12 +70,25 @@ class Ticket extends Model<Ticket> {
   @UpdatedAt
   updatedAt: Date;
 
+  @Column
+  chatbotMessageIdentifier: string;
+
+  @Column
+  chatbotMessageLastStep: string;
+
   @ForeignKey(() => User)
   @Column
   userId: number;
 
   @BelongsTo(() => User)
   user: User;
+
+  @ForeignKey(() => MarketingCampaign)
+  @Column
+  marketingCampaignId: number;
+
+  @BelongsTo(() => MarketingCampaign)
+  marketingCampaign: MarketingCampaign;
 
   @ForeignKey(() => Contact)
   @Column

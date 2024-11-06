@@ -35,7 +35,7 @@ export default function verifyPrivateMessage(
     timestamp: privateMessageTimestamp
   };
 
-  verifyMessage(testMessage, ticket, contact, true);
+  verifyMessage({ msg: testMessage, ticket, contact, isPrivate: true });
 
   ticket.update({ lastMessageTimestamp: privateMessageTimestamp });
 }

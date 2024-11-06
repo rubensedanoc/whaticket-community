@@ -18,10 +18,10 @@ const TicketCategories = ({ ticket }) => {
 
   useEffect(() => {
     if (ticket && ticket.categories) {
-      console.log(
-        "_____ TicketCategories ticket categories",
-        ticket.categories
-      );
+      // console.log(
+      //   "_____ TicketCategories ticket categories",
+      //   ticket.categories
+      // );
       setAutocompleteValue([
         ...ticket.categories?.map((category) => {
           return {
@@ -75,7 +75,6 @@ const TicketCategories = ({ ticket }) => {
       }}
       options={autocompleteOptions}
       loadingText="Cargando..."
-      isOptionEqualToValue={(a, b) => a.id === b.id}
       onChange={async (e, newCategories) => {
         try {
           await api.put(`/tickets/${ticket.id}`, {

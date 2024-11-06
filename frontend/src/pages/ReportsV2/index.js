@@ -315,25 +315,46 @@ const Reports = () => {
       if (reportToExcel) {
         console.log("reportToExcel: ", reportToExcel);
 
-        const dataToExport = reportToExcel.ticketListFinal.map((row) => ({
-          "N. DE TICKET": row.tid,
-          CREACIÓN_FECHA: format(new Date(row.tcreatedAt), "dd-MM-yyyy"),
-          CREACIÓN_HORA: format(new Date(row.tcreatedAt), "HH:mm"),
-          CONTACTO: row.ctname,
-          NUMERO: row.tisGroup ? "NO APLICA" : row.ctnumber,
-          PAIS: row.ctcname,
-          CONEXIÓN: row.wname,
-          "ES GRUPO?": row.tisGroup ? "SI" : "NO",
-          DEPARTAMENTO: row.queuename,
-          CATEGORIA: row.tcategoryname,
-          ASIGNADO: row.tisGroup ? "NO APLICA" : row.uname,
-          ESTADO: row.tstatus,
-          "ESPERANDO?": row.waiting ? "SI" : "NO",
-          "T. PRIMERA RESPUESTA": row.firstResponse,
-          "T. DE RESOLUCIÓN": row.resolution,
-          "T. DE RESPEUSTA PROM.": row.avgResponse,
-          QUINTAL: row.quintalHours,
-        }));
+        const dataToExport = reportToExcel.ticketListFinal.map((row) => {
+          let extraData = null;
+
+          if (row.microserviceData) {
+            row.microserviceData.forEach((dynamicRow, index) => {
+              // Para evitar conflictos, añadimos el índice como prefijo de los campos dinámicos
+              const dynamicFields = Object.keys(dynamicRow).reduce(
+                (acc, key) => {
+                  acc[`${key.toUpperCase()}_${index + 1}`] = dynamicRow[key];
+                  return acc;
+                },
+                {}
+              );
+
+              extraData = { ...extraData, ...dynamicFields };
+            });
+          }
+
+          return {
+            "N. DE TICKET": row.tid,
+            CREACIÓN_FECHA: format(new Date(row.tcreatedAt), "dd-MM-yyyy"),
+            CREACIÓN_HORA: format(new Date(row.tcreatedAt), "HH:mm"),
+            CONTACTO: row.ctname,
+            NUMERO: row.tisGroup ? "NO APLICA" : row.ctnumber,
+            PAIS: row.ctcname,
+            CONEXIÓN: row.wname,
+            "ES GRUPO?": row.tisGroup ? "SI" : "NO",
+            DEPARTAMENTO: row.queuename,
+            CATEGORIA: row.tcategoryname,
+            ASIGNADO: row.tisGroup ? "NO APLICA" : row.uname,
+            ESTADO: row.tstatus,
+            "ESPERANDO?": row.waiting ? "SI" : "NO",
+            "T. PRIMERA RESPUESTA": row.firstResponse,
+            "T. DE RESOLUCIÓN": row.resolution,
+            "T. DE RESPEUSTA PROM.": row.avgResponse,
+            QUINTAL: row.quintalHours,
+            "PRIMERA RESPUESTA": row.firstResponseMessage,
+            ...extraData,
+          };
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();

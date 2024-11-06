@@ -119,9 +119,7 @@ const CategoryModal = ({ open, onClose, categoryId }) => {
     <div className={classes.root}>
       <Dialog open={open} onClose={handleClose} scroll="paper">
         <DialogTitle>
-          {categoryId
-            ? `${i18n.t("categoryModal.title.edit")}`
-            : `${i18n.t("categoryModal.title.add")}`}
+          {categoryId ? `Editar categoria` : `Crear categoria`}
         </DialogTitle>
         <Formik
           initialValues={category}
@@ -139,7 +137,7 @@ const CategoryModal = ({ open, onClose, categoryId }) => {
               <DialogContent dividers>
                 <Field
                   as={TextField}
-                  label={i18n.t("categoryModal.form.name")}
+                  label={"Nombre"}
                   autoFocus
                   name="name"
                   error={touched.name && Boolean(errors.name)}
@@ -150,7 +148,7 @@ const CategoryModal = ({ open, onClose, categoryId }) => {
                 />
                 <Field
                   as={TextField}
-                  label={i18n.t("categoryModal.form.color")}
+                  label={"Color"}
                   name="color"
                   id="color"
                   error={touched.color && Boolean(errors.color)}

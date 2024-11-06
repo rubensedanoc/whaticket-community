@@ -24,20 +24,16 @@ export default function TicketListItemLastMessageTime({ clientTimeWaiting }) {
 
   return (
     <Chip
-      style={{ height: "20px", fontSize: "11px" }}
+      style={{ height: "16px", fontSize: "9px" }}
       color={
         differenceInHours(nowTime, fromUnixTime(clientTimeWaiting)) >= 24
           ? "secondary"
           : "default"
       }
       size="small"
-      label={`Hace ${formatDistanceStrict(
-        nowTime,
-        fromUnixTime(clientTimeWaiting),
-        {
-          locale: es,
-        }
-      )}`}
+      label={`${formatDistanceStrict(nowTime, fromUnixTime(clientTimeWaiting), {
+        locale: es,
+      })}`}
     />
   );
 }

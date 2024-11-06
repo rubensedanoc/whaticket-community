@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
+import QueueCategory from "../../models/QueueCategory";
 import ShowQueueService from "./ShowQueueService";
 
 interface QueueData {
@@ -9,59 +10,69 @@ interface QueueData {
   color?: string;
   greetingMessage?: string;
   categoriesIds?: number[];
+  validate?: boolean;
+  categoriesQueueData?: QueueCategory[];
 }
 
 const UpdateQueueService = async (
   queueId: number | string,
   queueData: QueueData
 ): Promise<Queue> => {
-  const { color, name, categoriesIds } = queueData;
+  const {
+    color,
+    name,
+    categoriesIds,
+    categoriesQueueData,
+    validate = true
+  } = queueData;
 
-  const queueSchema = Yup.object().shape({
-    name: Yup.string()
-      .min(2, "ERR_QUEUE_INVALID_NAME")
-      .test(
-        "Check-unique-name",
-        "ERR_QUEUE_NAME_ALREADY_EXISTS",
-        async value => {
+  if (validate) {
+    const queueSchema = Yup.object().shape({
+      name: Yup.string()
+        .min(2, "ERR_QUEUE_INVALID_NAME")
+        .test(
+          "Check-unique-name",
+          "ERR_QUEUE_NAME_ALREADY_EXISTS",
+          async value => {
+            if (value) {
+              const queueWithSameName = await Queue.findOne({
+                where: { name: value, id: { [Op.not]: queueId } }
+              });
+
+              return !queueWithSameName;
+            }
+            return true;
+          }
+        ),
+      color: Yup.string()
+        .required("ERR_QUEUE_INVALID_COLOR")
+        .test("Check-color", "ERR_QUEUE_INVALID_COLOR", async value => {
           if (value) {
-            const queueWithSameName = await Queue.findOne({
-              where: { name: value, id: { [Op.not]: queueId } }
-            });
-
-            return !queueWithSameName;
+            const colorTestRegex = /^#[0-9a-f]{3,6}$/i;
+            return colorTestRegex.test(value);
           }
           return true;
-        }
-      ),
-    color: Yup.string()
-      .required("ERR_QUEUE_INVALID_COLOR")
-      .test("Check-color", "ERR_QUEUE_INVALID_COLOR", async value => {
-        if (value) {
-          const colorTestRegex = /^#[0-9a-f]{3,6}$/i;
-          return colorTestRegex.test(value);
-        }
-        return true;
-      })
-      .test(
-        "Check-color-exists",
-        "ERR_QUEUE_COLOR_ALREADY_EXISTS",
-        async value => {
-          if (value) {
-            const queueWithSameColor = await Queue.findOne({
-              where: { color: value, id: { [Op.not]: queueId } }
-            });
-            return !queueWithSameColor;
-          }
-          return true;
-        }
-      )
-  });
+        })
+      // .test(
+      //   "Check-color-exists",
+      //   "ERR_QUEUE_COLOR_ALREADY_EXISTS",
+      //   async value => {
+      //     if (value) {
+      //       const queueWithSameColor = await Queue.findOne({
+      //         where: { color: value, id: { [Op.not]: queueId } }
+      //       });
+      //       return !queueWithSameColor;
+      //     }
+      //     return true;
+      //   }
+      // )
+    });
 
-  try {
-    await queueSchema.validate({ color, name });
-  } catch (err) {
-    throw new AppError(err.message);
+    try {
+      await queueSchema.validate({ color, name });
+    } catch (err) {
+      throw new AppError(err.message);
+    }
   }
 
   const queue = await ShowQueueService(queueId);
@@ -70,6 +81,24 @@ const UpdateQueueService = async (
 
   if (categoriesIds) {
     await queue.$set("categories", categoriesIds);
+
+    if (categoriesQueueData) {
+      for (const categoryId of categoriesIds) {
+        await QueueCategory.update(
+          {
+            descriptionForAICategorization: categoriesQueueData.find(
+              c => c.categoryId === categoryId
+            )?.descriptionForAICategorization
+          },
+          {
+            where: {
+              queueId: queue.id,
+              categoryId: categoryId
+            }
+          }
+        );
+      }
+    }
   }
 
   return queue;

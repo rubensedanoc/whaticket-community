@@ -148,6 +148,7 @@ const ContactDrawer = ({
           {contact?.isGroup ? "Detalles del grupo" : "Detalles del contacto"}
         </Typography>
       </div>
+
       {loading ? (
         <ContactDrawerSkeleton classes={classes} />
       ) : (
@@ -244,66 +245,86 @@ const ContactDrawer = ({
                   </a>
                 </Typography>
                 <div></div>
-                {Object.entries(data)
-                  .filter(([key]) =>
-                    [
-                      "local",
-                      "tipo_cliente",
-                      "pais",
-                      "ciudad",
-                      "direccion",
-                      "plan",
-                      "mensualidad",
-                      "localbi_ltv",
-                      "localbi_kam",
-                    ].includes(key)
-                  )
-                  .map(([key, value]) => (
-                    <Paper
-                      square
-                      variant="outlined"
-                      className={classes.contactExtraInfo}
-                    >
-                      <InputLabel>{key}</InputLabel>
-                      {value && (
-                        <Typography
-                          component="div"
-                          noWrap
-                          style={{ paddingTop: 2 }}
+                {(() => {
+                  const microserviceItems = [
+                    "fecha_alta",
+                    "tipo_cliente",
+                    "localbi_kam",
+                    "plan",
+                    "mensualidad",
+                    "localbi_ltv",
+                    "local",
+                    "pais",
+                    "ciudad",
+                    "direccion",
+                  ];
+
+                  return Object.entries(data)
+                    .filter(([key]) => microserviceItems.includes(key))
+                    .sort(
+                      ([keyA], [keyB]) =>
+                        microserviceItems.indexOf(keyA) -
+                        microserviceItems.indexOf(keyB)
+                    )
+                    .map(([key, value], index) => (
+                      <Paper
+                        key={index}
+                        square
+                        variant="outlined"
+                        className={classes.contactExtraInfo}
+                      >
+                        <InputLabel
+                          style={{
+                            fontWeight: "bold",
+                            textTransform: "uppercase",
+                            fontSize: "0.8rem",
+                          }}
                         >
-                          {value}
-                        </Typography>
-                      )}
-                    </Paper>
-                  ))}
+                          {key}
+                        </InputLabel>
+                        {
+                          <Typography
+                            component="div"
+                            noWrap
+                            style={{ paddingTop: 4 }}
+                          >
+                            {value || "-"}
+                          </Typography>
+                        }
+                      </Paper>
+                    ));
+                })()}
               </Paper>
             ))}
 
-          <Paper square variant="outlined" className={classes.contactDetails}>
-            <ContactModal
-              open={modalOpen}
-              onClose={() => setModalOpen(false)}
-              contactId={contact.id}
-            ></ContactModal>
-            <Typography variant="subtitle1">
-              {i18n.t("contactDrawer.extraInfo")}
-            </Typography>
-            {contact?.extraInfo?.map((info) => (
-              <Paper
-                key={info.id}
-                square
-                variant="outlined"
-                className={classes.contactExtraInfo}
-              >
-                <InputLabel>{info.name}</InputLabel>
-                <Typography component="div" noWrap style={{ paddingTop: 2 }}>
-                  <MarkdownWrapper>{info.value}</MarkdownWrapper>
-                </Typography>
-              </Paper>
-            ))}
-          </Paper>
+          {contact?.extraInfo?.length > 0 && (
+            <Paper square variant="outlined" className={classes.contactDetails}>
+              <Typography variant="subtitle1">
+                {i18n.t("contactDrawer.extraInfo")}
+              </Typography>
+              {contact?.extraInfo?.map((info) => (
+                <Paper
+                  key={info.id}
+                  square
+                  variant="outlined"
+                  className={classes.contactExtraInfo}
+                >
+                  <InputLabel>{info.name}</InputLabel>
+                  <Typography component="div" noWrap style={{ paddingTop: 2 }}>
+                    <MarkdownWrapper>{info.value}</MarkdownWrapper>
+                  </Typography>
+                </Paper>
+              ))}
+            </Paper>
+          )}
         </div>
       )}
+
+      <ContactModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        contactId={contact.id}
+      ></ContactModal>
     </Drawer>
   );
 };

@@ -15,6 +15,8 @@ import {
 } from "sequelize-typescript";
 import Queue from "./Queue";
 import Ticket from "./Ticket";
+import User from "./User";
+import WhatsappOwnerUsers from "./WhatsappOwnerUsers";
 import WhatsappQueue from "./WhatsappQueue";
 
 @Table
@@ -66,6 +68,10 @@ class Whatsapp extends Model<Whatsapp> {
   @Column
   webhook: string;
 
+  @AllowNull
+  @Column
+  sessionUuid: string;
+
   @CreatedAt
   createdAt: Date;
 
@@ -80,6 +86,9 @@ class Whatsapp extends Model<Whatsapp> {
 
   @HasMany(() => WhatsappQueue)
   whatsappQueues: WhatsappQueue[];
+
+  @BelongsToMany(() => User, () => WhatsappOwnerUsers)
+  userWhatsapps: User[];
 }
 
 export default Whatsapp;

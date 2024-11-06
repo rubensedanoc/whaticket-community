@@ -1,10 +1,12 @@
 import { Sequelize } from "sequelize-typescript";
 import Category from "../models/Category";
+import ChatbotMessage from "../models/ChatbotMessage";
 import ChatbotOption from "../models/ChatbotOption";
 import Contact from "../models/Contact";
 import ContactCustomField from "../models/ContactCustomField";
 import Country from "../models/Country";
 import GroupContact from "../models/GroupContact";
+import MarketingCampaign from "../models/MarketingCampaign";
 import Message from "../models/Message";
 import Queue from "../models/Queue";
 import QueueCategory from "../models/QueueCategory";
@@ -18,6 +20,7 @@ import TicketParticipantUsers from "../models/TicketParticipantUsers";
 import User from "../models/User";
 import UserQueue from "../models/UserQueue";
 import Whatsapp from "../models/Whatsapp";
+import WhatsappOwnerUsers from "../models/WhatsappOwnerUsers";
 import WhatsappQueue from "../models/WhatsappQueue";
 
 // eslint-disable-next-line
@@ -46,7 +49,10 @@ const models = [
   ChatbotOption,
   TicketParticipantUsers,
   TicketLog,
-  Country
+  Country,
+  ChatbotMessage,
+  WhatsappOwnerUsers,
+  MarketingCampaign
 ];
 
 sequelize.addModels(models);

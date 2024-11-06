@@ -2,16 +2,19 @@ import React from "react";
 import { BrowserRouter, Switch } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
+import NotificationManager from "../components/NotificationManager";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { SearchMessageProvider } from "../context/SearchMessage/SearchMessageContext";
 import { UsersPresenceProvider } from "../context/UsersPresenceContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
 import LoggedInLayout from "../layout";
+import ApiChatbot from "../pages/ApiChatbot";
 import Categories from "../pages/Categories/";
 import Connections from "../pages/Connections/";
 import Contacts from "../pages/Contacts/";
 import Dashboard from "../pages/Dashboard/";
 import Login from "../pages/Login/";
+import marketingCampaigns from "../pages/MarketingCampaigns";
 import Messages from "../pages/Messages/";
 import Queues from "../pages/Queues/";
 import QuickAnswers from "../pages/QuickAnswers/";
@@ -36,6 +39,12 @@ const Routes = () => {
                 <LoggedInLayout>
                   <Route exact path="/" component={Dashboard} isPrivate />
                   <Route exact path="/reports" component={Reports} isPrivate />
+                  <Route
+                    exact
+                    path="/api-chatbot"
+                    component={ApiChatbot}
+                    isPrivate
+                  />
                   <Route
                     exact
                     path="/reportsv2"
@@ -86,6 +95,13 @@ const Routes = () => {
                     component={Categories}
                     isPrivate
                   />
+                  <Route
+                    exact
+                    path="/marketingCampaigns"
+                    component={marketingCampaigns}
+                    isPrivate
+                  />
+                  <NotificationManager />
                 </LoggedInLayout>
               </SearchMessageProvider>
             </UsersPresenceProvider>
