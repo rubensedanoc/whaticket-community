@@ -14,6 +14,7 @@ import Connections from "../pages/Connections/";
 import Contacts from "../pages/Contacts/";
 import Dashboard from "../pages/Dashboard/";
 import Login from "../pages/Login/";
+import marketingCampaigns from "../pages/MarketingCampaigns";
 import Messages from "../pages/Messages/";
 import Queues from "../pages/Queues/";
 import QuickAnswers from "../pages/QuickAnswers/";
@@ -92,6 +93,12 @@ const Routes = () => {
                     exact
                     path="/categories"
                     component={Categories}
+                    isPrivate
+                  />
+                  <Route
+                    exact
+                    path="/marketingCampaigns"
+                    component={marketingCampaigns}
                     isPrivate
                   />
                   <NotificationManager />

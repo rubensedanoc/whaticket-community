@@ -8,6 +8,8 @@ import chatbotOptionRoutes from "./chatbotOptionRoutes";
 import contactRoutes from "./contactRoutes";
 import contryRoutes from "./countryRoutes";
 import externalRoutes from "./externalRoutes";
+import extraRoutes from "./extraRoutes";
+import marketingCampaignsRoutes from "./marketingCampaignsRoutes";
 import messageRoutes from "./messageRoutes";
 import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
@@ -37,5 +39,7 @@ routes.use("/api/messages", apiRoutes);
 routes.use(contryRoutes);
 routes.use("/external", externalRoutes);
 routes.use(chatbotMessageRoutes);
+routes.use(marketingCampaignsRoutes);
+routes.use("/extra", extraRoutes);
 
 export default routes;

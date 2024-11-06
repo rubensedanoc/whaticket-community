@@ -53,6 +53,9 @@ class User extends Model<User> {
   @Column
   whatsappId: number;
 
+  @Column
+  hubspotId: number;
+
   @BelongsTo(() => Whatsapp)
   whatsapp: Whatsapp;
 

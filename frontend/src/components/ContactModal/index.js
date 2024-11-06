@@ -7,9 +7,12 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
+import IconButton from "@material-ui/core/IconButton";
 import MenuItem from "@material-ui/core/MenuItem";
 import Switch from "@material-ui/core/Switch";
-import { Field, Form, Formik } from "formik";
+import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
+
+import { Field, FieldArray, Form, Formik } from "formik";
 import { toast } from "react-toastify";
 import * as Yup from "yup";
 
@@ -316,7 +319,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                     margin="dense"
                     variant="outlined"
                   /> */}
-                {/* <Typography
+                <Typography
                   style={{ marginBottom: 8, marginTop: 12 }}
                   variant="subtitle1"
                 >
@@ -369,7 +372,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                       </div>
                     </>
                   )}
-                </FieldArray> */}
+                </FieldArray>
               </DialogContent>
               <DialogActions>
                 <Button

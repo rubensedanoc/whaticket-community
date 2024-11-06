@@ -6,6 +6,7 @@ import Contact from "../models/Contact";
 import ContactCustomField from "../models/ContactCustomField";
 import Country from "../models/Country";
 import GroupContact from "../models/GroupContact";
+import MarketingCampaign from "../models/MarketingCampaign";
 import Message from "../models/Message";
 import Queue from "../models/Queue";
 import QueueCategory from "../models/QueueCategory";
@@ -50,7 +51,8 @@ const models = [
   TicketLog,
   Country,
   ChatbotMessage,
-  WhatsappOwnerUsers
+  WhatsappOwnerUsers,
+  MarketingCampaign
 ];
 
 sequelize.addModels(models);

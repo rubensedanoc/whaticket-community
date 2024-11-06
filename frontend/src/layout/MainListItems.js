@@ -12,6 +12,7 @@ import BarChartIcon from "@material-ui/icons/BarChart";
 import CategoryOutlinedIcon from "@material-ui/icons/CategoryOutlined";
 import ContactPhoneOutlinedIcon from "@material-ui/icons/ContactPhoneOutlined";
 import DashboardOutlinedIcon from "@material-ui/icons/DashboardOutlined";
+import FacebookIcon from "@material-ui/icons/Facebook";
 import HttpIcon from "@material-ui/icons/Http";
 import MessageOutlinedIcon from "@material-ui/icons/MessageOutlined";
 import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
@@ -159,6 +160,11 @@ const MainListItems = (props) => {
               to="/categories"
               primary={"Categorias"}
               icon={<CategoryOutlinedIcon />}
+            />
+            <ListItemLink
+              to="/marketingCampaigns"
+              primary={"Campañas de Mrkt"}
+              icon={<FacebookIcon />}
             />
             <ListItemLink
               to="/settings"

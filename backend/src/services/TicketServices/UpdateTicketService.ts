@@ -14,6 +14,8 @@ interface TicketData {
   participantUsersIds?: number[];
   transferred?: boolean;
   categorizedByAI?: boolean;
+  marketingCampaignId?: number;
+  wasSentToZapier?: boolean;
 }
 
 interface Request {
@@ -41,7 +43,9 @@ const UpdateTicketService = async ({
     helpUsersIds,
     participantUsersIds,
     transferred,
-    categorizedByAI
+    categorizedByAI,
+    marketingCampaignId,
+    wasSentToZapier
   } = ticketData;
 
   const ticket = await ShowTicketService(ticketId, true);
@@ -64,7 +68,9 @@ const UpdateTicketService = async ({
     userId,
     privateNote,
     ...(transferred === true && { transferred }),
-    ...(categorizedByAI === true && { categorizedByAI })
+    ...(categorizedByAI === true && { categorizedByAI }),
+    marketingCampaignId,
+    ...(wasSentToZapier && { wasSentToZapier })
   });
 
   if (whatsappId) {

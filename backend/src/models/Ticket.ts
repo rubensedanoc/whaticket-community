@@ -15,6 +15,7 @@ import {
 
 import Category from "./Category";
 import Contact from "./Contact";
+import MarketingCampaign from "./MarketingCampaign";
 import Message from "./Message";
 import Queue from "./Queue";
 import TicketCategory from "./TicketCategory";
@@ -55,6 +56,9 @@ class Ticket extends Model<Ticket> {
   userHadContact: boolean;
 
   @Column
+  wasSentToZapier: boolean;
+
+  @Column
   transferred: boolean;
 
   @Column
@@ -78,6 +82,13 @@ class Ticket extends Model<Ticket> {
 
   @BelongsTo(() => User)
   user: User;
+
+  @ForeignKey(() => MarketingCampaign)
+  @Column
+  marketingCampaignId: number;
+
+  @BelongsTo(() => MarketingCampaign)
+  marketingCampaign: MarketingCampaign;
 
   @ForeignKey(() => Contact)
   @Column

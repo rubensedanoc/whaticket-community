@@ -101,6 +101,8 @@ const Ticket = () => {
   const [ticketListModalTitle, setTicketListModalTitle] = useState("");
   const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
   const [selectedContactId, setSelectedContactId] = useState(null);
+  const [marketingCampaigns, setMarketingCampaigns] = useState([]);
+  const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
 
   async function searchForMicroServiceData(contactNumber) {
     try {
@@ -124,6 +126,13 @@ const Ticket = () => {
   }
 
   useEffect(() => {
+    (async () => {
+      const { data: marketingCampaigns } = await api.get("/marketingCampaigns");
+      setMarketingCampaigns(marketingCampaigns);
+    })();
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
     const delayDebounceFn = setTimeout(() => {
       const fetchTicket = async () => {
@@ -131,6 +140,7 @@ const Ticket = () => {
           const { data } = await api.get("/tickets/" + ticketId);
 
           setContact(data.contact);
+          setSelectMarketingCampaign(data.marketingCampaignId || 0);
           setTicket(data);
 
           // console.log("________ticket:", data);
@@ -165,7 +175,8 @@ const Ticket = () => {
     socket.on("ticket", (data) => {
       if (data.action === "update") {
         setTicket(data.ticket);
-        // console.log("ticker actulizado", data.ticket);
+        setSelectMarketingCampaign(data.ticket.marketingCampaignId || 0);
+        console.log("ticker actulizado", data.ticket);
       }
 
       if (data.action === "delete") {
@@ -269,7 +280,7 @@ const Ticket = () => {
               >
                 {relatedTickets.map((rt) => (
                   <MenuItem key={rt.id} value={rt.id}>
-                    Ticket: {rt.id}
+                    {rt.id}
                   </MenuItem>
                 ))}
               </Select>
@@ -290,7 +301,53 @@ const Ticket = () => {
           </div>
         </TicketHeader>
 
-        <TicketCategories ticket={ticket} />
+        <div style={{ display: "flex" }}>
+          <div style={{ flexGrow: "1" }}>
+            <TicketCategories ticket={ticket} />
+          </div>
+          <div style={{ flexGrow: "1" }}>
+            <Select
+              style={{ height: "100%", padding: "0 16px" }}
+              onChange={async (e) => {
+                try {
+                  await api.put(`/tickets/${ticket.id}`, {
+                    marketingCampaignId:
+                      e.target.value === 0 ? null : e.target.value,
+                  });
+
+                  toast.success(
+                    "Campaña de marketing actualizada correctamente."
+                  );
+                } catch (err) {
+                  console.log(err);
+                  toastError(err);
+                }
+
+                setSelectMarketingCampaign(e.target.value);
+              }}
+              fullWidth
+              value={selectMarketingCampaign}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: "bottom",
+                  horizontal: "left",
+                },
+                transformOrigin: {
+                  vertical: "top",
+                  horizontal: "left",
+                },
+                getContentAnchorEl: null,
+              }}
+            >
+              <MenuItem value={0}>Sin campaña</MenuItem>
+              {marketingCampaigns.map((mc) => (
+                <MenuItem key={mc.id} value={mc.id}>
+                  {mc.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </div>
+        </div>
 
         <ReplyMessageProvider>
           <MessagesList
