@@ -126,6 +126,8 @@ const BeforeSendTicketDataToZapierModal = ({
 
         setTicketDataToSendToZapier({
           ...data,
+          contactEmail:
+            data.contactEmail || `${data.contactNumber}@restaurant.pe`,
           contactCountryId: data.contactCountryId || "",
           ticketCampaignId: data.ticketCampaignId || "",
           NOMBRE_NEGOCIO:
@@ -382,6 +384,7 @@ const BeforeSendTicketDataToZapierModal = ({
                     onBlur={handleBlur}
                     label="CALIDAD MARKETING"
                   >
+                    <MenuItem value="Sin Respuesta">Sin Respuesta</MenuItem>
                     <MenuItem value="Regular">Regular</MenuItem>
                     <MenuItem value="Malo">Malo</MenuItem>
                     <MenuItem value="Bueno">Bueno</MenuItem>
@@ -415,6 +418,7 @@ const BeforeSendTicketDataToZapierModal = ({
                     onBlur={handleBlur}
                     label="CALIDAD COMERCIAL"
                   >
+                    <MenuItem value="Sin Respuesta">Sin Respuesta</MenuItem>
                     <MenuItem value="Regular">Regular</MenuItem>
                     <MenuItem value="Malo">Malo</MenuItem>
                     <MenuItem value="Bueno">Bueno</MenuItem>
