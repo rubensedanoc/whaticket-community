@@ -10,6 +10,7 @@ interface QueueData {
   color?: string;
   greetingMessage?: string;
   categoriesIds?: number[];
+  marketingCampaignsIds?: number[];
   validate?: boolean;
   categoriesQueueData?: QueueCategory[];
 }
@@ -22,6 +23,7 @@ const UpdateQueueService = async (
     color,
     name,
     categoriesIds,
+    marketingCampaignsIds,
     categoriesQueueData,
     validate = true
   } = queueData;
@@ -99,6 +101,10 @@ const UpdateQueueService = async (
         );
       }
     }
+  }
+
+  if (marketingCampaignsIds) {
+    await queue.$set("marketingCampaigns", marketingCampaignsIds);
   }
 
   return queue;

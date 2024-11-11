@@ -39,6 +39,7 @@ import toastError from "../../errors/toastError";
 import api from "../../services/api";
 import CategorySelect from "../CategorySelect";
 import ColorPicker from "../ColorPicker";
+import MarketingCampaignSelect from "../MarketingCampaignSelect";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -372,9 +373,16 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
   const [categorizationOpenAIModel, setCategorizationOpenAIModel] =
     useState("");
   const [categories, setCategories] = useState([]);
+  const [selectedMarketingCampaignsIds, setSelectedMarketingCampaignsIds] =
+    useState([]);
+  // const [marketingCampaigns, setMarketingCampaigns] = useState([]);
   const [queueCategorysData, setQueueCategorysData] = useState([]);
   const [isSubmittingCategoriesPage, setIsSubmittingCategoriesPage] =
     useState(false);
+  const [
+    isSubmittingMarketingCampaignsTab,
+    setIsSubmittingMarketingCampaignsTab,
+  ] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -426,6 +434,10 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
         setQueue((prevState) => {
           return { ...prevState, ...data };
         });
+
+        setSelectedMarketingCampaignsIds(
+          data.marketingCampaigns.map((mc) => mc.id)
+        );
 
         if (data.chatbotOptions && data.chatbotOptions.length > 0) {
           setChatbotOptions((oldChatbotOptions) => [
@@ -494,6 +506,22 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
     setIsSubmittingCategoriesPage(false);
   };
 
+  const handleSaveMarketingCampaignsTab = async () => {
+    setIsSubmittingMarketingCampaignsTab(true);
+    try {
+      const queueData = {
+        marketingCampaignsIds: selectedMarketingCampaignsIds,
+        validate: false,
+      };
+
+      await api.put(`/queue/${queueId}`, queueData);
+      toast.success("Campañas guardadas correctamente");
+    } catch (err) {
+      toastError(err);
+    }
+    setIsSubmittingMarketingCampaignsTab(false);
+  };
+
   return (
     <div className={classes.root}>
       <Dialog
@@ -511,9 +539,10 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
           variant="fullWidth"
           centered
         >
-          <Tab label="DEPARTAMENTO" />
-          <Tab label="CATEGORIAS" />
-          <Tab label="USUARIOS Y ASIGNACIÓN" />
+          <Tab label="GENERAL" />
+          <Tab label="CATEGORIAS" disabled={!queueId} />
+          <Tab label="CAMPAÑAS" disabled={!queueId} />
+          <Tab label="USUARIOS Y ASIGNACIÓN" disabled={!queueId} />
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -810,6 +839,46 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
           </DialogActions>
         </TabPanel>
         <TabPanel value={tabValue} index={2}>
+          <DialogContent dividers>
+            <div style={{ marginBottom: "1rem" }}>
+              <MarketingCampaignSelect
+                selectedIds={selectedMarketingCampaignsIds}
+                onChange={(values) => setSelectedMarketingCampaignsIds(values)}
+                // onLoadData={(marketingCampaigns) => {
+                //   console.log(marketingCampaigns);
+                //   setMarketingCampaigns(marketingCampaigns);
+                // }}
+              />
+            </div>
+          </DialogContent>
+
+          <DialogActions>
+            <Button
+              onClick={handleClose}
+              color="secondary"
+              disabled={isSubmittingMarketingCampaignsTab}
+              variant="outlined"
+            >
+              {i18n.t("queueModal.buttons.cancel")}
+            </Button>
+            <Button
+              onClick={handleSaveMarketingCampaignsTab}
+              color="primary"
+              disabled={isSubmittingMarketingCampaignsTab}
+              variant="contained"
+              className={classes.btnWrapper}
+            >
+              Guardar
+              {isSubmittingCategoriesPage && (
+                <CircularProgress
+                  size={24}
+                  className={classes.buttonProgress}
+                />
+              )}
+            </Button>
+          </DialogActions>
+        </TabPanel>
+        <TabPanel value={tabValue} index={3}>
           <DialogContent dividers>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div>

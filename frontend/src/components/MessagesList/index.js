@@ -741,6 +741,11 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
           className={classes.messageMedia}
           src={message.mediaUrl}
           controls
+          style={{
+            objectFit: "contain", // Asegura que se vea todo el contenido
+            width: "100%", // Ajusta el ancho a su contenedor
+            maxHeight: "100vh", // Limita la altura al 100% de la ventana
+          }}
         />
       );
     } else {
