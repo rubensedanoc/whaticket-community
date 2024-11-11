@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import { emitEvent } from "../libs/emitEvent";
 import MarketingCampaign from "../models/MarketingCampaign";
+import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const marketingCampaigns = await MarketingCampaign.findAll({});
+  const marketingCampaigns = await MarketingCampaign.findAll();
 
   return res.status(200).json(marketingCampaigns);
 };
@@ -12,17 +13,29 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const { marketingCampaignId } = req.params;
 
   const marketingCampaign = await MarketingCampaign.findByPk(
-    marketingCampaignId
+    marketingCampaignId,
+    {
+      include: [
+        {
+          model: MarketingCampaignAutomaticMessage,
+          as: "marketingCampaignAutomaticMessages",
+          required: false,
+          order: [["order", "ASC"]],
+          separate: true
+        }
+      ]
+    }
   );
 
   return res.status(200).json(marketingCampaign);
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { name } = req.body;
+  const { name, keywords } = req.body;
 
   const marketingCampaign = await MarketingCampaign.create({
-    name
+    name,
+    keywords: JSON.stringify(keywords)
   });
 
   emitEvent({
@@ -43,12 +56,16 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const { marketingCampaignId } = req.params;
+  const { name, keywords } = req.body;
 
   const marketingCampaign = await MarketingCampaign.findByPk(
     marketingCampaignId
   );
 
-  marketingCampaign.update(req.body);
+  marketingCampaign.update({
+    name,
+    keywords: JSON.stringify(keywords)
+  });
 
   emitEvent({
     event: {

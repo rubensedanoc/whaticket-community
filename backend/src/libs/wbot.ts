@@ -116,15 +116,19 @@ const syncUnreadMessages = async ({
               lastTicketForThisChat.messages[0].timestamp;
           }
 
-          const wppMessagesAfterLastMessageTimestamp =
+          let wppMessagesAfterLastMessageTimestamp =
             await fetchWbotMessagesGraduallyUpToATimestamp({
               limit: 20,
               timestamp: timestampUpToFetchMessages,
               wbotChat: chat
             });
 
+          wppMessagesAfterLastMessageTimestamp =
+            wppMessagesAfterLastMessageTimestamp.filter(msg => isValidMsg(msg));
+
           if (wppMessagesAfterLastMessageTimestamp.length > 0) {
             for (const msg of wppMessagesAfterLastMessageTimestamp) {
+              // console.log("msg", msg);
               await handleMessage({ msg, wbot });
             }
           }

@@ -5,6 +5,7 @@ import Category from "../../models/Category";
 import ChatbotMessage from "../../models/ChatbotMessage";
 import ChatbotOption from "../../models/ChatbotOption";
 import Contact from "../../models/Contact";
+import MarketingCampaign from "../../models/MarketingCampaign";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
@@ -133,6 +134,11 @@ const findTicket = async ({
         as: "queue",
         attributes: ["id", "name", "color"],
         include: [
+          {
+            model: MarketingCampaign,
+            as: "marketingCampaigns",
+            required: false
+          },
           {
             model: ChatbotOption,
             as: "chatbotOptions",

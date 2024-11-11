@@ -128,44 +128,47 @@ const MainListItems = (props) => {
         yes={() => (
           <>
             <Divider />
+
             <ListSubheader inset style={{ padding: 0, paddingLeft: 52 }}>
               {i18n.t("mainDrawer.listItems.administration")}
             </ListSubheader>
-            <ListItemLink
-              to="/api-chatbot"
-              primary={"Api Chatbot"}
-              icon={<HttpIcon />}
-            />
-            <ListItemLink
-              to="/reportsv2"
-              primary={"Reportes"}
-              icon={<BarChartIcon />}
-            />
-            {/* <ListItemLink
-              to="/reports"
-              primary={"Reportes"}
-              icon={<BarChartIcon />}
-            /> */}
+
             <ListItemLink
               to="/users"
               primary={i18n.t("mainDrawer.listItems.users")}
               icon={<PeopleAltOutlinedIcon />}
             />
+
             <ListItemLink
               to="/queues"
               primary={i18n.t("mainDrawer.listItems.queues")}
               icon={<AccountTreeOutlinedIcon />}
             />
+
             <ListItemLink
               to="/categories"
               primary={"Categorias"}
               icon={<CategoryOutlinedIcon />}
             />
+
             <ListItemLink
               to="/marketingCampaigns"
               primary={"Campañas de Mrkt"}
               icon={<FacebookIcon />}
             />
+
+            <ListItemLink
+              to="/reportsv2"
+              primary={"Reportes"}
+              icon={<BarChartIcon />}
+            />
+
+            <ListItemLink
+              to="/api-chatbot"
+              primary={"Api Chatbot"}
+              icon={<HttpIcon />}
+            />
+
             <ListItemLink
               to="/settings"
               primary={i18n.t("mainDrawer.listItems.settings")}

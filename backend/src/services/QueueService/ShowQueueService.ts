@@ -1,5 +1,6 @@
 import AppError from "../../errors/AppError";
 import ChatbotOption from "../../models/ChatbotOption";
+import MarketingCampaign from "../../models/MarketingCampaign";
 import Queue from "../../models/Queue";
 import User from "../../models/User";
 
@@ -17,6 +18,11 @@ const ShowQueueService = async (queueId: number | string): Promise<Queue> => {
       {
         model: User,
         as: "users",
+        required: false
+      },
+      {
+        model: MarketingCampaign,
+        as: "marketingCampaigns",
         required: false
       }
     ]

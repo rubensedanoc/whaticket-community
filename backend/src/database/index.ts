@@ -7,9 +7,11 @@ import ContactCustomField from "../models/ContactCustomField";
 import Country from "../models/Country";
 import GroupContact from "../models/GroupContact";
 import MarketingCampaign from "../models/MarketingCampaign";
+import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
 import Message from "../models/Message";
 import Queue from "../models/Queue";
 import QueueCategory from "../models/QueueCategory";
+import QueueMarketingCampaign from "../models/QueueMarketingCampaigns";
 import QuickAnswer from "../models/QuickAnswer";
 import Setting from "../models/Setting";
 import Ticket from "../models/Ticket";
@@ -52,7 +54,9 @@ const models = [
   Country,
   ChatbotMessage,
   WhatsappOwnerUsers,
-  MarketingCampaign
+  MarketingCampaign,
+  MarketingCampaignAutomaticMessage,
+  QueueMarketingCampaign
 ];
 
 sequelize.addModels(models);

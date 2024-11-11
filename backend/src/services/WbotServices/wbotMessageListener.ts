@@ -7,6 +7,7 @@ import {
   Client,
   MessageAck,
   MessageMedia,
+  MessageSendOptions,
   Contact as WbotContact,
   Message as WbotMessage
 } from "whatsapp-web.js";
@@ -23,6 +24,7 @@ import { getConnectedUsers } from "../../libs/connectedUsers";
 import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
 import ChatbotMessage from "../../models/ChatbotMessage";
+import MarketingCampaignAutomaticMessage from "../../models/MarketingCampaignAutomaticMessage";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
@@ -264,7 +266,8 @@ export const verifyMessage = async ({
   contact,
   isPrivate = false,
   updateTicketLastMessage = true,
-  identifier = ""
+  identifier = "",
+  shouldUpdateUserHadContact = true
 }: {
   msg: WbotMessage;
   ticket: Ticket;
@@ -272,6 +275,7 @@ export const verifyMessage = async ({
   isPrivate?: boolean;
   updateTicketLastMessage?: boolean;
   identifier?: string;
+  shouldUpdateUserHadContact?: boolean;
 }) => {
   if (msg.type === "location") msg = prepareLocation(msg);
 
@@ -303,7 +307,9 @@ export const verifyMessage = async ({
               "Localization - " + msg.location.description.split("\\n")[0]
             : "Localization"
           : msg.body,
-      ...(msg.fromMe && !isPrivate && { userHadContact: true })
+      ...(msg.fromMe &&
+        !isPrivate &&
+        shouldUpdateUserHadContact && { userHadContact: true })
     });
   }
 
@@ -969,6 +975,106 @@ const handleMessage = async ({
           }
         }
       }
+    }
+
+    await ticket.reload();
+
+    if (
+      !msg.fromMe &&
+      !ticket.isGroup &&
+      !ticket.userHadContact &&
+      !ticket.marketingCampaignId &&
+      ticket.queue?.marketingCampaigns?.length > 0
+    ) {
+      // console.log("---- handleMessage - handleMessage: ", ticket.queue);
+
+      const marketingCampaigns = ticket.queue.marketingCampaigns;
+
+      marketingCampaigns.forEach(async marketingCampaign => {
+        if (marketingCampaign.isActive) {
+          const keywords = JSON.parse(marketingCampaign.keywords);
+
+          if (
+            keywords.length > 0 &&
+            keywords.find(kw =>
+              msg.body.toLocaleLowerCase().includes(kw.toLocaleLowerCase())
+            )
+          ) {
+            const messagesToSend =
+              await MarketingCampaignAutomaticMessage.findAll({
+                where: {
+                  marketingCampaignId: marketingCampaign.id
+                }
+              });
+
+            if (messagesToSend.length > 0) {
+              let sleepTime = 2000;
+
+              messagesToSend.forEach(async messageToSend => {
+                if (messageToSend.mediaType === "text") {
+                  let body = formatBody(`\u200e${messageToSend.body}`, contact);
+
+                  const debouncedSentMessage = debounce(
+                    async () => {
+                      const sentMessage = await wbot.sendMessage(
+                        `${contact.number}@c.us`,
+                        body
+                      );
+
+                      await verifyMessage({
+                        msg: sentMessage,
+                        ticket,
+                        contact,
+                        shouldUpdateUserHadContact: false
+                      });
+                    },
+                    sleepTime,
+                    ticket.id + messageToSend.id
+                  );
+
+                  debouncedSentMessage();
+                } else {
+                  const newMedia = MessageMedia.fromFilePath(
+                    `public/${messageToSend.mediaUrl.split("/").pop()}`
+                  );
+
+                  let mediaOptions: MessageSendOptions = {
+                    sendAudioAsVoice: true
+                  };
+
+                  if (
+                    newMedia.mimetype.startsWith("image/") &&
+                    !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
+                  ) {
+                    mediaOptions["sendMediaAsDocument"] = true;
+                  }
+
+                  const debouncedSentMessage = debounce(
+                    async () => {
+                      await wbot.sendMessage(
+                        `${contact.number}@c.us`,
+                        newMedia,
+                        mediaOptions
+                      );
+                    },
+                    sleepTime,
+                    ticket.id + messageToSend.id
+                  );
+
+                  debouncedSentMessage();
+                }
+
+                sleepTime += 1000;
+              });
+            }
+
+            await UpdateTicketService({
+              ticketData: { marketingCampaignId: marketingCampaign.id },
+              ticketId: ticket.id
+            });
+          }
+        }
+      });
     }
 
     /* if (msg.type === "multi_vcard") {

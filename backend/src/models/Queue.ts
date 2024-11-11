@@ -17,7 +17,9 @@ import UserQueue from "./UserQueue";
 
 import Category from "./Category";
 import ChatbotOption from "./ChatbotOption";
+import MarketingCampaign from "./MarketingCampaign";
 import QueueCategory from "./QueueCategory";
+import QueueMarketingCampaign from "./QueueMarketingCampaigns";
 import Ticket from "./Ticket";
 import Whatsapp from "./Whatsapp";
 import WhatsappQueue from "./WhatsappQueue";
@@ -72,6 +74,11 @@ class Queue extends Model<Queue> {
 
   @BelongsToMany(() => Category, () => QueueCategory)
   categories: Array<Category & { QueueCategory: QueueCategory }>;
+
+  @BelongsToMany(() => MarketingCampaign, () => QueueMarketingCampaign)
+  marketingCampaigns: Array<
+    MarketingCampaign & { QueueMarketingCampaign: QueueMarketingCampaign }
+  >;
 
   @HasMany(() => ChatbotOption)
   chatbotOptions: ChatbotOption[];
