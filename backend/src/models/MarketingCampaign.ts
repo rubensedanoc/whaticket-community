@@ -1,4 +1,5 @@
 import {
+  AutoIncrement,
   Column,
   CreatedAt,
   HasMany,
@@ -12,6 +13,7 @@ import MarketingCampaignAutomaticMessage from "./MarketingCampaignAutomaticMessa
 @Table
 class MarketingCampaign extends Model<MarketingCampaign> {
   @PrimaryKey
+  @AutoIncrement
   @Column
   id: number;
 

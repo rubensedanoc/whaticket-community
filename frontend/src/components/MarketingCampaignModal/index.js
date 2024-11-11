@@ -228,6 +228,7 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
                     checked={values.isActive}
                     onChange={handleChange}
                     onBlur={handleBlur}
+                    name="isActive"
                     color="primary"
                     inputProps={{ "aria-label": "primary checkbox" }}
                   />
@@ -292,92 +293,98 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
                   )}
                 />
 
-                <div style={{ display: "flex", justifyContent: "end" }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                      setMarketingCampaignAutomaticMessageModalOpen(true);
-                      setSelectedMarketingCampaignAutomaticMessage(null);
-                    }}
-                  >
-                    Agregar Mensaje
-                  </Button>
-                </div>
+                {marketingCampaignId && (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "end" }}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                          setMarketingCampaignAutomaticMessageModalOpen(true);
+                          setSelectedMarketingCampaignAutomaticMessage(null);
+                        }}
+                      >
+                        Agregar Mensaje
+                      </Button>
+                    </div>
 
-                <Table size="medium">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell align="center">Orden</TableCell>
-                      <TableCell align="center">Tipo</TableCell>
-                      <TableCell align="center">Contenido</TableCell>
-                      <TableCell align="center">Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    <>
-                      {marketingCampaign.marketingCampaignAutomaticMessages?.map(
-                        (message) => (
-                          <TableRow key={message.id}>
-                            <TableCell align="center">
-                              {message.order}
-                            </TableCell>
-                            <TableCell align="center">
-                              {message.mediaType}
-                            </TableCell>
-                            <TableCell align="center">
-                              {message.mediaType === "text" ? (
-                                message.body
-                              ) : esArchivoDeImagen(message.mediaUrl) ? (
-                                <ModalImageCors imageUrl={message.mediaUrl} />
-                              ) : (
-                                message.mediaUrl
-                              )}
-                            </TableCell>
-                            <TableCell align="center">
-                              {/* {JSON.stringify(message.id)} */}
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  setMarketingCampaignAutomaticMessageModalOpen(
-                                    true
-                                  );
-                                  setSelectedMarketingCampaignAutomaticMessage(
-                                    message
-                                  );
-                                }}
-                              >
-                                <Edit />
-                              </IconButton>
+                    <Table size="medium">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell align="center">Orden</TableCell>
+                          <TableCell align="center">Tipo</TableCell>
+                          <TableCell align="center">Contenido</TableCell>
+                          <TableCell align="center">Acciones</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <>
+                          {marketingCampaign.marketingCampaignAutomaticMessages?.map(
+                            (message) => (
+                              <TableRow key={message.id}>
+                                <TableCell align="center">
+                                  {message.order}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {message.mediaType}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {message.mediaType === "text" ? (
+                                    message.body
+                                  ) : esArchivoDeImagen(message.mediaUrl) ? (
+                                    <ModalImageCors
+                                      imageUrl={message.mediaUrl}
+                                    />
+                                  ) : (
+                                    message.mediaUrl
+                                  )}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {/* {JSON.stringify(message.id)} */}
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      setMarketingCampaignAutomaticMessageModalOpen(
+                                        true
+                                      );
+                                      setSelectedMarketingCampaignAutomaticMessage(
+                                        message
+                                      );
+                                    }}
+                                  >
+                                    <Edit />
+                                  </IconButton>
 
-                              <IconButton
-                                size="small"
-                                onClick={async () => {
-                                  try {
-                                    await api.delete(
-                                      `/marketingCampaignAutomaticMessage/${message.id}`
-                                    );
-                                    toast.success(
-                                      "MarketingCampaignAutomaticMessage deleted successfully"
-                                    );
-                                  } catch (err) {
-                                    console.log(err);
-                                    toastError(
-                                      "Error deleting MarketingCampaignAutomaticMessage"
-                                    );
-                                  }
-                                  getData();
-                                }}
-                              >
-                                <DeleteOutline />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      )}
-                    </>
-                  </TableBody>
-                </Table>
+                                  <IconButton
+                                    size="small"
+                                    onClick={async () => {
+                                      try {
+                                        await api.delete(
+                                          `/marketingCampaignAutomaticMessage/${message.id}`
+                                        );
+                                        toast.success(
+                                          "MarketingCampaignAutomaticMessage deleted successfully"
+                                        );
+                                      } catch (err) {
+                                        console.log(err);
+                                        toastError(
+                                          "Error deleting MarketingCampaignAutomaticMessage"
+                                        );
+                                      }
+                                      getData();
+                                    }}
+                                  >
+                                    <DeleteOutline />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          )}
+                        </>
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
               </DialogContent>
               <DialogActions>
                 <Button

@@ -31,11 +31,12 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { name, keywords } = req.body;
+  const { name, keywords, isActive } = req.body;
 
   const marketingCampaign = await MarketingCampaign.create({
     name,
-    keywords: JSON.stringify(keywords)
+    keywords: JSON.stringify(keywords),
+    isActive
   });
 
   emitEvent({
@@ -56,7 +57,7 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const { marketingCampaignId } = req.params;
-  const { name, keywords } = req.body;
+  const { name, keywords, isActive } = req.body;
 
   const marketingCampaign = await MarketingCampaign.findByPk(
     marketingCampaignId
@@ -64,7 +65,8 @@ export const update = async (
 
   marketingCampaign.update({
     name,
-    keywords: JSON.stringify(keywords)
+    keywords: JSON.stringify(keywords),
+    isActive
   });
 
   emitEvent({

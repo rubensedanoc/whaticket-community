@@ -211,6 +211,7 @@ const MarketingCampaigns = () => {
             <TableHead>
               <TableRow>
                 <TableCell align="center">Nombre</TableCell>
+                <TableCell align="center">Activa</TableCell>
                 <TableCell align="center">Acciones</TableCell>
               </TableRow>
             </TableHead>
@@ -220,6 +221,13 @@ const MarketingCampaigns = () => {
                   <TableRow key={marketingCampaign.id}>
                     <TableCell align="center">
                       {marketingCampaign.name}
+                    </TableCell>
+                    <TableCell align="center">
+                      {marketingCampaign.isActive ? (
+                        <span style={{ color: "green" }}>Si</span>
+                      ) : (
+                        <span style={{ color: "red" }}>No</span>
+                      )}
                     </TableCell>
                     <TableCell align="center">
                       <IconButton
