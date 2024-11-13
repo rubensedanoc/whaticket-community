@@ -228,6 +228,8 @@ const MarketingCampaignAutomaticMessage = ({
                   <Field
                     as={TextField}
                     label={"Texto"}
+                    multiline
+                    minRows={3}
                     fullWidth
                     autoFocus
                     name="body"
