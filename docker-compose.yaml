@@ -47,6 +47,7 @@ services:
       - REACT_APP_NODE_URL=${NODE_URL:-http://localhost}:${PROXY_PORT_NODE:-8081}/
       - FRONTEND_SERVER_NAME=${FRONTEND_SERVER_NAME}
       - BACKEND_SERVER_NAME=${BACKEND_SERVER_NAME}
+      - REACT_APP_PURPOSE=${REACT_APP_PURPOSE}
     volumes:
       - ./ssl/certs/:/etc/nginx/ssl/
       - ./ssl/www/:/var/www/letsencrypt/
