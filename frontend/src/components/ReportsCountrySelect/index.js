@@ -27,7 +27,7 @@ const ReportsCountrySelect = ({
       max={99999}
       invisible={selectedCountryIds.length === 0}
     >
-      <div style={{ width: 140 }}>
+      <div style={{ width: 100 }}>
         <FormControl fullWidth margin="dense">
           <Select
             multiple

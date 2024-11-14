@@ -4,6 +4,12 @@ export const formatDateToMySQL = (dateStrIn: string): string => {
   const dateStr = dateStrIn;
   const date = new Date(dateStr);
 
+  // Obtener el desfase horario de la fecha (en horas ejem: -5)
+  const dateTzHours = (date.getTimezoneOffset() / 60) * -1;
+
+  // y ajustamos para convertirlo a -3 (esto por el problema de la confi inizial de sequealize)
+  date.setHours(date.getHours() + (-3 - dateTzHours));
+
   // Helper function to pad single digit numbers with leading zero
   const pad = (number, digits = 2) => String(number).padStart(digits, "0");
 

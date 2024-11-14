@@ -31,4 +31,15 @@ reportsRoutes.get(
   "/chatbotMessagesReportToExcel",
   ReportsController.chatbotMessagesReportToExcel
 );
+
+// ----------------- comercial reports page
+reportsRoutes.get(
+  "/getTicketsDistributionByStages",
+  ReportsController.getTicketsDistributionByStages
+);
+reportsRoutes.get(
+  "/getTicketsDistributionByStagesForExcel",
+  ReportsController.getTicketsDistributionByStagesForExcel
+);
+
 export default reportsRoutes;

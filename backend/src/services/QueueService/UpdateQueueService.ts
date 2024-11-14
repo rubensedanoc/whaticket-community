@@ -90,7 +90,10 @@ const UpdateQueueService = async (
           {
             descriptionForAICategorization: categoriesQueueData.find(
               c => c.categoryId === categoryId
-            )?.descriptionForAICategorization
+            )?.descriptionForAICategorization,
+            processOrder: categoriesQueueData.find(
+              c => c.categoryId === categoryId
+            )?.processOrder
           },
           {
             where: {

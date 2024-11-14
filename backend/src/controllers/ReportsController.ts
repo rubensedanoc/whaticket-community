@@ -7,8 +7,10 @@ import { Op, QueryTypes } from "sequelize";
 import AppError from "../errors/AppError";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
+import MarketingCampaign from "../models/MarketingCampaign";
 import Message from "../models/Message";
 import Queue from "../models/Queue";
+import QueueCategory from "../models/QueueCategory";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
@@ -33,7 +35,11 @@ type IndexQuery = {
   selectedCountryIds?: string;
   selectedTypes?: string;
   selectedQueueIds?: string;
+  selectedQueueId?: string;
   selectedChatbotMessagesIds?: string;
+  selectedMarketingCampaignsIds?: string;
+  selectedUsersIds?: string;
+  ticketStatus?: string;
 };
 
 function findLast<T>(array: T[], callback: any): T | undefined {
@@ -486,6 +492,11 @@ export const getATicketsList = async (
       {
         model: User,
         as: "participantUsers",
+        required: false
+      },
+      {
+        model: MarketingCampaign,
+        as: "marketingCampaign",
         required: false
       }
     ]
@@ -2082,6 +2093,279 @@ export const reportToUsers = async (
     sql,
     logsTime
   });
+};
+
+// ----------------- comercial reports page
+export const getTicketsDistributionByStages = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedWhatsappIds: selectedUserIdsAsString,
+    selectedCountryIds: selectedCountryIdsAsString,
+    selectedQueueId: selectedQueueIdAsString,
+    selectedMarketingCampaignsIds: selectedMarketingCampaignsIdsAsString,
+    selectedUsersIds: selectedUsersIdsAsString,
+    ticketStatus: ticketStatusAsString
+  } = req.query as IndexQuery;
+
+  const response: {
+    logs?: string[];
+    sql?: string;
+    sqlResult?: any[];
+    categoryRelationsOfSelectedQueue?: QueueCategory[];
+    data?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    dataByUser?: any;
+  } = {
+    logs: [],
+    sql: "",
+    sqlResult: [],
+    categoryRelationsOfSelectedQueue: [],
+    data: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataByUser: {}
+  };
+
+  const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
+  const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  const selectedQueueId = JSON.parse(selectedQueueIdAsString) as number;
+  const selectedMarketingCampaignsIds = JSON.parse(
+    selectedMarketingCampaignsIdsAsString
+  ) as string[];
+  let selectedUsersIds = JSON.parse(selectedUsersIdsAsString) as string[];
+
+  let sqlWhereAdd = ` t.queueId = ${selectedQueueId} AND t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+
+  if (selectedWhatsappIds.length > 0) {
+    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd += ` AND c.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+
+  if (selectedMarketingCampaignsIds.length > 0) {
+    if (!selectedMarketingCampaignsIds.includes(null)) {
+      sqlWhereAdd += ` AND t.marketingCampaignId IN (${selectedMarketingCampaignsIds.join(
+        ","
+      )}) `;
+    } else {
+      if (selectedMarketingCampaignsIds.length === 1) {
+        sqlWhereAdd += ` AND t.marketingCampaignId IS NULL `;
+      } else {
+        sqlWhereAdd += ` AND (t.marketingCampaignId IN (${selectedMarketingCampaignsIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.marketingCampaignId IS NULL) `;
+      }
+    }
+  }
+
+  if (selectedUsersIds.length > 0) {
+    sqlWhereAdd += ` AND t.userId IN (${selectedUsersIds.join(",")}) `;
+  }
+
+  if (ticketStatusAsString) {
+    sqlWhereAdd += ` AND t.status = ${ticketStatusAsString} `;
+  }
+
+  const categoryRelationsOfSelectedQueue = await QueueCategory.findAll({
+    where: {
+      queueId: selectedQueueId
+    },
+    include: [
+      {
+        model: Category,
+        as: "category",
+        required: false
+      }
+    ]
+  });
+
+  if (categoryRelationsOfSelectedQueue.length > 0) {
+    sqlWhereAdd += ` AND categoryId IN (${categoryRelationsOfSelectedQueue
+      .map(cr => cr.categoryId)
+      .join(",")}) `;
+  }
+
+  response.categoryRelationsOfSelectedQueue = categoryRelationsOfSelectedQueue;
+
+  const sql = `
+    SELECT
+      t.id as t_id,
+      t.createdAt as t_createdAt,
+      t.isGroup as t_isGroup,
+      t.marketingCampaignId as t_marketingCampaignId,
+      t.wasSentToZapier as t_wasSentToZapier,
+      t.userId as t_userId,
+      t.status as t_status,
+      c.id as c_id,
+      c.name as c_name,
+      c.number as c_number,
+      c.isGroup as c_isGroup,
+      tc.categoryId as tc_categoryId,
+      mc.name as mc_name
+    FROM Tickets t
+      JOIN Contacts c
+        ON t.contactId = c.id
+      LEFT JOIN TicketCategories tc
+        ON tc.ticketId = t.id AND tc.createdAt = (
+          select MAX(tc2.createdAt)
+          FROM TicketCategories tc2
+          WHERE tc2.ticketId = t.id
+          )
+      LEFT JOIN MarketingCampaigns mc
+    	ON mc.id = t.marketingCampaignId
+    WHERE ${sqlWhereAdd}
+    ORDER BY t.id ASC;
+  `;
+
+  console.log("sql", sql);
+  response.sql = sql;
+  response.logs.push(`sql-inicio: ${Date()}`);
+
+  const sqlResult: {
+    t_id: number;
+    t_createdAt: string;
+    t_isGroup: number;
+    t_marketingCampaignId: number;
+    t_wasSentToZapier: number;
+    t_userId: number;
+    c_id: number;
+    c_name: string;
+    c_number: string;
+    c_isGroup: number;
+    tc_categoryId: number;
+    mc_name: string;
+  }[] = await Ticket.sequelize.query(sql, {
+    type: QueryTypes.SELECT
+  });
+
+  response.logs.push(`sql-fin: ${Date()}`);
+  response.sqlResult = sqlResult;
+
+  let dataToReturnTicketsCount = 0;
+  const dataToReturn = categoryRelationsOfSelectedQueue.reduce(
+    (result, currentValue) => {
+      const currentValueInResult = result.find(
+        row => row.categoryId === currentValue.categoryId
+      );
+      if (!currentValueInResult) {
+        const obj = {
+          categoryId: currentValue.categoryId,
+          categoryName: currentValue.category.name,
+          categoryColor: currentValue.category.color,
+          tickets: []
+        };
+
+        sqlResult.forEach(row => {
+          if (row.tc_categoryId === currentValue.categoryId) {
+            const campaignProp = Object.keys(obj).find(
+              // @ts-ignore
+              key => key === `campaign_${row.t_marketingCampaignId}`
+            );
+
+            if (!campaignProp) {
+              obj[`campaign_${row.t_marketingCampaignId}`] = 1;
+            } else {
+              obj[campaignProp] += 1;
+            }
+
+            obj.tickets.push(row);
+            dataToReturnTicketsCount += 1;
+          }
+        });
+
+        result.push(obj);
+      }
+      return result;
+    },
+    []
+  );
+
+  response.data = {
+    ticketsCount: dataToReturnTicketsCount,
+    values: dataToReturn
+  };
+
+  const dataToReturnByUser = {};
+
+  if (selectedUsersIds.length === 0) {
+    selectedUsersIds = (
+      await User.findAll({
+        attributes: ["id"]
+      })
+    ).map(user => user.id.toString());
+  }
+
+  for (const selectedUserId of selectedUsersIds) {
+    const selectedUserValues = categoryRelationsOfSelectedQueue.reduce(
+      (result, currentValue) => {
+        const currentValueInResult = result.find(
+          row => row.categoryId === currentValue.categoryId
+        );
+        if (!currentValueInResult) {
+          const obj = {
+            categoryId: currentValue.categoryId,
+            categoryName: currentValue.category.name,
+            categoryColor: currentValue.category.color,
+            tickets: []
+          };
+
+          sqlResult
+            .filter(sqlItem => sqlItem.t_userId === +selectedUserId)
+            .forEach(row => {
+              if (row.tc_categoryId === currentValue.categoryId) {
+                const campaignProp = Object.keys(obj).find(
+                  // @ts-ignore
+                  key => key === `campaign_${row.t_marketingCampaignId}`
+                );
+
+                if (!campaignProp) {
+                  obj[`campaign_${row.t_marketingCampaignId}`] = 1;
+                } else {
+                  obj[campaignProp] += 1;
+                }
+
+                obj.tickets.push(row);
+              }
+            });
+
+          result.push(obj);
+        }
+        return result;
+      },
+      []
+    );
+
+    dataToReturnByUser[selectedUserId] = {
+      ticketsCount: selectedUserValues.reduce(
+        (acc, currentValue) => acc + currentValue.tickets.length,
+        0
+      ),
+      values: selectedUserValues
+    };
+  }
+
+  response.dataByUser = dataToReturnByUser;
+
+  return res.status(200).json(response);
+};
+
+export const getTicketsDistributionByStagesForExcel = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const response = {};
+  return res.status(200).json(response);
 };
 
 // ----------------- API chatbotMessages page

@@ -11,6 +11,7 @@ import TicketListItem from "../TicketListItem";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
+import Typography from "@material-ui/core/Typography";
 import api from "../../services/api";
 
 const TicketListModal = ({
@@ -21,6 +22,8 @@ const TicketListModal = ({
   tickets,
   newView,
   orderTicketsAsOriginalOrder = false,
+  divideByProperty = false,
+  divideByPropertyNullValue = "divideByPropertyNullValue",
 }) => {
   const [loading, setLoading] = useState(false);
   const [ticketsData, setTicketsData] = useState([]);
@@ -97,33 +100,93 @@ const TicketListModal = ({
           </div>
         </DialogTitle>
         <DialogContent dividers style={{ width: "900px" }}>
-          <TableContainer component={Paper}>
-            {ticketsData.length ? (
-              ticketsData
-                .sort((a, b) => {
-                  if (a.clientTimeWaiting > b.clientTimeWaiting) {
-                    return 1;
+          {ticketsData.length ? (
+            divideByProperty ? (
+              (() => {
+                const ticketsDataDivided = {};
+                const propertyFomat = divideByProperty.split(".");
+
+                ticketsData.forEach((ticket) => {
+                  let value = ticket;
+
+                  propertyFomat.forEach((property) => {
+                    if (value[property]) {
+                      value = value[property];
+                    } else {
+                      value = divideByPropertyNullValue;
+                    }
+                  });
+
+                  if (!ticketsDataDivided[value]) {
+                    ticketsDataDivided[value] = [ticket];
+                  } else {
+                    ticketsDataDivided[value].push(ticket);
                   }
-                  if (a.clientTimeWaiting < b.clientTimeWaiting) {
-                    return -1;
-                  }
-                  return 0;
-                })
-                .map((ticket) => (
-                  <div style={{ overflow: "hidden" }} key={ticket.id}>
-                    <TicketListItem
-                      ticket={ticket}
-                      key={ticket.id}
-                      openInANewWindowOnSelect={true}
-                    />
+                });
+
+                return Object.keys(ticketsDataDivided).map((key) => (
+                  <div key={key} style={{ marginBottom: 16 }}>
+                    <Typography
+                      variant="h6"
+                      style={{ marginBottom: 8, fontWeight: "500" }}
+                    >
+                      {key}
+                    </Typography>
+
+                    <TableContainer component={Paper}>
+                      {ticketsDataDivided[key]
+                        .sort((a, b) => {
+                          if (a.clientTimeWaiting > b.clientTimeWaiting) {
+                            return 1;
+                          }
+                          if (a.clientTimeWaiting < b.clientTimeWaiting) {
+                            return -1;
+                          }
+                          return 0;
+                        })
+                        .map((ticket) => (
+                          <div style={{ overflow: "hidden" }} key={ticket.id}>
+                            <TicketListItem
+                              ticket={ticket}
+                              key={ticket.id}
+                              openInANewWindowOnSelect={true}
+                            />
+                          </div>
+                        ))}
+                    </TableContainer>
                   </div>
-                ))
+                ));
+              })()
             ) : (
+              <TableContainer component={Paper}>
+                {ticketsData
+                  .sort((a, b) => {
+                    if (a.clientTimeWaiting > b.clientTimeWaiting) {
+                      return 1;
+                    }
+                    if (a.clientTimeWaiting < b.clientTimeWaiting) {
+                      return -1;
+                    }
+                    return 0;
+                  })
+                  .map((ticket) => (
+                    <div style={{ overflow: "hidden" }} key={ticket.id}>
+                      <TicketListItem
+                        ticket={ticket}
+                        key={ticket.id}
+                        openInANewWindowOnSelect={true}
+                      />
+                    </div>
+                  ))}
+              </TableContainer>
+            )
+          ) : (
+            <TableContainer component={Paper}>
               <div style={{ textAlign: "center", padding: "20px" }}>
                 Este contacto no tiene ningun ticket abierto
               </div>
-            )}
-          </TableContainer>
+            </TableContainer>
+          )}
           {loading && (
             <CircularProgress
               color="primary"
