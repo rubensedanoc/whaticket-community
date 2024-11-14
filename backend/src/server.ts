@@ -54,24 +54,24 @@ cron.schedule("0 * * * *", async () => {
       );
 
       if (searchForUnSaveMessagesResult.messagesCount) {
-        fetch(
-          "http://microservices.restaurant.pe/chat/public/rest/common/sendWhatAppMessage",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              telefono: "51987918828",
-              texto: `--- searchForUnSaveMessagesResult: ${JSON.stringify(
-                searchForUnSaveMessagesResult,
-                null,
-                2
-              )}`,
-              type: "text"
-            })
-          }
-        );
+        // fetch(
+        //   "http://microservices.restaurant.pe/chat/public/rest/common/sendWhatAppMessage",
+        //   {
+        //     method: "POST",
+        //     headers: {
+        //       "Content-Type": "application/json"
+        //     },
+        //     body: JSON.stringify({
+        //       telefono: "51987918828",
+        //       texto: `--- searchForUnSaveMessagesResult: ${JSON.stringify(
+        //         searchForUnSaveMessagesResult,
+        //         null,
+        //         2
+        //       )}`,
+        //       type: "text"
+        //     })
+        //   }
+        // );
       }
     });
   } catch (err) {
@@ -224,13 +224,13 @@ cron.schedule("*/20 * * * *", async () => {
                   categories: categoriesForEvaluate.join(" ")
                 });
 
-                Sentry.captureMessage(
-                  `ticketId: ${
-                    ticket.id
-                  } + categoriaId: ${AICategory} + mensajes: ${messagesToSend.join(
-                    " "
-                  )}`
-                );
+                // Sentry.captureMessage(
+                //   `ticketId: ${
+                //     ticket.id
+                //   } + categoriaId: ${AICategory} + mensajes: ${messagesToSend.join(
+                //     " "
+                //   )}`
+                // );
               })
               .catch(error => {
                 console.log("error", error);
