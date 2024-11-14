@@ -6,6 +6,7 @@ import Whatsapp from "../../models/Whatsapp";
 interface Request {
   searchParam?: string;
   pageNumber?: string | number;
+  withPagination?: boolean;
 }
 
 interface Response {
@@ -16,7 +17,8 @@ interface Response {
 
 const ListUsersService = async ({
   searchParam = "",
-  pageNumber = "1"
+  pageNumber = "1",
+  withPagination = true
 }: Request): Promise<Response> => {
   const whereCondition = {
     [Op.or]: [
@@ -36,8 +38,8 @@ const ListUsersService = async ({
   const { count, rows: users } = await User.findAndCountAll({
     where: whereCondition,
     attributes: ["name", "id", "email", "profile", "createdAt"],
-    limit,
-    offset,
+    ...(withPagination && { limit }),
+    ...(withPagination && { offset }),
     distinct: true,
     order: [["createdAt", "DESC"]],
     include: [

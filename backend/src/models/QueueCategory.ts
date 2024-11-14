@@ -1,4 +1,5 @@
 import {
+  BelongsTo,
   Column,
   CreatedAt,
   ForeignKey,
@@ -19,8 +20,14 @@ class QueueCategory extends Model<QueueCategory> {
   @Column
   categoryId: number;
 
+  @BelongsTo(() => Category)
+  category: Category;
+
   @Column
   descriptionForAICategorization: string;
+
+  @Column
+  processOrder: number;
 
   @CreatedAt
   createdAt: Date;

@@ -494,7 +494,12 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
         categorizeTicketsWithAI,
         categorizationOpenAIModel,
         categoriesIds: selectedCategoryIds,
-        categoriesQueueData: queueCategorysData,
+        categoriesQueueData: queueCategorysData.map((queueCategory) => {
+          return {
+            ...queueCategory,
+            processOrder: parseInt(queueCategory.processOrder),
+          };
+        }),
         validate: false,
       };
 
@@ -754,56 +759,108 @@ const QueueModal = ({ open, onClose, queueId, queuesCategories }) => {
               <div style={{ maxHeight: "14rem" }}>
                 {selectedCategoryIds.map((categoryId) => {
                   return (
-                    <TextField
-                      key={categoryId}
-                      style={{
-                        marginBottom: "1rem",
-                      }}
-                      label={`Descripción de ${
-                        categories.find(
-                          (category) => category.id === categoryId
-                        )?.name
-                      }`}
-                      multiline
-                      minRows={2}
-                      type=""
-                      fullWidth
-                      variant="outlined"
-                      margin="dense"
-                      value={
-                        queueCategorysData.find(
-                          (queueCategory) =>
-                            queueCategory.categoryId === categoryId
-                        )?.descriptionForAICategorization
-                      }
-                      onChange={(e) => {
-                        e.persist();
-
-                        setQueueCategorysData((oldQueueCategorysData) => {
-                          const newQueueCategorysData = [
-                            ...oldQueueCategorysData,
-                          ];
-                          const index = newQueueCategorysData.findIndex(
-                            (queueCategory) =>
-                              queueCategory.categoryId === categoryId
-                          );
-
-                          if (index === -1) {
-                            newQueueCategorysData.push({
-                              categoryId,
-                              descriptionForAICategorization: e.target.value,
-                            });
-                            return newQueueCategorysData;
+                    <div>
+                      <h3 style={{}}>
+                        {
+                          categories.find(
+                            (category) => category.id === categoryId
+                          )?.name
+                        }
+                      </h3>
+                      <div style={{ display: "flex", gap: 16 }}>
+                        <TextField
+                          key={`Orden` + categoryId}
+                          style={{
+                            marginBottom: "1rem",
+                          }}
+                          type="number"
+                          label={`Orden`}
+                          variant="outlined"
+                          margin="dense"
+                          value={
+                            queueCategorysData.find(
+                              (queueCategory) =>
+                                queueCategory.categoryId === categoryId
+                            )?.processOrder
                           }
+                          onChange={(e) => {
+                            e.persist();
 
-                          newQueueCategorysData[index] = {
-                            ...newQueueCategorysData[index],
-                            descriptionForAICategorization: e.target.value,
-                          };
-                          return newQueueCategorysData;
-                        });
-                      }}
-                    />
+                            setQueueCategorysData((oldQueueCategorysData) => {
+                              const newQueueCategorysData = [
+                                ...oldQueueCategorysData,
+                              ];
+                              const index = newQueueCategorysData.findIndex(
+                                (queueCategory) =>
+                                  queueCategory.categoryId === categoryId
+                              );
+
+                              if (index === -1) {
+                                newQueueCategorysData.push({
+                                  categoryId,
+                                  processOrder: e.target.value,
+                                });
+                                return newQueueCategorysData;
+                              }
+
+                              newQueueCategorysData[index] = {
+                                ...newQueueCategorysData[index],
+                                processOrder: e.target.value,
+                              };
+                              return newQueueCategorysData;
+                            });
+                          }}
+                        />
+
+                        <TextField
+                          key={`AI Descripción` + categoryId}
+                          style={{
+                            marginBottom: "1rem",
+                          }}
+                          fullWidth
+                          label={`AI Descripción`}
+                          multiline
+                          minRows={2}
+                          type=""
+                          variant="outlined"
+                          margin="dense"
+                          value={
+                            queueCategorysData.find(
+                              (queueCategory) =>
+                                queueCategory.categoryId === categoryId
+                            )?.descriptionForAICategorization
+                          }
+                          onChange={(e) => {
+                            e.persist();
+
+                            setQueueCategorysData((oldQueueCategorysData) => {
+                              const newQueueCategorysData = [
+                                ...oldQueueCategorysData,
+                              ];
+                              const index = newQueueCategorysData.findIndex(
+                                (queueCategory) =>
+                                  queueCategory.categoryId === categoryId
+                              );
+
+                              if (index === -1) {
+                                newQueueCategorysData.push({
+                                  categoryId,
+                                  descriptionForAICategorization:
+                                    e.target.value,
+                                });
+                                return newQueueCategorysData;
+                              }
+
+                              newQueueCategorysData[index] = {
+                                ...newQueueCategorysData[index],
+                                descriptionForAICategorization: e.target.value,
+                              };
+                              return newQueueCategorysData;
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>

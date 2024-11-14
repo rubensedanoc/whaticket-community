@@ -13,14 +13,22 @@ import UpdateUserService from "../services/UserServices/UpdateUserService";
 type IndexQuery = {
   searchParam: string;
   pageNumber: string;
+  withPagination: string;
 };
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const { searchParam, pageNumber } = req.query as IndexQuery;
+  const {
+    searchParam,
+    pageNumber,
+    withPagination: withPaginationAsString
+  } = req.query as IndexQuery;
 
   const { users, count, hasMore } = await ListUsersService({
     searchParam,
-    pageNumber
+    pageNumber,
+    ...(withPaginationAsString && {
+      withPagination: JSON.parse(withPaginationAsString)
+    })
   });
 
   return res.json({ users, count, hasMore });

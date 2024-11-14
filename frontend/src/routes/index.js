@@ -10,6 +10,7 @@ import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
 import LoggedInLayout from "../layout";
 import ApiChatbot from "../pages/ApiChatbot";
 import Categories from "../pages/Categories/";
+import ComercialReports from "../pages/ComercialReports";
 import Connections from "../pages/Connections/";
 import Contacts from "../pages/Contacts/";
 import Dashboard from "../pages/Dashboard/";
@@ -48,7 +49,23 @@ const Routes = () => {
                   <Route
                     exact
                     path="/reportsv2"
-                    component={ReportsV2}
+                    component={(() => {
+                      let componentToReturn;
+                      switch (process.env.REACT_APP_PURPOSE) {
+                        case "comercial":
+                          componentToReturn = ComercialReports;
+                          break;
+
+                        case "general":
+                          componentToReturn = ReportsV2;
+                          break;
+
+                        default:
+                          componentToReturn = ReportsV2;
+                          break;
+                      }
+                      return componentToReturn;
+                    })()}
                     isPrivate
                   />
                   <Route
