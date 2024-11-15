@@ -3,6 +3,7 @@ import { BrowserRouter, Switch } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
 import NotificationManager from "../components/NotificationManager";
+import { getREACT_APP_PURPOSE } from "../config";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { SearchMessageProvider } from "../context/SearchMessage/SearchMessageContext";
 import { UsersPresenceProvider } from "../context/UsersPresenceContext";
@@ -51,7 +52,7 @@ const Routes = () => {
                     path="/reportsv2"
                     component={(() => {
                       let componentToReturn;
-                      switch (process.env.REACT_APP_PURPOSE) {
+                      switch (getREACT_APP_PURPOSE()) {
                         case "comercial":
                           componentToReturn = ComercialReports;
                           break;
