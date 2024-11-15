@@ -1,20 +1,24 @@
-function getConfig(name, defaultValue=null) {
-    // If inside a docker container, use window.ENV
-    if( window.ENV !== undefined ) {
-        return window.ENV[name] || defaultValue;
-    }
+function getConfig(name, defaultValue = null) {
+  // If inside a docker container, use window.ENV
+  if (window.ENV !== undefined) {
+    return window.ENV[name] || defaultValue;
+  }
 
-    return process.env[name] || defaultValue;
+  return process.env[name] || defaultValue;
 }
 
 export function getBackendUrl() {
-    return getConfig('REACT_APP_BACKEND_URL');
+  return getConfig("REACT_APP_BACKEND_URL");
 }
 
 export function getNodeUrl() {
-    return getConfig('REACT_APP_NODE_URL');
+  return getConfig("REACT_APP_NODE_URL");
 }
 
 export function getHoursCloseTicketsAuto() {
-    return getConfig('REACT_APP_HOURS_CLOSE_TICKETS_AUTO');
+  return getConfig("REACT_APP_HOURS_CLOSE_TICKETS_AUTO");
+}
+
+export function getREACT_APP_PURPOSE() {
+  return getConfig("REACT_APP_PURPOSE");
 }
