@@ -211,6 +211,7 @@ const TicketsList = (props) => {
     onMoveToRight,
     categoriesVisible,
     showOnlyWaitingTickets,
+    columnsWidth,
   } = props;
 
   const classes = useStyles();
@@ -491,7 +492,12 @@ const TicketsList = (props) => {
       className={classes.ticketsListWrapper}
       style={{
         ...style,
-        width: "20rem",
+        width:
+          columnsWidth === "normal"
+            ? "20rem"
+            : columnsWidth === "large"
+            ? "25rem"
+            : "20rem",
         borderRadius: 8,
         flexShrink: 0,
         // Es la lista sin categoria o es lista de categoria
