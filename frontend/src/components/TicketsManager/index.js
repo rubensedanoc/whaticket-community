@@ -26,7 +26,7 @@ import NewTicketModal from "../NewTicketModal";
 import TabPanel from "../TabPanel";
 import TicketsList from "../TicketsList";
 
-import { Button, Divider } from "@material-ui/core";
+import { Button, Divider, FormControlLabel, Switch } from "@material-ui/core";
 import Menu from "@material-ui/core/Menu";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { toast } from "react-toastify";
@@ -159,6 +159,8 @@ const TicketsManager = () => {
   const [pendingColumnSide, setPendingColumnSide] = useState("left");
   const [secondaryColumnSide, setSecondaryColumnSide] = useState("left");
 
+  const [showOnlyWaitingTickets, setShowOnlyWaitingTickets] = useState(false);
+
   useEffect(() => {
     localStorage.getItem("principalTicketType") &&
       setPrincipalTicketType(
@@ -186,6 +188,13 @@ const TicketsManager = () => {
     localStorage.getItem("secondaryColumnSide") &&
       setSecondaryColumnSide(
         JSON.parse(localStorage.getItem("secondaryColumnSide"))
+      );
+
+    localStorage.getItem("TicketsManager-showOnlyWaitingTickets") &&
+      setShowOnlyWaitingTickets(
+        JSON.parse(
+          localStorage.getItem("TicketsManager-showOnlyWaitingTickets")
+        )
       );
   }, []);
 
@@ -965,6 +974,33 @@ const TicketsManager = () => {
                   </FormControl>
                 </div>
               </Badge>
+
+              <Divider
+                flexItem
+                orientation="vertical"
+                style={{ marginLeft: 20, marginRight: 20 }}
+              />
+
+              <FormControlLabel
+                style={{ marginRight: 7, color: "gray", marginLeft: 0 }}
+                label={"Ver solo sin respuesta"}
+                labelPlacement="start"
+                control={
+                  <Switch
+                    size="small"
+                    checked={showOnlyWaitingTickets}
+                    onChange={(e) => {
+                      setShowOnlyWaitingTickets(e.target.checked);
+                      localStorage.setItem(
+                        "TicketsManager-showOnlyWaitingTickets",
+                        JSON.stringify(e.target.checked)
+                      );
+                    }}
+                    name="showOnlyWaitingTickets"
+                    color="primary"
+                  />
+                }
+              />
             </div>
           </div>
 
@@ -985,6 +1021,7 @@ const TicketsManager = () => {
               setShowAll={setShowAll}
               showOnlyMyGroups={showOnlyMyGroups}
               setShowOnlyMyGroups={setShowOnlyMyGroups}
+              showOnlyWaitingTickets={showOnlyWaitingTickets}
               selectedTypeIds={
                 principalTicketType === "groups"
                   ? typeIdsForIndividuals
@@ -1012,6 +1049,7 @@ const TicketsManager = () => {
               selectedTypeIds={typeIdsForAll}
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              showOnlyWaitingTickets={showOnlyWaitingTickets}
               ticketsType="pendings"
               onMoveToLeft={() => onMovePendingColumn("left")}
               onMoveToRight={() => {
@@ -1044,6 +1082,7 @@ const TicketsManager = () => {
                   }
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  showOnlyWaitingTickets={showOnlyWaitingTickets}
                   ticketsType="no-category"
                   onMoveToLeft={() =>
                     onMoveCategoryColumn(categoryIndex, "left")
@@ -1061,6 +1100,7 @@ const TicketsManager = () => {
                   category={category}
                   showAll={showAll}
                   showOnlyMyGroups={showOnlyMyGroups}
+                  showOnlyWaitingTickets={showOnlyWaitingTickets}
                   selectedTypeIds={
                     principalTicketType === "groups"
                       ? typeIdsForGroups

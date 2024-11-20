@@ -4,6 +4,7 @@ import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
 
 import { useHistory } from "react-router-dom";
+import { toast } from "react-toastify";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
@@ -81,6 +82,20 @@ const TicketOptionsMenu = ({
               onClick={async () => {
                 try {
                   await api.put(`/tickets/${ticket.id}`, {
+                    beenWaitingSinceTimestamp: null,
+                  });
+                  toast.success("Ticket actualizado");
+                } catch (err) {
+                  toastError(err);
+                }
+              }}
+            >
+              Marcar como no esperando respuesta
+            </MenuItem>
+            <MenuItem
+              onClick={async () => {
+                try {
+                  await api.put(`/tickets/${ticket.id}`, {
                     status: "closed",
                     leftGroup: true,
                   });
@@ -117,6 +132,20 @@ const TicketOptionsMenu = ({
           </div>
         ) : (
           <div>
+            <MenuItem
+              onClick={async () => {
+                try {
+                  await api.put(`/tickets/${ticket.id}`, {
+                    beenWaitingSinceTimestamp: null,
+                  });
+                  toast.success("Ticket actualizado");
+                } catch (err) {
+                  toastError(err);
+                }
+              }}
+            >
+              Marcar como no esperando respuesta
+            </MenuItem>
             <MenuItem
               onClick={() => {
                 handleUpdateTicketStatus({

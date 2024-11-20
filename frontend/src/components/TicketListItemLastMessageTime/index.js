@@ -7,33 +7,40 @@ import {
 import { es } from "date-fns/locale";
 import React, { useEffect, useState } from "react";
 
-export default function TicketListItemLastMessageTime({ clientTimeWaiting }) {
+export default function TicketListItemLastMessageTime({
+  beenWaitingSinceTimestamp,
+}) {
   const [nowTime, setNowTime] = useState(new Date().getTime());
 
   useEffect(() => {
     let interval;
 
-    // console.log("clientTimeWaiting", clientTimeWaiting);
+    // console.log("beenWaitingSinceTimestamp", beenWaitingSinceTimestamp);
 
     interval = setInterval(() => {
       setNowTime((old) => old + 5000);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [clientTimeWaiting]);
+  }, [beenWaitingSinceTimestamp]);
 
   return (
     <Chip
       style={{ height: "16px", fontSize: "9px" }}
       color={
-        differenceInHours(nowTime, fromUnixTime(clientTimeWaiting)) >= 24
+        differenceInHours(nowTime, fromUnixTime(beenWaitingSinceTimestamp)) >=
+        24
           ? "secondary"
           : "default"
       }
       size="small"
-      label={`${formatDistanceStrict(nowTime, fromUnixTime(clientTimeWaiting), {
-        locale: es,
-      })}`}
+      label={`${formatDistanceStrict(
+        nowTime,
+        fromUnixTime(beenWaitingSinceTimestamp),
+        {
+          locale: es,
+        }
+      )}`}
     />
   );
 }

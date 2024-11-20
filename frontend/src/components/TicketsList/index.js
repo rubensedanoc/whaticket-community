@@ -157,7 +157,7 @@ const reducer = (state, action) => {
       state[ticketIndex] = {
         ...state[ticketIndex],
         ...ticket,
-        clientTimeWaiting: ticket.clientTimeWaiting,
+        beenWaitingSinceTimestamp: ticket.beenWaitingSinceTimestamp,
       };
       state.unshift(state.splice(ticketIndex, 1)[0]);
     } else {
@@ -210,6 +210,7 @@ const TicketsList = (props) => {
     onMoveToLeft,
     onMoveToRight,
     categoriesVisible,
+    showOnlyWaitingTickets,
   } = props;
 
   const classes = useStyles();
@@ -240,6 +241,7 @@ const TicketsList = (props) => {
     selectedWhatsappIds,
     selectedQueueIds,
     selectedTypeIds,
+    showOnlyWaitingTickets,
   ]);
 
   const { tickets, hasMore, loading, count } = useTickets({
@@ -251,6 +253,7 @@ const TicketsList = (props) => {
     queueIds: JSON.stringify(selectedQueueIds),
     typeIds: JSON.stringify(selectedTypeIds),
     showOnlyMyGroups,
+    showOnlyWaitingTickets,
     ...(category && { categoryId: category.id }),
     ...(ticketsType === "no-category" && { categoryId: 0 }),
   });
@@ -383,7 +386,11 @@ const TicketsList = (props) => {
       }
 
       if (data.action === "update") {
-        if (shouldUpdateTicket(data.ticket)) {
+        if (
+          shouldUpdateTicket(data.ticket) &&
+          (!showOnlyWaitingTickets ||
+            (showOnlyWaitingTickets && data.ticket?.beenWaitingSinceTimestamp))
+        ) {
           dispatch({
             type: "UPDATE_TICKET", // si encuentra el ticket en el estado lo actualiza sino lo agrega
             payload: {
@@ -420,11 +427,22 @@ const TicketsList = (props) => {
       //   category,
       // });
 
-      if (data.action === "create" && shouldUpdateTicket(data.ticket)) {
-        dispatch({
-          type: "UPDATE_TICKET_UNREAD_MESSAGES",
-          payload: { ticket: data.ticket, setUpdatedCount },
-        });
+      if (data.action === "create") {
+        if (
+          shouldUpdateTicket(data.ticket) &&
+          (!showOnlyWaitingTickets ||
+            (showOnlyWaitingTickets && data.ticket?.beenWaitingSinceTimestamp))
+        ) {
+          dispatch({
+            type: "UPDATE_TICKET_UNREAD_MESSAGES",
+            payload: { ticket: data.ticket, setUpdatedCount },
+          });
+        } else {
+          dispatch({
+            type: "DELETE_TICKET", // si encuentra el ticket en el estado lo elimina
+            payload: { ticketId: data.ticket?.id, setUpdatedCount },
+          });
+        }
       }
     });
 
@@ -450,6 +468,7 @@ const TicketsList = (props) => {
     selectedTypeIds,
     selectedWhatsappIds,
     showOnlyMyGroups,
+    showOnlyWaitingTickets,
   ]);
 
   const loadMore = () => {

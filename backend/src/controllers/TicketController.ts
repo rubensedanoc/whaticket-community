@@ -13,6 +13,7 @@ import TicketLog from "../models/TicketLog";
 import CreateTicketService from "../services/TicketServices/CreateTicketService";
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
 // import ListTicketsServicev2 from "../services/TicketServices/ListTicketsServicev2";
+import getAndSetBeenWaitingSinceTimestampTicketService from "../services/TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
@@ -31,6 +32,7 @@ type IndexQuery = {
   typeIds: string;
   showOnlyMyGroups: string;
   categoryId: string;
+  showOnlyWaitingTickets: string;
 };
 
 interface TicketData {
@@ -61,7 +63,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     typeIds: typeIdsStringified,
     withUnreadMessages,
     showOnlyMyGroups: showOnlyMyGroupsStringified,
-    categoryId: categoryIdStringified
+    categoryId: categoryIdStringified,
+    showOnlyWaitingTickets: showOnlyWaitingTicketsStringified
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -71,6 +74,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let typeIds: string[] = [];
   let showOnlyMyGroups: boolean = false;
   let categoryId: number | null = null;
+  let showOnlyWaitingTickets: boolean = false;
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -92,6 +96,10 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     categoryId = JSON.parse(categoryIdStringified);
   }
 
+  if (showOnlyWaitingTicketsStringified) {
+    showOnlyWaitingTickets = JSON.parse(showOnlyWaitingTicketsStringified);
+  }
+
   const { tickets, count, hasMore, whereCondition, includeCondition } =
     await ListTicketsService({
       searchParam,
@@ -105,23 +113,9 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       typeIds,
       withUnreadMessages,
       showOnlyMyGroups,
-      categoryId
+      categoryId,
+      showOnlyWaitingTickets
     });
-
-  // const { tickets, count, hasMore } = await ListTicketsServicev2({
-  //   searchParam,
-  //   pageNumber,
-  //   status,
-  //   date,
-  //   showAll,
-  //   userId,
-  //   whatsappIds,
-  //   queueIds,
-  //   typeIds,
-  //   withUnreadMessages,
-  //   showOnlyMyGroups,
-  //   categoryId
-  // });
 
   return res
     .status(200)
@@ -419,6 +413,19 @@ export const createTicketLog = async (
     console.log("error", error);
 
     throw new AppError("ERR_TICKET_NOT_FOUND");
+  }
+
+  return res.status(200).json({});
+};
+
+export const getAndSetBeenWaitingSinceTimestampToAllTheTickets = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const tickets = await Ticket.findAll();
+
+  for (const ticket of tickets) {
+    await getAndSetBeenWaitingSinceTimestampTicketService(ticket);
   }
 
   return res.status(200).json({});

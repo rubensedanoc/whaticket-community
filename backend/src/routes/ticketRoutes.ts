@@ -29,4 +29,9 @@ ticketRoutes.put("/tickets/:ticketId", isAuth, TicketController.update);
 
 ticketRoutes.delete("/tickets/:ticketId", isAuth, TicketController.remove);
 
+ticketRoutes.post(
+  "/tickets/getAndSetBeenWaitingSinceTimestampToAllTheTickets",
+  TicketController.getAndSetBeenWaitingSinceTimestampToAllTheTickets
+);
+
 export default ticketRoutes;

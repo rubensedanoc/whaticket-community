@@ -1,5 +1,4 @@
 import { Includeable } from "sequelize";
-import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
 import AppError from "../../errors/AppError";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
@@ -88,7 +87,7 @@ const ShowTicketService = async (
   }
 
   if (withLastMessages) {
-    ticket = (await getClientTimeWaitingForTickets([ticket]))[0];
+    // ticket = (await getClientTimeWaitingForTickets([ticket]))[0];
   }
   return ticket;
 };

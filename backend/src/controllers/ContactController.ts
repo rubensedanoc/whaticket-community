@@ -541,12 +541,12 @@ export const getNumberGroups = async (
                 if (wbotChatInOurDb) {
                   // console.log("wbotChatInOurDb", wbotChatInOurDb.tickets);
 
-                  if (wbotChatInOurDb.tickets) {
-                    wbotChatInOurDb.tickets =
-                      await getClientTimeWaitingForTickets(
-                        wbotChatInOurDb.tickets
-                      );
-                  }
+                  // if (wbotChatInOurDb.tickets) {
+                  //   wbotChatInOurDb.tickets =
+                  //     await getClientTimeWaitingForTickets(
+                  //       wbotChatInOurDb.tickets
+                  //     );
+                  // }
                   registerGroups.push(wbotChatInOurDb);
                 } else {
                   notRegisterGroups.push(chat);
