@@ -11,6 +11,7 @@ import {
 import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
+import MarketingCampaign from "../../models/MarketingCampaign";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
@@ -287,6 +288,11 @@ const buildIncludeCondition = ({
             required: true
           }
         : { required: false })
+    },
+    {
+      model: MarketingCampaign,
+      as: "marketingCampaign",
+      required: false
     }
   ];
 

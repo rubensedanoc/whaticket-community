@@ -45,14 +45,20 @@ const ShowTicketService = async (
     {
       model: Queue,
       as: "queue",
-      attributes: ["id", "name", "color"],
+      attributes: ["id", "name", "color", "defaultTicketCategoryId"],
       include: [
         {
           model: MarketingCampaign,
           as: "marketingCampaigns",
           required: false
+        },
+        {
+          model: Category,
+          as: "defaultTicketCategory",
+          required: false
         }
-      ]
+      ],
+      required: false
     },
     {
       model: Whatsapp,

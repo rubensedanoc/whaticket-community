@@ -17,10 +17,11 @@ import Tooltip from "@material-ui/core/Tooltip";
 import AndroidIcon from "@material-ui/icons/Android";
 import PeopleAltIcon from "@material-ui/icons/PeopleAlt";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
+import { getREACT_APP_PURPOSE } from "../../config";
 import TicketPreviewModal from "../TicketPreviewModal";
 
-import Typography from "@material-ui/core/Typography";
 import { green } from "@material-ui/core/colors";
+import Typography from "@material-ui/core/Typography";
 
 import { makeStyles } from "@material-ui/core/styles";
 
@@ -525,15 +526,11 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     />
                   )}
 
-                  {/* CATEGORIES BADGES */}
-                  {ticket.categories?.length > 0 && (
+                  {getREACT_APP_PURPOSE() === "comercial" && (
                     <>
-                      {ticket.categories.map((category) => (
+                      {ticket.marketingCampaign && (
                         <Chip
-                          key={category.id}
                           style={{
-                            backgroundColor: category.color,
-                            color: "white",
                             height: "16px",
                             fontSize: "9px",
                           }}
@@ -546,18 +543,52 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                                 gap: "4px",
                               }}
                             >
-                              {category?.TicketCategory?.byAI && (
-                                <AndroidIcon style={{ fontSize: 16 }} />
-                              )}
-                              {category.name}
+                              {ticket.marketingCampaign?.name}
                             </div>
                           }
-                          className={classes.chip}
                         />
-                      ))}
+                      )}
                     </>
                   )}
-                  {/* CATEGORIES BADGES */}
+
+                  {(getREACT_APP_PURPOSE() === "general" ||
+                    !getREACT_APP_PURPOSE()) && (
+                    <>
+                      {/* CATEGORIES BADGES */}
+                      {ticket.categories?.length > 0 && (
+                        <>
+                          {ticket.categories.map((category) => (
+                            <Chip
+                              key={category.id}
+                              style={{
+                                backgroundColor: category.color,
+                                color: "white",
+                                height: "16px",
+                                fontSize: "9px",
+                              }}
+                              variant="outlined"
+                              label={
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  {category?.TicketCategory?.byAI && (
+                                    <AndroidIcon style={{ fontSize: 16 }} />
+                                  )}
+                                  {category.name}
+                                </div>
+                              }
+                              className={classes.chip}
+                            />
+                          ))}
+                        </>
+                      )}
+                      {/* CATEGORIES BADGES */}
+                    </>
+                  )}
                 </div>
               </>
             }
