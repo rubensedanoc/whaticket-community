@@ -2141,7 +2141,7 @@ export const getTicketsDistributionByStages = async (
   ) as string[];
   let selectedUsersIds = JSON.parse(selectedUsersIdsAsString) as string[];
 
-  let sqlWhereAdd = ` t.queueId = ${selectedQueueId} AND t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = ` c.isCompanyMember IS NOT TRUE AND t.queueId = ${selectedQueueId} AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
 

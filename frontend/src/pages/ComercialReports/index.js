@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useContext, useEffect, useState } from "react";
 
 import Container from "@material-ui/core/Container";
 import Grid from "@material-ui/core/Grid";
@@ -9,6 +9,7 @@ import ButtonWithSpinner from "../../components/ButtonWithSpinner";
 import MainHeader from "../../components/MainHeader";
 import MarketingCampaignSelect from "../../components/MarketingCampaignSelect";
 import ReportsCountrySelect from "../../components/ReportsCountrySelect";
+import ReportsWhatsappSelect from "../../components/ReportsWhatsappSelect";
 import TicketListModal from "../../components/TicketListModal";
 import Title from "../../components/Title";
 import UsersSelect from "../../components/UsersSelect";
@@ -20,6 +21,8 @@ import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import TextField from "@material-ui/core/TextField";
+import { AuthContext } from "../../context/Auth/AuthContext";
+import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
@@ -27,6 +30,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   Legend,
   ResponsiveContainer,
   Tooltip,
@@ -70,7 +74,7 @@ const ComercialReports = () => {
 
   const [countries, setCountries] = useState([]);
   const [selectedCountryIds, setSelectedCountryIds] = useState([]);
-  const [selectedWhatsappIds] = useState([]);
+  const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
   const [selectedQueueId, setSelectedQueueId] = useState(6);
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
   const [selectedMarketingCampaignsIds, setSelectedMarketingCampaignsIds] =
@@ -105,6 +109,9 @@ const ComercialReports = () => {
   const [ticketListModalTitle, setTicketListModalTitle] = useState("");
   const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
 
+  const { whatsApps } = useContext(WhatsAppsContext);
+  const { user } = useContext(AuthContext);
+
   useEffect(() => {
     if (localStorage.getItem("ReportsCountrySelect")) {
       setSelectedCountryIds(
@@ -136,8 +143,10 @@ const ComercialReports = () => {
         JSON.parse(localStorage.getItem("MarketingCampaignsIds")) ||
         selectedMarketingCampaignsIds,
       selectedUsersIds:
-        JSON.parse(localStorage.getItem("ReportsSelectedUsersIds")) ||
-        selectedUsersIds,
+        user.profile === "admin"
+          ? JSON.parse(localStorage.getItem("ReportsSelectedUsersIds")) ||
+            selectedUsersIds
+          : [user.id],
       ticketStatus,
     });
 
@@ -295,20 +304,31 @@ const ComercialReports = () => {
                 flexWrap: "wrap",
               }}
             >
-              <UsersSelect
-                selectedIds={selectedUsersIds}
-                onChange={(values) => {
-                  localStorage.setItem(
-                    "ReportsSelectedUsersIds",
-                    JSON.stringify(values)
-                  );
-                  setSelectedUsersIds(values);
-                }}
-                onLoadData={(data) => {
-                  // console.log("users data", data);
-                  setUsers(data);
-                }}
-                chips={false}
+              {user.profile === "admin" && (
+                <>
+                  <UsersSelect
+                    selectedIds={selectedUsersIds}
+                    onChange={(values) => {
+                      localStorage.setItem(
+                        "ReportsSelectedUsersIds",
+                        JSON.stringify(values)
+                      );
+                      setSelectedUsersIds(values);
+                    }}
+                    onLoadData={(data) => {
+                      // console.log("users data", data);
+                      setUsers(data);
+                    }}
+                    chips={false}
+                  />
+                </>
+              )}
+
+              <ReportsWhatsappSelect
+                style={{ marginLeft: 6 }}
+                selectedWhatsappIds={selectedWhatsappIds || []}
+                userWhatsapps={whatsApps || []}
+                onChange={(values) => setSelectedWhatsappIds(values)}
               />
 
               <ReportsCountrySelect
@@ -404,7 +424,8 @@ const ComercialReports = () => {
                   selectedCountryIds,
                   selectedQueueId,
                   selectedMarketingCampaignsIds,
-                  selectedUsersIds,
+                  selectedUsersIds:
+                    user.profile === "admin" ? selectedUsersIds : [user.id],
                   ticketStatus,
                 });
               }}
@@ -417,126 +438,153 @@ const ComercialReports = () => {
 
         {/* BODY */}
         <Grid container spacing={3}>
-          {/* GENERAL DISTRIBUTION CARD */}
-          <Grid item xs={12}>
-            <Paper className={classes.customFixedHeightPaper}>
-              {/* CARD HEADER */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "start",
-                }}
-              >
-                <Typography
-                  component="h3"
-                  variant="h6"
-                  color="primary"
-                  paragraph
-                  style={{ display: "flex", justifyContent: "space-between" }}
-                >
-                  <span>
-                    Distribución General -{" "}
-                    {ticketsDistributionByStages.ticketsCount}
-                  </span>
-                </Typography>
-              </div>
+          {user.profile === "admin" && (
+            <>
+              {/* GENERAL DISTRIBUTION CARD */}
+              <Grid item xs={12}>
+                <Paper className={classes.customFixedHeightPaper}>
+                  {/* CARD HEADER */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                    }}
+                  >
+                    <Typography
+                      component="h3"
+                      variant="h6"
+                      color="primary"
+                      paragraph
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>
+                        Distribución General -{" "}
+                        {ticketsDistributionByStages.ticketsCount}
+                      </span>
+                    </Typography>
+                  </div>
 
-              {/* CARD CHART */}
-              {ticketsDistributionByStages.values ? (
-                (() => {
-                  let allCampaignsFormatIds = [];
+                  {/* CARD CHART */}
+                  {ticketsDistributionByStages.values ? (
+                    (() => {
+                      let allCampaignsFormatIds = [];
 
-                  ticketsDistributionByStages.values.forEach(
-                    (ticketsDistribution) => {
-                      const keys = Object.keys(ticketsDistribution);
+                      ticketsDistributionByStages.values.forEach(
+                        (ticketsDistribution) => {
+                          const keys = Object.keys(ticketsDistribution);
 
-                      keys
-                        .filter((k) => k.includes("campaign_"))
-                        .forEach((key) => {
-                          if (allCampaignsFormatIds.includes(key)) {
-                            return;
-                          }
-                          allCampaignsFormatIds.push(key);
-                        });
-                    }
-                  );
+                          keys
+                            .filter((k) => k.includes("campaign_"))
+                            .forEach((key) => {
+                              if (allCampaignsFormatIds.includes(key)) {
+                                return;
+                              }
+                              allCampaignsFormatIds.push(key);
+                            });
+                        }
+                      );
 
-                  return (
-                    <ResponsiveContainer width="100%" height={400}>
-                      <BarChart
-                        data={ticketsDistributionByStages.values}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="categoryName"
-                          fontSize={16}
-                          fontWeight={"bold"}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis tickLine={false} axisLine={false} />
-                        <Tooltip
-                          cursor={{ fill: "#0000000a" }}
-                          formatter={(value, name) => {
-                            const id = name.replace("campaign_", "");
-                            return [
-                              value,
-                              marketingCampaigns.find((mc) => mc.id == id)
-                                ?.name || "Sin campaña",
-                            ];
-                          }}
-                        />
-                        <Legend
-                          wrapperStyle={{
-                            bottom: 0,
-                            gap: "1rem",
-                          }}
-                          formatter={(value) => {
-                            const id = value.replace("campaign_", "");
-                            return (
-                              marketingCampaigns.find((mc) => mc.id == id)
-                                ?.name || "Sin campaña"
-                            );
-                          }}
-                        />
-
-                        {allCampaignsFormatIds.map((id) => (
-                          <Fragment key={id}>
-                            <Bar
-                              onClick={(e) => {
-                                console.log("e", e);
-                                setTicketListModalOpen(true);
-                                setTicketListModalTitle(
-                                  `Tickets en "${e.categoryName}" por campaña`
-                                );
-                                setTicketListModalTickets(
-                                  e.tickets.map((t) => {
-                                    return t.t_id;
-                                  })
+                      return (
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart
+                            data={ticketsDistributionByStages.values}
+                            margin={{
+                              top: 20,
+                              right: 30,
+                              left: 20,
+                              bottom: 20,
+                            }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="categoryName"
+                              fontSize={16}
+                              fontWeight={"bold"}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis tickLine={false} axisLine={false} />
+                            <Tooltip
+                              cursor={{ fill: "#0000000a" }}
+                              formatter={(value, name) => {
+                                const id = name.replace("campaign_", "");
+                                return [
+                                  value,
+                                  marketingCampaigns.find((mc) => mc.id == id)
+                                    ?.name || "Sin campaña",
+                                ];
+                              }}
+                            />
+                            <Legend
+                              wrapperStyle={{
+                                bottom: 0,
+                                gap: "1rem",
+                              }}
+                              formatter={(value) => {
+                                const id = value.replace("campaign_", "");
+                                return (
+                                  marketingCampaigns.find((mc) => mc.id == id)
+                                    ?.name || "Sin campaña"
                                 );
                               }}
-                              dataKey={`${id}`}
-                              stackId="a"
-                              fill={
-                                marketingCampaigns.find(
-                                  (mc) =>
-                                    mc.id == id.replaceAll("campaign_", "")
-                                )?.color || "gray"
-                              }
-                            ></Bar>
-                          </Fragment>
-                        ))}
-                      </BarChart>
-                    </ResponsiveContainer>
-                  );
-                })()
-              ) : (
-                <>cargando</>
-              )}
-            </Paper>
-          </Grid>
+                            />
+
+                            {allCampaignsFormatIds.map((id, index) => (
+                              <Fragment key={id}>
+                                <Bar
+                                  onClick={(e) => {
+                                    console.log("e", e);
+                                    setTicketListModalOpen(true);
+                                    setTicketListModalTitle(
+                                      `Tickets en "${e.categoryName}" por campaña`
+                                    );
+                                    setTicketListModalTickets(
+                                      e.tickets.map((t) => {
+                                        return t.t_id;
+                                      })
+                                    );
+                                  }}
+                                  dataKey={`${id}`}
+                                  stackId="a"
+                                  fill={
+                                    marketingCampaigns.find(
+                                      (mc) =>
+                                        mc.id == id.replaceAll("campaign_", "")
+                                    )?.color || "gray"
+                                  }
+                                >
+                                  {index ===
+                                    allCampaignsFormatIds.length - 1 && (
+                                    <LabelList
+                                      position="top"
+                                      offset={12}
+                                      className="fill-foreground"
+                                      fontWeight={"bold"}
+                                      fontSize={12}
+                                      formatter={(value) => value}
+                                    />
+                                  )}
+                                </Bar>
+                              </Fragment>
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      );
+                    })()
+                  ) : (
+                    <>cargando</>
+                  )}
+                </Paper>
+              </Grid>
+            </>
+          )}
 
           {/* <Divider orientation="horizontal" flexItem /> */}
 
@@ -667,7 +715,7 @@ const ComercialReports = () => {
                                     }}
                                   />
 
-                                  {allCampaignsFormatIds.map((id) => (
+                                  {allCampaignsFormatIds.map((id, index) => (
                                     <Fragment
                                       key={
                                         ticketsDistributionByStagesAndUsersKey +
@@ -696,7 +744,19 @@ const ComercialReports = () => {
                                               id.replaceAll("campaign_", "")
                                           )?.color || "gray"
                                         }
-                                      ></Bar>
+                                      >
+                                        {index ===
+                                          allCampaignsFormatIds.length - 1 && (
+                                          <LabelList
+                                            position="top"
+                                            offset={12}
+                                            className="fill-foreground"
+                                            fontSize={12}
+                                            fontWeight={"bold"}
+                                            formatter={(value) => value}
+                                          />
+                                        )}
+                                      </Bar>
                                     </Fragment>
                                   ))}
                                 </BarChart>

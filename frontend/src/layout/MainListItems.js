@@ -22,6 +22,7 @@ import SyncAltIcon from "@material-ui/icons/SyncAlt";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 
 import { Can } from "../components/Can";
+import { getREACT_APP_PURPOSE } from "../config";
 import { AuthContext } from "../context/Auth/AuthContext";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
 import { i18n } from "../translate/i18n";
@@ -176,6 +177,17 @@ const MainListItems = (props) => {
             />
           </>
         )}
+        no={() =>
+          getREACT_APP_PURPOSE() === "comercial" ? (
+            <>
+              <ListItemLink
+                to="/reportsv2"
+                primary={"Reportes"}
+                icon={<BarChartIcon />}
+              />
+            </>
+          ) : null
+        }
       />
     </div>
   );

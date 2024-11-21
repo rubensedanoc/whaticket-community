@@ -27,7 +27,7 @@ const ReportsCountrySelect = ({
       max={99999}
       invisible={selectedCountryIds.length === 0}
     >
-      <div style={{ width: 100 }}>
+      <div style={{ width: 175 }}>
         <FormControl fullWidth margin="dense">
           <Select
             multiple
@@ -46,7 +46,7 @@ const ReportsCountrySelect = ({
               },
               getContentAnchorEl: null,
             }}
-            renderValue={() => "Paises"}
+            renderValue={() => "Pais del contacto"}
           >
             {countries?.length > 0 &&
               countries.map((c) => (
