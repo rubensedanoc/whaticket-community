@@ -424,9 +424,7 @@ export const getAndSetBeenWaitingSinceTimestampToAllTheTickets = async (
 ): Promise<Response> => {
   const tickets = await Ticket.findAll();
 
-  for (const ticket of tickets) {
-    await getAndSetBeenWaitingSinceTimestampTicketService(ticket);
-  }
+  await getAndSetBeenWaitingSinceTimestampTicketService(tickets);
 
-  return res.status(200).json({});
+  return res.status(200).json({ count: tickets.length });
 };
