@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import React, { Fragment, useContext, useEffect, useState } from "react";
 
 import Container from "@material-ui/core/Container";
+import Divider from "@material-ui/core/Divider";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
@@ -77,6 +78,7 @@ const ComercialReports = () => {
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
   const [selectedQueueId, setSelectedQueueId] = useState(6);
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [selectedMarketingCampaignsIds, setSelectedMarketingCampaignsIds] =
     useState([]);
   const [users, setUsers] = useState([]);
@@ -100,10 +102,20 @@ const ComercialReports = () => {
       values: null,
       ticketsCount: null,
     });
+  const [ticketsDistributionByStages2, setTicketsDistributionByStages2] =
+    useState({
+      values: null,
+      ticketsCount: null,
+    });
   const [
     ticketsDistributionByStagesAndUsers,
     setTicketsDistributionByStagesAndUsers,
   ] = useState(null);
+
+  const [
+    categoryRelationsOfSelectedQueue,
+    setCategoryRelationsOfSelectedQueue,
+  ] = useState([]);
 
   const [ticketListModalOpen, setTicketListModalOpen] = useState(false);
   const [ticketListModalTitle, setTicketListModalTitle] = useState("");
@@ -162,6 +174,18 @@ const ComercialReports = () => {
     })();
   }, []);
 
+  // load categories
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get("/categories");
+        setCategories(data);
+      } catch (err) {
+        toastError(err);
+      }
+    })();
+  }, []);
+
   const getTicketsDistributionByStages = async ({
     fromDate,
     toDate,
@@ -193,6 +217,10 @@ const ComercialReports = () => {
         }
       );
 
+      setCategoryRelationsOfSelectedQueue(
+        ticketsDistributionByStages.categoryRelationsOfSelectedQueue
+      );
+
       setTicketsDistributionByStages({
         ticketsCount: ticketsDistributionByStages.data.ticketsCount,
         values: ticketsDistributionByStages.data.values.sort((a, b) => {
@@ -207,6 +235,15 @@ const ComercialReports = () => {
             )?.processOrder || 0;
 
           return aOrder - bOrder;
+        }),
+      });
+      setTicketsDistributionByStages2({
+        ticketsCount: ticketsDistributionByStages.data2.ticketsCount,
+        values: ticketsDistributionByStages.data2.values.map((v) => {
+          return {
+            ...v,
+            userName: formatName(v.userName),
+          };
         }),
       });
       setTicketsDistributionByStagesAndUsers(
@@ -259,6 +296,25 @@ const ComercialReports = () => {
       const color = `hsl(${hue}, 70%, ${luminosidad})`; // Genera el color en formato HSL
       return { ...campaña, color };
     });
+  }
+
+  function formatName(fullName) {
+    // Divide el nombre completo en partes
+    const parts = fullName.split(" ");
+
+    // Asegúrate de que hay al menos dos partes para nombre y apellido
+    if (parts.length < 2) {
+      return fullName; // Retorna el nombre tal cual si no hay suficientes partes
+    }
+
+    // Toma el primer nombre
+    const firstName = parts[0];
+
+    // Toma la inicial del segundo nombre o apellido
+    const lastInitial = parts[1].charAt(0).toUpperCase();
+
+    // Retorna el formato "Abel Q."
+    return `${firstName} ${lastInitial}.`;
   }
 
   return (
@@ -437,10 +493,10 @@ const ComercialReports = () => {
         </MainHeader>
 
         {/* BODY */}
-        <Grid container spacing={3}>
+        <Grid container spacing={4} style={{ flexDirection: "column" }}>
           {user.profile === "admin" && (
             <>
-              {/* GENERAL DISTRIBUTION CARD */}
+              {/* Distribución General por Usuario/Etapas CARD */}
               <Grid item xs={12}>
                 <Paper className={classes.customFixedHeightPaper}>
                   {/* CARD HEADER */}
@@ -462,7 +518,189 @@ const ComercialReports = () => {
                       }}
                     >
                       <span>
-                        Distribución General -{" "}
+                        Distribución General por Usuario/Etapas -{" "}
+                        {ticketsDistributionByStages2.ticketsCount}
+                      </span>
+                    </Typography>
+                  </div>
+
+                  {/* CARD CHART */}
+                  {ticketsDistributionByStages2.values ? (
+                    (() => {
+                      let allCategoryIds = [];
+
+                      ticketsDistributionByStages2.values.forEach(
+                        (ticketsDistribution) => {
+                          const keys = Object.keys(ticketsDistribution);
+
+                          keys
+                            .filter((k) => k.includes("category_"))
+                            .forEach((key) => {
+                              if (allCategoryIds.includes(key)) {
+                                return;
+                              }
+                              allCategoryIds.push(key);
+                            });
+                        }
+                      );
+
+                      allCategoryIds.sort((a, b) => {
+                        const aOrder =
+                          categoryRelationsOfSelectedQueue.find(
+                            (c) => c.categoryId == a.replace("category_", "")
+                          )?.processOrder || 0;
+
+                        const bOrder =
+                          categoryRelationsOfSelectedQueue?.find(
+                            (c) => c.categoryId == b.replace("category_", "")
+                          )?.processOrder || 0;
+
+                        return aOrder - bOrder;
+                      });
+
+                      console.log("allCategoryIds", allCategoryIds);
+                      console.log(
+                        "categoryRelationsOfSelectedQueue",
+                        categoryRelationsOfSelectedQueue
+                      );
+
+                      return (
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart
+                            data={ticketsDistributionByStages2.values}
+                            margin={{
+                              top: 20,
+                              right: 30,
+                              left: 20,
+                              bottom: 20,
+                            }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="userName"
+                              fontSize={12}
+                              fontWeight={"bold"}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis tickLine={false} axisLine={false} />
+                            <Tooltip
+                              cursor={{ fill: "#0000000a" }}
+                              formatter={(
+                                value,
+                                name,
+                                item,
+                                index,
+                                payload
+                              ) => {
+                                const id = name.replace("category_", "");
+                                return [
+                                  `${value} (${Math.round(
+                                    (value /
+                                      payload.reduce((acc, cur) => {
+                                        return acc + cur.value;
+                                      }, 0)) *
+                                      100
+                                  )}%)`,
+                                  categories.find((mc) => mc.id == id)?.name ||
+                                    "Sin categpría",
+                                ];
+                              }}
+                            />
+                            <Legend
+                              wrapperStyle={{
+                                bottom: 0,
+                                gap: "1rem",
+                              }}
+                              formatter={(value) => {
+                                const id = value.replace("category_", "");
+                                return (
+                                  categories.find((mc) => mc.id == id)?.name ||
+                                  "Sin categoría"
+                                );
+                              }}
+                            />
+
+                            {allCategoryIds.map((id, index) => (
+                              <Fragment key={id}>
+                                <Bar
+                                  onClick={(e) => {
+                                    console.log("e", e);
+                                    setTicketListModalOpen(true);
+                                    setTicketListModalTitle(
+                                      `Tickets en "${e.categoryName}" por campaña`
+                                    );
+                                    setTicketListModalTickets(
+                                      e.tickets.map((t) => {
+                                        return t.t_id;
+                                      })
+                                    );
+                                  }}
+                                  capHeight={10}
+                                  dataKey={`${id}`}
+                                  stackId="b"
+                                  fill={
+                                    categories.find(
+                                      (c) =>
+                                        c.id == id.replaceAll("category_", "")
+                                    )?.color || "gray"
+                                  }
+                                >
+                                  {index === allCategoryIds.length - 1 && (
+                                    <LabelList
+                                      position="top"
+                                      offset={12}
+                                      className="fill-foreground"
+                                      fontWeight={"bold"}
+                                      fontSize={12}
+                                      formatter={(value) => {
+                                        return `${value} (${Math.round(
+                                          (value /
+                                            ticketsDistributionByStages2.ticketsCount) *
+                                            100
+                                        )}%)`;
+                                      }}
+                                    />
+                                  )}
+                                </Bar>
+                              </Fragment>
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      );
+                    })()
+                  ) : (
+                    <>cargando</>
+                  )}
+                </Paper>
+              </Grid>
+
+              {/* Distribución General por Etapas/Campañas CARD */}
+              <Grid item xs={12}>
+                <Paper className={classes.customFixedHeightPaper}>
+                  {/* CARD HEADER */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                    }}
+                  >
+                    <Typography
+                      component="h3"
+                      variant="h6"
+                      color="primary"
+                      paragraph
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>
+                        Distribución General por Etapas/Campañas -{" "}
                         {ticketsDistributionByStages.ticketsCount}
                       </span>
                     </Typography>
@@ -505,7 +743,7 @@ const ComercialReports = () => {
                             />
                             <XAxis
                               dataKey="categoryName"
-                              fontSize={16}
+                              fontSize={12}
                               fontWeight={"bold"}
                               tickLine={false}
                               axisLine={false}
@@ -513,10 +751,22 @@ const ComercialReports = () => {
                             <YAxis tickLine={false} axisLine={false} />
                             <Tooltip
                               cursor={{ fill: "#0000000a" }}
-                              formatter={(value, name) => {
+                              formatter={(
+                                value,
+                                name,
+                                item,
+                                index,
+                                payload
+                              ) => {
                                 const id = name.replace("campaign_", "");
                                 return [
-                                  value,
+                                  `${value} (${Math.round(
+                                    (value /
+                                      payload.reduce((acc, cur) => {
+                                        return acc + cur.value;
+                                      }, 0)) *
+                                      100
+                                  )}%)`,
                                   marketingCampaigns.find((mc) => mc.id == id)
                                     ?.name || "Sin campaña",
                                 ];
@@ -551,6 +801,7 @@ const ComercialReports = () => {
                                       })
                                     );
                                   }}
+                                  capHeight={10}
                                   dataKey={`${id}`}
                                   stackId="a"
                                   fill={
@@ -568,7 +819,13 @@ const ComercialReports = () => {
                                       className="fill-foreground"
                                       fontWeight={"bold"}
                                       fontSize={12}
-                                      formatter={(value) => value}
+                                      formatter={(value) => {
+                                        return `${value} (${Math.round(
+                                          (value /
+                                            ticketsDistributionByStages.ticketsCount) *
+                                            100
+                                        )}%)`;
+                                      }}
                                     />
                                   )}
                                 </Bar>
@@ -586,7 +843,11 @@ const ComercialReports = () => {
             </>
           )}
 
-          {/* <Divider orientation="horizontal" flexItem /> */}
+          <Divider
+            orientation="horizontal"
+            flexItem
+            style={{ height: 2, margin: 16 }}
+          />
 
           {/* DISTRIBUTION BY USERS CARDS */}
           {ticketsDistributionByStagesAndUsers &&
@@ -682,7 +943,7 @@ const ComercialReports = () => {
                                   />
                                   <XAxis
                                     dataKey="categoryName"
-                                    fontSize={16}
+                                    fontSize={12}
                                     fontWeight={"bold"}
                                     tickLine={false}
                                     axisLine={false}
@@ -690,10 +951,22 @@ const ComercialReports = () => {
                                   <YAxis tickLine={false} axisLine={false} />
                                   <Tooltip
                                     cursor={{ fill: "#0000000a" }}
-                                    formatter={(value, name) => {
+                                    formatter={(
+                                      value,
+                                      name,
+                                      item,
+                                      index,
+                                      payload
+                                    ) => {
                                       const id = name.replace("campaign_", "");
                                       return [
-                                        value,
+                                        `${value} (${Math.round(
+                                          (value /
+                                            payload.reduce((acc, cur) => {
+                                              return acc + cur.value;
+                                            }, 0)) *
+                                            100
+                                        )}%)`,
                                         marketingCampaigns.find(
                                           (mc) => mc.id == id
                                         )?.name || "Sin campaña",
@@ -753,7 +1026,11 @@ const ComercialReports = () => {
                                             className="fill-foreground"
                                             fontSize={12}
                                             fontWeight={"bold"}
-                                            formatter={(value) => value}
+                                            formatter={(value) => {
+                                              return `${value} (${Math.round(
+                                                (value / userTicketsCount) * 100
+                                              )}%)`;
+                                            }}
                                           />
                                         )}
                                       </Bar>

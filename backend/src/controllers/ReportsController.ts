@@ -2120,6 +2120,10 @@ export const getTicketsDistributionByStages = async (
       ticketsCount: number;
       values: any[];
     };
+    data2?: {
+      ticketsCount: number;
+      values: any[];
+    };
     dataByUser?: any;
   } = {
     logs: [],
@@ -2127,6 +2131,10 @@ export const getTicketsDistributionByStages = async (
     sqlResult: [],
     categoryRelationsOfSelectedQueue: [],
     data: {
+      ticketsCount: 0,
+      values: []
+    },
+    data2: {
       ticketsCount: 0,
       values: []
     },
@@ -2198,6 +2206,16 @@ export const getTicketsDistributionByStages = async (
 
   response.categoryRelationsOfSelectedQueue = categoryRelationsOfSelectedQueue;
 
+  const selectedUsers = await User.findAll({
+    ...(selectedUsersIds.length > 0 && {
+      where: {
+        id: {
+          [Op.in]: selectedUsersIds.map(id => +id)
+        }
+      }
+    })
+  });
+
   const sql = `
     SELECT
       t.id as t_id,
@@ -2223,7 +2241,7 @@ export const getTicketsDistributionByStages = async (
           WHERE tc2.ticketId = t.id
           )
       LEFT JOIN MarketingCampaigns mc
-    	ON mc.id = t.marketingCampaignId
+    	  ON mc.id = t.marketingCampaignId
     WHERE ${sqlWhereAdd}
     ORDER BY t.id ASC;
   `;
@@ -2294,6 +2312,48 @@ export const getTicketsDistributionByStages = async (
   response.data = {
     ticketsCount: dataToReturnTicketsCount,
     values: dataToReturn
+  };
+
+  let dataToReturnTicketsCount2 = 0;
+  const dataToReturn2 = selectedUsers.reduce((result, selectedUser) => {
+    const currentUserInResult = result.find(
+      userData => userData.userId === selectedUser.id
+    );
+    if (!currentUserInResult) {
+      const obj = {
+        userName: selectedUser.name,
+        userId: selectedUser.id,
+        // categoryId: currentValue.categoryId,
+        // categoryName: currentValue.category.name,
+        // categoryColor: currentValue.category.color,
+        tickets: []
+      };
+
+      sqlResult.forEach(row => {
+        if (row.t_userId === selectedUser.id) {
+          const campaignProp = Object.keys(obj).find(
+            key => key === `category_${row.tc_categoryId}`
+          );
+
+          if (!campaignProp) {
+            obj[`category_${row.tc_categoryId}`] = 1;
+          } else {
+            obj[campaignProp] += 1;
+          }
+
+          obj.tickets.push(row);
+          dataToReturnTicketsCount2 += 1;
+        }
+      });
+
+      result.push(obj);
+    }
+    return result;
+  }, []);
+
+  response.data2 = {
+    ticketsCount: dataToReturnTicketsCount2,
+    values: dataToReturn2
   };
 
   const dataToReturnByUser = {};
