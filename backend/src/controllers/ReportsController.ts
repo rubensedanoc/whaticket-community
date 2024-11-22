@@ -502,9 +502,9 @@ export const getATicketsList = async (
     ]
   });
 
-  const ticketsWithClientTimeWaiting = await getClientTimeWaitingForTickets(
-    tickets
-  );
+  // const ticketsWithClientTimeWaiting = await getClientTimeWaitingForTickets(
+  //   tickets
+  // );
 
   // console.log(
   //   "ticketsWithClientTimeWaiting: ",
@@ -515,7 +515,8 @@ export const getATicketsList = async (
   // );
 
   return res.status(200).json({
-    tickets: ticketsWithClientTimeWaiting
+    // tickets: ticketsWithClientTimeWaiting
+    tickets
   });
 };
 

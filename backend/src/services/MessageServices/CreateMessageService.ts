@@ -1,11 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
-import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
 import { emitEvent } from "../../libs/emitEvent";
 import Category from "../../models/Category";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
+import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 
 interface MessageData {
   id: string;
@@ -130,9 +130,12 @@ const CreateMessageService = async ({
   // message.ticket.messages?.sort((a, b) => a.timestamp - b.timestamp);
 
   if (message.ticket) {
-    message.ticket = (
-      await getClientTimeWaitingForTickets([message.ticket])
-    )[0];
+    // message.ticket = (
+    //   await getClientTimeWaitingForTickets([message.ticket])
+    // )[0];
+    message.ticket = (await getAndSetBeenWaitingSinceTimestampTicketService(
+      message.ticket
+    )) as Ticket;
   }
 
   emitEvent({

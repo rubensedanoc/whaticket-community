@@ -368,13 +368,15 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                   {/* CLOSED BADGE */}
 
                   {(() => {
-                    if (!ticket.clientTimeWaiting) {
+                    if (!ticket.beenWaitingSinceTimestamp) {
                       return null;
                     }
 
                     return (
                       <TicketListItemLastMessageTime
-                        clientTimeWaiting={ticket.clientTimeWaiting}
+                        beenWaitingSinceTimestamp={
+                          ticket.beenWaitingSinceTimestamp
+                        }
                       />
                     );
                   })()}

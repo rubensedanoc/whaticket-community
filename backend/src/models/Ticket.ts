@@ -64,6 +64,9 @@ class Ticket extends Model<Ticket> {
   @Column
   categorizedByAI: boolean;
 
+  @Column
+  beenWaitingSinceTimestamp: number;
+
   @CreatedAt
   createdAt: Date;
 

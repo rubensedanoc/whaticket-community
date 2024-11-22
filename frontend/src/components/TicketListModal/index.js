@@ -136,10 +136,16 @@ const TicketListModal = ({
                     <TableContainer component={Paper}>
                       {ticketsDataDivided[key]
                         .sort((a, b) => {
-                          if (a.clientTimeWaiting > b.clientTimeWaiting) {
+                          if (
+                            a.beenWaitingSinceTimestamp >
+                            b.beenWaitingSinceTimestamp
+                          ) {
                             return 1;
                           }
-                          if (a.clientTimeWaiting < b.clientTimeWaiting) {
+                          if (
+                            a.beenWaitingSinceTimestamp <
+                            b.beenWaitingSinceTimestamp
+                          ) {
                             return -1;
                           }
                           return 0;
@@ -161,10 +167,14 @@ const TicketListModal = ({
               <TableContainer component={Paper}>
                 {ticketsData
                   .sort((a, b) => {
-                    if (a.clientTimeWaiting > b.clientTimeWaiting) {
+                    if (
+                      a.beenWaitingSinceTimestamp > b.beenWaitingSinceTimestamp
+                    ) {
                       return 1;
                     }
-                    if (a.clientTimeWaiting < b.clientTimeWaiting) {
+                    if (
+                      a.beenWaitingSinceTimestamp < b.beenWaitingSinceTimestamp
+                    ) {
                       return -1;
                     }
                     return 0;

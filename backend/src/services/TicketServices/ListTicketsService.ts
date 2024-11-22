@@ -8,7 +8,6 @@ import {
   fn,
   where
 } from "sequelize";
-import { getClientTimeWaitingForTickets } from "../../controllers/ReportsController";
 import Category from "../../models/Category";
 import Contact from "../../models/Contact";
 import Queue from "../../models/Queue";
@@ -30,6 +29,7 @@ interface Request {
   showOnlyMyGroups: boolean;
   categoryId?: number;
   userWhatsappsId?: number[];
+  showOnlyWaitingTickets?: boolean;
 }
 
 interface Response {
@@ -53,7 +53,8 @@ const buildWhereCondition = ({
   status,
   date,
   withUnreadMessages,
-  userWhatsappsId
+  userWhatsappsId,
+  showOnlyWaitingTickets
 }: Request): Filterable["where"] => {
   let baseCondition: Filterable["where"] = {};
 
@@ -90,6 +91,15 @@ const buildWhereCondition = ({
     baseCondition = {
       ...baseCondition,
       isGroup: { [Op.or]: typeIds.map(typeId => typeId === "group") }
+    };
+  }
+
+  if (showOnlyWaitingTickets) {
+    baseCondition = {
+      ...baseCondition,
+      beenWaitingSinceTimestamp: {
+        [Op.not]: null
+      }
     };
   }
 
@@ -293,10 +303,10 @@ const buildIncludeCondition = ({
   return includeCondition;
 };
 
-const ListTicketsServicev2 = async (request: Request): Promise<Response> => {
+const ListTicketsService = async (request: Request): Promise<Response> => {
   const { pageNumber = "1", status } = request;
 
-  // console.log("--- ListTicketsServicev2", request);
+  // console.log("--- ListTicketsService", request);
   const user = await User.findByPk(+request.userId, {
     attributes: ["id"],
     include: [
@@ -328,6 +338,9 @@ const ListTicketsServicev2 = async (request: Request): Promise<Response> => {
     limit,
     offset,
     order: [["lastMessageTimestamp", "DESC"]]
+    // logging(sql, timing) {
+    //   console.log(sql);
+    // }
   });
 
   const hasMore = count > offset + tickets.length;
@@ -336,11 +349,11 @@ const ListTicketsServicev2 = async (request: Request): Promise<Response> => {
 
   const ticketsToReturn = filteredTickets || tickets;
 
-  const ticketsToReturnWithClientTimeWaiting =
-    await getClientTimeWaitingForTickets(ticketsToReturn);
+  // const ticketsToReturnWithClientTimeWaiting =
+  //   await getClientTimeWaitingForTickets(ticketsToReturn);
 
   return {
-    tickets: ticketsToReturnWithClientTimeWaiting,
+    tickets: ticketsToReturn,
     count,
     hasMore,
     whereCondition,
@@ -375,4 +388,4 @@ const filterWhenAksForClosedTickets = async (
   ).filter(ticket => ticket !== null) as Ticket[];
 };
 
-export default ListTicketsServicev2;
+export default ListTicketsService;

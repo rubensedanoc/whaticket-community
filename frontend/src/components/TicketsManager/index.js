@@ -16,6 +16,12 @@ import SearchIcon from "@material-ui/icons/Search";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import "./styles.css";
 
+import ViewColumnIcon from "@material-ui/icons/ViewColumn";
+import ViewWeekIcon from "@material-ui/icons/ViewWeek";
+
+import ToggleButton from "@material-ui/lab/ToggleButton";
+import ToggleButtonGroup from "@material-ui/lab/ToggleButtonGroup";
+
 import { IconButton } from "@material-ui/core";
 import NumberGroupsModal from "../NumberGroupsModal";
 import TicketsWhatsappSelect from "../TicketsWhatsappSelect";
@@ -26,7 +32,7 @@ import NewTicketModal from "../NewTicketModal";
 import TabPanel from "../TabPanel";
 import TicketsList from "../TicketsList";
 
-import { Button, Divider } from "@material-ui/core";
+import { Button, Divider, FormControlLabel, Switch } from "@material-ui/core";
 import Menu from "@material-ui/core/Menu";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { toast } from "react-toastify";
@@ -159,6 +165,10 @@ const TicketsManager = () => {
   const [pendingColumnSide, setPendingColumnSide] = useState("left");
   const [secondaryColumnSide, setSecondaryColumnSide] = useState("left");
 
+  const [showOnlyWaitingTickets, setShowOnlyWaitingTickets] = useState(false);
+
+  const [columnsWidth, setColumnsWidth] = useState("normal");
+
   useEffect(() => {
     localStorage.getItem("principalTicketType") &&
       setPrincipalTicketType(
@@ -186,6 +196,18 @@ const TicketsManager = () => {
     localStorage.getItem("secondaryColumnSide") &&
       setSecondaryColumnSide(
         JSON.parse(localStorage.getItem("secondaryColumnSide"))
+      );
+
+    localStorage.getItem("TicketsManager-showOnlyWaitingTickets") &&
+      setShowOnlyWaitingTickets(
+        JSON.parse(
+          localStorage.getItem("TicketsManager-showOnlyWaitingTickets")
+        )
+      );
+
+    localStorage.getItem("TicketsManager-columnsWidth") &&
+      setColumnsWidth(
+        JSON.parse(localStorage.getItem("TicketsManager-columnsWidth"))
       );
   }, []);
 
@@ -495,6 +517,33 @@ const TicketsManager = () => {
               />
             </>
           )}
+
+          <Divider
+            flexItem
+            orientation="vertical"
+            style={{ marginLeft: 20, marginRight: 20 }}
+          />
+
+          <ToggleButtonGroup
+            value={columnsWidth}
+            exclusive
+            onChange={(e, newValue) => {
+              setColumnsWidth(newValue);
+              localStorage.setItem(
+                "TicketsManager-columnsWidth",
+                JSON.stringify(newValue)
+              );
+            }}
+            aria-label="text alignment"
+            size="small"
+          >
+            <ToggleButton value="normal" size="small" aria-label="left aligned">
+              <ViewColumnIcon />
+            </ToggleButton>
+            <ToggleButton value="large" size="small" aria-label="centered">
+              <ViewWeekIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
         </div>
       </Paper>
       {/* - TABS */}
@@ -965,6 +1014,33 @@ const TicketsManager = () => {
                   </FormControl>
                 </div>
               </Badge>
+
+              <Divider
+                flexItem
+                orientation="vertical"
+                style={{ marginLeft: 20, marginRight: 20 }}
+              />
+
+              <FormControlLabel
+                style={{ marginRight: 7, color: "gray", marginLeft: 0 }}
+                label={"Ver solo sin respuesta"}
+                labelPlacement="start"
+                control={
+                  <Switch
+                    size="small"
+                    checked={showOnlyWaitingTickets}
+                    onChange={(e) => {
+                      setShowOnlyWaitingTickets(e.target.checked);
+                      localStorage.setItem(
+                        "TicketsManager-showOnlyWaitingTickets",
+                        JSON.stringify(e.target.checked)
+                      );
+                    }}
+                    name="showOnlyWaitingTickets"
+                    color="primary"
+                  />
+                }
+              />
             </div>
           </div>
 
@@ -985,6 +1061,8 @@ const TicketsManager = () => {
               setShowAll={setShowAll}
               showOnlyMyGroups={showOnlyMyGroups}
               setShowOnlyMyGroups={setShowOnlyMyGroups}
+              showOnlyWaitingTickets={showOnlyWaitingTickets}
+              columnsWidth={columnsWidth}
               selectedTypeIds={
                 principalTicketType === "groups"
                   ? typeIdsForIndividuals
@@ -1012,6 +1090,8 @@ const TicketsManager = () => {
               selectedTypeIds={typeIdsForAll}
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              showOnlyWaitingTickets={showOnlyWaitingTickets}
+              columnsWidth={columnsWidth}
               ticketsType="pendings"
               onMoveToLeft={() => onMovePendingColumn("left")}
               onMoveToRight={() => {
@@ -1044,6 +1124,8 @@ const TicketsManager = () => {
                   }
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  showOnlyWaitingTickets={showOnlyWaitingTickets}
+                  columnsWidth={columnsWidth}
                   ticketsType="no-category"
                   onMoveToLeft={() =>
                     onMoveCategoryColumn(categoryIndex, "left")
@@ -1061,6 +1143,8 @@ const TicketsManager = () => {
                   category={category}
                   showAll={showAll}
                   showOnlyMyGroups={showOnlyMyGroups}
+                  showOnlyWaitingTickets={showOnlyWaitingTickets}
+                  columnsWidth={columnsWidth}
                   selectedTypeIds={
                     principalTicketType === "groups"
                       ? typeIdsForGroups
@@ -1105,6 +1189,7 @@ const TicketsManager = () => {
           selectedTypeIds={typeIdsForAll}
           selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}
+          columnsWidth={columnsWidth}
         />
       </TabPanel>
       {/* - closed TAB CONTENT */}
