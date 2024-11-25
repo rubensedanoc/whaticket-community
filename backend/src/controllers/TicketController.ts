@@ -422,9 +422,22 @@ export const getAndSetBeenWaitingSinceTimestampToAllTheTickets = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const tickets = await Ticket.findAll();
+  const { limit, offset } = req.body;
+
+  if (!Number.isInteger(limit) || !Number.isInteger(offset)) {
+    throw new AppError("ERR_INVALID_PARAMS");
+  }
+
+  const tickets = await Ticket.findAll({
+    offset,
+    limit
+  });
 
   await getAndSetBeenWaitingSinceTimestampTicketService(tickets);
 
-  return res.status(200).json({ count: tickets.length });
+  return res.status(200).json({
+    count: tickets.length,
+    firstId: tickets[0].id,
+    lastId: tickets[tickets.length - 1].id
+  });
 };
