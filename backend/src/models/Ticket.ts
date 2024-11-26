@@ -16,6 +16,7 @@ import {
 import Category from "./Category";
 import Contact from "./Contact";
 import MarketingCampaign from "./MarketingCampaign";
+import MarketingMessagingCampaign from "./MarketingMessagingCampaigns";
 import Message from "./Message";
 import Queue from "./Queue";
 import TicketCategory from "./TicketCategory";
@@ -122,6 +123,13 @@ class Ticket extends Model<Ticket> {
 
   @BelongsToMany(() => User, () => TicketParticipantUsers)
   participantUsers: User[];
+
+  @ForeignKey(() => MarketingMessagingCampaign)
+  @Column
+  marketingMessagingCampaignId: number;
+
+  @BelongsTo(() => MarketingMessagingCampaign)
+  marketingMessagingCampaign: MarketingMessagingCampaign;
 
   // Sobrescribir el método toJSON para incluir clientTimeWaiting
   toJSON() {

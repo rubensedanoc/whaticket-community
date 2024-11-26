@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { emitEvent } from "../libs/emitEvent";
 import MarketingCampaign from "../models/MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
+import MarketingMessagingCampaign from "../models/MarketingMessagingCampaigns";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const marketingCampaigns = await MarketingCampaign.findAll();
@@ -22,6 +23,11 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
           required: false,
           order: [["order", "ASC"]],
           separate: true
+        },
+        {
+          model: MarketingMessagingCampaign,
+          as: "marketingMessagingCampaigns",
+          required: false
         }
       ]
     }

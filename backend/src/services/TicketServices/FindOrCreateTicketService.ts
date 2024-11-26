@@ -27,6 +27,9 @@ const FindOrCreateTicketService = async (props: {
   groupContact?: Contact;
   lastMessageTimestamp?: number;
   chatbotMessageIdentifier?: string;
+  marketingMessagingCampaignId?: number;
+  marketingCampaignId?: number;
+  msgFromMe?: boolean;
 }): Promise<Ticket> => {
   const {
     contact,
@@ -34,7 +37,9 @@ const FindOrCreateTicketService = async (props: {
     unreadMessages,
     groupContact,
     lastMessageTimestamp,
-    chatbotMessageIdentifier
+    chatbotMessageIdentifier,
+    marketingMessagingCampaignId,
+    marketingCampaignId
   } = props;
 
   let ticket = await findTicket(props);
@@ -45,17 +50,24 @@ const FindOrCreateTicketService = async (props: {
     try {
       ticket = await Ticket.create({
         contactId: groupContact ? groupContact.id : contact.id,
-        status: chatbotMessageIdentifier
-          ? "closed"
-          : !!groupContact
-          ? "open"
-          : "pending",
+        status:
+          chatbotMessageIdentifier || marketingMessagingCampaignId
+            ? "closed"
+            : !!groupContact
+            ? "open"
+            : "pending",
         isGroup: !!groupContact,
         unreadMessages,
         whatsappId,
         lastMessageTimestamp,
         ...(chatbotMessageIdentifier && {
           chatbotMessageIdentifier
+        }),
+        ...(marketingMessagingCampaignId && {
+          marketingMessagingCampaignId
+        }),
+        ...(marketingCampaignId && {
+          marketingCampaignId
         })
       });
 
@@ -76,17 +88,24 @@ const FindOrCreateTicketService = async (props: {
       if (!ticket) {
         ticket = await Ticket.create({
           contactId: groupContact ? groupContact.id : contact.id,
-          status: chatbotMessageIdentifier
-            ? "closed"
-            : !!groupContact
-            ? "open"
-            : "pending",
+          status:
+            chatbotMessageIdentifier || marketingMessagingCampaignId
+              ? "closed"
+              : !!groupContact
+              ? "open"
+              : "pending",
           isGroup: !!groupContact,
           unreadMessages,
           whatsappId,
           lastMessageTimestamp,
           ...(chatbotMessageIdentifier && {
             chatbotMessageIdentifier
+          }),
+          ...(marketingMessagingCampaignId && {
+            marketingMessagingCampaignId
+          }),
+          ...(marketingCampaignId && {
+            marketingCampaignId
           })
         });
       }
@@ -105,7 +124,10 @@ const findTicket = async ({
   unreadMessages,
   groupContact,
   lastMessageTimestamp,
-  chatbotMessageIdentifier
+  chatbotMessageIdentifier,
+  marketingMessagingCampaignId,
+  marketingCampaignId,
+  msgFromMe
 }: {
   contact: Contact;
   whatsappId: number;
@@ -113,6 +135,9 @@ const findTicket = async ({
   groupContact?: Contact;
   lastMessageTimestamp?: number;
   chatbotMessageIdentifier?: string;
+  marketingMessagingCampaignId?: number;
+  marketingCampaignId?: number;
+  msgFromMe?: boolean;
 }) => {
   // find a ticket with status open or pending, from the contact or groupContact and  from the whatsappId
   let ticket = await Ticket.findOne({
@@ -161,6 +186,12 @@ const findTicket = async ({
       }),
       ...(chatbotMessageIdentifier && {
         chatbotMessageIdentifier
+      }),
+      ...(marketingMessagingCampaignId && {
+        marketingMessagingCampaignId
+      }),
+      ...(marketingCampaignId && {
+        marketingCampaignId
       })
     });
   }
@@ -197,7 +228,12 @@ const findTicket = async ({
 
   // if ticket not exists and groupContact is falsy, find a ticket updated in the last 2 hours from the contact and from the whatsappId
   // if this time the ticket exists, update his status to pending and set his userId to null and update his unreadMessages
-  if (!ticket && !groupContact && !chatbotMessageIdentifier) {
+  if (
+    !ticket &&
+    !groupContact &&
+    !chatbotMessageIdentifier &&
+    !marketingMessagingCampaignId
+  ) {
     // bsucamos el ultimo ticket asi sean no interactivos
     ticket = await Ticket.findOne({
       where: {
@@ -217,7 +253,7 @@ const findTicket = async ({
       order: [["updatedAt", "DESC"]]
     });
 
-    if (ticket) {
+    if (ticket && !ticket.marketingMessagingCampaignId) {
       const twoHoursAgo = subHours(new Date(), 2);
       let validTime = twoHoursAgo;
 
@@ -251,7 +287,12 @@ const findTicket = async ({
 
     if (ticket) {
       await ticket.update({
-        status: !ticket.userId ? "pending" : "open",
+        status:
+          !ticket.marketingMessagingCampaignId || !msgFromMe
+            ? !ticket.userId
+              ? "pending"
+              : "open"
+            : undefined,
         // userId: null,
         unreadMessages,
         ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
@@ -259,6 +300,12 @@ const findTicket = async ({
         }),
         ...(chatbotMessageIdentifier && {
           chatbotMessageIdentifier
+        }),
+        ...(marketingMessagingCampaignId && {
+          marketingMessagingCampaignId
+        }),
+        ...(marketingCampaignId && {
+          marketingCampaignId
         })
       });
     }

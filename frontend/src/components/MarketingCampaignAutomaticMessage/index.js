@@ -68,8 +68,9 @@ const MarketingCampaignSchema = Yup.object().shape({
 const MarketingCampaignAutomaticMessage = ({
   open,
   onClose,
-  marketingCampaignAutomaticMessageId,
   marketingCampaignId,
+  marketingMessagingCampaignId,
+  marketingCampaignAutomaticMessageId,
 }) => {
   const classes = useStyles();
 
@@ -116,7 +117,11 @@ const MarketingCampaignAutomaticMessage = ({
 
   const handleSaveMarketingCampaignAutomaticMessage = async (values) => {
     try {
-      values = { ...values, marketingCampaignId };
+      values = {
+        ...values,
+        ...(marketingCampaignId && { marketingCampaignId }),
+        ...(marketingMessagingCampaignId && { marketingMessagingCampaignId }),
+      };
       console.log("values to submit", values);
 
       const formData = new FormData();
