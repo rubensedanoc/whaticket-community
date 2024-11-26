@@ -136,9 +136,25 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError("Campaña de mensajes no encontrada", 404);
   }
 
-  for (const number of numbersToSend) {
+  if (
+    marketingMessagingCampaign.marketingCampaignAutomaticMessages.length === 0
+  ) {
+    throw new AppError("Campaña de mensajes no tiene mensajes", 404);
+  }
+
+  if (
+    marketingMessagingCampaign.marketingCampaignAutomaticMessages[0]
+      ?.mediaType !== "text"
+  ) {
+    throw new AppError(
+      "El primer mensaje de la campaña debe ser de texto",
+      404
+    );
+  }
+
+  for (const numberObj of numbersToSend) {
     try {
-      await CheckIsValidContact(number, whatsappId);
+      await CheckIsValidContact(numberObj.number, whatsappId);
 
       const wbot = getWbot(whatsappId);
 
@@ -148,11 +164,19 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
         let msg: WAWebJS.Message;
 
         if (messageToSend.mediaType === "text") {
-          let body = formatBody(`\u200e${messageToSend.body}`);
+          const messageToSendBodyWithVars = messageToSend.body.replace(
+            /{{\s*(\w+)\s*}}/g,
+            (match, key) => numberObj[key] || ""
+          );
+
+          let body = formatBody(`\u200e${messageToSendBodyWithVars}`);
 
           await new Promise(async (resolve, reject) => {
             try {
-              const msg = await wbot.sendMessage(`${number}@c.us`, body);
+              const msg = await wbot.sendMessage(
+                `${numberObj.number}@c.us`,
+                body
+              );
 
               sentMessages.push(msg);
 
@@ -186,7 +210,7 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
           }).catch(error => {
             result.errors.push(error.message);
             result.numbersWithErrors.push({
-              number,
+              number: numberObj.number,
               error: error.message
             });
           });
@@ -209,7 +233,7 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
           await new Promise(async (resolve, reject) => {
             try {
               msg = await wbot.sendMessage(
-                `${number}@c.us`,
+                `${numberObj.number}@c.us`,
                 newMedia,
                 mediaOptions
               );
@@ -225,7 +249,7 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
           }).catch(error => {
             result.errors.push(error.message);
             result.numbersWithErrors.push({
-              number,
+              number: numberObj.number,
               error: error.message
             });
           });
@@ -236,7 +260,7 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
       console.log("--- Error en send", error);
       result.errors.push(error.message);
       result.numbersWithErrors.push({
-        number,
+        number: numberObj.number,
         error: error.message
       });
     }

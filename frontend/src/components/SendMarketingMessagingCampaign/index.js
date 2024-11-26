@@ -24,8 +24,6 @@ import * as XLSX from "xlsx";
 import useWhatsApps from "../../hooks/useWhatsApps";
 import { i18n } from "../../translate/i18n";
 
-import toastError from "../../errors/toastError";
-
 const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
@@ -120,8 +118,8 @@ const SendMarketingMessagingCampaign = ({
 
       handleClose();
     } catch (err) {
-      console.log(err);
-      toastError("Error saving MarketingCampaignAutomaticMessage");
+      console.log(err?.response);
+      toast.error(err?.response?.data?.error || "Error al enviar la campaña");
     }
 
     setSending(false);
@@ -223,10 +221,18 @@ const SendMarketingMessagingCampaign = ({
                           const jsonData = XLSX.utils.sheet_to_json(worksheet, {
                             header: 1,
                           });
+
+                          console.log("jsonData", jsonData);
+
                           // Leer la primera columna (columna 0)
-                          const firstColumn = jsonData.map((row) => row[0]);
+                          const data = jsonData.map((row) => ({
+                            number: row[0],
+                            name: row[1],
+                          }));
                           setNumbersToSend(
-                            firstColumn.filter((number) => number)
+                            data.filter(
+                              (obj) => obj.number && Number(obj.number)
+                            )
                           );
                         };
                         reader.readAsBinaryString(file);
