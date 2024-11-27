@@ -153,14 +153,6 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
     );
   }
 
-  Sentry.captureMessage("MarketingMessagingCampaignController SEND", {
-    extra: {
-      marketingMessagingCampaignId,
-      whatsappId,
-      numbersToSend
-    }
-  });
-
   for (const numberObj of numbersToSend) {
     try {
       await CheckIsValidContact(numberObj.number, whatsappId);
@@ -286,6 +278,17 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
         action: "update",
         marketingMessagingCampaign
       }
+    }
+  });
+
+  Sentry.captureMessage("MarketingMessagingCampaignController SEND", {
+    extra: {
+      input: {
+        marketingMessagingCampaignId,
+        whatsappId,
+        numbersToSend
+      },
+      result
     }
   });
 
