@@ -18,6 +18,7 @@ import Dashboard from "../pages/Dashboard/";
 import Login from "../pages/Login/";
 import marketingCampaigns from "../pages/MarketingCampaigns";
 import Messages from "../pages/Messages/";
+import PublicTickets from "../pages/PublicTickets/";
 import Queues from "../pages/Queues/";
 import QuickAnswers from "../pages/QuickAnswers/";
 import Reports from "../pages/Reports";
@@ -35,6 +36,12 @@ const Routes = () => {
         <Switch>
           <Route exact path="/login" component={Login} />
           <Route exact path="/signup" component={Signup} />
+          <Route
+            exact
+            path="/public-ticket"
+            component={PublicTickets}
+            isForAll
+          />
           <WhatsAppsProvider>
             <UsersPresenceProvider>
               <SearchMessageProvider>

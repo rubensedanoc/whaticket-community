@@ -58,6 +58,13 @@ const TicketOptionsMenu = ({
     }
   };
 
+  const handlePublicLink = async () => {
+    window.open(
+      `/public-ticket?whatsappId=${ticket.whatsappId}&contactId=${ticket.contactId}`,
+      "_blank"
+    );
+  };
+
   return (
     <>
       <Menu
@@ -170,6 +177,7 @@ const TicketOptionsMenu = ({
             />
           </div>
         )}
+        <MenuItem onClick={handlePublicLink}>Link publico</MenuItem>
       </Menu>
       <ConfirmationModal
         title={`${i18n.t("ticketOptionsMenu.confirmationModal.title")}${

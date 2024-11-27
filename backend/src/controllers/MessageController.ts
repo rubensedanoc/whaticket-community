@@ -4,9 +4,12 @@ import SetTicketMessagesAsRead from "../helpers/SetTicketMessagesAsRead";
 import Message from "../models/Message";
 
 // import ListMessages2Service from "../services/MessageServices/ListMessages2Service";
+import { Op } from "sequelize";
 import AppError from "../errors/AppError";
 import GetWbotMessage from "../helpers/GetWbotMessage";
+import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
+import Whatsapp from "../models/Whatsapp";
 import ListMessagesService from "../services/MessageServices/ListMessagesService";
 import ListMessagesV2Service from "../services/MessageServices/ListMessagesV2Service";
 import SearchMessagesService from "../services/MessageServices/SearchMessagesService";
@@ -37,6 +40,8 @@ type MessageData = {
   fromMe: boolean;
   read: boolean;
   quotedMsg?: Message;
+  whatsappId?: number;
+  contactId?: number;
 };
 
 export const search = async (
@@ -276,4 +281,32 @@ export const updateOnWpp = async (
   }
 
   return res.send();
+};
+
+export const all = async (req: Request, res: Response): Promise<Response> => {
+  const { whatsappId, contactId }: MessageData = req.body;
+
+  console.log("all", whatsappId, contactId);
+
+  const allTickets = await Ticket.findAll({
+    where: { whatsappId, contactId }
+  });
+
+  console.log("allTickets", allTickets);
+
+  const ticketMessages = await Message.findAll({
+    where: {
+      ticketId: {
+        [Op.in]: allTickets.map(ticket => ticket.id)
+      }
+    },
+    order: [["timestamp", "ASC"]],
+    include: [{ model: Contact, as: "contact", required: false }]
+  });
+
+  const allWhatsapps = await Whatsapp.findAll();
+
+  const contact = await Contact.findByPk(contactId);
+
+  return res.status(200).json({ ticketMessages, contact, allWhatsapps });
 };
