@@ -286,9 +286,9 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
       input: {
         marketingMessagingCampaignId,
         whatsappId,
-        numbersToSend
+        numbersToSend: JSON.stringify(numbersToSend)
       },
-      result
+      result: JSON.stringify(result)
     }
   });
 
