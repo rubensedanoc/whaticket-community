@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { Request, Response } from "express";
 import WAWebJS, { MessageMedia, MessageSendOptions } from "whatsapp-web.js";
 import AppError from "../errors/AppError";
@@ -151,6 +152,14 @@ export const send = async (req: Request, res: Response): Promise<Response> => {
       404
     );
   }
+
+  Sentry.captureMessage("MarketingMessagingCampaignController SEND", {
+    extra: {
+      marketingMessagingCampaignId,
+      whatsappId,
+      numbersToSend
+    }
+  });
 
   for (const numberObj of numbersToSend) {
     try {
