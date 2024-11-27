@@ -36,4 +36,8 @@ messageRoutes.post(
   MessageController.updateOnWpp
 );
 
+// ---
+
+messageRoutes.post("/messagesAll", MessageController.all);
+
 export default messageRoutes;

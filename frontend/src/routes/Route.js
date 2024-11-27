@@ -1,11 +1,17 @@
 import React, { useContext } from "react";
-import { Route as RouterRoute, Redirect } from "react-router-dom";
+import { Redirect, Route as RouterRoute } from "react-router-dom";
 
-import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
+import { AuthContext } from "../context/Auth/AuthContext";
 
-const Route = ({ component: Component, isPrivate = false, ...rest }) => {
-  const { isAuth, loading } = useContext(AuthContext);
+const Route = ({
+  component: Component,
+  isPrivate = false,
+  myIsAdminOnly = false,
+  isForAll = false,
+  ...rest
+}) => {
+  const { isAuth, loading, user } = useContext(AuthContext);
 
   if (!isAuth && isPrivate) {
     return (
@@ -16,7 +22,8 @@ const Route = ({ component: Component, isPrivate = false, ...rest }) => {
     );
   }
 
-  if (isAuth && !isPrivate) {
+  // Si esta auth y la ruta no es privada, redirige al home
+  if (isAuth && !isPrivate && !isForAll) {
     return (
       <>
         {loading && <BackdropLoading />}
