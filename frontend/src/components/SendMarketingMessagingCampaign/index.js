@@ -111,11 +111,9 @@ const SendMarketingMessagingCampaign = ({
               .join(", ")}`
           );
         }
-        toast.error("Algo falló al enviar la campaña de mensajes");
-      } else {
-        toast.success("Camapaña enviada correctamente");
       }
 
+      toast.success("Camapaña enviada correctamente");
       handleClose();
     } catch (err) {
       console.log(err?.response);
@@ -226,7 +224,9 @@ const SendMarketingMessagingCampaign = ({
 
                           // Leer la primera columna (columna 0)
                           const data = jsonData.map((row) => ({
-                            number: row[0],
+                            number: row[0]
+                              ? (row[0] + "").replaceAll(" ", "")
+                              : null,
                             name: row[1],
                           }));
                           setNumbersToSend(
