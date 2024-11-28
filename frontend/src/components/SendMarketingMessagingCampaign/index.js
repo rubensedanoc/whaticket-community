@@ -225,7 +225,9 @@ const SendMarketingMessagingCampaign = ({
                           // Leer la primera columna (columna 0)
                           const data = jsonData.map((row) => ({
                             number: row[0]
-                              ? (row[0] + "").replaceAll(" ", "")
+                              ? (row[0] + "")
+                                  .replaceAll(" ", "")
+                                  .replaceAll("+", "")
                               : null,
                             name: row[1],
                           }));
