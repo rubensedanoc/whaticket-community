@@ -1,4 +1,5 @@
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
+import { emitEvent } from "../../libs/emitEvent";
 import Ticket from "../../models/Ticket";
 import TicketCategory from "../../models/TicketCategory";
 import ShowTicketService from "./ShowTicketService";
@@ -122,40 +123,16 @@ const UpdateTicketService = async ({
   // const io = getIO();
 
   if (ticket.status !== oldStatus || ticket.user?.id !== oldUserId) {
-    /* io.to(oldStatus).emit("ticket", {
-      action: "delete",
-      ticketId: ticket.id
-    }); */
-    // Define la URL a la que se va a enviar la solicitud
-    const url = process.env.NODE_URL + "/toEmit";
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        to: [oldStatus],
-        event: {
-          name: "ticket",
-          data: {
-            action: "delete",
-            ticketId: ticket.id
-          }
+    emitEvent({
+      to: [oldStatus],
+      event: {
+        name: "ticket",
+        data: {
+          action: "delete",
+          ticketId: ticket.id
         }
-      })
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok " + response.statusText);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log("Success:", data);
-      })
-      .catch(error => {
-        console.error("Error:", error);
-      });
+      }
+    });
   }
 
   // if (ticket.contact) {
@@ -170,43 +147,16 @@ const UpdateTicketService = async ({
   //   }
   // }
 
-  /* io.to(ticket.status)
-    .to("notification")
-    .to(ticketId.toString())
-    .emit("ticket", {
-      action: "update",
-      ticket
-    }); */
-  // Define la URL a la que se va a enviar la solicitud
-  const url = process.env.NODE_URL + "/toEmit";
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      to: [ticket.status, "notification", ticketId.toString()],
-      event: {
-        name: "ticket",
-        data: {
-          action: "update",
-          ticket
-        }
+  emitEvent({
+    to: [ticket.status, "notification", ticketId.toString()],
+    event: {
+      name: "ticket",
+      data: {
+        action: "update",
+        ticket
       }
-    })
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok " + response.statusText);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log("Success:", data);
-    })
-    .catch(error => {
-      console.error("Error:", error);
-    });
+    }
+  });
 
   return { ticket, oldStatus, oldUserId };
 };

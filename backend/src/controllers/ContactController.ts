@@ -267,49 +267,15 @@ export const update = async (
   //   }
   // }
 
-  const url = process.env.NODE_URL + "/toEmit";
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      event: {
-        name: "contact",
-        data: {
-          action: "update",
-          contact
-        }
+  emitEvent({
+    event: {
+      name: "contact",
+      data: {
+        action: "update",
+        contact
       }
-    })
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok " + response.statusText);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log("Success:", data);
-    })
-    .catch(error => {
-      console.error("Error:", error);
-    });
-
-  // const io = getIO();
-
-  // io.on("connect", () => {
-  //   console.log("socket conectado para emitir el evento de contact");
-
-  //   io.emit("contact", {
-  //     action: "update",
-  //     contact
-  //   });
-
-  //   console.log("evento emitido");
-
-  //   io.disconnect();
-  // });
+    }
+  });
 
   return res.status(200).json(contact);
 };

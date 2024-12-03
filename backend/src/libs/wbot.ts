@@ -359,41 +359,15 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           sessions[sessionIndex] = wbot;
         }
 
-        // io.emit("whatsappSession", {
-        //   action: "update",
-        //   session: whatsapp
-        // });
-
-        const url = process.env.NODE_URL + "/toEmit";
-        fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            event: {
-              name: "whatsappSession",
-              data: {
-                action: "update",
-                session: whatsapp
-              }
+        emitEvent({
+          event: {
+            name: "whatsappSession",
+            data: {
+              action: "update",
+              session: whatsapp
             }
-          })
-        })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(
-                "Network response was not ok " + response.statusText
-              );
-            }
-            return response.json();
-          })
-          .then(data => {
-            console.log("Success:", data);
-          })
-          .catch(error => {
-            console.error("Error:", error);
-          });
+          }
+        });
       });
 
       wbot.on("authenticated", async session => {
@@ -415,41 +389,15 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           retries: retry + 1
         });
 
-        // io.emit("whatsappSession", {
-        //   action: "update",
-        //   session: whatsapp
-        // });
-
-        const url = process.env.NODE_URL + "/toEmit";
-        fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            event: {
-              name: "whatsappSession",
-              data: {
-                action: "update",
-                session: whatsapp
-              }
+        emitEvent({
+          event: {
+            name: "whatsappSession",
+            data: {
+              action: "update",
+              session: whatsapp
             }
-          })
-        })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(
-                "Network response was not ok " + response.statusText
-              );
-            }
-            return response.json();
-          })
-          .then(data => {
-            console.log("Success:", data);
-          })
-          .catch(error => {
-            console.error("Error:", error);
-          });
+          }
+        });
 
         reject(new Error("Error starting whatsapp session."));
       });
