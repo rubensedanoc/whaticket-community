@@ -13,6 +13,7 @@ import TicketLog from "../models/TicketLog";
 import CreateTicketService from "../services/TicketServices/CreateTicketService";
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
 // import ListTicketsServicev2 from "../services/TicketServices/ListTicketsServicev2";
+import { emitEvent } from "../libs/emitEvent";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../services/TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
@@ -144,41 +145,16 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   //   }
   // }
 
-  /* const io = getIO();
-  io.to(ticket.status).emit("ticket", {
-    action: "update",
-    ticket
-  }); */
-  // Define la URL a la que se va a enviar la solicitud
-  const url = process.env.NODE_URL + "/toEmit";
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      to: [ticket.status],
-      event: {
-        name: "ticket",
-        data: {
-          action: "update",
-          ticket
-        }
+  emitEvent({
+    to: [ticket.status],
+    event: {
+      name: "ticket",
+      data: {
+        action: "update",
+        ticket
       }
-    })
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok " + response.statusText);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log("Success:", data);
-    })
-    .catch(error => {
-      console.error("Error:", error);
-    });
+    }
+  });
 
   return res.status(200).json(ticket);
 };
@@ -317,41 +293,16 @@ export const remove = async (
 
   const ticket = await DeleteTicketService(ticketId);
 
-  /* const io = getIO();
-  io.to(ticket.status).to(ticketId).to("notification").emit("ticket", {
-    action: "delete",
-    ticketId: +ticketId
-  }); */
-  // Define la URL a la que se va a enviar la solicitud
-  const url = process.env.NODE_URL + "/toEmit";
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      to: [ticket.status],
-      event: {
-        name: "ticket",
-        data: {
-          action: "delete",
-          ticketId: +ticketId
-        }
+  emitEvent({
+    to: [ticket.status],
+    event: {
+      name: "ticket",
+      data: {
+        action: "delete",
+        ticketId: +ticketId
       }
-    })
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok " + response.statusText);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log("Success:", data);
-    })
-    .catch(error => {
-      console.error("Error:", error);
-    });
+    }
+  });
 
   return res.status(200).json({ message: "ticket deleted" });
 };

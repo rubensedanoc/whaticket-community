@@ -95,10 +95,10 @@ const getAndSetBeenWaitingSinceTimestampTicketService = async (
               GROUP BY t.id `;
 
   const ticketListFind = await Ticket.sequelize.query(sql, {
-    type: QueryTypes.SELECT,
-    logging(sql, timing) {
-      console.log(sql);
-    }
+    type: QueryTypes.SELECT
+    // logging(sql, timing) {
+    //   console.log(sql);
+    // }
   });
 
   ticketListFind.forEach((ticketData: any) => {

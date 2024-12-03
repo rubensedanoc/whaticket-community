@@ -12,6 +12,8 @@ import extraRoutes from "./extraRoutes";
 import marketingCampaignAutomaticMessageRoutes from "./marketingCampaignAutomaticMessageRoutes";
 import marketingCampaignsRoutes from "./marketingCampaignsRoutes";
 import messageRoutes from "./messageRoutes";
+import messagingCampaignMessageRoutes from "./messagingCampaignMessageRoutes";
+import messagingCampaignRoutes from "./messagingCampaignRoutes";
 import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
 import reportsRoutes from "./reports";
@@ -42,6 +44,8 @@ routes.use("/external", externalRoutes);
 routes.use(chatbotMessageRoutes);
 routes.use(marketingCampaignsRoutes);
 routes.use(marketingCampaignAutomaticMessageRoutes);
+routes.use(messagingCampaignRoutes);
+routes.use(messagingCampaignMessageRoutes);
 routes.use("/extra", extraRoutes);
 
 export default routes;

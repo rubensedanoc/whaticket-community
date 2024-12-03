@@ -17,9 +17,11 @@ import HttpIcon from "@material-ui/icons/Http";
 import MessageOutlinedIcon from "@material-ui/icons/MessageOutlined";
 import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
 import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
+import SendIcon from "@material-ui/icons/Send";
 import SettingsOutlinedIcon from "@material-ui/icons/SettingsOutlined";
 import SyncAltIcon from "@material-ui/icons/SyncAlt";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
+import { getREACT_APP_PURPOSE } from "../config";
 
 import { Can } from "../components/Can";
 import { AuthContext } from "../context/Auth/AuthContext";
@@ -151,11 +153,22 @@ const MainListItems = (props) => {
               icon={<CategoryOutlinedIcon />}
             />
 
-            <ListItemLink
-              to="/marketingCampaigns"
-              primary={"Campañas de Mrkt"}
-              icon={<FacebookIcon />}
-            />
+            {(!getREACT_APP_PURPOSE() ||
+              getREACT_APP_PURPOSE() === "general") && (
+              <ListItemLink
+                to="/messagingCampaigns"
+                primary={"Campañas de mensajes"}
+                icon={<SendIcon />}
+              />
+            )}
+
+            {getREACT_APP_PURPOSE() === "comercial" && (
+              <ListItemLink
+                to="/marketingCampaigns"
+                primary={"Campañas de Mrkt"}
+                icon={<FacebookIcon />}
+              />
+            )}
 
             <ListItemLink
               to="/reportsv2"

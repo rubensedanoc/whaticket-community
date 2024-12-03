@@ -7,6 +7,7 @@ import Message from "../models/Message";
 import { Op } from "sequelize";
 import AppError from "../errors/AppError";
 import GetWbotMessage from "../helpers/GetWbotMessage";
+import { emitEvent } from "../libs/emitEvent";
 import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
 import Whatsapp from "../models/Whatsapp";
@@ -170,41 +171,16 @@ export const remove = async (
 
   const message = await DeleteWhatsAppMessage(messageId);
 
-  /* const io = getIO();
-  io.to(message.ticketId.toString()).emit("appMessage", {
-    action: "update",
-    message
-  }); */
-  // Define la URL a la que se va a enviar la solicitud
-  const url = process.env.NODE_URL + "/toEmit";
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      to: [message.ticketId.toString()],
-      event: {
-        name: "appMessage",
-        data: {
-          action: "update",
-          message
-        }
+  emitEvent({
+    to: [message.ticketId.toString()],
+    event: {
+      name: "appMessage",
+      data: {
+        action: "update",
+        message
       }
-    })
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok " + response.statusText);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log("Success:", data);
-    })
-    .catch(error => {
-      console.error("Error:", error);
-    });
+    }
+  });
 
   return res.send();
 };
@@ -247,35 +223,16 @@ export const updateOnWpp = async (
 
     await message.update({ body: editedMessage.body, isEdited: true });
 
-    const url = process.env.NODE_URL + "/toEmit";
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        to: [message.ticketId.toString()],
-        event: {
-          name: "appMessage",
-          data: {
-            action: "update",
-            message
-          }
+    emitEvent({
+      to: [message.ticketId.toString()],
+      event: {
+        name: "appMessage",
+        data: {
+          action: "update",
+          message
         }
-      })
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok " + response.statusText);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log("Success:", data);
-      })
-      .catch(error => {
-        console.error("Error:", error);
-      });
+      }
+    });
   } catch (err) {
     throw new AppError("El mensaje no se pudo editar");
   }
