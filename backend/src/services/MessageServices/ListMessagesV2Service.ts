@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import AppError from "../../errors/AppError";
 import Message from "../../models/Message";
+import MessagingCampaign from "../../models/MessagingCampaign";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "../TicketServices/ShowTicketService";
 
@@ -171,7 +172,15 @@ const getMessagesForTicket = async (
       {
         model: Ticket,
         as: "ticket",
-        attributes: ["id", "chatbotMessageIdentifier"]
+        attributes: ["id", "chatbotMessageIdentifier"],
+        include: [
+          {
+            model: MessagingCampaign,
+            as: "messagingCampaign",
+            attributes: ["id", "name"],
+            required: false
+          }
+        ]
       },
       {
         model: Message,

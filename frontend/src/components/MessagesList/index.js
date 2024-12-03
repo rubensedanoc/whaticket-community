@@ -794,6 +794,12 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
           {message.ticket?.chatbotMessageIdentifier && (
             <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
           )}
+          {message.ticket?.messagingCampaign && (
+            <div style={{ fontSize: "14px" }}>
+              * Campaña de mensaje:{" "}
+              <b>{message.ticket?.messagingCampaign.name} </b>*
+            </div>
+          )}
         </div>
       );
     }
@@ -809,6 +815,12 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
             <div>Ticket: {message.ticketId}</div>
             {message.ticket?.chatbotMessageIdentifier && (
               <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
+            )}
+            {message.ticket?.messagingCampaign && (
+              <div style={{ fontSize: "14px" }}>
+                * Campaña de mensaje:{" "}
+                <b>{message.ticket?.messagingCampaign.name} </b>*
+              </div>
             )}
           </div>
         );

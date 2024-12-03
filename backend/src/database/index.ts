@@ -9,6 +9,10 @@ import GroupContact from "../models/GroupContact";
 import MarketingCampaign from "../models/MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
 import Message from "../models/Message";
+import MessagingCampaign from "../models/MessagingCampaign";
+import MessagingCampaignMessage from "../models/MessagingCampaignMessage";
+import MessagingCampaignShipment from "../models/MessagingCampaignShipment";
+import MessagingCampaignShipmentNumber from "../models/MessagingCampaignShipmentNumber";
 import Queue from "../models/Queue";
 import QueueCategory from "../models/QueueCategory";
 import QueueMarketingCampaign from "../models/QueueMarketingCampaigns";
@@ -56,7 +60,11 @@ const models = [
   WhatsappOwnerUsers,
   MarketingCampaign,
   MarketingCampaignAutomaticMessage,
-  QueueMarketingCampaign
+  QueueMarketingCampaign,
+  MessagingCampaign,
+  MessagingCampaignMessage,
+  MessagingCampaignShipment,
+  MessagingCampaignShipmentNumber
 ];
 
 sequelize.addModels(models);

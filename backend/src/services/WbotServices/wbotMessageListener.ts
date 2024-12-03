@@ -725,7 +725,8 @@ const handleMessage = async ({
         whatsappId: whatsapp.id,
         unreadMessages,
         groupContact,
-        lastMessageTimestamp: msg.timestamp
+        lastMessageTimestamp: msg.timestamp,
+        msgFromMe: msg.fromMe
       });
     }
 

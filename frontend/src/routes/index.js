@@ -18,6 +18,7 @@ import Dashboard from "../pages/Dashboard/";
 import Login from "../pages/Login/";
 import marketingCampaigns from "../pages/MarketingCampaigns";
 import Messages from "../pages/Messages/";
+import MessagingCampaigns from "../pages/MessagingCampaigns";
 import PublicTickets from "../pages/PublicTickets/";
 import Queues from "../pages/Queues/";
 import QuickAnswers from "../pages/QuickAnswers/";
@@ -124,6 +125,12 @@ const Routes = () => {
                     exact
                     path="/marketingCampaigns"
                     component={marketingCampaigns}
+                    isPrivate
+                  />
+                  <Route
+                    exact
+                    path="/messagingCampaigns"
+                    component={MessagingCampaigns}
                     isPrivate
                   />
                   <NotificationManager />
