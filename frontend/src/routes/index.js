@@ -22,7 +22,6 @@ import MessagingCampaigns from "../pages/MessagingCampaigns";
 import PublicTickets from "../pages/PublicTickets/";
 import Queues from "../pages/Queues/";
 import QuickAnswers from "../pages/QuickAnswers/";
-import Reports from "../pages/Reports";
 import ReportsV2 from "../pages/ReportsV2";
 import Settings from "../pages/Settings/";
 import Signup from "../pages/Signup/";
@@ -48,12 +47,13 @@ const Routes = () => {
               <SearchMessageProvider>
                 <LoggedInLayout>
                   <Route exact path="/" component={Dashboard} isPrivate />
-                  <Route exact path="/reports" component={Reports} isPrivate />
+                  {/* <Route exact path="/reports" component={Reports} isPrivate  /> */}
                   <Route
                     exact
                     path="/api-chatbot"
                     component={ApiChatbot}
                     isPrivate
+                    myIsAdminOnly
                   />
                   <Route
                     exact
@@ -76,6 +76,7 @@ const Routes = () => {
                       return componentToReturn;
                     })()}
                     isPrivate
+                    myIsAdminOnly={getREACT_APP_PURPOSE() !== "comercial"}
                   />
                   <Route
                     exact
@@ -101,7 +102,13 @@ const Routes = () => {
                     component={Messages}
                     isPrivate
                   />
-                  <Route exact path="/users" component={Users} isPrivate />
+                  <Route
+                    exact
+                    path="/users"
+                    component={Users}
+                    isPrivate
+                    myIsAdminOnly
+                  />
                   <Route
                     exact
                     path="/quickAnswers"
@@ -113,19 +120,28 @@ const Routes = () => {
                     path="/Settings"
                     component={Settings}
                     isPrivate
+                    myIsAdminOnly
                   />
-                  <Route exact path="/Queues" component={Queues} isPrivate />
+                  <Route
+                    exact
+                    path="/Queues"
+                    component={Queues}
+                    isPrivate
+                    myIsAdminOnly
+                  />
                   <Route
                     exact
                     path="/categories"
                     component={Categories}
                     isPrivate
+                    myIsAdminOnly
                   />
                   <Route
                     exact
                     path="/marketingCampaigns"
                     component={marketingCampaigns}
                     isPrivate
+                    myIsAdminOnly
                   />
                   <Route
                     exact

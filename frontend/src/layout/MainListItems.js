@@ -189,6 +189,17 @@ const MainListItems = (props) => {
             />
           </>
         )}
+        no={() =>
+          getREACT_APP_PURPOSE() === "comercial" ? (
+            <>
+              <ListItemLink
+                to="/reportsv2"
+                primary={"Reportes"}
+                icon={<BarChartIcon />}
+              />
+            </>
+          ) : null
+        }
       />
     </div>
   );

@@ -9,6 +9,7 @@ import {
   UpdatedAt
 } from "sequelize-typescript";
 import MarketingCampaign from "./MarketingCampaign";
+import MarketingMessagingCampaign from "./MarketingMessagingCampaigns";
 
 @Table
 class MarketingCampaignAutomaticMessage extends Model<MarketingCampaignAutomaticMessage> {
@@ -41,6 +42,13 @@ class MarketingCampaignAutomaticMessage extends Model<MarketingCampaignAutomatic
 
   @BelongsTo(() => MarketingCampaign)
   marketingCampaign: MarketingCampaign;
+
+  @ForeignKey(() => MarketingMessagingCampaign)
+  @Column
+  marketingMessagingCampaignId: number;
+
+  @BelongsTo(() => MarketingMessagingCampaign)
+  marketingMessagingCampaign: MarketingMessagingCampaign;
 
   @CreatedAt
   createdAt: Date;

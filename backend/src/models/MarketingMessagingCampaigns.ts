@@ -1,18 +1,20 @@
 import {
   AutoIncrement,
+  BelongsTo,
   Column,
   CreatedAt,
+  ForeignKey,
   HasMany,
   Model,
   PrimaryKey,
   Table,
   UpdatedAt
 } from "sequelize-typescript";
+import MarketingCampaign from "./MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "./MarketingCampaignAutomaticMessage";
-import MarketingMessagingCampaign from "./MarketingMessagingCampaigns";
 
 @Table
-class MarketingCampaign extends Model<MarketingCampaign> {
+class MarketingMessagingCampaign extends Model<MarketingMessagingCampaign> {
   @PrimaryKey
   @AutoIncrement
   @Column
@@ -22,16 +24,17 @@ class MarketingCampaign extends Model<MarketingCampaign> {
   name: string;
 
   @Column
-  isActive: boolean;
+  timesSent: number;
 
+  @ForeignKey(() => MarketingCampaign)
   @Column
-  keywords: string;
+  marketingCampaignId: number;
+
+  @BelongsTo(() => MarketingCampaign)
+  marketingCampaign: MarketingCampaign;
 
   @HasMany(() => MarketingCampaignAutomaticMessage)
   marketingCampaignAutomaticMessages: MarketingCampaignAutomaticMessage[];
-
-  @HasMany(() => MarketingMessagingCampaign)
-  marketingMessagingCampaigns: MarketingMessagingCampaign[];
 
   @CreatedAt
   createdAt: Date;
@@ -40,4 +43,4 @@ class MarketingCampaign extends Model<MarketingCampaign> {
   updatedAt: Date;
 }
 
-export default MarketingCampaign;
+export default MarketingMessagingCampaign;

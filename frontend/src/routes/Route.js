@@ -13,6 +13,7 @@ const Route = ({
 }) => {
   const { isAuth, loading, user } = useContext(AuthContext);
 
+  // Si no esta auth y la ruta es privada, redirige a login
   if (!isAuth && isPrivate) {
     return (
       <>
@@ -28,6 +29,18 @@ const Route = ({
       <>
         {loading && <BackdropLoading />}
         <Redirect to={{ pathname: "/", state: { from: rest.location } }} />;
+      </>
+    );
+  }
+
+  // Si esta auth, no es admin y la ruta es para admins, redirige a tickets
+  if (isAuth && user?.profile !== "admin" && myIsAdminOnly) {
+    return (
+      <>
+        {loading && <BackdropLoading />}
+        <Redirect
+          to={{ pathname: "/tickets", state: { from: rest.location } }}
+        />
       </>
     );
   }

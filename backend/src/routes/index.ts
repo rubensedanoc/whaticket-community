@@ -11,6 +11,7 @@ import externalRoutes from "./externalRoutes";
 import extraRoutes from "./extraRoutes";
 import marketingCampaignAutomaticMessageRoutes from "./marketingCampaignAutomaticMessageRoutes";
 import marketingCampaignsRoutes from "./marketingCampaignsRoutes";
+import marketingMessagingCampaignRoutes from "./marketingMessagingCampaignRoutes";
 import messageRoutes from "./messageRoutes";
 import messagingCampaignMessageRoutes from "./messagingCampaignMessageRoutes";
 import messagingCampaignRoutes from "./messagingCampaignRoutes";
@@ -46,6 +47,7 @@ routes.use(marketingCampaignsRoutes);
 routes.use(marketingCampaignAutomaticMessageRoutes);
 routes.use(messagingCampaignRoutes);
 routes.use(messagingCampaignMessageRoutes);
+routes.use(marketingMessagingCampaignRoutes);
 routes.use("/extra", extraRoutes);
 
 export default routes;

@@ -52,7 +52,8 @@ export const sendTicketDataToZapier = async (
       userName,
       loggerUserName,
       userHubspotId,
-      extraInfo
+      extraInfo,
+      onlyUpdateInfo = false
     } = req.body;
 
     const contactData = {
@@ -68,7 +69,7 @@ export const sendTicketDataToZapier = async (
     });
 
     const ticketData = {
-      marketingCampaignId: ticketCampaignId
+      marketingCampaignId: ticketCampaignId || undefined
     };
 
     await UpdateTicketService({
@@ -101,14 +102,62 @@ export const sendTicketDataToZapier = async (
       CALIDAD_COMERCIAL:
         ticket.contact?.extraInfo?.find(
           (info: any) => info.name === "CALIDAD_COMERCIAL"
-        )?.value || "Sin Asignar"
+        )?.value || "Sin Asignar",
+      TIENE_RESTAURANTE:
+        ticket.contact?.extraInfo?.find(
+          (info: any) => info.name === "TIENE_RESTAURANTE"
+        )?.value || null,
+      TIPO_RESTAURANTE:
+        ticket.contact?.extraInfo?.find(
+          (info: any) => info.name === "TIPO_RESTAURANTE"
+        )?.value || null,
+      TOMA_LA_DECISION:
+        ticket.contact?.extraInfo?.find(
+          (info: any) => info.name === "TOMA_LA_DECISION"
+        )?.value || null,
+      CARGO:
+        ticket.contact?.extraInfo?.find((info: any) => info.name === "CARGO")
+          ?.value || null,
+      YA_USA_SISTEMA:
+        ticket.contact?.extraInfo?.find(
+          (info: any) => info.name === "YA_USA_SISTEMA"
+        )?.value || null,
+      SISTEMA_ACTUAL:
+        ticket.contact?.extraInfo?.find(
+          (info: any) => info.name === "SISTEMA_ACTUAL"
+        )?.value || null,
+      NUM_SUCURSALES: Number(
+        ticket.contact?.extraInfo?.find(info => info.name === "NUM_SUCURSALES")
+          ?.value || 0 // Default to 0 if null
+      ),
+      NUM_MESAS: Number(
+        ticket.contact?.extraInfo?.find(info => info.name === "NUM_MESAS")
+          ?.value || 0 // Default to 0 if null
+      ),
+      CUANTO_PAGA:
+        ticket.contact?.extraInfo?.find(
+          (info: any) => info.name === "CUANTO_PAGA"
+        )?.value || null,
+      COMO_SE_ENTERO:
+        ticket.contact?.extraInfo?.find(
+          (info: any) => info.name === "COMO_SE_ENTERO"
+        )?.value || null,
+      DOLOR_1:
+        ticket.contact?.extraInfo?.find((info: any) => info.name === "DOLOR_1")
+          ?.value || null,
+      DOLOR_2:
+        ticket.contact?.extraInfo?.find((info: any) => info.name === "DOLOR_2")
+          ?.value || null
       // extraInfo: ticket.contact?.extraInfo
     };
 
-    // console.log(
-    //   "--- DATA SENT TO ZAPIER",
-    //   JSON.stringify(dataToSendToZapier, null, 2)
-    // );
+    // console.log("--- DATA SENT TO ZAPIER", dataToSendToZapier);
+
+    if (onlyUpdateInfo) {
+      return res
+        .status(200)
+        .json({ message: "Data updated", dataToSend: dataToSendToZapier });
+    }
 
     const result = await fetch(
       "https://hooks.zapier.com/hooks/catch/16330533/25dljl9/",
