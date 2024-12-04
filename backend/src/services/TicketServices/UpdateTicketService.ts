@@ -35,7 +35,7 @@ const UpdateTicketService = async ({
   ticketData,
   ticketId
 }: Request): Promise<Response> => {
-  const {
+  let {
     status,
     userId,
     queueId,
@@ -63,6 +63,25 @@ const UpdateTicketService = async ({
 
   if (oldStatus === "closed") {
     await CheckContactOpenTickets(ticket.contact.id, ticket.whatsappId);
+  }
+
+  // console.log(
+  //   "se le asignara defaultTicketCategoryId:",
+  //   oldStatus === "pending",
+  //   status === "open",
+  //   !ticket.categories?.length,
+  //   !categoriesIds?.length,
+  //   ticket.queue?.defaultTicketCategoryId
+  // );
+
+  if (
+    oldStatus === "pending" &&
+    status === "open" &&
+    !ticket.categories?.length &&
+    !categoriesIds?.length &&
+    ticket.queue?.defaultTicketCategoryId
+  ) {
+    categoriesIds = [ticket.queue?.defaultTicketCategoryId];
   }
 
   await ticket.update({

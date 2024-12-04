@@ -1,10 +1,12 @@
 import {
   AllowNull,
   AutoIncrement,
+  BelongsTo,
   BelongsToMany,
   Column,
   CreatedAt,
   Default,
+  ForeignKey,
   HasMany,
   Model,
   PrimaryKey,
@@ -85,6 +87,13 @@ class Queue extends Model<Queue> {
 
   @HasMany(() => Ticket)
   tickets: Ticket[];
+
+  @ForeignKey(() => Category)
+  @Column
+  defaultTicketCategoryId: number;
+
+  @BelongsTo(() => Category, "defaultTicketCategoryId")
+  defaultTicketCategory: Category;
 }
 
 export default Queue;

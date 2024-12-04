@@ -11,7 +11,7 @@ services:
           cpus: "48"
     build:
       context: ./backend
-      dockerfile: ./Dockerfile
+      dockerfile: ${DOCKERFILE_PATH:-./Dockerfile}
     environment:
       - DB_HOST=mysql
       - DB_USER=root
@@ -25,7 +25,14 @@ services:
       - PROXY_PORT=${PROXY_PORT:-8080}
       - SENTRY_DSN=${SENTRY_DSN:-http://dns.sentry.org}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - CHROME_ARGS=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --single-process --disable-gpu
+
+      # ARGS (CHROMIUN)
+      - CHROME_ARGS_CHROMIUN=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --single-process --disable-gpu
+
+      # ARGS (CHROME)
+      - CHROME_ARGS_CHROME=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --disable-gpu
+
+      - DOCKERFILE_PATH=${DOCKERFILE_PATH:-./Dockerfile}
     ports:
       - ${BACKEND_PORT:-8080}:3000
     volumes:

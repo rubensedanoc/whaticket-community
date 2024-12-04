@@ -326,7 +326,13 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         sessionCfg = JSON.parse(whatsapp.session);
       }
 
-      const args: String = process.env.CHROME_ARGS || "";
+      const args: String =
+        process.env.DOCKERFILE_PATH &&
+        process.env.DOCKERFILE_PATH.includes("chrome")
+          ? process.env.CHROME_ARGS_CHROME
+          : process.env.CHROME_ARGS_CHROMIUN || "";
+
+      console.log("client args: ", args);
 
       const wbot: Session = new Client({
         session: sessionCfg,
@@ -346,7 +352,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       wbot.initialize();
 
       wbot.on("qr", async qr => {
-        logger.info("Session:", sessionName);
+        logger.info(`Session: ${sessionName} QR RECEIVED`);
         qrCode.generate(qr, { small: true });
         await whatsapp.update({ qrcode: qr, status: "qrcode", retries: 0 });
 

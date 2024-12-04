@@ -23,7 +23,16 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { order, body, mediaType, marketingCampaignId } = req.body;
+  const {
+    order,
+    body,
+    mediaType,
+    marketingCampaignId,
+    marketingMessagingCampaignId
+  } = req.body;
+
+  console.log("--------- store:", req.body);
+
   const medias = req.files as Express.Multer.File[];
 
   let marketingCampaignAutomaticMessage;
@@ -43,7 +52,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
         body,
         mediaType,
         mediaUrl: media.filename,
-        marketingCampaignId
+        ...(marketingCampaignId ? { marketingCampaignId } : null),
+        ...(marketingMessagingCampaignId
+          ? { marketingMessagingCampaignId }
+          : null)
       });
   } else {
     marketingCampaignAutomaticMessage =
@@ -51,7 +63,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
         order,
         body,
         mediaType,
-        marketingCampaignId
+        ...(marketingCampaignId ? { marketingCampaignId } : null),
+        ...(marketingMessagingCampaignId
+          ? { marketingMessagingCampaignId }
+          : null)
       });
   }
 

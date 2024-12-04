@@ -29,6 +29,8 @@ const FindOrCreateTicketService = async (props: {
   chatbotMessageIdentifier?: string;
   messagingCampaignId?: number;
   messagingCampaignShipmentId?: number;
+  marketingMessagingCampaignId?: number;
+  marketingCampaignId?: number;
   msgFromMe?: boolean;
 }): Promise<Ticket> => {
   const {
@@ -39,7 +41,9 @@ const FindOrCreateTicketService = async (props: {
     lastMessageTimestamp,
     chatbotMessageIdentifier,
     messagingCampaignId,
-    messagingCampaignShipmentId
+    messagingCampaignShipmentId,
+    marketingMessagingCampaignId,
+    marketingCampaignId
   } = props;
 
   let ticket = await findTicket(props);
@@ -51,7 +55,9 @@ const FindOrCreateTicketService = async (props: {
       ticket = await Ticket.create({
         contactId: groupContact ? groupContact.id : contact.id,
         status:
-          chatbotMessageIdentifier || messagingCampaignId
+          chatbotMessageIdentifier ||
+          messagingCampaignId ||
+          marketingMessagingCampaignId
             ? "closed"
             : !!groupContact
             ? "open"
@@ -68,6 +74,12 @@ const FindOrCreateTicketService = async (props: {
         }),
         ...(messagingCampaignShipmentId && {
           messagingCampaignShipmentId
+        }),
+        ...(marketingMessagingCampaignId && {
+          marketingMessagingCampaignId
+        }),
+        ...(marketingCampaignId && {
+          marketingCampaignId
         })
       });
 
@@ -89,7 +101,9 @@ const FindOrCreateTicketService = async (props: {
         ticket = await Ticket.create({
           contactId: groupContact ? groupContact.id : contact.id,
           status:
-            chatbotMessageIdentifier || messagingCampaignId
+            chatbotMessageIdentifier ||
+            messagingCampaignId ||
+            marketingMessagingCampaignId
               ? "closed"
               : !!groupContact
               ? "open"
@@ -106,6 +120,12 @@ const FindOrCreateTicketService = async (props: {
           }),
           ...(messagingCampaignShipmentId && {
             messagingCampaignShipmentId
+          }),
+          ...(marketingMessagingCampaignId && {
+            marketingMessagingCampaignId
+          }),
+          ...(marketingCampaignId && {
+            marketingCampaignId
           })
         });
       }
@@ -127,6 +147,8 @@ const findTicket = async ({
   chatbotMessageIdentifier,
   messagingCampaignId,
   messagingCampaignShipmentId,
+  marketingMessagingCampaignId,
+  marketingCampaignId,
   msgFromMe
 }: {
   contact: Contact;
@@ -137,6 +159,8 @@ const findTicket = async ({
   chatbotMessageIdentifier?: string;
   messagingCampaignId?: number;
   messagingCampaignShipmentId?: number;
+  marketingMessagingCampaignId?: number;
+  marketingCampaignId?: number;
   msgFromMe?: boolean;
 }) => {
   // find a ticket with status open or pending, from the contact or groupContact and  from the whatsappId
@@ -192,6 +216,12 @@ const findTicket = async ({
       }),
       ...(messagingCampaignShipmentId && {
         messagingCampaignShipmentId
+      }),
+      ...(marketingMessagingCampaignId && {
+        marketingMessagingCampaignId
+      }),
+      ...(marketingCampaignId && {
+        marketingCampaignId
       })
     });
   }
@@ -232,7 +262,8 @@ const findTicket = async ({
     !ticket &&
     !groupContact &&
     !chatbotMessageIdentifier &&
-    !messagingCampaignId
+    !messagingCampaignId &&
+    !marketingMessagingCampaignId
   ) {
     // bsucamos el ultimo ticket asi sean no interactivos
     ticket = await Ticket.findOne({
@@ -253,7 +284,11 @@ const findTicket = async ({
       order: [["updatedAt", "DESC"]]
     });
 
-    if (ticket && !ticket.messagingCampaignId) {
+    if (
+      ticket &&
+      !ticket.messagingCampaignId &&
+      !ticket.marketingMessagingCampaignId
+    ) {
       const twoHoursAgo = subHours(new Date(), 2);
       let validTime = twoHoursAgo;
 
@@ -288,7 +323,9 @@ const findTicket = async ({
     if (ticket) {
       await ticket.update({
         status:
-          !ticket.messagingCampaignId || !msgFromMe
+          (!ticket.messagingCampaignId &&
+            !ticket.marketingMessagingCampaignId) ||
+          !msgFromMe
             ? !ticket.userId
               ? "pending"
               : "open"
@@ -306,6 +343,12 @@ const findTicket = async ({
         }),
         ...(messagingCampaignShipmentId && {
           messagingCampaignShipmentId
+        }),
+        ...(marketingMessagingCampaignId && {
+          marketingMessagingCampaignId
+        }),
+        ...(marketingCampaignId && {
+          marketingCampaignId
         })
       });
     }
