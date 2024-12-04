@@ -1,5 +1,7 @@
 import { Op } from "sequelize";
 import AppError from "../../errors/AppError";
+import MarketingCampaign from "../../models/MarketingCampaign";
+import MarketingMessagingCampaign from "../../models/MarketingMessagingCampaigns";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "../TicketServices/ShowTicketService";
@@ -171,7 +173,29 @@ const getMessagesForTicket = async (
       {
         model: Ticket,
         as: "ticket",
-        attributes: ["id", "chatbotMessageIdentifier"]
+        attributes: ["id", "chatbotMessageIdentifier"],
+        include: [
+          {
+            attributes: ["name"],
+            model: MarketingCampaign,
+            as: "marketingCampaign",
+            required: false
+          },
+          {
+            attributes: ["name"],
+            model: MarketingMessagingCampaign,
+            as: "marketingMessagingCampaign",
+            required: false,
+            include: [
+              {
+                attributes: ["name"],
+                model: MarketingCampaign,
+                as: "marketingCampaign",
+                required: false
+              }
+            ]
+          }
+        ]
       },
       {
         model: Message,

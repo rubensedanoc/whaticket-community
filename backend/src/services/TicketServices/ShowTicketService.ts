@@ -5,6 +5,7 @@ import Category from "../../models/Category";
 import Contact from "../../models/Contact";
 import Country from "../../models/Country";
 import MarketingCampaign from "../../models/MarketingCampaign";
+import MarketingMessagingCampaign from "../../models/MarketingMessagingCampaigns";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
@@ -81,6 +82,11 @@ const ShowTicketService = async (
     {
       model: MarketingCampaign,
       as: "marketingCampaign",
+      required: false
+    },
+    {
+      model: MarketingMessagingCampaign,
+      as: "marketingMessagingCampaign",
       required: false
     }
   ];

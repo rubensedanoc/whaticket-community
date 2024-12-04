@@ -5,7 +5,15 @@ import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutoma
 import MarketingMessagingCampaign from "../models/MarketingMessagingCampaigns";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const marketingCampaigns = await MarketingCampaign.findAll();
+  const marketingCampaigns = await MarketingCampaign.findAll({
+    include: [
+      {
+        model: MarketingMessagingCampaign,
+        as: "marketingMessagingCampaigns",
+        required: false
+      }
+    ]
+  });
 
   return res.status(200).json(marketingCampaigns);
 };

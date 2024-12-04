@@ -40,6 +40,7 @@ type IndexQuery = {
   selectedMarketingCampaignsIds?: string;
   selectedUsersIds?: string;
   ticketStatus?: string;
+  selectedMarketingMessaginCampaignsIds?: string;
 };
 
 function findLast<T>(array: T[], callback: any): T | undefined {
@@ -2108,13 +2109,16 @@ export const getTicketsDistributionByStages = async (
     selectedQueueId: selectedQueueIdAsString,
     selectedMarketingCampaignsIds: selectedMarketingCampaignsIdsAsString,
     selectedUsersIds: selectedUsersIdsAsString,
-    ticketStatus: ticketStatusAsString
+    ticketStatus: ticketStatusAsString,
+    selectedMarketingMessaginCampaignsIds:
+      selectedMarketingMessaginCampaignsIdsAsString
   } = req.query as IndexQuery;
 
   const response: {
     logs?: string[];
     sql?: string;
     sqlResult?: any[];
+    sqlResultGroupByTicket?: any[];
     categoryRelationsOfSelectedQueue?: QueueCategory[];
     data?: {
       ticketsCount: number;
@@ -2124,17 +2128,74 @@ export const getTicketsDistributionByStages = async (
       ticketsCount: number;
       values: any[];
     };
+    dataByTIENE_RESTAURANTE?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    dataByYA_USA_SISTEMA?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    dataByTIPO_RESTAURANTE?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    dataByCARGO?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    dataBySISTEMA_ACTUAL?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    dataByCOMO_SE_ENTERO?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    dataByDOLOR?: {
+      ticketsCount: number;
+      values: any[];
+    };
     dataByUser?: any;
   } = {
     logs: [],
     sql: "",
     sqlResult: [],
+    sqlResultGroupByTicket: [],
     categoryRelationsOfSelectedQueue: [],
     data: {
       ticketsCount: 0,
       values: []
     },
     data2: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataByTIENE_RESTAURANTE: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataByYA_USA_SISTEMA: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataByTIPO_RESTAURANTE: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataByCARGO: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataBySISTEMA_ACTUAL: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataByCOMO_SE_ENTERO: {
+      ticketsCount: 0,
+      values: []
+    },
+    dataByDOLOR: {
       ticketsCount: 0,
       values: []
     },
@@ -2148,6 +2209,9 @@ export const getTicketsDistributionByStages = async (
     selectedMarketingCampaignsIdsAsString
   ) as string[];
   let selectedUsersIds = JSON.parse(selectedUsersIdsAsString) as string[];
+  let selectedMarketingMessaginCampaignsIds = JSON.parse(
+    selectedMarketingMessaginCampaignsIdsAsString
+  ) as string[];
 
   let sqlWhereAdd = ` c.isCompanyMember IS NOT TRUE AND t.queueId = ${selectedQueueId} AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
@@ -2162,20 +2226,36 @@ export const getTicketsDistributionByStages = async (
   }
 
   if (selectedMarketingCampaignsIds.length > 0) {
-    if (!selectedMarketingCampaignsIds.includes(null)) {
-      sqlWhereAdd += ` AND t.marketingCampaignId IN (${selectedMarketingCampaignsIds.join(
-        ","
-      )}) `;
-    } else {
-      if (selectedMarketingCampaignsIds.length === 1) {
-        sqlWhereAdd += ` AND t.marketingCampaignId IS NULL `;
-      } else {
-        sqlWhereAdd += ` AND (t.marketingCampaignId IN (${selectedMarketingCampaignsIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.marketingCampaignId IS NULL) `;
-      }
-    }
+    sqlWhereAdd += ` AND (${selectedMarketingCampaignsIds
+      .map(selectedMarketingCampaignsId => {
+        if (selectedMarketingCampaignsId === null) {
+          return ` t.marketingCampaignId IS NULL `;
+        }
+
+        const marketingMessagingCampaignsForSelectedMarketingCampaignsId =
+          selectedMarketingMessaginCampaignsIds
+            .filter(mmc => mmc.startsWith(`${selectedMarketingCampaignsId}-`))
+            .map(mmc => mmc.split("-")[1])
+            .map(mmc => JSON.parse(mmc));
+
+        if (marketingMessagingCampaignsForSelectedMarketingCampaignsId.length) {
+          return ` ( t.marketingCampaignId = ${selectedMarketingCampaignsId} AND (${marketingMessagingCampaignsForSelectedMarketingCampaignsId
+            .map(mmc => {
+              if (mmc === null) {
+                return ` t.marketingMessagingCampaignId IS NULL `;
+              } else {
+                return ` t.marketingMessagingCampaignId = ${mmc} `;
+              }
+            })
+            .join(" OR ")}) ) `;
+        } else {
+          return ` t.marketingCampaignId = ${selectedMarketingCampaignsId} `;
+        }
+      })
+      .join(" OR ")}) `;
   }
+
+  console.log({ sqlWhereAdd, sqlWhereAdd2: JSON.stringify(sqlWhereAdd) });
 
   if (selectedUsersIds.length > 0) {
     sqlWhereAdd += ` AND t.userId IN (${selectedUsersIds.join(",")}) `;
@@ -2222,6 +2302,7 @@ export const getTicketsDistributionByStages = async (
       t.createdAt as t_createdAt,
       t.isGroup as t_isGroup,
       t.marketingCampaignId as t_marketingCampaignId,
+      t.marketingMessagingCampaignId as t_marketingMessagingCampaignId,
       t.wasSentToZapier as t_wasSentToZapier,
       t.userId as t_userId,
       t.status as t_status,
@@ -2230,7 +2311,9 @@ export const getTicketsDistributionByStages = async (
       c.number as c_number,
       c.isGroup as c_isGroup,
       tc.categoryId as tc_categoryId,
-      mc.name as mc_name
+      mc.name as mc_name,
+      ccf.name AS ccf_name,
+      ccf.value AS ccf_value
     FROM Tickets t
       JOIN Contacts c
         ON t.contactId = c.id
@@ -2242,19 +2325,23 @@ export const getTicketsDistributionByStages = async (
           )
       LEFT JOIN MarketingCampaigns mc
     	  ON mc.id = t.marketingCampaignId
+      LEFT JOIN ContactCustomFields ccf
+        ON ccf.contactId = c.id
     WHERE ${sqlWhereAdd}
     ORDER BY t.id ASC;
   `;
 
-  console.log("sql", sql);
+  // console.log("sql", sql);
+  console.log("sql2", JSON.stringify(sql.replace(/\n/g, " ")));
   response.sql = sql;
   response.logs.push(`sql-inicio: ${Date()}`);
 
-  const sqlResult: {
+  interface SqlResult {
     t_id: number;
     t_createdAt: string;
     t_isGroup: number;
     t_marketingCampaignId: number;
+    t_marketingMessagingCampaignId: number;
     t_wasSentToZapier: number;
     t_userId: number;
     c_id: number;
@@ -2263,12 +2350,44 @@ export const getTicketsDistributionByStages = async (
     c_isGroup: number;
     tc_categoryId: number;
     mc_name: string;
-  }[] = await Ticket.sequelize.query(sql, {
+    ccf_name: string;
+    ccf_value: string;
+    ccfs: [{ name: string; value: string }];
+  }
+
+  let sqlResult: SqlResult[] = await Ticket.sequelize.query(sql, {
     type: QueryTypes.SELECT
   });
 
   response.logs.push(`sql-fin: ${Date()}`);
   response.sqlResult = sqlResult;
+
+  // group tickets because them have multiple custom fields
+  sqlResult = sqlResult.reduce((result, currentValue) => {
+    const currentValueInResult = result.find(
+      row => row.t_id === currentValue.t_id
+    );
+    if (!currentValueInResult) {
+      const obj = {
+        ...currentValue,
+        ccfs: [
+          {
+            name: currentValue.ccf_name,
+            value: currentValue.ccf_value
+          }
+        ]
+      };
+      result.push(obj);
+    } else {
+      currentValueInResult.ccfs.push({
+        name: currentValue.ccf_name,
+        value: currentValue.ccf_value
+      });
+    }
+    return result;
+  }, []);
+
+  response.sqlResultGroupByTicket = sqlResult;
 
   let dataToReturnTicketsCount = 0;
   const dataToReturn = categoryRelationsOfSelectedQueue.reduce(
@@ -2308,7 +2427,6 @@ export const getTicketsDistributionByStages = async (
     },
     []
   );
-
   response.data = {
     ticketsCount: dataToReturnTicketsCount,
     values: dataToReturn
@@ -2350,14 +2468,12 @@ export const getTicketsDistributionByStages = async (
     }
     return result;
   }, []);
-
   response.data2 = {
     ticketsCount: dataToReturnTicketsCount2,
     values: dataToReturn2
   };
 
   const dataToReturnByUser = {};
-
   if (selectedUsersIds.length === 0) {
     selectedUsersIds = (
       await User.findAll({
@@ -2365,7 +2481,6 @@ export const getTicketsDistributionByStages = async (
       })
     ).map(user => user.id.toString());
   }
-
   for (const selectedUserId of selectedUsersIds) {
     const selectedUserValues = categoryRelationsOfSelectedQueue.reduce(
       (result, currentValue) => {
@@ -2414,8 +2529,118 @@ export const getTicketsDistributionByStages = async (
       values: selectedUserValues
     };
   }
-
   response.dataByUser = dataToReturnByUser;
+
+  function getdataByContactCustomFields(
+    sqlResult: SqlResult[],
+    customFieldName: string,
+    customFieldNames?: string[]
+  ) {
+    let count = 0;
+    let values = sqlResult.reduce((result, row) => {
+      const rowCustomField = row.ccfs.find(ccfs =>
+        customFieldNames
+          ? customFieldNames.includes(ccfs.name)
+          : ccfs.name === customFieldName
+      );
+
+      if (!rowCustomField?.value) {
+        return result;
+      }
+
+      const currentPropInResult = result.find(
+        r => r[customFieldName] === rowCustomField.value
+      );
+
+      if (!currentPropInResult) {
+        const obj: any = {
+          [customFieldName]: rowCustomField.value,
+          tickets: [row]
+        };
+
+        const campaignProp = Object.keys(obj).find(
+          key => key === `category_${row.tc_categoryId}`
+        );
+
+        if (!campaignProp) {
+          obj[`category_${row.tc_categoryId}`] = 1;
+        } else {
+          obj[campaignProp] += 1;
+        }
+
+        result.push(obj);
+      } else {
+        currentPropInResult.tickets.push(row);
+
+        const campaignProp = Object.keys(currentPropInResult).find(
+          key => key === `category_${row.tc_categoryId}`
+        );
+
+        if (!campaignProp) {
+          currentPropInResult[`category_${row.tc_categoryId}`] = 1;
+        } else {
+          currentPropInResult[campaignProp] += 1;
+        }
+      }
+      count += 1;
+      return result;
+    }, []);
+    return {
+      count,
+      values
+    };
+  }
+
+  const {
+    count: dataByTIENE_RESTAURANTECount,
+    values: dataByTIENE_RESTAURANTE
+  } = getdataByContactCustomFields(sqlResult, "TIENE_RESTAURANTE");
+  response.dataByTIENE_RESTAURANTE = {
+    ticketsCount: dataByTIENE_RESTAURANTECount,
+    values: dataByTIENE_RESTAURANTE
+  };
+
+  const { count: dataByYA_USA_SISTEMACount, values: dataByYA_USA_SISTEMA } =
+    getdataByContactCustomFields(sqlResult, "YA_USA_SISTEMA");
+  response.dataByYA_USA_SISTEMA = {
+    ticketsCount: dataByYA_USA_SISTEMACount,
+    values: dataByYA_USA_SISTEMA
+  };
+
+  const { count: dataByTIPO_RESTAURANTECount, values: dataByTIPO_RESTAURANTE } =
+    getdataByContactCustomFields(sqlResult, "TIPO_RESTAURANTE");
+  response.dataByTIPO_RESTAURANTE = {
+    ticketsCount: dataByTIPO_RESTAURANTECount,
+    values: dataByTIPO_RESTAURANTE
+  };
+
+  const { count: dataByCARGOCount, values: dataByCARGO } =
+    getdataByContactCustomFields(sqlResult, "CARGO");
+  response.dataByCARGO = {
+    ticketsCount: dataByCARGOCount,
+    values: dataByCARGO
+  };
+
+  const { count: dataBySISTEMA_ACTUALCount, values: dataBySISTEMA_ACTUAL } =
+    getdataByContactCustomFields(sqlResult, "SISTEMA_ACTUAL");
+  response.dataBySISTEMA_ACTUAL = {
+    ticketsCount: dataBySISTEMA_ACTUALCount,
+    values: dataBySISTEMA_ACTUAL
+  };
+
+  const { count: dataByCOMO_SE_ENTEROCount, values: dataByCOMO_SE_ENTERO } =
+    getdataByContactCustomFields(sqlResult, "COMO_SE_ENTERO");
+  response.dataByCOMO_SE_ENTERO = {
+    ticketsCount: dataByCOMO_SE_ENTEROCount,
+    values: dataByCOMO_SE_ENTERO
+  };
+
+  const { count: dataByDOLORCount, values: dataByDOLOR } =
+    getdataByContactCustomFields(sqlResult, "DOLOR", ["DOLOR_1", "DOLOR_2"]);
+  response.dataByDOLOR = {
+    ticketsCount: dataByDOLORCount,
+    values: dataByDOLOR
+  };
 
   return res.status(200).json(response);
 };

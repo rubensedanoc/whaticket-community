@@ -729,7 +729,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
         )
       } else return (<></>)
     }*/
-      /^.*\.(jpe?g|png|gif)?$/i.exec(message.mediaUrl) &&
+      /^.*\.(jpe?g|png|gif|webp)?$/i.exec(message.mediaUrl) &&
       message.mediaType === "image"
     ) {
       return <ModalImageCors imageUrl={message.mediaUrl} />;
@@ -792,7 +792,25 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
         >
           <div>Ticket: {message.ticketId}</div>
           {message.ticket?.chatbotMessageIdentifier && (
-            <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
+            <div style={{ fontSize: "14px" }}>* Mensaje automatico *</div>
+          )}
+          {message.ticket?.marketingCampaign && (
+            <div style={{ fontSize: "14px" }}>
+              * Campaña publicitaria:{" "}
+              <b>{message.ticket?.marketingCampaign.name} </b>*
+            </div>
+          )}
+          {message.ticket?.marketingMessagingCampaign && (
+            <div style={{ fontSize: "14px" }}>
+              * Campaña de mensajes publicitarios:{" "}
+              <b>{message.ticket?.marketingMessagingCampaign.name}</b>* campaña:{" "}
+              <b>
+                {
+                  message.ticket?.marketingMessagingCampaign?.marketingCampaign
+                    .name
+                }
+              </b>
+            </div>
           )}
         </div>
       );
@@ -808,7 +826,27 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
           >
             <div>Ticket: {message.ticketId}</div>
             {message.ticket?.chatbotMessageIdentifier && (
-              <div style={{ fontSize: "14px" }}>*Mensaje automatico*</div>
+              <div style={{ fontSize: "14px" }}>* Mensaje automatico *</div>
+            )}
+            {message.ticket?.marketingCampaign && (
+              <div style={{ fontSize: "14px" }}>
+                * Campaña publicitaria:{" "}
+                <b>{message.ticket?.marketingCampaign.name} </b>*
+              </div>
+            )}
+            {message.ticket?.marketingMessagingCampaign && (
+              <div style={{ fontSize: "14px" }}>
+                * Campaña de mensajes publicitarios:{" "}
+                <b>{message.ticket?.marketingMessagingCampaign.name}</b>{" "}
+                campaña:{" "}
+                <b>
+                  {
+                    message.ticket?.marketingMessagingCampaign
+                      ?.marketingCampaign.name
+                  }
+                </b>{" "}
+                *
+              </div>
             )}
           </div>
         );
