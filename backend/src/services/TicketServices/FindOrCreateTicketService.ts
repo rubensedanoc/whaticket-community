@@ -29,6 +29,7 @@ const FindOrCreateTicketService = async (props: {
   chatbotMessageIdentifier?: string;
   messagingCampaignId?: number;
   messagingCampaignShipmentId?: number;
+  marketingMessagingCampaignShipmentId?: number;
   marketingMessagingCampaignId?: number;
   marketingCampaignId?: number;
   msgFromMe?: boolean;
@@ -42,6 +43,7 @@ const FindOrCreateTicketService = async (props: {
     chatbotMessageIdentifier,
     messagingCampaignId,
     messagingCampaignShipmentId,
+    marketingMessagingCampaignShipmentId,
     marketingMessagingCampaignId,
     marketingCampaignId
   } = props;
@@ -74,6 +76,9 @@ const FindOrCreateTicketService = async (props: {
         }),
         ...(messagingCampaignShipmentId && {
           messagingCampaignShipmentId
+        }),
+        ...(marketingMessagingCampaignShipmentId && {
+          marketingMessagingCampaignShipmentId
         }),
         ...(marketingMessagingCampaignId && {
           marketingMessagingCampaignId
@@ -121,6 +126,9 @@ const FindOrCreateTicketService = async (props: {
           ...(messagingCampaignShipmentId && {
             messagingCampaignShipmentId
           }),
+          ...(marketingMessagingCampaignShipmentId && {
+            marketingMessagingCampaignShipmentId
+          }),
           ...(marketingMessagingCampaignId && {
             marketingMessagingCampaignId
           }),
@@ -147,6 +155,7 @@ const findTicket = async ({
   chatbotMessageIdentifier,
   messagingCampaignId,
   messagingCampaignShipmentId,
+  marketingMessagingCampaignShipmentId,
   marketingMessagingCampaignId,
   marketingCampaignId,
   msgFromMe
@@ -159,6 +168,7 @@ const findTicket = async ({
   chatbotMessageIdentifier?: string;
   messagingCampaignId?: number;
   messagingCampaignShipmentId?: number;
+  marketingMessagingCampaignShipmentId?: number;
   marketingMessagingCampaignId?: number;
   marketingCampaignId?: number;
   msgFromMe?: boolean;
@@ -216,6 +226,9 @@ const findTicket = async ({
       }),
       ...(messagingCampaignShipmentId && {
         messagingCampaignShipmentId
+      }),
+      ...(marketingMessagingCampaignShipmentId && {
+        marketingMessagingCampaignShipmentId
       }),
       ...(marketingMessagingCampaignId && {
         marketingMessagingCampaignId
@@ -343,6 +356,9 @@ const findTicket = async ({
         }),
         ...(messagingCampaignShipmentId && {
           messagingCampaignShipmentId
+        }),
+        ...(marketingMessagingCampaignShipmentId && {
+          marketingMessagingCampaignShipmentId
         }),
         ...(marketingMessagingCampaignId && {
           marketingMessagingCampaignId

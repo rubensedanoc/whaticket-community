@@ -12,6 +12,7 @@ import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import IconButton from "@material-ui/core/IconButton";
+import openSocket from "../../services/socket-io";
 
 import { makeStyles } from "@material-ui/core/styles";
 import Switch from "@material-ui/core/Switch";
@@ -31,7 +32,7 @@ import ConfirmationModal from "../ConfirmationModal";
 import MarketingMessagingCampaignModal from "../MarketingMessagingCampaignModal";
 
 import ModalImageCors from "../ModalImageCors";
-import SendMarketingMessagingCampaign from "../SendMarketingMessagingCampaign";
+import SendMessagingCampaign from "../SendMessagingCampaign";
 
 import { i18n } from "../../translate/i18n";
 
@@ -121,7 +122,6 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
     sendMarketingMessagingCampaignOpen,
     setSendMarketingMessagingCampaignOpen,
   ] = useState(false);
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [
     selectedMarketingCampaignAutomaticMessage,
     setSelectedMarketingCampaignAutomaticMessage,
@@ -158,25 +158,70 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
     (async () => {
       if (!marketingCampaignId) return;
       getData();
-      // try {
-      //   const { data } = await api.get(
-      //     `/marketingCampaign/${marketingCampaignId}`
-      //   );
-      //   setMarketingCampaign((prevState) => {
-      //     return { ...prevState, ...data };
-      //   });
-      // } catch (err) {
-      //   toastError(err);
-      // }
     })();
     return () => {
       setMarketingCampaign(initialState);
     };
   }, [marketingCampaignId, open]);
 
+  useEffect(() => {
+    const socket = openSocket();
+
+    socket.on("marketingMessagingCampaign", (data) => {
+      console.log("socket.on marketingMessagingCampaign", data);
+
+      if (data.action === "update") {
+        setMarketingCampaign((prevState) => {
+          let oldMessagingCampaigns = prevState.marketingMessagingCampaigns;
+          let newMessagingCampaign = data.marketingMessagingCampaign;
+          // console.log({
+          //   oldMessagingCampaigns,
+          //   newMessagingCampaign,
+          //   // newMessagingCampaignIndex,
+          // });
+          let newMessagingCampaignIndex = oldMessagingCampaigns.findIndex(
+            (u) => u.id === newMessagingCampaign.id
+          );
+
+          if (newMessagingCampaignIndex !== -1) {
+            oldMessagingCampaigns[newMessagingCampaignIndex] =
+              newMessagingCampaign;
+          } else {
+            oldMessagingCampaigns = [
+              newMessagingCampaign,
+              ...oldMessagingCampaigns,
+            ];
+          }
+
+          return {
+            ...prevState,
+            marketingMessagingCampaigns: oldMessagingCampaigns,
+          };
+        });
+      }
+
+      if (data.action === "delete") {
+        setMarketingCampaign((prevState) => {
+          return {
+            ...prevState,
+            marketingMessagingCampaigns:
+              prevState.marketingMessagingCampaigns.filter(
+                (messagingCampaign) => messagingCampaign.id !== data.id
+              ),
+          };
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   const handleClose = () => {
     onClose();
     setMarketingCampaign(initialState);
+    setTabValue(0);
   };
 
   const handleSaveMarketingCampaign = async (values) => {
@@ -246,13 +291,14 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
         marketingCampaignId={marketingCampaignId}
       />
 
-      <SendMarketingMessagingCampaign
+      <SendMessagingCampaign
         open={sendMarketingMessagingCampaignOpen}
         onClose={() => {
           setSendMarketingMessagingCampaignOpen(false);
           getData();
         }}
-        marketingMessagingCampaignId={selectedMarketingMessagingCampaign?.id}
+        messagingCampaignId={selectedMarketingMessagingCampaign?.id}
+        isAMakertingCampaign={true}
       />
 
       {/* {JSON.stringify(selectedMarketingCampaignAutomaticMessage?.id)} */}
@@ -531,6 +577,7 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
                   <TableCell align="center">Creación</TableCell>
                   <TableCell align="center">Nombre</TableCell>
                   <TableCell align="center">Veces envidadas</TableCell>
+                  <TableCell align="center">Estado de ultima enviada</TableCell>
                   <TableCell align="center">Acciones</TableCell>
                 </TableRow>
               </TableHead>
@@ -550,6 +597,26 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
                         </TableCell>
                         <TableCell align="center">
                           {messagingCampaign.timesSent}
+                        </TableCell>
+                        <TableCell align="center">
+                          <span
+                            style={{
+                              color:
+                                messagingCampaign
+                                  .marketingMessagingCampaignShipments?.[0]
+                                  ?.status === "sent"
+                                  ? "green"
+                                  : messagingCampaign
+                                      .marketingMessagingCampaignShipments?.[0]
+                                      ?.status === "sending"
+                                  ? "red"
+                                  : "gray",
+                            }}
+                          >
+                            {messagingCampaign
+                              .marketingMessagingCampaignShipments?.[0]
+                              ?.status || "Nunca enviada"}
+                          </span>
                         </TableCell>
                         <TableCell align="center">
                           <IconButton
@@ -592,20 +659,47 @@ const MarketingCampaignModal = ({ open, onClose, marketingCampaignId }) => {
                             <DeleteOutline />
                           </IconButton>
 
-                          <ButtonWithSpinner
-                            variant="contained"
-                            type="submit"
-                            color="primary"
-                            loading={false}
-                            onClick={() => {
-                              setSendMarketingMessagingCampaignOpen(true);
-                              setSelectedMarketingMessagingCampaign(
-                                messagingCampaign
-                              );
-                            }}
-                          >
-                            Enviar
-                          </ButtonWithSpinner>
+                          {messagingCampaign
+                            .marketingMessagingCampaignShipments?.[0]
+                            ?.status === "sending" ? (
+                            <ButtonWithSpinner
+                              variant="contained"
+                              type="submit"
+                              color="primary"
+                              loading={false}
+                              onClick={() => {
+                                setConfirmationModalOpen(true);
+                                setConfirmationModalTitle(
+                                  `Estas seguro de querer cancelar el ultimo envio de ${messagingCampaign.name}?`
+                                );
+                                setConfirmationModalHandler(() => () => {
+                                  api.post(
+                                    "/marketingMessagingCampaign/cancel",
+                                    {
+                                      messagingCampaignId: messagingCampaign.id,
+                                    }
+                                  );
+                                });
+                              }}
+                            >
+                              Cancelar Envio
+                            </ButtonWithSpinner>
+                          ) : (
+                            <ButtonWithSpinner
+                              variant="contained"
+                              type="submit"
+                              color="primary"
+                              loading={false}
+                              onClick={() => {
+                                setSendMarketingMessagingCampaignOpen(true);
+                                setSelectedMarketingMessagingCampaign(
+                                  messagingCampaign
+                                );
+                              }}
+                            >
+                              Enviar
+                            </ButtonWithSpinner>
+                          )}
                         </TableCell>
                       </TableRow>
                     )

@@ -3,6 +3,7 @@ import {
   BelongsTo,
   Column,
   CreatedAt,
+  Default,
   ForeignKey,
   HasMany,
   Model,
@@ -12,6 +13,7 @@ import {
 } from "sequelize-typescript";
 import MarketingCampaign from "./MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "./MarketingCampaignAutomaticMessage";
+import MarketingMessagingCampaignShipment from "./MarketingMessagingCampaignShipment";
 
 @Table
 class MarketingMessagingCampaign extends Model<MarketingMessagingCampaign> {
@@ -23,6 +25,7 @@ class MarketingMessagingCampaign extends Model<MarketingMessagingCampaign> {
   @Column
   name: string;
 
+  @Default(0)
   @Column
   timesSent: number;
 
@@ -35,6 +38,9 @@ class MarketingMessagingCampaign extends Model<MarketingMessagingCampaign> {
 
   @HasMany(() => MarketingCampaignAutomaticMessage)
   marketingCampaignAutomaticMessages: MarketingCampaignAutomaticMessage[];
+
+  @HasMany(() => MarketingMessagingCampaignShipment)
+  marketingMessagingCampaignShipments: MarketingMessagingCampaignShipment[];
 
   @CreatedAt
   createdAt: Date;

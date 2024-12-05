@@ -3,6 +3,7 @@ import { emitEvent } from "../libs/emitEvent";
 import MarketingCampaign from "../models/MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
 import MarketingMessagingCampaign from "../models/MarketingMessagingCampaigns";
+import MarketingMessagingCampaignShipment from "../models/MarketingMessagingCampaignShipment";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const marketingCampaigns = await MarketingCampaign.findAll({
@@ -35,7 +36,16 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
         {
           model: MarketingMessagingCampaign,
           as: "marketingMessagingCampaigns",
-          required: false
+          required: false,
+          include: [
+            {
+              model: MarketingMessagingCampaignShipment,
+              as: "marketingMessagingCampaignShipments",
+              order: [["id", "DESC"]],
+              required: false,
+              separate: true
+            }
+          ]
         }
       ]
     }
