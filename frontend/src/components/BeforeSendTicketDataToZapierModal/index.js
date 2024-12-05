@@ -18,6 +18,10 @@ import Select from "@material-ui/core/Select";
 import TextField from "@material-ui/core/TextField";
 import * as Yup from "yup";
 
+import Autocomplete, {
+  createFilterOptions,
+} from "@material-ui/lab/Autocomplete";
+
 import { makeStyles } from "@material-ui/core/styles";
 
 import { i18n } from "../../translate/i18n";
@@ -83,6 +87,8 @@ const ContactSchema = Yup.object().shape({
   DOLOR_2: Yup.string(),
 });
 
+const filter = createFilterOptions();
+
 const BeforeSendTicketDataToZapierModal = ({
   open,
   onClose,
@@ -125,6 +131,9 @@ const BeforeSendTicketDataToZapierModal = ({
   const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
   const [countries, setCountries] = useState([]);
   const [chooseCountryId, setChooseCountryId] = useState(null);
+  const [allSISTEMA_ACTUALOptions, setAllSISTEMA_ACTUALOptions] = useState([]);
+  const [allCOMO_SE_ENTEROOptions, setAllCOMO_SE_ENTEROOptions] = useState([]);
+  const [allDOLOROptions, setAllDOLOROptions] = useState([]);
 
   useEffect(() => {
     if (!open) {
@@ -197,6 +206,10 @@ const BeforeSendTicketDataToZapierModal = ({
           DOLOR_2:
             data.extraInfo.find((info) => info.name === "DOLOR_2")?.value || "",
         });
+
+        setAllSISTEMA_ACTUALOptions(data.allSISTEMA_ACTUALOptions);
+        setAllCOMO_SE_ENTEROOptions(data.allCOMO_SE_ENTEROOptions);
+        setAllDOLOROptions(data.allDOLOROptions);
       } catch (err) {
         console.log("err", err);
         toast.error("Error al cargar");
@@ -349,6 +362,7 @@ const BeforeSendTicketDataToZapierModal = ({
             handleBlur,
             errors,
             isSubmitting,
+            setFieldValue,
           }) => (
             <Form>
               <DialogContent dividers>
@@ -656,31 +670,39 @@ const BeforeSendTicketDataToZapierModal = ({
                           onBlur={handleBlur}
                           label="TIPO RESTAURANTE"
                         >
-                          <MenuItem value="Regular">Comida Criolla</MenuItem>
-                          <MenuItem value="Regular">Comida Marina</MenuItem>
-                          <MenuItem value="Regular">Pizzas y Pastas</MenuItem>
-                          <MenuItem value="Regular">Comida China</MenuItem>
-                          <MenuItem value="Regular">
+                          <MenuItem value="Comida Criolla">
+                            Comida Criolla
+                          </MenuItem>
+                          <MenuItem value="Comida Marina">
+                            Comida Marina
+                          </MenuItem>
+                          <MenuItem value="Pizzas y Pastas">
+                            Pizzas y Pastas
+                          </MenuItem>
+                          <MenuItem value="Comida China">Comida China</MenuItem>
+                          <MenuItem value="Comida vegetariana">
                             Comida vegetariana
                           </MenuItem>
-                          <MenuItem value="Regular">Sushi & Makis</MenuItem>
-                          <MenuItem value="Regular">Fast Food</MenuItem>
-                          <MenuItem value="Regular">Panaderias</MenuItem>
-                          <MenuItem value="Regular">Pastelerías</MenuItem>
-                          <MenuItem value="Regular">Juguería</MenuItem>
-                          <MenuItem value="Regular">Cafeterías</MenuItem>
-                          <MenuItem value="Regular">Restobar</MenuItem>
-                          <MenuItem value="Regular">Discoteca</MenuItem>
-                          <MenuItem value="Regular">Mini Market</MenuItem>
-                          <MenuItem value="Regular">Pollerías</MenuItem>
-                          <MenuItem value="Regular">
+                          <MenuItem value="Sushi & Makis">
+                            Sushi & Makis
+                          </MenuItem>
+                          <MenuItem value="Fast Food">Fast Food</MenuItem>
+                          <MenuItem value="Panaderias">Panaderias</MenuItem>
+                          <MenuItem value="Pastelerías">Pastelerías</MenuItem>
+                          <MenuItem value="Juguería">Juguería</MenuItem>
+                          <MenuItem value="Cafeterías">Cafeterías</MenuItem>
+                          <MenuItem value="Restobar">Restobar</MenuItem>
+                          <MenuItem value="Discoteca">Discoteca</MenuItem>
+                          <MenuItem value="Mini Market">Mini Market</MenuItem>
+                          <MenuItem value="Pollerías">Pollerías</MenuItem>
+                          <MenuItem value="Carnes y Parrillas">
                             Carnes y Parrillas
                           </MenuItem>
-                          <MenuItem value="Regular">
+                          <MenuItem value="Comida Internacional">
                             Comida Internacional
                           </MenuItem>
-                          <MenuItem value="Regular">Menú</MenuItem>
-                          <MenuItem value="Regular">Heladería</MenuItem>
+                          <MenuItem value="Menú">Menú</MenuItem>
+                          <MenuItem value="Heladería">Heladería</MenuItem>
                         </Select>
                         {touched.TIPO_RESTAURANTE && errors.TIPO_RESTAURANTE ? (
                           <FormHelperText>
@@ -799,21 +821,61 @@ const BeforeSendTicketDataToZapierModal = ({
                         ) : null}
                       </FormControl>
 
-                      <Field
-                        as={TextField}
-                        label={"Sistema actual"}
-                        autoFocus
-                        name="SISTEMA_ACTUAL"
-                        error={
-                          touched.SISTEMA_ACTUAL &&
-                          Boolean(errors.SISTEMA_ACTUAL)
-                        }
-                        helperText={
-                          touched.SISTEMA_ACTUAL && errors.SISTEMA_ACTUAL
-                        }
-                        variant="outlined"
-                        margin="dense"
+                      <Autocomplete
+                        value={values.SISTEMA_ACTUAL}
                         className={classes.textField}
+                        options={allSISTEMA_ACTUALOptions}
+                        clearOnBlur
+                        autoHighlight
+                        freeSolo
+                        clearOnEscape
+                        margin="dense"
+                        getOptionLabel={(option) =>
+                          option.replace(/Añadir: /, "")
+                        }
+                        renderOption={(option) => {
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                              }}
+                            >
+                              {option}
+                            </div>
+                          );
+                        }}
+                        filterOptions={(options, params) => {
+                          const filtered = filter(options, params);
+                          if (
+                            !options.find((o) => o.includes(params.inputValue))
+                          ) {
+                            filtered.push(`Añadir: ${params.inputValue}`);
+                          }
+                          return filtered;
+                        }}
+                        onChange={(e, newValue) => {
+                          setFieldValue("SISTEMA_ACTUAL", newValue || "");
+                        }}
+                        renderInput={(params) => (
+                          <Field
+                            as={TextField}
+                            {...params}
+                            label={"Sistema actual"}
+                            autoFocus
+                            name="SISTEMA_ACTUAL"
+                            error={
+                              touched.SISTEMA_ACTUAL &&
+                              Boolean(errors.SISTEMA_ACTUAL)
+                            }
+                            helperText={
+                              touched.SISTEMA_ACTUAL && errors.SISTEMA_ACTUAL
+                            }
+                            variant="outlined"
+                            margin="dense"
+                          />
+                        )}
                       />
                     </div>
 
@@ -837,20 +899,61 @@ const BeforeSendTicketDataToZapierModal = ({
                         margin="dense"
                       />
 
-                      <Field
-                        as={TextField}
-                        label={"Como se enteró"}
-                        autoFocus
-                        name="COMO_SE_ENTERO"
-                        error={
-                          touched.COMO_SE_ENTERO &&
-                          Boolean(errors.COMO_SE_ENTERO)
-                        }
-                        helperText={
-                          touched.COMO_SE_ENTERO && errors.COMO_SE_ENTERO
-                        }
-                        variant="outlined"
+                      <Autocomplete
+                        value={values.COMO_SE_ENTERO}
+                        className={classes.textField}
+                        options={allCOMO_SE_ENTEROOptions}
+                        clearOnBlur
+                        autoHighlight
+                        freeSolo
+                        clearOnEscape
                         margin="dense"
+                        getOptionLabel={(option) =>
+                          option.replace(/Añadir: /, "")
+                        }
+                        renderOption={(option) => {
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                              }}
+                            >
+                              {option}
+                            </div>
+                          );
+                        }}
+                        filterOptions={(options, params) => {
+                          const filtered = filter(options, params);
+                          if (
+                            !options.find((o) => o.includes(params.inputValue))
+                          ) {
+                            filtered.push(`Añadir: ${params.inputValue}`);
+                          }
+                          return filtered;
+                        }}
+                        onChange={(e, newValue) => {
+                          setFieldValue("COMO_SE_ENTERO", newValue || "");
+                        }}
+                        renderInput={(params) => (
+                          <Field
+                            as={TextField}
+                            {...params}
+                            label={"Como se enteró"}
+                            autoFocus
+                            name="COMO_SE_ENTERO"
+                            error={
+                              touched.COMO_SE_ENTERO &&
+                              Boolean(errors.COMO_SE_ENTERO)
+                            }
+                            helperText={
+                              touched.COMO_SE_ENTERO && errors.COMO_SE_ENTERO
+                            }
+                            variant="outlined"
+                            margin="dense"
+                          />
+                        )}
                       />
                     </div>
 
@@ -898,16 +1001,57 @@ const BeforeSendTicketDataToZapierModal = ({
                         marginBottom: 12,
                       }}
                     >
-                      <Field
-                        as={TextField}
-                        label={"Punto de dolor 1"}
-                        autoFocus
-                        name="DOLOR_1"
-                        error={touched.DOLOR_1 && Boolean(errors.DOLOR_1)}
-                        helperText={touched.DOLOR_1 && errors.DOLOR_1}
-                        variant="outlined"
-                        margin="dense"
+                      <Autocomplete
+                        value={values.DOLOR_1}
                         className={classes.textField}
+                        options={allDOLOROptions}
+                        clearOnBlur
+                        autoHighlight
+                        freeSolo
+                        clearOnEscape
+                        margin="dense"
+                        getOptionLabel={(option) =>
+                          option.replace(/Añadir: /, "")
+                        }
+                        renderOption={(option) => {
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                              }}
+                            >
+                              {option}
+                            </div>
+                          );
+                        }}
+                        filterOptions={(options, params) => {
+                          const filtered = filter(options, params);
+                          if (
+                            !options.find((o) => o.includes(params.inputValue))
+                          ) {
+                            filtered.push(`Añadir: ${params.inputValue}`);
+                          }
+                          return filtered;
+                        }}
+                        onChange={(e, newValue) => {
+                          setFieldValue("DOLOR_1", newValue || "");
+                        }}
+                        renderInput={(params) => (
+                          <Field
+                            as={TextField}
+                            {...params}
+                            label={"Punto de dolor 1"}
+                            autoFocus
+                            name="DOLOR_1"
+                            error={touched.DOLOR_1 && Boolean(errors.DOLOR_1)}
+                            helperText={touched.DOLOR_1 && errors.DOLOR_1}
+                            variant="outlined"
+                            margin="dense"
+                            className={classes.textField}
+                          />
+                        )}
                       />
                     </div>
 
@@ -918,16 +1062,57 @@ const BeforeSendTicketDataToZapierModal = ({
                         // marginBottom: 12,
                       }}
                     >
-                      <Field
-                        as={TextField}
-                        label={"Punto de dolor 2"}
-                        autoFocus
-                        name="DOLOR_2"
-                        error={touched.DOLOR_2 && Boolean(errors.DOLOR_2)}
-                        helperText={touched.DOLOR_2 && errors.DOLOR_2}
-                        variant="outlined"
-                        margin="dense"
+                      <Autocomplete
+                        value={values.DOLOR_2}
                         className={classes.textField}
+                        options={allDOLOROptions}
+                        clearOnBlur
+                        autoHighlight
+                        freeSolo
+                        clearOnEscape
+                        margin="dense"
+                        getOptionLabel={(option) =>
+                          option.replace(/Añadir: /, "")
+                        }
+                        renderOption={(option) => {
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                              }}
+                            >
+                              {option}
+                            </div>
+                          );
+                        }}
+                        filterOptions={(options, params) => {
+                          const filtered = filter(options, params);
+                          if (
+                            !options.find((o) => o.includes(params.inputValue))
+                          ) {
+                            filtered.push(`Añadir: ${params.inputValue}`);
+                          }
+                          return filtered;
+                        }}
+                        onChange={(e, newValue) => {
+                          setFieldValue("DOLOR_2", newValue || "");
+                        }}
+                        renderInput={(params) => (
+                          <Field
+                            as={TextField}
+                            {...params}
+                            label={"Punto de dolor 2"}
+                            autoFocus
+                            name="DOLOR_2"
+                            error={touched.DOLOR_2 && Boolean(errors.DOLOR_2)}
+                            helperText={touched.DOLOR_2 && errors.DOLOR_2}
+                            variant="outlined"
+                            margin="dense"
+                            className={classes.textField}
+                          />
+                        )}
                       />
                     </div>
                   </div>

@@ -1,5 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { Request, Response } from "express";
+import { Op } from "sequelize";
+import ContactCustomField from "../models/ContactCustomField";
 import UpdateContactService from "../services/ContactServices/UpdateContactService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
@@ -15,6 +17,33 @@ export const getTicketDataToSendToZapier = async (
 
   const ticket = await ShowTicketService(ticketId);
 
+  const contactCustomFields = await ContactCustomField.findAll({
+    attributes: ["name", "value"],
+    where: {
+      name: {
+        [Op.or]: ["SISTEMA_ACTUAL", "COMO_SE_ENTERO", "DOLOR_1", "DOLOR_2"]
+      },
+      value: {
+        [Op.not]: null,
+        [Op.ne]: ""
+      }
+    },
+    group: ["name", "value"]
+  });
+
+  // Procesa los resultados en tu aplicación
+  const allSISTEMA_ACTUALOptions = contactCustomFields
+    .filter(field => field.name === "SISTEMA_ACTUAL")
+    .map(field => field.value);
+
+  const allCOMO_SE_ENTEROOptions = contactCustomFields
+    .filter(field => field.name === "COMO_SE_ENTERO")
+    .map(field => field.value);
+
+  const allDOLOROptions = contactCustomFields
+    .filter(field => ["DOLOR_1", "DOLOR_2"].includes(field.name))
+    .map(field => field.value);
+
   const dataToSendToZapier = {
     contactId: ticket.contactId,
     contactName: ticket.contact?.name,
@@ -27,7 +56,10 @@ export const getTicketDataToSendToZapier = async (
     userId: ticket.userId,
     userName: ticket.user?.name,
     userHubspotId: ticket.user?.hubspotId,
-    extraInfo: ticket.contact?.extraInfo
+    extraInfo: ticket.contact?.extraInfo,
+    allSISTEMA_ACTUALOptions,
+    allCOMO_SE_ENTEROOptions,
+    allDOLOROptions
   };
 
   return res.status(200).json(dataToSendToZapier);
