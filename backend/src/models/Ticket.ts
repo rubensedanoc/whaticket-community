@@ -17,6 +17,7 @@ import Category from "./Category";
 import Contact from "./Contact";
 import MarketingCampaign from "./MarketingCampaign";
 import MarketingMessagingCampaign from "./MarketingMessagingCampaigns";
+import MarketingMessagingCampaignShipment from "./MarketingMessagingCampaignShipment";
 import Message from "./Message";
 import MessagingCampaign from "./MessagingCampaign";
 import MessagingCampaignShipment from "./MessagingCampaignShipment";
@@ -149,6 +150,13 @@ class Ticket extends Model<Ticket> {
 
   @BelongsTo(() => MarketingMessagingCampaign)
   marketingMessagingCampaign: MarketingMessagingCampaign;
+
+  @ForeignKey(() => MarketingMessagingCampaignShipment)
+  @Column
+  marketingMessagingCampaignShipmentId: number;
+
+  @BelongsTo(() => MarketingMessagingCampaignShipment)
+  marketingMessagingCampaignShipment: MarketingMessagingCampaignShipment;
 
   // Sobrescribir el método toJSON para incluir clientTimeWaiting
   toJSON() {

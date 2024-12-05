@@ -9,6 +9,8 @@ import GroupContact from "../models/GroupContact";
 import MarketingCampaign from "../models/MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
 import MarketingMessagingCampaign from "../models/MarketingMessagingCampaigns";
+import MarketingMessagingCampaignShipment from "../models/MarketingMessagingCampaignShipment";
+import MarketingMessagingCampaignShipmentNumber from "../models/MarketingMessagingCampaignShipmentNumber";
 import Message from "../models/Message";
 import MessagingCampaign from "../models/MessagingCampaign";
 import MessagingCampaignMessage from "../models/MessagingCampaignMessage";
@@ -66,7 +68,9 @@ const models = [
   MessagingCampaign,
   MessagingCampaignMessage,
   MessagingCampaignShipment,
-  MessagingCampaignShipmentNumber
+  MessagingCampaignShipmentNumber,
+  MarketingMessagingCampaignShipment,
+  MarketingMessagingCampaignShipmentNumber
 ];
 
 sequelize.addModels(models);

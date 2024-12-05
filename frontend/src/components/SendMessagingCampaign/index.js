@@ -18,11 +18,21 @@ import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 
 import MenuItem from "@material-ui/core/MenuItem";
+import Paper from "@material-ui/core/Paper";
 import Select from "@material-ui/core/Select";
 import { makeStyles } from "@material-ui/core/styles";
+import TableContainer from "@material-ui/core/TableContainer";
 import * as XLSX from "xlsx";
 import useWhatsApps from "../../hooks/useWhatsApps";
 import { i18n } from "../../translate/i18n";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+} from "@material-ui/core";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -58,7 +68,12 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const SendMessagingCampaign = ({ open, onClose, messagingCampaignId }) => {
+const SendMessagingCampaign = ({
+  open,
+  onClose,
+  messagingCampaignId,
+  isAMakertingCampaign,
+}) => {
   const classes = useStyles();
 
   const [numbersToSend, setNumbersToSend] = useState([]);
@@ -79,7 +94,9 @@ const SendMessagingCampaign = ({ open, onClose, messagingCampaignId }) => {
       values = {
         ...values,
         numbersToSend: JSON.stringify(numbersToSend),
-        messagingCampaignId,
+        ...(isAMakertingCampaign
+          ? { marketingMessagingCampaignId: messagingCampaignId }
+          : { messagingCampaignId }),
         whatsappId: selectedWhatsappId,
       };
 
@@ -95,7 +112,12 @@ const SendMessagingCampaign = ({ open, onClose, messagingCampaignId }) => {
         }
       }
 
-      const { data } = await api.post("/messagingCampaigns/send", formData);
+      const { data } = await api.post(
+        isAMakertingCampaign
+          ? "/marketingMessagingCampaign/send"
+          : "/messagingCampaigns/send",
+        formData
+      );
 
       toast.success("Camapaña enviada correctamente");
       handleClose();
@@ -250,6 +272,48 @@ const SendMessagingCampaign = ({ open, onClose, messagingCampaignId }) => {
                     {numbersToSend.length}
                   </span>
                 </div>
+
+                {numbersToSend.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 20,
+                      maxHeight: 300,
+                      padding: 5,
+                      overflowY: "auto",
+                    }}
+                  >
+                    <TableContainer component={Paper}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            {Object.keys(numbersToSend[0])?.map(
+                              (header, index) => (
+                                <TableCell key={index} align="center">
+                                  {header}
+                                </TableCell>
+                              )
+                            )}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          <>
+                            {numbersToSend.map((numberItem, index) => (
+                              <TableRow key={index}>
+                                {Object.values(numberItem).map(
+                                  (value, index) => (
+                                    <TableCell key={index} align="center">
+                                      {value}
+                                    </TableCell>
+                                  )
+                                )}
+                              </TableRow>
+                            ))}
+                          </>
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </div>
+                )}
               </DialogContent>
               <DialogActions>
                 <Button
