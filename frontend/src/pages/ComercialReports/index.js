@@ -446,6 +446,14 @@ const ComercialReports = () => {
     ticketsCount: null,
   });
   const [
+    ticketsDistributionByCUANTO_PAGA,
+    setTicketsDistributionByCUANTO_PAGA,
+  ] = useState({
+    tickets: null,
+    ticketsCount: null,
+    ticketsAvr: null,
+  });
+  const [
     ticketsDistributionByStagesAndUsers,
     setTicketsDistributionByStagesAndUsers,
   ] = useState(null);
@@ -624,6 +632,12 @@ const ComercialReports = () => {
         ticketsCount:
           ticketsDistributionByStages.dataByCOMO_SE_ENTERO.ticketsCount,
         values: ticketsDistributionByStages.dataByCOMO_SE_ENTERO.values,
+      });
+      setTicketsDistributionByCUANTO_PAGA({
+        ticketsCount:
+          ticketsDistributionByStages.dataByCUANTO_PAGA.ticketsCount,
+        tickets: ticketsDistributionByStages.dataByCUANTO_PAGA.tickets,
+        ticketsAvr: ticketsDistributionByStages.dataByCUANTO_PAGA.ticketsAvr,
       });
       setTicketsDistributionByDOLOR({
         ticketsCount: ticketsDistributionByStages.dataByDOLOR.ticketsCount,
@@ -850,7 +864,7 @@ const ComercialReports = () => {
                 <FormControl fullWidth margin="dense" variant="outlined">
                   <InputLabel>Tickets</InputLabel>
                   <Select
-                    label={"Usuarios"}
+                    label={"Tickets"}
                     value={ticketStatus}
                     onChange={(e) => setTicketStatus(e.target.value)}
                     MenuProps={{
@@ -865,6 +879,7 @@ const ComercialReports = () => {
                       getContentAnchorEl: null,
                     }}
                   >
+                    <MenuItem value={"all"}>Todos</MenuItem>
                     <MenuItem value={"open"}>Abiertos</MenuItem>
                     <MenuItem value={"closed"}>Cerrados</MenuItem>
                   </Select>
@@ -1348,7 +1363,7 @@ const ComercialReports = () => {
               <Grid item xs={4}>
                 <TicketsDistributionOfCCFByCateogriesListCard
                   ccfName={"CARGO"}
-                  title={"Lista de cargos"}
+                  title={"Cargos"}
                   ticketsCount={ticketsDistributionByCARGO.ticketsCount}
                   values={ticketsDistributionByCARGO.values}
                   setTicketListModalOpen={setTicketListModalOpen}
@@ -1367,7 +1382,7 @@ const ComercialReports = () => {
               <Grid item xs={4}>
                 <TicketsDistributionOfCCFByCateogriesListCard
                   ccfName={"TIPO_RESTAURANTE"}
-                  title={"Lista de tipos de restaurante"}
+                  title={"Tipos de restaurante"}
                   ticketsCount={
                     ticketsDistributionByTIPO_RESTAURANTE.ticketsCount
                   }
@@ -1388,7 +1403,7 @@ const ComercialReports = () => {
               <Grid item xs={4}>
                 <TicketsDistributionOfCCFByCateogriesListCard
                   ccfName={"SISTEMA_ACTUAL"}
-                  title={"Lista de sistemas actuales"}
+                  title={"Sistemas actuales"}
                   ticketsCount={
                     ticketsDistributionBySISTEMA_ACTUAL.ticketsCount
                   }
@@ -1409,7 +1424,7 @@ const ComercialReports = () => {
               <Grid item xs={4}>
                 <TicketsDistributionOfCCFByCateogriesListCard
                   ccfName={"COMO_SE_ENTERO"}
-                  title={"Lista de como se enteraron"}
+                  title={"Como se enteraron"}
                   ticketsCount={
                     ticketsDistributionByCOMO_SE_ENTERO.ticketsCount
                   }
@@ -1426,11 +1441,116 @@ const ComercialReports = () => {
                 />
               </Grid>
 
+              {/* Cuanto paga CARD */}
+              <Grid item xs={4}>
+                <Paper
+                  className={classes.customFixedHeightPaper}
+                  style={{ height: "25rem" }}
+                >
+                  {/* CARD HEADER */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                    }}
+                  >
+                    <Typography
+                      component="h3"
+                      variant="h6"
+                      color="primary"
+                      paragraph
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>
+                        Promedio de cuánto paga -{" "}
+                        {ticketsDistributionByCUANTO_PAGA.ticketsCount}
+                      </span>
+                    </Typography>
+                  </div>
+
+                  {ticketsDistributionByCUANTO_PAGA.ticketsAvr !== null ? (
+                    <div>
+                      <Table size="medium">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell align="center">Nombre</TableCell>
+                            <TableCell align="center">Cantidad</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          <>
+                            <TableRow
+                              style={{
+                                cursor: "pointer",
+                              }}
+                              onClick={(e) => {
+                                setTicketListModalOpen(true);
+                                setTicketListModalTitle(
+                                  `Tickets de "Promedio de cuánto paga"`
+                                );
+                                setTicketListModalTicketGroups([
+                                  {
+                                    ids: ticketsDistributionByCUANTO_PAGA.tickets?.map(
+                                      (t) => t.t_id
+                                    ),
+                                  },
+                                ]);
+                              }}
+                            >
+                              <TableCell align="center">
+                                Promedio de cuánto paga
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                style={{
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                {Math.round(
+                                  ticketsDistributionByCUANTO_PAGA.ticketsAvr
+                                )}{" "}
+                                USD Mensual
+                              </TableCell>
+                            </TableRow>
+                          </>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <>cargando</>
+                  )}
+                </Paper>
+
+                {/* <TicketsDistributionOfCCFByCateogriesListCard
+                  ccfName={"COMO_SE_ENTERO"}
+                  title={"Como se enteraron"}
+                  ticketsCount={
+                    ticketsDistributionByCOMO_SE_ENTERO.ticketsCount
+                  }
+                  values={ticketsDistributionByCOMO_SE_ENTERO.values}
+                  setTicketListModalOpen={setTicketListModalOpen}
+                  setTicketListModalTitle={setTicketListModalTitle}
+                  setTicketListModalTicketGroups={
+                    setTicketListModalTicketGroups
+                  }
+                  categoryRelationsOfSelectedQueue={
+                    categoryRelationsOfSelectedQueue
+                  }
+                  categories={categories}
+                /> */}
+              </Grid>
+
               {/* Distribución General por DOLOR/Etapas CARD */}
               <Grid item xs={4}>
                 <TicketsDistributionOfCCFByCateogriesListCard
                   ccfName={"DOLOR"}
-                  title={"Lista de dolores"}
+                  title={"Dolores"}
                   ticketsCount={ticketsDistributionByDOLOR.ticketsCount}
                   values={ticketsDistributionByDOLOR.values}
                   setTicketListModalOpen={setTicketListModalOpen}
