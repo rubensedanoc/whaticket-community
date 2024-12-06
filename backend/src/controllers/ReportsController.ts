@@ -2157,6 +2157,11 @@ export const getTicketsDistributionByStages = async (
       ticketsCount: number;
       values: any[];
     };
+    dataByCUANTO_PAGA?: {
+      ticketsCount: number;
+      ticketsAvr: number;
+      tickets: any[];
+    };
     dataByUser?: any;
   } = {
     logs: [],
@@ -2199,6 +2204,11 @@ export const getTicketsDistributionByStages = async (
     dataByDOLOR: {
       ticketsCount: 0,
       values: []
+    },
+    dataByCUANTO_PAGA: {
+      ticketsCount: 0,
+      ticketsAvr: 0,
+      tickets: []
     },
     dataByUser: {}
   };
@@ -2263,7 +2273,9 @@ export const getTicketsDistributionByStages = async (
   }
 
   if (ticketStatusAsString) {
-    sqlWhereAdd += ` AND t.status = ${ticketStatusAsString} `;
+    if (ticketStatusAsString !== '"all"') {
+      sqlWhereAdd += ` AND t.status = ${ticketStatusAsString} `;
+    }
   }
 
   const categoryRelationsOfSelectedQueue = await QueueCategory.findAll({
@@ -2586,9 +2598,43 @@ export const getTicketsDistributionByStages = async (
       count += 1;
       return result;
     }, []);
+
+    values.sort((a, b) => b.tickets?.length - a.tickets?.length);
+
     return {
       count,
       values
+    };
+  }
+
+  function getdAvrByContactCustomFields(
+    sqlResult: SqlResult[],
+    customFieldName: string,
+    customFieldNames?: string[]
+  ) {
+    let count = 0;
+    let tickets = [];
+    let sumResult = sqlResult.reduce((result, row) => {
+      const rowCustomField = row.ccfs.find(ccfs =>
+        customFieldNames
+          ? customFieldNames.includes(ccfs.name)
+          : ccfs.name === customFieldName
+      );
+
+      if (!rowCustomField?.value || !Number(rowCustomField?.value)) {
+        return result;
+      }
+
+      count += 1;
+      tickets.push(row);
+      return result + Number(rowCustomField?.value);
+    }, 0);
+
+    return {
+      count,
+      tickets,
+      sumResult,
+      avr: sumResult / count || 0
     };
   }
 
@@ -2641,6 +2687,18 @@ export const getTicketsDistributionByStages = async (
   response.dataByDOLOR = {
     ticketsCount: dataByDOLORCount,
     values: dataByDOLOR
+  };
+
+  const {
+    count: dataByCUANTO_PAGACount,
+    avr: dataByCUANTO_PAGAAvr,
+    tickets: dataByCUANTO_PAGATickets
+  } = getdAvrByContactCustomFields(sqlResult, "CUANTO_PAGA");
+
+  response.dataByCUANTO_PAGA = {
+    ticketsCount: dataByCUANTO_PAGACount,
+    ticketsAvr: dataByCUANTO_PAGAAvr,
+    tickets: dataByCUANTO_PAGATickets
   };
 
   return res.status(200).json(response);
