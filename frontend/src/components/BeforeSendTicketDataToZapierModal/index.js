@@ -888,8 +888,9 @@ const BeforeSendTicketDataToZapierModal = ({
                     >
                       <Field
                         as={TextField}
-                        label={"Cuánto paga"}
+                        label={"Paga mensualmente (USD)"}
                         autoFocus
+                        type="number"
                         name="CUANTO_PAGA"
                         error={
                           touched.CUANTO_PAGA && Boolean(errors.CUANTO_PAGA)
