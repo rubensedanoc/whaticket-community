@@ -1526,24 +1526,6 @@ const ComercialReports = () => {
                     <>cargando</>
                   )}
                 </Paper>
-
-                {/* <TicketsDistributionOfCCFByCateogriesListCard
-                  ccfName={"COMO_SE_ENTERO"}
-                  title={"Como se enteraron"}
-                  ticketsCount={
-                    ticketsDistributionByCOMO_SE_ENTERO.ticketsCount
-                  }
-                  values={ticketsDistributionByCOMO_SE_ENTERO.values}
-                  setTicketListModalOpen={setTicketListModalOpen}
-                  setTicketListModalTitle={setTicketListModalTitle}
-                  setTicketListModalTicketGroups={
-                    setTicketListModalTicketGroups
-                  }
-                  categoryRelationsOfSelectedQueue={
-                    categoryRelationsOfSelectedQueue
-                  }
-                  categories={categories}
-                /> */}
               </Grid>
 
               {/* Distribución General por DOLOR/Etapas CARD */}
