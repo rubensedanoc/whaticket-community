@@ -23,8 +23,8 @@ initIO();
 StartAllWhatsAppsSessions();
 gracefulShutdown(server);
 
-// every hour of the day
-cron.schedule("0 * * * *", async () => {
+// every hour/2 of the day
+cron.schedule("*/30 * * * *", async () => {
   logger.info("--- searchForUnSaveMessages CRON: ");
 
   try {
