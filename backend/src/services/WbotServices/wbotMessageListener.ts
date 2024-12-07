@@ -24,7 +24,10 @@ import { getConnectedUsers } from "../../libs/connectedUsers";
 import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
 import ChatbotMessage from "../../models/ChatbotMessage";
+import MarketingCampaign from "../../models/MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "../../models/MarketingCampaignAutomaticMessage";
+import MarketingMessagingCampaign from "../../models/MarketingMessagingCampaigns";
+import MessagingCampaign from "../../models/MessagingCampaign";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
@@ -1278,32 +1281,150 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     }
   });
 
-  wbot.on("message_edit", async msg => {
+  wbot.on("message_edit", async (msg, newBody, prevBody) => {
     console.log(
       "--- BOT wbotMessageListener message_edit - wbot.id: ",
-      wbot.id
+      wbot.id,
+      msg?.id.id,
+      prevBody,
+      newBody,
+      (Date.now() / 1000) | 0
     );
 
     try {
-      const message = await Message.findByPk(msg.id.id);
+      let msgContact: WbotContact;
 
-      if (!message) {
-        // throw new AppError("No message found with this ID. " + msg.id.id);
+      if (msg.fromMe) {
+        msgContact = await wbot.getContactById(msg.to);
+      } else {
+        msgContact = await msg.getContact();
+      }
+
+      const contact = await verifyContact(msgContact);
+
+      const messages = await Message.findAll({
+        attributes: ["id"],
+        where: {
+          [Op.or]: [
+            {
+              id: msg.id.id
+            },
+            {
+              [Op.and]: [
+                {
+                  contactId: contact.id
+                },
+                {
+                  body: prevBody as string
+                },
+                {
+                  timestamp: {
+                    [Op.gt]: (Date.now() / 1000) | -(60 * 5) // Menos de 5 minutos
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        include: [
+          {
+            model: Ticket,
+            as: "ticket",
+            attributes: ["id", "lastMessage"]
+          }
+        ]
+      });
+
+      console.log("messages: ", JSON.stringify(messages));
+
+      if (!messages.length) {
         console.log("No message found with this ID. " + msg.id.id);
         return;
       }
 
-      await message.update({ body: msg.body, isEdited: true });
-
-      emitEvent({
-        to: [message.ticketId.toString()],
-        event: {
-          name: "appMessage",
-          data: {
-            action: "update",
-            message
+      await Message.update(
+        { body: msg.body, isEdited: true },
+        {
+          where: {
+            id: {
+              [Op.in]: messages.map(m => m.id)
+            }
           }
         }
+      );
+
+      for (const message of messages) {
+        const messageWithExtraData = await Message.findByPk(message.id, {
+          include: [
+            "contact",
+            {
+              model: Ticket,
+              as: "ticket",
+              attributes: ["id", "chatbotMessageIdentifier"],
+              include: [
+                {
+                  attributes: ["name"],
+                  model: MarketingCampaign,
+                  as: "marketingCampaign",
+                  required: false
+                },
+                {
+                  attributes: ["name"],
+                  model: MarketingMessagingCampaign,
+                  as: "marketingMessagingCampaign",
+                  required: false,
+                  include: [
+                    {
+                      attributes: ["name"],
+                      model: MarketingCampaign,
+                      as: "marketingCampaign",
+                      required: false
+                    }
+                  ]
+                },
+                {
+                  model: MessagingCampaign,
+                  as: "messagingCampaign",
+                  attributes: ["id", "name"],
+                  required: false
+                }
+              ]
+            },
+            {
+              model: Message,
+              as: "quotedMsg",
+              include: ["contact"]
+            }
+          ]
+        });
+
+        emitEvent({
+          to: [message.ticket.id.toString()],
+          event: {
+            name: "appMessage",
+            data: {
+              action: "update",
+              message: messageWithExtraData || message
+            }
+          }
+        });
+      }
+
+      const messagesAsLastMessageOfHisTicket = messages.filter(
+        m => m.ticket.lastMessage === prevBody
+      );
+
+      if (!messagesAsLastMessageOfHisTicket.length) {
+        return;
+      }
+
+      messagesAsLastMessageOfHisTicket.forEach(async message => {
+        await UpdateTicketService({
+          ticketData: {
+            lastMessage: msg.body
+          },
+          ticketId: message.ticket.id
+        });
       });
     } catch (err) {
       console.log("Error on message_edit event: ", msg, err);

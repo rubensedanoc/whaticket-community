@@ -1072,6 +1072,13 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
                   //|| message.mediaType === "multi_vcard"
                   checkMessageMedia(message)}
                 <div className={classes.textContentItem}>
+                  {message.isEdited && (
+                    <Edit
+                      color="disabled"
+                      fontSize="small"
+                      className={classes.deletedIcon}
+                    />
+                  )}
                   {message.quotedMsg && renderQuotedMessage(message)}
                   <MarkdownWrapper
                     checkForWppNumbers={true}
