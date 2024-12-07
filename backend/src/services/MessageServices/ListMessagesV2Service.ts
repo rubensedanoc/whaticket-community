@@ -74,6 +74,14 @@ const ListMessagesV2Service = async ({
   //   messages.find(msg => msg.id === searchMessageId)
   // );
 
+  try {
+    nextTicketsToFetchMessagesQueue.forEach(ticket => {
+      delete ticket.ticket;
+    });
+  } catch (error) {
+    console.log("ListMessagesV2Service delete tickets data on result", error);
+  }
+
   // Devolver los mensajes encontrados, la cola de tickets y si hay más mensajes por buscar
   return {
     messages: messages.reverse(),
