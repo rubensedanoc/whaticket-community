@@ -670,6 +670,7 @@ const BeforeSendTicketDataToZapierModal = ({
                           onBlur={handleBlur}
                           label="TIPO RESTAURANTE"
                         >
+                          <MenuItem value="Variado">Variado</MenuItem>
                           <MenuItem value="Comida Criolla">
                             Comida Criolla
                           </MenuItem>
