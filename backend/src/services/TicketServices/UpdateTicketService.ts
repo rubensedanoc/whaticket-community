@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import { emitEvent } from "../../libs/emitEvent";
 import Ticket from "../../models/Ticket";
@@ -119,6 +120,57 @@ const UpdateTicketService = async ({
             }
           }
         );
+      }
+    }
+
+    if (ticket.isGroup) {
+      console.log("--- ticket a actualizar es grupo --- ", ticket.contact);
+
+      const relatedTickets = await Ticket.findAll({
+        attributes: ["id"],
+        where: {
+          contactId: ticket.contactId,
+          status: {
+            [Op.in]: ["open", "pending"]
+          },
+          id: {
+            [Op.ne]: ticket.id
+          }
+        }
+      });
+
+      console.log("--- ticket tiene relatedTickets ---", relatedTickets.length);
+
+      if (relatedTickets.length) {
+        for (const relatedTicket of relatedTickets) {
+          const relatedTicketWithData = await ShowTicketService(
+            relatedTicket.id,
+            true
+          );
+          await relatedTicketWithData.$set("categories", categoriesIds);
+          await relatedTicketWithData.reload();
+
+          if (relatedTicketWithData.messages?.length > 0) {
+            relatedTicketWithData.messages?.sort(
+              (a, b) => a.timestamp - b.timestamp
+            );
+          }
+
+          emitEvent({
+            to: [
+              relatedTicketWithData.status,
+              "notification",
+              relatedTicketWithData.id.toString()
+            ],
+            event: {
+              name: "ticket",
+              data: {
+                action: "update",
+                ticket: relatedTicketWithData
+              }
+            }
+          });
+        }
       }
     }
   }
