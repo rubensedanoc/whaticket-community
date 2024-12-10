@@ -81,10 +81,10 @@ const syncUnreadMessages = async ({
 
     response.logs.push(`END - wbot.getChats ${Date.now()}`);
 
-    // filter chats with last message in the last 40 hours
+    // filter chats with last message in the last 72 hours
     let last8HoursChats = chats.filter(chat =>
       chat.lastMessage
-        ? chat.lastMessage.timestamp > Date.now() / 1000 - 144000 // 40 hours in seconds
+        ? chat.lastMessage.timestamp > Date.now() / 1000 - 60 * 60 * 72 // 72 hours in seconds
         : false
     );
 
@@ -105,7 +105,7 @@ const syncUnreadMessages = async ({
             return t.contactId === chatContact?.id;
           });
 
-          let timestampUpToFetchMessages = Date.now() / 1000 - 144000; // 40 hours in seconds
+          let timestampUpToFetchMessages = Date.now() / 1000 - 60 * 60 * 72; // 72 hours in seconds
 
           if (
             lastTicketForThisChat &&
