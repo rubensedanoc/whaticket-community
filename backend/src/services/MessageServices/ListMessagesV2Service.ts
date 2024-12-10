@@ -170,7 +170,8 @@ const getMessagesForTicket = async (
             Math.floor(
               new Date(ticketToFetchMessages.ticket?.createdAt!).getTime() /
                 1000
-            ) - 144000 // 40 horas en segundos por si acaso el server se cayo por tiempo prolognado
+            ) -
+            60 * 60 * 72 // 72 horas en segundos por si acaso el server se cayo por tiempo prolognado
         }
       })
     },
