@@ -39,7 +39,8 @@ const Route = ({
       <>
         {loading && <BackdropLoading />}
         <Redirect
-          to={{ pathname: "/tickets", state: { from: rest.location } }}
+          // to={{ pathname: "/tickets", state: { from: rest.location } }}
+          to={{ pathname: "/quickAnswers", state: { from: rest.location } }}
         />
       </>
     );
