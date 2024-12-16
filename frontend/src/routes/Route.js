@@ -1,5 +1,10 @@
 import React, { useContext } from "react";
-import { Redirect, Route as RouterRoute, useLocation } from "react-router-dom";
+import {
+  matchPath,
+  Redirect,
+  Route as RouterRoute,
+  useLocation,
+} from "react-router-dom";
 
 import BackdropLoading from "../components/BackdropLoading";
 import { AuthContext } from "../context/Auth/AuthContext";
@@ -14,7 +19,12 @@ const Route = ({
   const { isAuth, loading, user } = useContext(AuthContext);
   const location = useLocation();
 
-  if (location.pathname === rest.path) {
+  if (
+    matchPath(location.pathname, {
+      path: rest.path,
+      exact: true,
+    })
+  ) {
     // Si no esta auth y la ruta es privada, redirige a login
     if (!isAuth && isPrivate) {
       return (
