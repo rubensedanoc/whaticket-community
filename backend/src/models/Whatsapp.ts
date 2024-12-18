@@ -72,6 +72,10 @@ class Whatsapp extends Model<Whatsapp> {
   @Column
   sessionUuid: string;
 
+  @AllowNull
+  @Column
+  phoneToNotify: string;
+
   @CreatedAt
   createdAt: Date;
 

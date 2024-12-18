@@ -20,6 +20,7 @@ import Queue from "../models/Queue";
 import QueueCategory from "../models/QueueCategory";
 import QueueMarketingCampaign from "../models/QueueMarketingCampaigns";
 import QuickAnswer from "../models/QuickAnswer";
+import SendMessageRequest from "../models/SendMessageRequest";
 import Setting from "../models/Setting";
 import Ticket from "../models/Ticket";
 import TicketCategory from "../models/TicketCategory";
@@ -70,7 +71,8 @@ const models = [
   MessagingCampaignShipment,
   MessagingCampaignShipmentNumber,
   MarketingMessagingCampaignShipment,
-  MarketingMessagingCampaignShipmentNumber
+  MarketingMessagingCampaignShipmentNumber,
+  SendMessageRequest
 ];
 
 sequelize.addModels(models);
