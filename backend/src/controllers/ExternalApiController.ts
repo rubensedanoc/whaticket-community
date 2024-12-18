@@ -38,9 +38,14 @@ export const sendMessage = async (
 ): Promise<Response> => {
   const { fromNumber, toNumber, message } = req.body;
 
-  await SendExternalWhatsAppMessage({ fromNumber, toNumber, message });
+  const sendExternalWhatsAppMessage = await SendExternalWhatsAppMessage({
+    fromNumber,
+    toNumber,
+    message,
+    createRegisterInDb: true
+  });
 
-  return res.send(200).send();
+  return res.status(200).json(sendExternalWhatsAppMessage);
 };
 
 export const sendImageMessage = async (
