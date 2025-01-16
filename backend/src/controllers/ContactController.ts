@@ -536,3 +536,214 @@ export const getNumberGroups = async (
 
   return res.status(200).json({ registerGroups, notRegisterGroups });
 };
+
+export const getNumberGroupsByContactId = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { contactId } = req.params;
+
+  const contact = await Contact.findByPk(contactId);
+  const number = contact?.number;
+
+  const numberConnection = await Whatsapp.findOne({ where: { number } });
+
+  const registerGroups = [];
+  const notRegisterGroups = [];
+
+  if (numberConnection) {
+    const wbot = getWbot(numberConnection.id);
+
+    const wbotChats = await wbot.getChats();
+
+    const wbotGroupChats = wbotChats.filter(chat => chat.isGroup);
+
+    await Promise.all(
+      wbotGroupChats.map(async chat => {
+        const wbotChatInOurDb = await Contact.findOne({
+          where: { number: chat.id.user },
+          include: [
+            {
+              model: Ticket,
+              as: "tickets",
+              required: false,
+              include: [
+                {
+                  model: Contact,
+                  as: "contact",
+                  attributes: [
+                    "id",
+                    "name",
+                    "number",
+                    "domain",
+                    "profilePicUrl",
+                    "isCompanyMember"
+                  ]
+                },
+                {
+                  model: User,
+                  as: "user",
+                  required: false
+                },
+                {
+                  model: Queue,
+                  as: "queue",
+                  attributes: ["id", "name", "color"],
+                  required: false
+                },
+                {
+                  model: Whatsapp,
+                  as: "whatsapp",
+                  attributes: ["name"],
+                  required: false,
+                  include: [
+                    {
+                      model: User,
+                      attributes: ["id"],
+                      as: "userWhatsapps",
+                      required: false
+                    }
+                  ]
+                },
+                {
+                  model: Category,
+                  as: "categories",
+                  attributes: ["id", "name", "color"]
+                },
+
+                {
+                  model: User,
+                  as: "helpUsers",
+                  required: false
+                },
+                {
+                  model: User,
+                  as: "participantUsers",
+                  required: false
+                }
+              ]
+            }
+          ]
+        });
+
+        if (wbotChatInOurDb) {
+          // console.log("wbotChatInOurDb", wbotChatInOurDb.tickets);
+
+          if (wbotChatInOurDb.tickets) {
+            wbotChatInOurDb.tickets = await getClientTimeWaitingForTickets(
+              wbotChatInOurDb.tickets
+            );
+          }
+
+          registerGroups.push(wbotChatInOurDb);
+        } else {
+          notRegisterGroups.push(chat);
+        }
+      })
+    );
+  } else {
+    const wbots = getWbots();
+
+    await Promise.all(
+      wbots.map(async wbot => {
+        const wbotstate = await wbot.getState();
+
+        if (wbotstate === "CONNECTED") {
+          try {
+            const wbotChatsIds = await wbot.getCommonGroups(number + "@c.us");
+
+            // const wbotGroupChats = wbotChats.filter(chat => chat.isGroup);
+
+            await Promise.all(
+              wbotChatsIds.map(async chat => {
+                const wbotChatInOurDb = await Contact.findOne({
+                  where: { number: chat.user },
+                  include: [
+                    {
+                      model: Ticket,
+                      as: "tickets",
+                      required: false,
+                      include: [
+                        {
+                          model: Contact,
+                          as: "contact",
+                          attributes: [
+                            "id",
+                            "name",
+                            "number",
+                            "domain",
+                            "profilePicUrl",
+                            "isCompanyMember"
+                          ]
+                        },
+                        {
+                          model: User,
+                          as: "user",
+                          required: false
+                        },
+                        {
+                          model: Queue,
+                          as: "queue",
+                          attributes: ["id", "name", "color"],
+                          required: false
+                        },
+                        {
+                          model: Whatsapp,
+                          as: "whatsapp",
+                          attributes: ["name"],
+                          required: false,
+                          include: [
+                            {
+                              model: User,
+                              attributes: ["id"],
+                              as: "userWhatsapps",
+                              required: false
+                            }
+                          ]
+                        },
+                        {
+                          model: Category,
+                          as: "categories",
+                          attributes: ["id", "name", "color"]
+                        },
+
+                        {
+                          model: User,
+                          as: "helpUsers",
+                          required: false
+                        },
+                        {
+                          model: User,
+                          as: "participantUsers",
+                          required: false
+                        }
+                      ]
+                    }
+                  ]
+                });
+
+                if (wbotChatInOurDb) {
+                  // console.log("wbotChatInOurDb", wbotChatInOurDb.tickets);
+
+                  // if (wbotChatInOurDb.tickets) {
+                  //   wbotChatInOurDb.tickets =
+                  //     await getClientTimeWaitingForTickets(
+                  //       wbotChatInOurDb.tickets
+                  //     );
+                  // }
+                  registerGroups.push(wbotChatInOurDb);
+                } else {
+                  notRegisterGroups.push(chat);
+                }
+              })
+            );
+          } catch (error) {
+            console.log("error", error);
+          }
+        }
+      })
+    );
+  }
+
+  return res.status(200).json({ registerGroups, notRegisterGroups });
+};

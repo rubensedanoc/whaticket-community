@@ -5,8 +5,6 @@ import Dialog from "@material-ui/core/Dialog";
 import Avatar from "@material-ui/core/Avatar";
 import Box from "@material-ui/core/Box";
 
-import Collapse from "@material-ui/core/Collapse";
-import IconButton from "@material-ui/core/IconButton";
 import Paper from "@material-ui/core/Paper";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
@@ -18,8 +16,6 @@ import TicketListItem from "../TicketListItem";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import { makeStyles } from "@material-ui/core/styles";
-import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@material-ui/icons/KeyboardArrowUp";
 
 const useRowStyles = makeStyles({
   root: {
@@ -42,33 +38,36 @@ function Row(props) {
   return (
     <React.Fragment>
       <TableRow className={classes.root}>
-        <TableCell className={classes.collapseColumn}>
-          <IconButton
+        {/* <TableCell className={classes.collapseColumn}> */}
+          {/* <IconButton
             aria-label="expand row"
             size="small"
             onClick={() => setOpen(!open)}
           >
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-          </IconButton>
-        </TableCell>
-        <TableCell className={classes.CollapseColumn}>
+          </IconButton> */}
+        {/* </TableCell> */}
+        {/* <TableCell className={classes.CollapseColumn}>
           <Avatar src={row?.profilePicUrl} />
-        </TableCell>
+        </TableCell> */}
         <TableCell component="th" scope="row">
-          {row.name}
+          <div style={{ display: "flex", justifyContent: "start", alignItems: "center", gap: 8 }}>
+            <Avatar src={row?.profilePicUrl} />
+            {row.name}
+          </div>
         </TableCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
+          {/* <Collapse in={open} timeout="auto" unmountOnExit> */}
             <Box margin={1}>
               {row.tickets.map((ticket) => (
-                <div onClick={handleClose} style={{ overflow: "hidden" }}>
-                  <TicketListItem ticket={ticket} key={ticket.id} />
+                <div key={ticket.id} onClick={handleClose} style={{ overflow: "hidden" }}>
+                  <TicketListItem ticket={ticket} />
                 </div>
               ))}
             </Box>
-          </Collapse>
+          {/* </Collapse> */}
         </TableCell>
       </TableRow>
     </React.Fragment>
@@ -95,6 +94,22 @@ const NumberGroupsModal = ({ modalOpen, onClose, number, groups }) => {
         </TableContainer>
       </DialogContent>
     </Dialog>
+  );
+};
+
+export const NumberGroups = ({ groups }) => {
+  return (
+    <TableContainer >
+      <Table aria-label="collapsible table">
+        <TableBody>
+          {groups.map((group, index) => (
+            <React.Fragment key={index}>
+              <Row row={group} />
+            </React.Fragment>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 
