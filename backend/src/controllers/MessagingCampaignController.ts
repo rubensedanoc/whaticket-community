@@ -237,12 +237,12 @@ export const send = async (req: Request, res: Response): Promise<void> => {
   if (messagingCampaign.messagingCampaignMessages[0]?.mediaType !== "text") {
     throw new AppError(
       "El primer mensaje de la campaña debe ser de texto",
-      404
+      500
     );
   }
 
   if (messagingCampaign.messagingCampaignShipments[0]?.status === "sending") {
-    throw new AppError("Hay un envío de campaña de mensajes en curso", 404);
+    throw new AppError("Hay un envío de campaña de mensajes en curso", 500);
   }
 
   await messagingCampaign.update({
