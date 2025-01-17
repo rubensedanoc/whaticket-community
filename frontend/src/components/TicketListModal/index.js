@@ -31,7 +31,6 @@ const TicketListModal = ({
   const [ticketsData, setTicketsData] = useState([]);
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
   const [numberGroups, setNumberGroups] = useState([]);
-  
 
   useEffect(() => {
     console.log("TicketListModal tickets", tickets);
@@ -67,8 +66,10 @@ const TicketListModal = ({
 
         if (preSelectedContactId) {
           try {
-            const { data } = await api.get(`/getNumberGroupsByContactId/${preSelectedContactId}`); 
-            setNumberGroups(data.registerGroups); 
+            const { data } = await api.get(
+              `/getNumberGroupsByContactId/${preSelectedContactId}`
+            );
+            setNumberGroups(data.registerGroups);
           } catch (err) {
             console.log("err", err);
             toast.error("No se pudieron recuperar los grupos del contacto");
@@ -213,29 +214,25 @@ const TicketListModal = ({
             </TableContainer>
           )}
 
-          {
-            numberGroups.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <Typography
-                  variant="h6"
-                  style={{ marginBottom: 8, fontWeight: "500" }}
-                >
-                  Grupos de número
-                </Typography>
+          {preSelectedContactId && numberGroups.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <Typography
+                variant="h6"
+                style={{ marginBottom: 8, fontWeight: "500" }}
+              >
+                Grupos de número
+              </Typography>
 
-                <TableContainer >
-                  <NumberGroups groups={numberGroups} />
-                </TableContainer>
-              </div>
-            )
-          }
-          {
-            numberGroups.length === 0 && (
-              <div style={{ textAlign: "center", padding: "20px" }}>
-                No encontramos grupos para este grupo
-              </div>
-            )
-          }
+              <TableContainer>
+                <NumberGroups groups={numberGroups} />
+              </TableContainer>
+            </div>
+          )}
+          {preSelectedContactId && numberGroups.length === 0 && (
+            <div style={{ textAlign: "center", padding: "20px" }}>
+              No encontramos grupos para este grupo
+            </div>
+          )}
           {loading && (
             <CircularProgress
               color="primary"
