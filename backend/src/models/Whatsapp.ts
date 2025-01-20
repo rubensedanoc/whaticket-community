@@ -93,6 +93,9 @@ class Whatsapp extends Model<Whatsapp> {
 
   @BelongsToMany(() => User, () => WhatsappOwnerUsers)
   userWhatsapps: User[];
+
+  @Column
+  wasDeleted: boolean;
 }
 
 export default Whatsapp;

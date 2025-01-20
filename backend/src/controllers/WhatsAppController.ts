@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { removeWbot } from "../libs/wbot";
 import { StartWhatsAppSession } from "../services/WbotServices/StartWhatsAppSession";
 
 import { emitEvent } from "../libs/emitEvent";
@@ -19,7 +18,7 @@ interface WhatsappData {
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const whatsapps = await ListWhatsAppsService();
+  const whatsapps = await ListWhatsAppsService({ showAll: false });
 
   return res.status(200).json(whatsapps);
 };
@@ -144,7 +143,7 @@ export const remove = async (
   const { whatsappId } = req.params;
 
   await DeleteWhatsAppService(whatsappId);
-  removeWbot(+whatsappId);
+  // removeWbot(+whatsappId);
 
   emitEvent({
     event: {
