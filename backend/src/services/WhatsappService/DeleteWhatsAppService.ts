@@ -1,5 +1,5 @@
-import Whatsapp from "../../models/Whatsapp";
 import AppError from "../../errors/AppError";
+import Whatsapp from "../../models/Whatsapp";
 
 const DeleteWhatsAppService = async (id: string): Promise<void> => {
   const whatsapp = await Whatsapp.findOne({
@@ -10,7 +10,8 @@ const DeleteWhatsAppService = async (id: string): Promise<void> => {
     throw new AppError("ERR_NO_WAPP_FOUND", 404);
   }
 
-  await whatsapp.destroy();
+  await whatsapp.update({ wasDeleted: true });
+  // await whatsapp.destroy();
 };
 
 export default DeleteWhatsAppService;

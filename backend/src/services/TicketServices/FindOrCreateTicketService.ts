@@ -271,13 +271,7 @@ const findTicket = async ({
 
   // if ticket not exists and groupContact is falsy, find a ticket updated in the last 2 hours from the contact and from the whatsappId
   // if this time the ticket exists, update his status to pending and set his userId to null and update his unreadMessages
-  if (
-    !ticket &&
-    !groupContact &&
-    !chatbotMessageIdentifier &&
-    !messagingCampaignId &&
-    !marketingMessagingCampaignId
-  ) {
+  if (!ticket && !groupContact && !chatbotMessageIdentifier) {
     // bsucamos el ultimo ticket asi sean no interactivos
     ticket = await Ticket.findOne({
       where: {
@@ -296,6 +290,27 @@ const findTicket = async ({
       ],
       order: [["updatedAt", "DESC"]]
     });
+
+    if (
+      ticket &&
+      (messagingCampaignShipmentId || marketingMessagingCampaignShipmentId) &&
+      !ticket.messagingCampaignShipmentId &&
+      !ticket.marketingMessagingCampaignShipmentId
+    ) {
+      ticket = null;
+    }
+
+    if (
+      ticket &&
+      (messagingCampaignShipmentId || marketingMessagingCampaignShipmentId) &&
+      (ticket.messagingCampaignShipmentId ||
+        ticket.marketingMessagingCampaignShipmentId) &&
+      ticket.messagingCampaignShipmentId !== messagingCampaignShipmentId &&
+      ticket.marketingMessagingCampaignShipmentId !==
+        marketingMessagingCampaignShipmentId
+    ) {
+      ticket = null;
+    }
 
     if (
       ticket &&

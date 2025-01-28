@@ -231,11 +231,8 @@ const SendMessagingCampaign = ({
                             .map((row) => {
                               const obj = {};
                               headers.forEach((header, index) => {
-                                obj[header.trim()] = row[index]
-                                  ? row[index]
-                                      .replaceAll(" ", "")
-                                      .replaceAll("+", "")
-                                  : null; // Asignar valores o null si no existen
+                                const cellValue = index === 0 ? `${row[index]}`.replaceAll(" ", "").replaceAll("+", "") : row[index];
+                                obj[header.trim()] = cellValue || null;
                               });
                               return obj;
                             });

@@ -12,7 +12,9 @@ import CircularProgress from "@material-ui/core/CircularProgress";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import Typography from "@material-ui/core/Typography";
+import { toast } from "react-toastify";
 import api from "../../services/api";
+import { NumberGroups } from "../NumberGroupsModal";
 
 const TicketListModal = ({
   preSelectedContactId,
@@ -28,6 +30,7 @@ const TicketListModal = ({
   const [loading, setLoading] = useState(false);
   const [ticketsData, setTicketsData] = useState([]);
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
+  const [numberGroups, setNumberGroups] = useState([]);
 
   useEffect(() => {
     console.log("TicketListModal tickets", tickets);
@@ -60,6 +63,19 @@ const TicketListModal = ({
         }
 
         setTicketsData(data.tickets);
+
+        if (preSelectedContactId) {
+          try {
+            const { data } = await api.get(
+              `/getNumberGroupsByContactId/${preSelectedContactId}`
+            );
+            setNumberGroups(data.registerGroups);
+          } catch (err) {
+            console.log("err", err);
+            toast.error("No se pudieron recuperar los grupos del contacto");
+          }
+        }
+
         setLoading(false);
       }
     }, 500);
@@ -196,6 +212,26 @@ const TicketListModal = ({
                 Este contacto no tiene ningun ticket abierto
               </div>
             </TableContainer>
+          )}
+
+          {preSelectedContactId && numberGroups.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <Typography
+                variant="h6"
+                style={{ marginBottom: 8, fontWeight: "500" }}
+              >
+                Grupos de número
+              </Typography>
+
+              <TableContainer>
+                <NumberGroups groups={numberGroups} />
+              </TableContainer>
+            </div>
+          )}
+          {preSelectedContactId && numberGroups.length === 0 && (
+            <div style={{ textAlign: "center", padding: "20px" }}>
+              No encontramos grupos para este grupo
+            </div>
           )}
           {loading && (
             <CircularProgress

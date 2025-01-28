@@ -328,7 +328,7 @@ const BeforeSendTicketDataToZapierModal = ({
       handleClose();
     } catch (error) {
       console.log("handleSendToZapier error", error);
-      toastError("Error al crear los datos en Hubspot");
+      toast.error(`Error al crear los datos en Hubspot ${error.message}`);
     }
   };
 

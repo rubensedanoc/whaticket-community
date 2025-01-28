@@ -29,8 +29,10 @@ export const StartWhatsAppSession = async (
 
   try {
     const wbot = await initWbot(whatsapp);
-    wbotMessageListener(wbot, whatsapp);
-    wbotMonitor(wbot, whatsapp);
+    if (!whatsapp.wasDeleted) {
+      wbotMessageListener(wbot, whatsapp);
+      wbotMonitor(wbot, whatsapp);
+    }
   } catch (err) {
     logger.error(err);
   }
