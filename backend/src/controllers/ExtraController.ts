@@ -71,6 +71,10 @@ export const sendTicketDataToZapier = async (
 ): Promise<Response> => {
   console.log("--- CALL FOR sendToExternal", req.body);
 
+  return res.status(500).json({
+    message: "Esta función está deshabilitada temporalmente"
+  });
+
   try {
     const {
       contactId,
