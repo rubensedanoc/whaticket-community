@@ -25,6 +25,9 @@ class Country extends Model<Country> {
   @Column
   code: string;
 
+  @Column
+  textCode: string;
+
   @CreatedAt
   createdAt: Date;
 
