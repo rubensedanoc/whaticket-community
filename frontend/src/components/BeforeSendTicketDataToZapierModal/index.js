@@ -341,7 +341,7 @@ const BeforeSendTicketDataToZapierModal = ({
         maxWidth="xl"
         con
       >
-        <DialogTitle>Datos a crear en Hubspot</DialogTitle>
+        <DialogTitle>Datos a crear en Trazabilidad</DialogTitle>
         <Formik
           initialValues={{
             ...ticketDataToSendToZapier,
@@ -1151,7 +1151,7 @@ const BeforeSendTicketDataToZapierModal = ({
                   variant="contained"
                   className={classes.btnWrapper}
                 >
-                  Crear en Hubspot
+                  Crear en Trazabilidad
                   {isSubmitting && (
                     <CircularProgress
                       size={24}
