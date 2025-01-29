@@ -111,76 +111,96 @@ export const sendTicketDataToZapier = async (
 
     const ticket = await ShowTicketService(ticketId);
 
-    const dataToSendToZapier = {
-      contactId: ticket.contactId,
-      contactName: ticket.contact?.name,
-      contactNumber: ticket.contact?.number,
-      contactEmail: ticket.contact?.email,
-      contactCountryId: ticket.contact?.countryId,
-      contactCountry: ticket.contact?.country.name,
-      ticketCampaignId: ticket.marketingCampaignId,
-      ticketCampaign: ticket.marketingCampaign?.name,
-      userId: ticket.userId,
-      userName: ticket.user?.name,
-      userHubspotId: ticket.user?.hubspotId,
-      NOMBRE_NEGOCIO:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "NOMBRE_NEGOCIO"
-        )?.value || "Sin Asignar",
-      CALIDAD_MARKETING:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "CALIDAD_MARKETING"
-        )?.value || "Sin Asignar",
-      CALIDAD_COMERCIAL:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "CALIDAD_COMERCIAL"
-        )?.value || "Sin Asignar",
-      TIENE_RESTAURANTE:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "TIENE_RESTAURANTE"
-        )?.value || null,
-      TIPO_RESTAURANTE:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "TIPO_RESTAURANTE"
-        )?.value || null,
-      TOMA_LA_DECISION:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "TOMA_LA_DECISION"
-        )?.value || null,
-      CARGO:
-        ticket.contact?.extraInfo?.find((info: any) => info.name === "CARGO")
-          ?.value || null,
-      YA_USA_SISTEMA:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "YA_USA_SISTEMA"
-        )?.value || null,
-      SISTEMA_ACTUAL:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "SISTEMA_ACTUAL"
-        )?.value || null,
-      NUM_SUCURSALES: Number(
-        ticket.contact?.extraInfo?.find(info => info.name === "NUM_SUCURSALES")
-          ?.value || 0 // Default to 0 if null
-      ),
-      NUM_MESAS: Number(
-        ticket.contact?.extraInfo?.find(info => info.name === "NUM_MESAS")
-          ?.value || 0 // Default to 0 if null
-      ),
-      CUANTO_PAGA:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "CUANTO_PAGA"
-        )?.value || null,
-      COMO_SE_ENTERO:
-        ticket.contact?.extraInfo?.find(
-          (info: any) => info.name === "COMO_SE_ENTERO"
-        )?.value || null,
-      DOLOR_1:
-        ticket.contact?.extraInfo?.find((info: any) => info.name === "DOLOR_1")
-          ?.value || null,
-      DOLOR_2:
-        ticket.contact?.extraInfo?.find((info: any) => info.name === "DOLOR_2")
-          ?.value || null
-      // extraInfo: ticket.contact?.extraInfo
+    // const dataToSendToZapier = {
+    //   contactId: ticket.contactId,
+    //   contactName: ticket.contact?.name,
+    //   contactNumber: ticket.contact?.number,
+    //   contactEmail: ticket.contact?.email,
+    //   contactCountryId: ticket.contact?.countryId,
+    //   contactCountry: ticket.contact?.country.name,
+    //   ticketCampaignId: ticket.marketingCampaignId,
+    //   ticketCampaign: ticket.marketingCampaign?.name,
+    //   userId: ticket.userId,
+    //   userName: ticket.user?.name,
+    //   userHubspotId: ticket.user?.hubspotId,
+    //   NOMBRE_NEGOCIO:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "NOMBRE_NEGOCIO"
+    //     )?.value || "Sin Asignar",
+    //   CALIDAD_MARKETING:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "CALIDAD_MARKETING"
+    //     )?.value || "Sin Asignar",
+    //   CALIDAD_COMERCIAL:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "CALIDAD_COMERCIAL"
+    //     )?.value || "Sin Asignar",
+    //   TIENE_RESTAURANTE:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "TIENE_RESTAURANTE"
+    //     )?.value || null,
+    //   TIPO_RESTAURANTE:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "TIPO_RESTAURANTE"
+    //     )?.value || null,
+    //   TOMA_LA_DECISION:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "TOMA_LA_DECISION"
+    //     )?.value || null,
+    //   CARGO:
+    //     ticket.contact?.extraInfo?.find((info: any) => info.name === "CARGO")
+    //       ?.value || null,
+    //   YA_USA_SISTEMA:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "YA_USA_SISTEMA"
+    //     )?.value || null,
+    //   SISTEMA_ACTUAL:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "SISTEMA_ACTUAL"
+    //     )?.value || null,
+    //   NUM_SUCURSALES: Number(
+    //     ticket.contact?.extraInfo?.find(info => info.name === "NUM_SUCURSALES")
+    //       ?.value || 0 // Default to 0 if null
+    //   ),
+    //   NUM_MESAS: Number(
+    //     ticket.contact?.extraInfo?.find(info => info.name === "NUM_MESAS")
+    //       ?.value || 0 // Default to 0 if null
+    //   ),
+    //   CUANTO_PAGA:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "CUANTO_PAGA"
+    //     )?.value || null,
+    //   COMO_SE_ENTERO:
+    //     ticket.contact?.extraInfo?.find(
+    //       (info: any) => info.name === "COMO_SE_ENTERO"
+    //     )?.value || null,
+    //   DOLOR_1:
+    //     ticket.contact?.extraInfo?.find((info: any) => info.name === "DOLOR_1")
+    //       ?.value || null,
+    //   DOLOR_2:
+    //     ticket.contact?.extraInfo?.find((info: any) => info.name === "DOLOR_2")
+    //       ?.value || null
+    //   // extraInfo: ticket.contact?.extraInfo
+    // };
+
+    const dataToSendToTrazabilidad = {
+      correo: ticket.contact?.email,
+      nombre_cliente: contactName,
+      telefono: ticket.contact?.number,
+      // "suscripcion": "pruebaabel.restaurant.pe",
+      paisIsocode: ticket.contact?.country?.textCode,
+      // "ciudad": 2860,
+      rubro: "Restaurant.pe",
+      // "campana_id": 466,
+      // "querystring": 2860,
+      // "plan_id": 15,
+      cliente_restaurante: ticket.contact?.extraInfo?.find(
+        (info: any) => info.name === "NOMBRE_NEGOCIO"
+      )?.value || "-",
+      "cliente_rubronegocio": ticket.contact?.extraInfo?.find(
+        (info: any) => info.name === "TIPO_RESTAURANTE"
+      )?.value || "-",
+      "cliente_origenregistro": "whaticket",
     };
 
     // console.log("--- DATA SENT TO ZAPIER", dataToSendToZapier);
@@ -188,21 +208,22 @@ export const sendTicketDataToZapier = async (
     if (onlyUpdateInfo) {
       return res
         .status(200)
-        .json({ message: "Data updated", dataToSend: dataToSendToZapier });
+        .json({ message: "Data updated", dataToSend: dataToSendToTrazabilidad });
     }
 
-    return res.status(500).json({
-      message: "Esta función está deshabilitada temporalmente"
-    });
+    // return res.status(500).json({
+    //   message: "Esta función está deshabilitada temporalmente"
+    // });
 
     const result = await fetch(
-      "https://hooks.zapier.com/hooks/catch/16330533/25dljl9/",
+      // "https://hooks.zapier.com/hooks/catch/16330533/25dljl9/",
+      "https://web.restaurant.pe/trazabilidad/public/rest/cliente/webHookQuiPuposWebLead",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(dataToSendToZapier)
+        body: JSON.stringify(dataToSendToTrazabilidad)
       }
     );
 
@@ -221,7 +242,7 @@ export const sendTicketDataToZapier = async (
 
     verifyPrivateMessage(
       `${loggerUserName} *Mandó datos del ticket a Zapier* \n\n${JSON.stringify(
-        dataToSendToZapier,
+        dataToSendToTrazabilidad,
         null,
         2
       )}`,

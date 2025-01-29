@@ -279,7 +279,7 @@ const TicketActionButtons = ({ ticket }) => {
                     setBeforeSendTicketDataToZapierModalOpen(true);
                   }}
                 >
-                  Crear en Hubspot
+                  Crear en Trazabilidad
                 </Button>
               )}
 

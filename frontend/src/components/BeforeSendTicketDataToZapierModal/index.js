@@ -323,12 +323,12 @@ const BeforeSendTicketDataToZapierModal = ({
       toast.success(
         onlyUpdateInfo
           ? "Datos guardados correctamente"
-          : "Datos creados en Hubspot correctamente"
+          : "Datos enviados a Trazabilidad correctamente"
       );
       handleClose();
     } catch (error) {
       console.log("handleSendToZapier error", error);
-      toast.error(`Error al crear los datos en Hubspot ${error.message}`);
+      toast.error(`Error al crear los datos en Trazabilidad ${error.message}`);
     }
   };
 
@@ -341,7 +341,7 @@ const BeforeSendTicketDataToZapierModal = ({
         maxWidth="xl"
         con
       >
-        <DialogTitle>Datos a crear en Hubspot</DialogTitle>
+        <DialogTitle>Datos a crear en Trazabilidad</DialogTitle>
         <Formik
           initialValues={{
             ...ticketDataToSendToZapier,
@@ -1151,7 +1151,7 @@ const BeforeSendTicketDataToZapierModal = ({
                   variant="contained"
                   className={classes.btnWrapper}
                 >
-                  Crear en Hubspot
+                  Crear en Trazabilidad
                   {isSubmitting && (
                     <CircularProgress
                       size={24}
