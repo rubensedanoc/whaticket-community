@@ -323,12 +323,12 @@ const BeforeSendTicketDataToZapierModal = ({
       toast.success(
         onlyUpdateInfo
           ? "Datos guardados correctamente"
-          : "Datos creados en Hubspot correctamente"
+          : "Datos enviados a Trazabilidad correctamente"
       );
       handleClose();
     } catch (error) {
       console.log("handleSendToZapier error", error);
-      toast.error(`Error al crear los datos en Hubspot ${error.message}`);
+      toast.error(`Error al crear los datos en Trazabilidad ${error.message}`);
     }
   };
 
