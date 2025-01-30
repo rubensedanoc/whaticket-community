@@ -201,9 +201,10 @@ export const sendTicketDataToZapier = async (
         (info: any) => info.name === "TIPO_RESTAURANTE"
       )?.value || "-",
       "cliente_origenregistro": "whaticket",
+      usuario_whatrestaurantid: req.user?.id,
     };
 
-    // console.log("--- DATA SENT TO ZAPIER", dataToSendToZapier);
+    console.log("--- DATA SENT TO ZAPIER", dataToSendToTrazabilidad);
 
     if (onlyUpdateInfo) {
       return res

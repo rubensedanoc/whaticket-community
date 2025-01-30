@@ -268,7 +268,6 @@ const LoggedInLayout = ({ children }) => {
             {/* <img src="https://restaurant.pe/wp-content/uploads/2022/05/cropped-restaurantpelogo-300x59.png" /> */}
           </div>
           {user.id && <NotificationsPopOver />}
-
           <div>
             <IconButton
               aria-label="account of current user"
@@ -302,6 +301,7 @@ const LoggedInLayout = ({ children }) => {
               </MenuItem>
             </Menu>
           </div>
+          <div>USUARIO ID:  {user?.id}</div>
         </Toolbar>
       </AppBar>
       <main className={classes.content}>
