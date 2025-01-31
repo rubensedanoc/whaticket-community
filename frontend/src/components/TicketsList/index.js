@@ -517,6 +517,14 @@ const TicketsList = (props) => {
           ticketsList.length > 0 &&
           selectedTypeIds.length === 1 &&
           selectedTypeIds[0] === "group"
+        ) &&
+        // si estamos buscando un grupo y tenemos almenos un ticket en la columna y estamos viendo todos los grupos
+        !(
+          !showOnlyMyGroups &&
+          searchParam &&
+          ticketsList.length > 0 &&
+          selectedTypeIds.length === 1 &&
+          selectedTypeIds[0] === "group"
         ) // si todo eso se cumple ocultamos la lista
           ? {
               display: "none",
