@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import AppError from "../../errors/AppError";
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import { emitEvent } from "../../libs/emitEvent";
 import Ticket from "../../models/Ticket";
@@ -57,8 +58,8 @@ const UpdateTicketService = async ({
   const ticket = await ShowTicketService(ticketId, true);
   // await SetTicketMessagesAsRead(ticket);
 
-  if (whatsappId && ticket.whatsappId !== whatsappId) {
-    await CheckContactOpenTickets(ticket.contactId, whatsappId);
+  if (status && status === 'open' && ticket.status === 'open') {
+    throw new AppError("ERR_TICKET_ALREADY_OPEN");
   }
 
   const oldStatus = ticket.status;
