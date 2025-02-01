@@ -4,6 +4,7 @@ import openSocket from "../../services/socket-io";
 import List from "@material-ui/core/List";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
+import { toast } from "react-toastify";
 
 import { blue } from "@material-ui/core/colors";
 import Menu from "@material-ui/core/Menu";
@@ -222,6 +223,7 @@ const TicketsList = (props) => {
   const [updatedCount, setUpdatedCount] = useState(0);
   const [microServiceLoading, setMicroServiceLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [wasDisConnected, setWasDisConnected] = useState(false);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -359,11 +361,20 @@ const TicketsList = (props) => {
     //   ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;
 
     socket.on("connect", () => {
+      console.log("-------------------------connect-------------------------");
       if (status) {
         socket.emit("joinTickets", status);
       } else {
         socket.emit("joinNotification");
       }
+
+      setWasDisConnected((prevState) => {
+        if (prevState) {
+          toast.success("Conexión al servidor restablecida");
+          window.location.reload();
+        }
+        return prevState;
+      });
     });
 
     socket.on("ticket", async (data) => {
@@ -455,6 +466,15 @@ const TicketsList = (props) => {
           payload: data.contact,
         });
       }
+    });
+
+    socket.on("disconnect", () => {
+      console.log(
+        ".........................disconnect........................."
+      );
+      toast.error("Te desconectaste del servidor, dale F5");
+
+      setWasDisConnected(true);
     });
 
     return () => {
