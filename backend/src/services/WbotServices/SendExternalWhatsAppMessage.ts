@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/node";
 import { MessageContent, Message as WbotMessage } from "whatsapp-web.js";
 import AppError from "../../errors/AppError";
 
+import { debounce } from "../../helpers/Debounce";
 import { getWbot } from "../../libs/wbot";
 import SendMessageRequest from "../../models/SendMessageRequest";
 import Whatsapp from "../../models/Whatsapp";
@@ -85,24 +86,25 @@ const SendExternalWhatsAppMessage = async ({
 
     if (registerInDb) {
       result.logs.push(
-        `-- INICIO update registerInDb --- ${Date.now() / 1000}`
+        `-- INICIO update FAILED registerInDb --- ${Date.now() / 1000}`
       );
       registerInDb.update({
         status: "failed",
         timesAttempted: registerInDb.timesAttempted + 1
       });
-      result.logs.push(`-- FIN update registerInDb --- ${Date.now() / 1000}`);
+      result.logs.push(`-- FIN update FAILED registerInDb --- ${Date.now() / 1000}`);
     }
 
     if (fromWpp && fromWpp.phoneToNotify) {
-      result.logs.push(
-        `-- INICIO NotifyViaWppService --- ${Date.now() / 1000}`
-      );
-      NotifyViaWppService({
-        numberToNotify: fromWpp.phoneToNotify,
-        messageToSend: `Error al enviar mensaje: "${message}" a ${toNumber}: ${error.message}`
-      });
-      result.logs.push(`-- FIN NotifyViaWppService --- ${Date.now() / 1000}`);
+      result.logs.push(`-- El fromwpp tiene phonetonotify --- ${Date.now() / 1000}`);
+      const debouncedNotify = debounce(async () => {
+        NotifyViaWppService({
+          numberToNotify: fromWpp.phoneToNotify,
+          messageToSend: `Error al enviar mensaje: "${message}" a ${toNumber}: ${error.message}`
+        });
+      }, 1000, fromWpp.phoneToNotify);
+
+      debouncedNotify()
     }
 
     result.wasOk = false;
