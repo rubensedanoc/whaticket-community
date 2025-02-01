@@ -37,6 +37,7 @@ import ShowChatbotOptionService from "../ChatbotOptionService/ShowChatbotOptionS
 import CreateContactService from "../ContactServices/CreateContactService";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
+import CreateTicketService from "../TicketServices/CreateTicketService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
 import SearchTicketForAMessageService from "../TicketServices/SearchTicketForAMessageService";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
@@ -1280,7 +1281,39 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
       Sentry.captureException(err);
     }
   });
+  wbot.on("group_join", async notification => {
+    console.log(
+      "--- BOT wbotMessageListener group_join - wbot.id: ",
+      wbot.id,
+      notification
+    );
 
+    try {
+      const wbotGroupContact = await wbot.getContactById(notification.chatId)
+      const groupContact = await verifyContact(wbotGroupContact);
+
+      const newTicket = await CreateTicketService({
+        contactId: groupContact.id,
+        whatsappId: wbot.id,
+        status: "open",
+        lastMessageTimestamp: Date.now() / 1000
+      })
+
+      emitEvent({
+        to: [newTicket.status],
+        event: {
+          name: "ticket",
+          data: {
+            action: "update",
+            ticket: newTicket
+          }
+        }
+      });
+    } catch (error) {
+      console.log("Error on group_join event: ", notification, error);
+      Sentry.captureException(error);
+    }
+  })
   wbot.on("message_edit", async (msg, newBody, prevBody) => {
     console.log(
       "--- BOT wbotMessageListener message_edit - wbot.id: ",

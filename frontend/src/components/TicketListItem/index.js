@@ -442,7 +442,7 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     onClick={(e) => e.stopPropagation()}
                   >
                     {/* PARTICIPANTS ICON */}
-                    {ticket.isGroup && ticket.participantUsers.length > 0 && (
+                    {ticket.isGroup && ticket.participantUsers?.length > 0 && (
                       <Tooltip
                         title={`PARTICIPANDO: 
                             ${[...ticket.participantUsers]
