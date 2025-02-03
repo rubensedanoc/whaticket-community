@@ -1140,141 +1140,72 @@ const TicketsManager = () => {
 
             {(() => {
               if (doubleRow) {
-                const firstRowCount = Math.ceil(categories.length / 2);
-                const firstRow = categories.slice(0, firstRowCount);
-                const secondRow = categories.slice(firstRowCount);
-
                 return (
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    {/* Primera fila */}
-                    <div
-                      style={{ display: "flex", gap: "12px", height: "50%" }}
-                    >
-                      {firstRow.map((category, categoryIndex) => {
-                        return category === "no-category" ? (
-                          <TicketsList
-                            key="no-category"
-                            status="open"
-                            searchParam={searchParam}
-                            showAll={showAll}
-                            showOnlyMyGroups={showOnlyMyGroups}
-                            selectedTypeIds={
-                              principalTicketType === "groups"
-                                ? typeIdsForGroups
-                                : typeIdsForIndividuals
-                            }
-                            selectedWhatsappIds={selectedWhatsappIds}
-                            selectedQueueIds={selectedQueueIds}
-                            showOnlyWaitingTickets={showOnlyWaitingTickets}
-                            columnsWidth={columnsWidth}
-                            ticketsType="no-category"
-                            onMoveToLeft={() =>
-                              onMoveCategoryColumn(categoryIndex, "left")
-                            }
-                            onMoveToRight={() => {
-                              onMoveCategoryColumn(categoryIndex, "right");
-                            }}
-                            categoriesVisible={categoriesVisible}
-                          />
-                        ) : (
-                          <TicketsList
-                            key={category.name}
-                            status="open"
-                            searchParam={searchParam}
-                            category={category}
-                            showAll={showAll}
-                            showOnlyMyGroups={showOnlyMyGroups}
-                            showOnlyWaitingTickets={showOnlyWaitingTickets}
-                            columnsWidth={columnsWidth}
-                            selectedTypeIds={
-                              principalTicketType === "groups"
-                                ? typeIdsForGroups
-                                : typeIdsForIndividuals
-                            }
-                            selectedWhatsappIds={selectedWhatsappIds}
-                            selectedQueueIds={selectedQueueIds}
-                            onMoveToLeft={() =>
-                              onMoveCategoryColumn(categoryIndex, "left")
-                            }
-                            onMoveToRight={() => {
-                              onMoveCategoryColumn(categoryIndex, "right");
-                            }}
-                            categoriesVisible={categoriesVisible}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    {/* Segunda fila */}
-                    <div
-                      style={{ display: "flex", gap: "10px", height: "50%" }}
-                    >
-                      {secondRow.map((category, categoryIndex) => {
-                        return category === "no-category" ? (
-                          <TicketsList
-                            key="no-category"
-                            status="open"
-                            searchParam={searchParam}
-                            showAll={showAll}
-                            showOnlyMyGroups={showOnlyMyGroups}
-                            selectedTypeIds={
-                              principalTicketType === "groups"
-                                ? typeIdsForGroups
-                                : typeIdsForIndividuals
-                            }
-                            selectedWhatsappIds={selectedWhatsappIds}
-                            selectedQueueIds={selectedQueueIds}
-                            showOnlyWaitingTickets={showOnlyWaitingTickets}
-                            columnsWidth={columnsWidth}
-                            ticketsType="no-category"
-                            onMoveToLeft={() =>
-                              onMoveCategoryColumn(
-                                firstRow.length + categoryIndex,
-                                "left"
-                              )
-                            }
-                            onMoveToRight={() => {
-                              onMoveCategoryColumn(
-                                firstRow.length + categoryIndex,
-                                "right"
-                              );
-                            }}
-                            categoriesVisible={categoriesVisible}
-                          />
-                        ) : (
-                          <TicketsList
-                            key={category.name}
-                            status="open"
-                            searchParam={searchParam}
-                            category={category}
-                            showAll={showAll}
-                            showOnlyMyGroups={showOnlyMyGroups}
-                            showOnlyWaitingTickets={showOnlyWaitingTickets}
-                            columnsWidth={columnsWidth}
-                            selectedTypeIds={
-                              principalTicketType === "groups"
-                                ? typeIdsForGroups
-                                : typeIdsForIndividuals
-                            }
-                            selectedWhatsappIds={selectedWhatsappIds}
-                            selectedQueueIds={selectedQueueIds}
-                            onMoveToLeft={() =>
-                              onMoveCategoryColumn(
-                                firstRow.length + categoryIndex,
-                                "left"
-                              )
-                            }
-                            onMoveToRight={() => {
-                              onMoveCategoryColumn(
-                                firstRow.length + categoryIndex,
-                                "right"
-                              );
-                            }}
-                            categoriesVisible={categoriesVisible}
-                          />
-                        );
-                      })}
-                    </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      "grid-template-columns": `repeat(${Math.round(
+                        categoriesVisible?.length / 2
+                      )}, 1fr)`,
+                      gap: "12px",
+                      height: "100%",
+                      "grid-auto-flow": "column",
+                      "grid-template-rows": "repeat(2, auto)",
+                    }}
+                  >
+                    {categories.map((category, categoryIndex) => {
+                      return category === "no-category" ? (
+                        <TicketsList
+                          key="no-category"
+                          status="open"
+                          searchParam={searchParam}
+                          showAll={showAll}
+                          showOnlyMyGroups={showOnlyMyGroups}
+                          selectedTypeIds={
+                            principalTicketType === "groups"
+                              ? typeIdsForGroups
+                              : typeIdsForIndividuals
+                          }
+                          selectedWhatsappIds={selectedWhatsappIds}
+                          selectedQueueIds={selectedQueueIds}
+                          showOnlyWaitingTickets={showOnlyWaitingTickets}
+                          columnsWidth={columnsWidth}
+                          ticketsType="no-category"
+                          onMoveToLeft={() =>
+                            onMoveCategoryColumn(categoryIndex, "left")
+                          }
+                          onMoveToRight={() => {
+                            onMoveCategoryColumn(categoryIndex, "right");
+                          }}
+                          categoriesVisible={categoriesVisible}
+                        />
+                      ) : (
+                        <TicketsList
+                          key={category.name}
+                          status="open"
+                          searchParam={searchParam}
+                          category={category}
+                          showAll={showAll}
+                          showOnlyMyGroups={showOnlyMyGroups}
+                          showOnlyWaitingTickets={showOnlyWaitingTickets}
+                          columnsWidth={columnsWidth}
+                          selectedTypeIds={
+                            principalTicketType === "groups"
+                              ? typeIdsForGroups
+                              : typeIdsForIndividuals
+                          }
+                          selectedWhatsappIds={selectedWhatsappIds}
+                          selectedQueueIds={selectedQueueIds}
+                          onMoveToLeft={() =>
+                            onMoveCategoryColumn(categoryIndex, "left")
+                          }
+                          onMoveToRight={() => {
+                            onMoveCategoryColumn(categoryIndex, "right");
+                          }}
+                          categoriesVisible={categoriesVisible}
+                        />
+                      );
+                    })}
                   </div>
                 );
               } else {
