@@ -9,10 +9,8 @@ import Category from "./models/Category";
 import Contact from "./models/Contact";
 import Message from "./models/Message";
 import Queue from "./models/Queue";
-import SendMessageRequest from "./models/SendMessageRequest";
 import Ticket from "./models/Ticket";
 import UpdateTicketService from "./services/TicketServices/UpdateTicketService";
-import SendExternalWhatsAppMessage from "./services/WbotServices/SendExternalWhatsAppMessage";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
 import ListWhatsAppsService from "./services/WhatsappService/ListWhatsAppsService";
 import { logger } from "./utils/logger";
@@ -249,37 +247,3 @@ cron.schedule("*/20 * * * *", async () => {
     console.log("error", error);
   }
 });
-
-// every hour (betwen 8-19) of the day
-cron.schedule(
-  "0 8-19 * * *",
-  async () => {
-    logger.info("--- search for SendMessageRequest failed CRON: ");
-
-    const MAXATTEMPS = 72;
-
-    const failedSendMessageRequest = await SendMessageRequest.findAll({
-      where: {
-        status: "failed",
-        timesAttempted: {
-          [Op.lte]: MAXATTEMPS
-        }
-      }
-    });
-
-    for (const failedRequest of failedSendMessageRequest) {
-      try {
-        await SendExternalWhatsAppMessage({
-          fromNumber: failedRequest.fromNumber,
-          toNumber: failedRequest.toNumber,
-          message: failedRequest.message,
-          registerInDb: failedRequest
-        });
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      } catch (error) {}
-    }
-  },
-  {
-    timezone: "America/Lima" // Ajustar la zona horaria según sea necesario
-  }
-);

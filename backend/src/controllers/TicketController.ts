@@ -19,6 +19,7 @@ import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import { verifyContact } from "../services/WbotServices/wbotMessageListener";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 
 type IndexQuery = {
@@ -211,13 +212,36 @@ export const ShowParticipants = async (
 
   const chatParticipants = chatDetails.participants;
 
-  const chatParticipantsContacts = await Contact.findAll({
+  let chatParticipantsContacts = await Contact.findAll({
     where: {
       number: {
         [Op.in]: chatParticipants.map(participant => participant.id.user)
       }
     }
   });
+
+  const chatParticipantsThatAreNotContacts = chatParticipants.filter(
+    participant =>
+      !chatParticipantsContacts.find(
+        contact => contact.number === participant.id.user
+      )
+  );
+
+  if (chatParticipantsThatAreNotContacts.length) {
+    for (const participant of chatParticipantsThatAreNotContacts) {
+      console.log("participant", participant);
+      const newContact = await wbot.getContactById(participant.id._serialized)
+      await verifyContact(newContact)
+    }
+
+    chatParticipantsContacts = await Contact.findAll({
+      where: {
+        number: {
+          [Op.in]: chatParticipants.map(participant => participant.id.user)
+        }
+      }
+    })
+  }
 
   // chatParticipants.map(participant => participant.id.user)
 

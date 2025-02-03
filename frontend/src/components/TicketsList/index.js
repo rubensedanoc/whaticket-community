@@ -4,6 +4,7 @@ import openSocket from "../../services/socket-io";
 import List from "@material-ui/core/List";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
+import { toast } from "react-toastify";
 
 import { blue } from "@material-ui/core/colors";
 import Menu from "@material-ui/core/Menu";
@@ -222,6 +223,7 @@ const TicketsList = (props) => {
   const [updatedCount, setUpdatedCount] = useState(0);
   const [microServiceLoading, setMicroServiceLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [wasDisConnected, setWasDisConnected] = useState(false);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -359,11 +361,20 @@ const TicketsList = (props) => {
     //   ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;
 
     socket.on("connect", () => {
+      console.log("-------------------------connect-------------------------");
       if (status) {
         socket.emit("joinTickets", status);
       } else {
         socket.emit("joinNotification");
       }
+
+      setWasDisConnected((prevState) => {
+        if (prevState) {
+          toast.success("Conexión al servidor restablecida");
+          window.location.reload();
+        }
+        return prevState;
+      });
     });
 
     socket.on("ticket", async (data) => {
@@ -457,6 +468,15 @@ const TicketsList = (props) => {
       }
     });
 
+    socket.on("disconnect", () => {
+      console.log(
+        ".........................disconnect........................."
+      );
+      toast.error("Te desconectaste del servidor, dale F5");
+
+      setWasDisConnected(true);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -514,6 +534,14 @@ const TicketsList = (props) => {
         // Tenemos almenos un ticket y no estamos viendo mis grupos en caso de solo esta viendo solo grupos
         !(
           showOnlyMyGroups &&
+          ticketsList.length > 0 &&
+          selectedTypeIds.length === 1 &&
+          selectedTypeIds[0] === "group"
+        ) &&
+        // si estamos buscando un grupo y tenemos almenos un ticket en la columna y estamos viendo todos los grupos
+        !(
+          !showOnlyMyGroups &&
+          searchParam &&
           ticketsList.length > 0 &&
           selectedTypeIds.length === 1 &&
           selectedTypeIds[0] === "group"

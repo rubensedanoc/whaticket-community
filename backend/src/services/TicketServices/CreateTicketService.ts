@@ -10,9 +10,10 @@ import ShowContactService from "../ContactServices/ShowContactService";
 interface Request {
   contactId: number;
   status: string;
-  userId: number;
+  userId?: number;
   queueId?: number;
   whatsappId?: number;
+  lastMessageTimestamp?: number;
 }
 
 const CreateTicketService = async ({
@@ -20,7 +21,8 @@ const CreateTicketService = async ({
   status,
   userId,
   queueId,
-  whatsappId
+  whatsappId,
+  lastMessageTimestamp
 }: Request): Promise<Ticket> => {
   let whatsappToUse: Whatsapp | null = null;
 
@@ -62,7 +64,8 @@ const CreateTicketService = async ({
     status,
     isGroup,
     userId,
-    queueId
+    queueId,
+    lastMessageTimestamp
   });
 
   const ticket = await Ticket.findByPk(id, {
