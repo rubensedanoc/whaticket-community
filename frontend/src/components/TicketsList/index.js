@@ -223,7 +223,7 @@ const TicketsList = (props) => {
   const [updatedCount, setUpdatedCount] = useState(0);
   const [microServiceLoading, setMicroServiceLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [wasDisConnected, setWasDisConnected] = useState(false);
+  const [wasDisConnected, setWasDisConnected] = useState('connecting');
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -369,11 +369,11 @@ const TicketsList = (props) => {
       }
 
       setWasDisConnected((prevState) => {
-        if (prevState) {
+        if (prevState === 'disconnected') {
           toast.success("Conexión al servidor restablecida");
           window.location.reload();
         }
-        return prevState;
+        return 'connected';
       });
     });
 
@@ -472,12 +472,17 @@ const TicketsList = (props) => {
       console.log(
         ".........................disconnect........................."
       );
-      toast.error("Te desconectaste del servidor, dale F5");
-
-      setWasDisConnected(true);
+      setWasDisConnected((prevState) => {
+        if (prevState === 'connected') {
+          toast.error("Te desconectaste del servidor, dale F5");
+          return 'disconnected'
+        }
+        return prevState;
+      });
     });
 
     return () => {
+      setWasDisConnected('connecting');
       socket.disconnect();
     };
   }, [
