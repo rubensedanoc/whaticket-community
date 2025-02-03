@@ -67,6 +67,10 @@ export const sendMakeMessaginCampaign = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
+
+  console.log("--- CALL FOR sendMakeMessaginCampaign", req.body);
+  
+
   const { desdeNumero, data } = req.body;
 
   if (!desdeNumero) {
