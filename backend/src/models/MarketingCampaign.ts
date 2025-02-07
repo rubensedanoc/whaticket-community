@@ -25,6 +25,9 @@ class MarketingCampaign extends Model<MarketingCampaign> {
   isActive: boolean;
 
   @Column
+  isDefault: boolean;
+
+  @Column
   keywords: string;
 
   @HasMany(() => MarketingCampaignAutomaticMessage)

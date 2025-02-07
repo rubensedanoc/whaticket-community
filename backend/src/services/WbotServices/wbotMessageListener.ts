@@ -994,92 +994,103 @@ const handleMessage = async ({
       // console.log("---- handleMessage - handleMessage: ", ticket.queue);
 
       const marketingCampaigns = ticket.queue.marketingCampaigns;
+      const defaultCampaign = marketingCampaigns.find(m => m.isDefault);
 
-      marketingCampaigns.forEach(async marketingCampaign => {
+      let ticketMarketingCampaign = null;
+
+      for (const marketingCampaign of marketingCampaigns) {
         if (marketingCampaign.isActive) {
           const keywords = JSON.parse(marketingCampaign.keywords);
-
           if (
             keywords.length > 0 &&
             keywords.find(kw =>
               msg.body.toLocaleLowerCase().includes(kw.toLocaleLowerCase())
             )
           ) {
-            const messagesToSend =
-              await MarketingCampaignAutomaticMessage.findAll({
-                where: {
-                  marketingCampaignId: marketingCampaign.id
-                }
-              });
-
-            if (messagesToSend.length > 0) {
-              let sleepTime = 2000;
-
-              messagesToSend.forEach(async messageToSend => {
-                if (messageToSend.mediaType === "text") {
-                  let body = formatBody(`\u200e${messageToSend.body}`, contact);
-
-                  const debouncedSentMessage = debounce(
-                    async () => {
-                      const sentMessage = await wbot.sendMessage(
-                        `${contact.number}@c.us`,
-                        body
-                      );
-
-                      await verifyMessage({
-                        msg: sentMessage,
-                        ticket,
-                        contact,
-                        shouldUpdateUserHadContact: false
-                      });
-                    },
-                    sleepTime,
-                    ticket.id + messageToSend.id
-                  );
-
-                  debouncedSentMessage();
-                } else {
-                  const newMedia = MessageMedia.fromFilePath(
-                    `public/${messageToSend.mediaUrl.split("/").pop()}`
-                  );
-
-                  let mediaOptions: MessageSendOptions = {
-                    sendAudioAsVoice: true
-                  };
-
-                  if (
-                    newMedia.mimetype.startsWith("image/") &&
-                    !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
-                  ) {
-                    mediaOptions["sendMediaAsDocument"] = true;
-                  }
-
-                  const debouncedSentMessage = debounce(
-                    async () => {
-                      await wbot.sendMessage(
-                        `${contact.number}@c.us`,
-                        newMedia,
-                        mediaOptions
-                      );
-                    },
-                    sleepTime,
-                    ticket.id + messageToSend.id
-                  );
-
-                  debouncedSentMessage();
-                }
-
-                sleepTime += 1000;
-              });
-            }
-
-            await UpdateTicketService({
-              ticketData: { marketingCampaignId: marketingCampaign.id },
-              ticketId: ticket.id
-            });
+            ticketMarketingCampaign = marketingCampaign;
+            break;
           }
         }
-      });
+      }
+
+      if (!ticketMarketingCampaign && defaultCampaign) {
+        ticketMarketingCampaign = defaultCampaign
+      }
+
+      if (ticketMarketingCampaign) {
+        const messagesToSend =
+          await MarketingCampaignAutomaticMessage.findAll({
+            where: {
+              marketingCampaignId: ticketMarketingCampaign.id
+            }
+          });
+
+        if (messagesToSend.length > 0) {
+          let sleepTime = 2000;
+
+          messagesToSend.forEach(async messageToSend => {
+            if (messageToSend.mediaType === "text") {
+              let body = formatBody(`\u200e${messageToSend.body}`, contact);
+
+              const debouncedSentMessage = debounce(
+                async () => {
+                  const sentMessage = await wbot.sendMessage(
+                    `${contact.number}@c.us`,
+                    body
+                  );
+
+                  await verifyMessage({
+                    msg: sentMessage,
+                    ticket,
+                    contact,
+                    shouldUpdateUserHadContact: false
+                  });
+                },
+                sleepTime,
+                ticket.id + messageToSend.id
+              );
+
+              debouncedSentMessage();
+            } else {
+              const newMedia = MessageMedia.fromFilePath(
+                `public/${messageToSend.mediaUrl.split("/").pop()}`
+              );
+
+              let mediaOptions: MessageSendOptions = {
+                sendAudioAsVoice: true
+              };
+
+              if (
+                newMedia.mimetype.startsWith("image/") &&
+                !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
+              ) {
+                mediaOptions["sendMediaAsDocument"] = true;
+              }
+
+              const debouncedSentMessage = debounce(
+                async () => {
+                  await wbot.sendMessage(
+                    `${contact.number}@c.us`,
+                    newMedia,
+                    mediaOptions
+                  );
+                },
+                sleepTime,
+                ticket.id + messageToSend.id
+              );
+
+              debouncedSentMessage();
+            }
+
+            sleepTime += 1000;
+          });
+        }
+
+        await UpdateTicketService({
+          ticketData: { marketingCampaignId: ticketMarketingCampaign.id },
+          ticketId: ticket.id
+        });
+      }
     }
 
     /* if (msg.type === "multi_vcard") {
