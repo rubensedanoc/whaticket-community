@@ -210,6 +210,7 @@ const MarketingCampaigns = () => {
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell align="center">ID</TableCell>
                 <TableCell align="center">Nombre</TableCell>
                 <TableCell align="center">Activa</TableCell>
                 <TableCell align="center">Acciones</TableCell>
@@ -219,6 +220,9 @@ const MarketingCampaigns = () => {
               <>
                 {marketingCampaigns?.map((marketingCampaign) => (
                   <TableRow key={marketingCampaign.id}>
+                    <TableCell align="center">
+                      {marketingCampaign.id}
+                    </TableCell>
                     <TableCell align="center">
                       {marketingCampaign.name}
                     </TableCell>
