@@ -183,6 +183,30 @@ export const sendTicketDataToZapier = async (
     //   // extraInfo: ticket.contact?.extraInfo
     // };
 
+    let cliente_valorizacionasesor = '1'
+    const calidadDeMarketing = ticket.contact?.extraInfo?.find(
+      (info: any) => info.name === "CALIDAD_MARKETING"
+    )?.value
+
+    if (calidadDeMarketing) {
+      switch (calidadDeMarketing) {
+        case "Sin Respuesta":
+          cliente_valorizacionasesor = '1'
+          break;
+        case "Malo":
+          cliente_valorizacionasesor = '4'
+          break;
+        case "Regular":
+          cliente_valorizacionasesor = '3'
+          break;
+        case "Bueno":
+          cliente_valorizacionasesor = '2'
+          break;
+        default:
+          break;
+      }
+    }
+
     const dataToSendToTrazabilidad = {
       correo: ticket.contact?.email,
       nombre_cliente: contactName,
@@ -202,6 +226,8 @@ export const sendTicketDataToZapier = async (
       )?.value || "-",
       "cliente_origenregistro": "whaticket",
       usuario_whatrestaurantid: req.user?.id,
+      campana_whatrestaurantid: ticket.marketingCampaignId,
+      cliente_valorizacionasesor: cliente_valorizacionasesor,
     };
 
     console.log("--- DATA SENT TO ZAPIER", dataToSendToTrazabilidad);

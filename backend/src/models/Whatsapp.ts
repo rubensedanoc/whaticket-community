@@ -1,11 +1,13 @@
 import {
   AllowNull,
   AutoIncrement,
+  BelongsTo,
   BelongsToMany,
   Column,
   CreatedAt,
   DataType,
   Default,
+  ForeignKey,
   HasMany,
   Model,
   PrimaryKey,
@@ -18,6 +20,7 @@ import Ticket from "./Ticket";
 import User from "./User";
 import WhatsappOwnerUsers from "./WhatsappOwnerUsers";
 import WhatsappQueue from "./WhatsappQueue";
+import Country from "./Country";
 
 @Table
 class Whatsapp extends Model<Whatsapp> {
@@ -96,6 +99,13 @@ class Whatsapp extends Model<Whatsapp> {
 
   @Column
   wasDeleted: boolean;
+
+  @ForeignKey(() => Country)
+  @Column
+  countryId: number;
+
+  @BelongsTo(() => Country)
+  country: Country;
 }
 
 export default Whatsapp;
