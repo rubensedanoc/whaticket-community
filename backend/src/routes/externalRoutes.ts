@@ -16,6 +16,11 @@ externalRoutes.post(
 );
 
 externalRoutes.post(
+  "/sendMarketingCampaignIntro",
+  ExternalApiController.sendMarketingCampaignIntro
+);
+
+externalRoutes.post(
   "/sendImageMessage",
   ExternalApiController.sendImageMessage
 );

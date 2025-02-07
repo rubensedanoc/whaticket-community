@@ -33,6 +33,7 @@ const FindOrCreateTicketService = async (props: {
   marketingMessagingCampaignId?: number;
   marketingCampaignId?: number;
   msgFromMe?: boolean;
+  userId?: number;
 }): Promise<Ticket> => {
   const {
     contact,
@@ -45,7 +46,8 @@ const FindOrCreateTicketService = async (props: {
     messagingCampaignShipmentId,
     marketingMessagingCampaignShipmentId,
     marketingMessagingCampaignId,
-    marketingCampaignId
+    marketingCampaignId,
+    userId
   } = props;
 
   let ticket = await findTicket(props);
@@ -61,7 +63,7 @@ const FindOrCreateTicketService = async (props: {
           messagingCampaignId ||
           marketingMessagingCampaignId
             ? "closed"
-            : !!groupContact
+            : !!groupContact || userId
             ? "open"
             : "pending",
         isGroup: !!groupContact,
@@ -85,6 +87,9 @@ const FindOrCreateTicketService = async (props: {
         }),
         ...(marketingCampaignId && {
           marketingCampaignId
+        }),
+        ...(userId && {
+          userId
         })
       });
 
@@ -110,7 +115,7 @@ const FindOrCreateTicketService = async (props: {
             messagingCampaignId ||
             marketingMessagingCampaignId
               ? "closed"
-              : !!groupContact
+              : !!groupContact || userId
               ? "open"
               : "pending",
           isGroup: !!groupContact,
@@ -134,6 +139,9 @@ const FindOrCreateTicketService = async (props: {
           }),
           ...(marketingCampaignId && {
             marketingCampaignId
+          }),
+          ...(userId && {
+            userId
           })
         });
       }
@@ -158,7 +166,8 @@ const findTicket = async ({
   marketingMessagingCampaignShipmentId,
   marketingMessagingCampaignId,
   marketingCampaignId,
-  msgFromMe
+  msgFromMe,
+  userId
 }: {
   contact: Contact;
   whatsappId: number;
@@ -172,6 +181,7 @@ const findTicket = async ({
   marketingMessagingCampaignId?: number;
   marketingCampaignId?: number;
   msgFromMe?: boolean;
+  userId?: number;
 }) => {
   // find a ticket with status open or pending, from the contact or groupContact and  from the whatsappId
   let ticket = await Ticket.findOne({
@@ -235,6 +245,9 @@ const findTicket = async ({
       }),
       ...(marketingCampaignId && {
         marketingCampaignId
+      }),
+      ...(userId && {
+        userId
       })
     });
   }
@@ -380,6 +393,9 @@ const findTicket = async ({
         }),
         ...(marketingCampaignId && {
           marketingCampaignId
+        }),
+        ...(userId && {
+          userId
         })
       });
     }
