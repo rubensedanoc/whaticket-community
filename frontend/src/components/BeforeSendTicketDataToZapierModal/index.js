@@ -134,6 +134,7 @@ const BeforeSendTicketDataToZapierModal = ({
   const [allSISTEMA_ACTUALOptions, setAllSISTEMA_ACTUALOptions] = useState([]);
   const [allCOMO_SE_ENTEROOptions, setAllCOMO_SE_ENTEROOptions] = useState([]);
   const [allDOLOROptions, setAllDOLOROptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -348,11 +349,11 @@ const BeforeSendTicketDataToZapierModal = ({
           }}
           enableReinitialize={true}
           validationSchema={ContactSchema}
-          onSubmit={(values, actions) => {
-            setTimeout(() => {
-              handleSendToZapier(values);
-              actions.setSubmitting(false);
-            }, 400);
+          onSubmit={async (values, actions) => {
+            setIsLoading(true);
+            await handleSendToZapier(values);
+            actions.setSubmitting(false);
+            setIsLoading(false);
           }}
         >
           {({
@@ -361,7 +362,6 @@ const BeforeSendTicketDataToZapierModal = ({
             handleChange,
             handleBlur,
             errors,
-            isSubmitting,
             setFieldValue,
           }) => (
             <Form>
@@ -1124,20 +1124,20 @@ const BeforeSendTicketDataToZapierModal = ({
                 <Button
                   onClick={handleClose}
                   color="secondary"
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                   variant="outlined"
                 >
                   {i18n.t("queueModal.buttons.cancel")}
                 </Button>
                 <Button
                   color="primary"
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                   variant="outlined"
                   className={classes.btnWrapper}
                   onClick={() => handleSendToZapier(values, true)}
                 >
                   Guardar datos
-                  {isSubmitting && (
+                  {isLoading && (
                     <CircularProgress
                       size={24}
                       className={classes.buttonProgress}
@@ -1147,12 +1147,12 @@ const BeforeSendTicketDataToZapierModal = ({
                 <Button
                   type="submit"
                   color="primary"
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                   variant="contained"
                   className={classes.btnWrapper}
                 >
                   Crear en Trazabilidad
-                  {isSubmitting && (
+                  {isLoading && (
                     <CircularProgress
                       size={24}
                       className={classes.buttonProgress}
