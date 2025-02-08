@@ -22,12 +22,21 @@ const useTickets = ({
   const [hasMore, setHasMore] = useState(false);
   const [tickets, setTickets] = useState([]);
   const [count, setCount] = useState(0);
+  const [reload, setReload] = useState(0);
 
-  // useEffect(() => {
-  //   console.log("....... typeIds", typeIds);
-  // }, [typeIds]);
-
-  useEffect(() => {
+  const getTickets = ({
+    searchParam,
+    pageNumber,
+    status,
+    date,
+    showAll,
+    whatsappIds,
+    queueIds,
+    typeIds,
+    withUnreadMessages,
+    showOnlyMyGroups,
+    showOnlyWaitingTickets
+  }) => {
     setLoading(true);
     const delayDebounceFn = setTimeout(() => {
       const fetchTickets = async () => {
@@ -49,9 +58,9 @@ const useTickets = ({
             },
           });
           setTickets(data.tickets);
-
+  
           let horasFecharAutomaticamente = getHoursCloseTicketsAuto();
-
+  
           if (
             status === "open" &&
             horasFecharAutomaticamente &&
@@ -63,7 +72,7 @@ const useTickets = ({
             dataLimite.setHours(
               dataLimite.getHours() - Number(horasFecharAutomaticamente)
             );
-
+  
             data.tickets.forEach((ticket) => {
               if (ticket.status !== "closed") {
                 let dataUltimaInteracaoChamado = new Date(ticket.updatedAt);
@@ -72,7 +81,7 @@ const useTickets = ({
               }
             });
           }
-
+  
           setHasMore(data.hasMore);
           setCount(data.count);
           setLoading(false);
@@ -81,17 +90,33 @@ const useTickets = ({
           toastError(err);
         }
       };
-
+  
       const closeTicket = async (ticket) => {
         await api.put(`/tickets/${ticket.id}`, {
           status: "closed",
           userId: ticket.userId || null,
         });
       };
-
+  
       fetchTickets();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
+  }
+
+  useEffect(() => {
+    getTickets({
+      searchParam,
+      pageNumber,
+      status,
+      date,
+      showAll,
+      whatsappIds,
+      queueIds,
+      typeIds,
+      withUnreadMessages,
+      showOnlyMyGroups,
+      showOnlyWaitingTickets
+    });
   }, [
     searchParam,
     pageNumber,
@@ -104,9 +129,14 @@ const useTickets = ({
     withUnreadMessages,
     showOnlyMyGroups,
     showOnlyWaitingTickets,
+    reload
   ]);
 
-  return { tickets, loading, hasMore, count };
+  const triggerReload = () => {
+    setReload((prev) => prev + 1);
+  };
+
+  return { tickets, loading, hasMore, count, triggerReload };
 };
 
 export default useTickets;

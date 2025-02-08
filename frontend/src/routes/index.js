@@ -8,6 +8,7 @@ import { AuthProvider } from "../context/Auth/AuthContext";
 import { SearchMessageProvider } from "../context/SearchMessage/SearchMessageContext";
 import { UsersPresenceProvider } from "../context/UsersPresenceContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
+import { ReloadDataBecauseSocketContextProvider } from "../context/ReloadDataBecauseSocketContext";
 import LoggedInLayout from "../layout";
 import ApiChatbot from "../pages/ApiChatbot";
 import Categories from "../pages/Categories/";
@@ -45,112 +46,114 @@ const Routes = () => {
           <WhatsAppsProvider>
             <UsersPresenceProvider>
               <SearchMessageProvider>
-                <LoggedInLayout>
-                  <Route exact path="/" component={Dashboard} isPrivate />
-                  {/* <Route exact path="/reports" component={Reports} isPrivate  /> */}
-                  <Route
-                    exact
-                    path="/api-chatbot"
-                    component={ApiChatbot}
-                    isPrivate
-                    myIsAdminOnly
-                  />
-                  <Route
-                    exact
-                    path="/reportsv2"
-                    component={(() => {
-                      let componentToReturn;
-                      switch (getREACT_APP_PURPOSE()) {
-                        case "comercial":
-                          componentToReturn = ComercialReports;
-                          break;
+                <ReloadDataBecauseSocketContextProvider>
+                  <LoggedInLayout>
+                    <Route exact path="/" component={Dashboard} isPrivate />
+                    {/* <Route exact path="/reports" component={Reports} isPrivate  /> */}
+                    <Route
+                      exact
+                      path="/api-chatbot"
+                      component={ApiChatbot}
+                      isPrivate
+                      myIsAdminOnly
+                    />
+                    <Route
+                      exact
+                      path="/reportsv2"
+                      component={(() => {
+                        let componentToReturn;
+                        switch (getREACT_APP_PURPOSE()) {
+                          case "comercial":
+                            componentToReturn = ComercialReports;
+                            break;
 
-                        case "general":
-                          componentToReturn = ReportsV2;
-                          break;
+                          case "general":
+                            componentToReturn = ReportsV2;
+                            break;
 
-                        default:
-                          componentToReturn = ReportsV2;
-                          break;
-                      }
-                      return componentToReturn;
-                    })()}
-                    isPrivate
-                    myIsAdminOnly={getREACT_APP_PURPOSE() !== "comercial"}
-                  />
-                  <Route
-                    exact
-                    path="/tickets/:ticketId?"
-                    component={Tickets}
-                    isPrivate
-                  />
-                  <Route
-                    exact
-                    path="/connections"
-                    component={Connections}
-                    isPrivate
-                  />
-                  <Route
-                    exact
-                    path="/contacts"
-                    component={Contacts}
-                    isPrivate
-                  />
-                  <Route
-                    exact
-                    path="/messages"
-                    component={Messages}
-                    isPrivate
-                  />
-                  <Route
-                    exact
-                    path="/users"
-                    component={Users}
-                    isPrivate
-                    myIsAdminOnly
-                  />
-                  <Route
-                    exact
-                    path="/quickAnswers"
-                    component={QuickAnswers}
-                    isPrivate
-                  />
-                  <Route
-                    exact
-                    path="/Settings"
-                    component={Settings}
-                    isPrivate
-                    myIsAdminOnly
-                  />
-                  <Route
-                    exact
-                    path="/Queues"
-                    component={Queues}
-                    isPrivate
-                    myIsAdminOnly
-                  />
-                  <Route
-                    exact
-                    path="/categories"
-                    component={Categories}
-                    isPrivate
-                    myIsAdminOnly
-                  />
-                  <Route
-                    exact
-                    path="/marketingCampaigns"
-                    component={marketingCampaigns}
-                    isPrivate
-                    myIsAdminOnly
-                  />
-                  <Route
-                    exact
-                    path="/messagingCampaigns"
-                    component={MessagingCampaigns}
-                    isPrivate
-                  />
-                  <NotificationManager />
-                </LoggedInLayout>
+                          default:
+                            componentToReturn = ReportsV2;
+                            break;
+                        }
+                        return componentToReturn;
+                      })()}
+                      isPrivate
+                      myIsAdminOnly={getREACT_APP_PURPOSE() !== "comercial"}
+                    />
+                    <Route
+                      exact
+                      path="/tickets/:ticketId?"
+                      component={Tickets}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/connections"
+                      component={Connections}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/contacts"
+                      component={Contacts}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/messages"
+                      component={Messages}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/users"
+                      component={Users}
+                      isPrivate
+                      myIsAdminOnly
+                    />
+                    <Route
+                      exact
+                      path="/quickAnswers"
+                      component={QuickAnswers}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/Settings"
+                      component={Settings}
+                      isPrivate
+                      myIsAdminOnly
+                    />
+                    <Route
+                      exact
+                      path="/Queues"
+                      component={Queues}
+                      isPrivate
+                      myIsAdminOnly
+                    />
+                    <Route
+                      exact
+                      path="/categories"
+                      component={Categories}
+                      isPrivate
+                      myIsAdminOnly
+                    />
+                    <Route
+                      exact
+                      path="/marketingCampaigns"
+                      component={marketingCampaigns}
+                      isPrivate
+                      myIsAdminOnly
+                    />
+                    <Route
+                      exact
+                      path="/messagingCampaigns"
+                      component={MessagingCampaigns}
+                      isPrivate
+                    />
+                    <NotificationManager />
+                  </LoggedInLayout>
+                </ReloadDataBecauseSocketContextProvider>
               </SearchMessageProvider>
             </UsersPresenceProvider>
           </WhatsAppsProvider>
