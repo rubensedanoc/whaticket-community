@@ -13,6 +13,7 @@ import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import ArrowLeftIcon from "@material-ui/icons/ArrowLeft";
 import ArrowRightIcon from "@material-ui/icons/ArrowRight";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { ReloadDataBecauseSocketContext } from "../../context/ReloadDataBecauseSocketContext";
 import useTickets from "../../hooks/useTickets";
 import TicketsListSkeleton from "../TicketsListSkeleton";
 
@@ -217,13 +218,14 @@ const TicketsList = (props) => {
 
   const classes = useStyles();
   const { user } = useContext(AuthContext);
+  const { reconnect } = useContext( ReloadDataBecauseSocketContext );
 
   const [ticketsList, dispatch] = useReducer(reducer, []);
   const [pageNumber, setPageNumber] = useState(1);
   const [updatedCount, setUpdatedCount] = useState(0);
   const [microServiceLoading, setMicroServiceLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [wasDisConnected, setWasDisConnected] = useState('connecting');
+  // const [wasDisConnected, setWasDisConnected] = useState('connecting');
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -247,7 +249,7 @@ const TicketsList = (props) => {
     showOnlyWaitingTickets,
   ]);
 
-  const { tickets, hasMore, loading, count } = useTickets({
+  const { tickets, hasMore, loading, count, triggerReload } = useTickets({
     pageNumber,
     searchParam,
     status,
@@ -276,6 +278,15 @@ const TicketsList = (props) => {
   useEffect(() => {
     setUpdatedCount(count);
   }, [count]);
+
+  useEffect(() => {
+    console.log("RECONNECT", reconnect);
+    if (reconnect) {
+      dispatch({ type: "RESET" });
+      setPageNumber(1);
+      triggerReload();
+    }
+  }, [reconnect])
 
   // useEffect(() => {
   //   if (typeof updateCount === "function") {
@@ -361,20 +372,22 @@ const TicketsList = (props) => {
     //   ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;
 
     socket.on("connect", () => {
-      console.log("-------------------------connect-------------------------");
+      // console.log("-------------------------connect-------------------------");
       if (status) {
         socket.emit("joinTickets", status);
       } else {
         socket.emit("joinNotification");
       }
 
-      setWasDisConnected((prevState) => {
-        if (prevState === 'disconnected') {
-          toast.success("Conexión al servidor restablecida");
-          window.location.reload();
-        }
-        return 'connected';
-      });
+      // setWasDisConnected((prevState) => {
+      //   if (prevState === 'disconnected') {
+      //     toast.success("Conexión al servidor restablecida");
+      //     // window.location.reload();
+      //     dispatch({ type: "RESET" });
+      //     setPageNumber(1);
+      //   }
+      //   return 'connected';
+      // });
     });
 
     socket.on("ticket", async (data) => {
@@ -468,21 +481,21 @@ const TicketsList = (props) => {
       }
     });
 
-    socket.on("disconnect", () => {
-      console.log(
-        ".........................disconnect........................."
-      );
-      setWasDisConnected((prevState) => {
-        if (prevState === 'connected') {
-          toast.error("Te desconectaste del servidor, dale F5");
-          return 'disconnected'
-        }
-        return prevState;
-      });
-    });
+    // socket.on("disconnect", () => {
+    //   console.log(
+    //     ".........................disconnect........................."
+    //   );
+    //   setWasDisConnected((prevState) => {
+    //     if (prevState === 'connected') {
+    //       toast.error("Te desconectaste del servidor, dale F5");
+    //       return 'disconnected'
+    //     }
+    //     return prevState;
+    //   });
+    // });
 
     return () => {
-      setWasDisConnected('connecting');
+      // setWasDisConnected('connecting');
       socket.disconnect();
     };
   }, [
