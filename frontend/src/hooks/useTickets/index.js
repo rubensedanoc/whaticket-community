@@ -24,19 +24,7 @@ const useTickets = ({
   const [count, setCount] = useState(0);
   const [reload, setReload] = useState(0);
 
-  const getTickets = ({
-    searchParam,
-    pageNumber,
-    status,
-    date,
-    showAll,
-    whatsappIds,
-    queueIds,
-    typeIds,
-    withUnreadMessages,
-    showOnlyMyGroups,
-    showOnlyWaitingTickets
-  }) => {
+  useEffect(() => {
     setLoading(true);
     const delayDebounceFn = setTimeout(() => {
       const fetchTickets = async () => {
@@ -101,22 +89,6 @@ const useTickets = ({
       fetchTickets();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }
-
-  useEffect(() => {
-    getTickets({
-      searchParam,
-      pageNumber,
-      status,
-      date,
-      showAll,
-      whatsappIds,
-      queueIds,
-      typeIds,
-      withUnreadMessages,
-      showOnlyMyGroups,
-      showOnlyWaitingTickets
-    });
   }, [
     searchParam,
     pageNumber,
