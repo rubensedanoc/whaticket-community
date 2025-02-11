@@ -284,14 +284,21 @@ export const sendMarketingCampaignIntro = async (
 
   const countryId = await getCountryIdOfNumber(contacto_numero);
 
-  const whatsapp = await Whatsapp.findOne({
+  let whatsapp = await Whatsapp.findOne({
     where: {
       countryId
     }
   });
 
   if (!whatsapp) {
-    throw new AppError("No encontramos un Whatsapp para este lead", 404);
+    whatsapp = await Whatsapp.findOne({
+      where: {
+        isDefault: true
+      }
+    });
+    if (!whatsapp) {
+      throw new AppError("No se encontró un Whatsapp para el pais de este lead ni uno por defecto", 400);
+    }
   }
 
   await CheckIsValidContact(contacto_numero, whatsapp.id);
