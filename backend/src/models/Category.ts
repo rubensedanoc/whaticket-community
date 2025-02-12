@@ -32,6 +32,9 @@ class Category extends Model<Category> {
   @Column
   color: string;
 
+  @Column
+  isDefault: boolean;
+
   @CreatedAt
   createdAt: Date;
 

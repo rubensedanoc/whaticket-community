@@ -22,6 +22,7 @@ import Title from "../../components/Title";
 import UsersSelect from "../../components/UsersSelect";
 
 import Typography from "@material-ui/core/Typography";
+import ReportsQueueSelect from "../../components/ReportsQueueSelect";
 
 import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -367,9 +368,12 @@ const ComercialReports = () => {
   const [countries, setCountries] = useState([]);
   const [selectedCountryIds, setSelectedCountryIds] = useState([]);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
-  const [selectedQueueId, setSelectedQueueId] = useState(6);
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
   const [categories, setCategories] = useState([]);
+
+  const [queues, setQueues] = useState([]);
+  const [selectedQueueIds, setSelectedQueueIds] = useState([]);
+
   const [selectedMarketingCampaignsIds, setSelectedMarketingCampaignsIds] =
     useState([]);
   const [
@@ -397,6 +401,15 @@ const ComercialReports = () => {
       values: null,
       ticketsCount: null,
     });
+  const [ticketsDistributionByStages3, setTicketsDistributionByStages3] =
+    useState({
+      values: null,
+      ticketsCount: null,
+    });
+  const [facebookTicketsData, setFacebookTicketsData] = useState({
+    values: null,
+    ticketsCount: null,
+  });
   const [ticketsDistributionByStages2, setTicketsDistributionByStages2] =
     useState({
       values: null,
@@ -472,6 +485,11 @@ const ComercialReports = () => {
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
+    if (localStorage.getItem("ReportsWhatsappSelect")) {
+      setSelectedWhatsappIds(
+        JSON.parse(localStorage.getItem("ReportsWhatsappSelect"))
+      );
+    }
     if (localStorage.getItem("ReportsCountrySelect")) {
       setSelectedCountryIds(
         JSON.parse(localStorage.getItem("ReportsCountrySelect"))
@@ -496,14 +514,24 @@ const ComercialReports = () => {
       );
     }
 
+    if (localStorage.getItem("ReportsQueueSelect")) {
+      setSelectedQueueIds(
+        JSON.parse(localStorage.getItem("ReportsQueueSelect"))
+      );
+    }
+
     getTicketsDistributionByStages({
       fromDate,
       toDate,
-      selectedWhatsappIds,
+      selectedWhatsappIds:
+        JSON.parse(localStorage.getItem("ReportsWhatsappSelect")) ||
+        selectedWhatsappIds,
       selectedCountryIds:
         JSON.parse(localStorage.getItem("ReportsCountrySelect")) ||
         selectedCountryIds,
-      selectedQueueId,
+      selectedQueueIds:
+        JSON.parse(localStorage.getItem("ReportsQueueSelect")) ||
+        selectedQueueIds,
       selectedMarketingCampaignsIds:
         JSON.parse(localStorage.getItem("MarketingCampaignsIds")) ||
         selectedMarketingCampaignsIds,
@@ -521,6 +549,12 @@ const ComercialReports = () => {
         const { data } = await api.get(`/countries`);
         if (data?.countries?.length > 0) {
           setCountries(data.countries);
+        }
+
+        const { data: queueData } = await api.get("/queue");
+
+        if (queueData.length > 0) {
+          setQueues(queueData);
         }
       } catch (err) {
         toastError(err);
@@ -545,7 +579,7 @@ const ComercialReports = () => {
     toDate,
     selectedWhatsappIds,
     selectedCountryIds,
-    selectedQueueId,
+    selectedQueueIds,
     selectedMarketingCampaignsIds,
     selectedUsersIds,
     ticketStatus,
@@ -562,7 +596,7 @@ const ComercialReports = () => {
             toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
             selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
             selectedCountryIds: JSON.stringify(selectedCountryIds),
-            selectedQueueId: JSON.stringify(selectedQueueId),
+            selectedQueueIds: JSON.stringify(selectedQueueIds),
             selectedMarketingCampaignsIds: JSON.stringify(
               selectedMarketingCampaignsIds
             ),
@@ -594,6 +628,18 @@ const ComercialReports = () => {
 
           return aOrder - bOrder;
         }),
+      });
+      setTicketsDistributionByStages3({
+        ticketsCount: ticketsDistributionByStages.data3.ticketsCount,
+        values: ticketsDistributionByStages.data3.values,
+      });
+      setFacebookTicketsData({
+        ticketsCount:
+          ticketsDistributionByStages
+            .FacebookIncomingRequestByMarketingCampaigns.ticketsCount,
+        values:
+          ticketsDistributionByStages
+            .FacebookIncomingRequestByMarketingCampaigns.values,
       });
       setTicketsDistributionByStages2({
         ticketsCount: ticketsDistributionByStages.data2.ticketsCount,
@@ -791,6 +837,13 @@ const ComercialReports = () => {
                 onChange={(values) => setSelectedWhatsappIds(values)}
               />
 
+              <ReportsQueueSelect
+                style={{ marginLeft: 6 }}
+                selectedQueueIds={selectedQueueIds || []}
+                userQueues={queues || []}
+                onChange={(values) => setSelectedQueueIds(values)}
+              />
+
               <ReportsCountrySelect
                 style={{ marginLeft: 6 }}
                 selectedCountryIds={selectedCountryIds || []}
@@ -897,7 +950,7 @@ const ComercialReports = () => {
                   toDate,
                   selectedWhatsappIds,
                   selectedCountryIds,
-                  selectedQueueId,
+                  selectedQueueIds,
                   selectedMarketingCampaignsIds,
                   selectedUsersIds:
                     user.profile === "admin" ? selectedUsersIds : [user.id],
@@ -920,6 +973,440 @@ const ComercialReports = () => {
         >
           {user.profile === "admin" && (
             <>
+              {/* Distribución General por Pais/Campañas CARD */}
+              <Grid item xs={12}>
+                <Paper className={classes.customFixedHeightPaper}>
+                  {/* CARD HEADER */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                    }}
+                  >
+                    <Typography
+                      component="h3"
+                      variant="h6"
+                      color="primary"
+                      paragraph
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>
+                        Distribución General por Pais/Campañas -{" "}
+                        {ticketsDistributionByStages3.ticketsCount}
+                      </span>
+                    </Typography>
+                  </div>
+
+                  {/* CARD CHART */}
+                  {ticketsDistributionByStages3.values ? (
+                    (() => {
+                      let allCampaignsFormatIds = [];
+
+                      ticketsDistributionByStages3.values.forEach(
+                        (ticketsDistribution) => {
+                          const keys = Object.keys(ticketsDistribution);
+
+                          keys
+                            .filter((k) => k.includes("campaign_"))
+                            .forEach((key) => {
+                              if (allCampaignsFormatIds.includes(key)) {
+                                return;
+                              }
+                              allCampaignsFormatIds.push(key);
+                            });
+                        }
+                      );
+
+                      return (
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart
+                            data={ticketsDistributionByStages3.values}
+                            margin={{
+                              top: 20,
+                              right: 30,
+                              left: 20,
+                              bottom: 20,
+                            }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="countryName"
+                              fontSize={12}
+                              fontWeight={"bold"}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              tickLine={false}
+                              axisLine={false}
+                              width={20}
+                            />
+                            <Tooltip
+                              cursor={{ fill: "#0000000a" }}
+                              formatter={(
+                                value,
+                                name,
+                                item,
+                                index,
+                                payload
+                              ) => {
+                                const id = name.replace("campaign_", "");
+                                return [
+                                  `${value} (${Math.round(
+                                    (value /
+                                      payload.reduce((acc, cur) => {
+                                        return acc + cur.value;
+                                      }, 0)) *
+                                      100
+                                  )}%)`,
+                                  marketingCampaigns.find((mc) => mc.id == id)
+                                    ?.name || "Sin campaña",
+                                ];
+                              }}
+                            />
+                            <Legend
+                              wrapperStyle={{
+                                bottom: 0,
+                                gap: "1rem",
+                              }}
+                              formatter={(value) => {
+                                const id = value.replace("campaign_", "");
+                                return (
+                                  marketingCampaigns.find((mc) => mc.id == id)
+                                    ?.name || "Sin campaña"
+                                );
+                              }}
+                            />
+
+                            {allCampaignsFormatIds.map((id, index) => (
+                              <Fragment key={id}>
+                                <Bar
+                                  onClick={(e) => {
+                                    console.log("e", e);
+                                    setTicketListModalOpen(true);
+                                    setTicketListModalTitle(
+                                      `Tickets en "${e.categoryName}" por campaña`
+                                    );
+                                    setTicketListModalTicketGroups(
+                                      e.tickets.reduce((acc, t) => {
+                                        const mrktCampaignName =
+                                          t.mc_name || "Sin campaña";
+
+                                        const mc_nameIndexInResult =
+                                          acc.findIndex(
+                                            (g) => g.title === mrktCampaignName
+                                          );
+
+                                        console.log(
+                                          "mc_nameIndexInResult",
+                                          mc_nameIndexInResult
+                                        );
+
+                                        if (mc_nameIndexInResult > -1) {
+                                          acc[mc_nameIndexInResult].ids.push(
+                                            t.t_id
+                                          );
+                                        } else {
+                                          acc.push({
+                                            title: mrktCampaignName,
+                                            ids: [t.t_id],
+                                          });
+                                        }
+
+                                        return acc;
+                                      }, [])
+                                    );
+                                  }}
+                                  capHeight={10}
+                                  dataKey={`${id}`}
+                                  stackId="a"
+                                  fill={
+                                    marketingCampaigns.find(
+                                      (mc) =>
+                                        mc.id == id.replaceAll("campaign_", "")
+                                    )?.color || "gray"
+                                  }
+                                >
+                                  {index ===
+                                    allCampaignsFormatIds.length - 1 && (
+                                    <LabelList
+                                      position="top"
+                                      offset={12}
+                                      className="fill-foreground"
+                                      fontWeight={"bold"}
+                                      fontSize={12}
+                                      formatter={(value) => {
+                                        return `${value} (${Math.round(
+                                          (value /
+                                            ticketsDistributionByStages3.ticketsCount) *
+                                            100
+                                        )}%)`;
+                                      }}
+                                    />
+                                  )}
+                                </Bar>
+                              </Fragment>
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      );
+                    })()
+                  ) : (
+                    <>cargando</>
+                  )}
+                </Paper>
+              </Grid>
+
+              {/* Distribución General de facebook/tickets CARD */}
+              <Grid item xs={12}>
+                <Paper className={classes.customFixedHeightPaper}>
+                  {/* CARD HEADER */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                    }}
+                  >
+                    <Typography
+                      component="h3"
+                      variant="h6"
+                      color="primary"
+                      paragraph
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>
+                        Distribución General por Facebook/Tickets -{" "}
+                        {facebookTicketsData.ticketsCount}
+                      </span>
+                    </Typography>
+                  </div>
+
+                  {/* CARD CHART */}
+                  {facebookTicketsData.values ? (
+                    (() => {
+                      // let allCampaignsFormatIds = [];
+
+                      // setFacebookTicketsData.values.forEach(
+                      //   (ticketsDistribution) => {
+                      //     const keys = Object.keys(ticketsDistribution);
+
+                      //     keys
+                      //       .filter((k) => k.includes("campaign_"))
+                      //       .forEach((key) => {
+                      //         if (allCampaignsFormatIds.includes(key)) {
+                      //           return;
+                      //         }
+                      //         allCampaignsFormatIds.push(key);
+                      //       });
+                      //   }
+                      // );
+
+                      return (
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart
+                            data={facebookTicketsData.values}
+                            margin={{
+                              top: 20,
+                              right: 30,
+                              left: 20,
+                              bottom: 20,
+                            }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="marketingCampaignName"
+                              fontSize={12}
+                              fontWeight={"bold"}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              tickLine={false}
+                              axisLine={false}
+                              width={20}
+                            />
+                            {/* <Tooltip
+                              cursor={{ fill: "#0000000a" }}
+                              formatter={(
+                                value,
+                                name,
+                                item,
+                                index,
+                                payload
+                              ) => {
+                                const id = name.replace("campaign_", "");
+                                return [
+                                  `${value} (${Math.round(
+                                    (value /
+                                      payload.reduce((acc, cur) => {
+                                        return acc + cur.value;
+                                      }, 0)) *
+                                      100
+                                  )}%)`,
+                                  marketingCampaigns.find((mc) => mc.id == id)
+                                    ?.name || "Sin campaña",
+                                ];
+                              }}
+                            /> */}
+                            {/* <Legend
+                              wrapperStyle={{
+                                bottom: 0,
+                                gap: "1rem",
+                              }}
+                              formatter={(value) => {
+                                const id = value.replace("campaign_", "");
+                                return (
+                                  marketingCampaigns.find((mc) => mc.id == id)
+                                    ?.name || "Sin campaña"
+                                );
+                              }}
+                            /> */}
+
+                            {/* {allCampaignsFormatIds.map((id, index) => (
+                              <Fragment key={id}>
+                                <Bar
+                                  onClick={(e) => {
+                                    console.log("e", e);
+                                    setTicketListModalOpen(true);
+                                    setTicketListModalTitle(
+                                      `Tickets en "${e.categoryName}" por campaña`
+                                    );
+                                    setTicketListModalTicketGroups(
+                                      e.tickets.reduce((acc, t) => {
+                                        const mrktCampaignName =
+                                          t.mc_name || "Sin campaña";
+
+                                        const mc_nameIndexInResult =
+                                          acc.findIndex(
+                                            (g) => g.title === mrktCampaignName
+                                          );
+
+                                        console.log(
+                                          "mc_nameIndexInResult",
+                                          mc_nameIndexInResult
+                                        );
+
+                                        if (mc_nameIndexInResult > -1) {
+                                          acc[mc_nameIndexInResult].ids.push(
+                                            t.t_id
+                                          );
+                                        } else {
+                                          acc.push({
+                                            title: mrktCampaignName,
+                                            ids: [t.t_id],
+                                          });
+                                        }
+
+                                        return acc;
+                                      }, [])
+                                    );
+                                  }}
+                                  capHeight={10}
+                                  dataKey={`${id}`}
+                                  stackId="a"
+                                  fill={
+                                    marketingCampaigns.find(
+                                      (mc) =>
+                                        mc.id == id.replaceAll("campaign_", "")
+                                    )?.color || "gray"
+                                  }
+                                >
+                                  {index ===
+                                    allCampaignsFormatIds.length - 1 && (
+                                    <LabelList
+                                      position="top"
+                                      offset={12}
+                                      className="fill-foreground"
+                                      fontWeight={"bold"}
+                                      fontSize={12}
+                                      formatter={(value) => {
+                                        return `${value} (${Math.round(
+                                          (value /
+                                            ticketsDistributionByStages3.ticketsCount) *
+                                            100
+                                        )}%)`;
+                                      }}
+                                    />
+                                  )}
+                                </Bar>
+                              </Fragment>
+                            ))} */}
+
+                            <Bar
+                              onClick={(e) => {
+                                console.log("e", e);
+                                setTicketListModalOpen(true);
+                                setTicketListModalTitle(
+                                  `Tickets en "${e.categoryName}" por campaña`
+                                );
+                                setTicketListModalTicketGroups(
+                                  e.tickets.reduce((acc, t) => {
+                                    // const mrktCampaignName =
+                                    //   t.mc_name || "Sin campaña";
+                                    // const mc_nameIndexInResult = acc.findIndex(
+                                    //   (g) => g.title === mrktCampaignName
+                                    // );
+                                    // console.log(
+                                    //   "mc_nameIndexInResult",
+                                    //   mc_nameIndexInResult
+                                    // );
+                                    // if (mc_nameIndexInResult > -1) {
+                                    //   acc[mc_nameIndexInResult].ids.push(
+                                    //     t.t_id
+                                    //   );
+                                    // } else {
+                                    //   acc.push({
+                                    //     title: mrktCampaignName,
+                                    //     ids: [t.t_id],
+                                    //   });
+                                    // }
+                                    // return acc;
+                                  }, [])
+                                );
+                              }}
+                              capHeight={10}
+                              dataKey={`ticketsCount`}
+                              stackId="a"
+                              fill={"blue"}
+                            >
+                              <LabelList
+                                position="top"
+                                offset={12}
+                                className="fill-foreground"
+                                fontWeight={"bold"}
+                                fontSize={12}
+                                formatter={(value) => {
+                                  return `${value} (${Math.round(
+                                    (value / facebookTicketsData.ticketsCount) *
+                                      100
+                                  )}%)`;
+                                }}
+                              />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      );
+                    })()
+                  ) : (
+                    <>cargando</>
+                  )}
+                </Paper>
+              </Grid>
+
               {/* Distribución General por Usuario/Etapas CARD */}
               <Grid item xs={12}>
                 <Paper className={classes.customFixedHeightPaper}>
