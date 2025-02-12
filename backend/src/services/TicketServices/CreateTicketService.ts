@@ -4,6 +4,7 @@ import GetDefaultWhatsApp from "../../helpers/GetDefaultWhatsApp";
 import Category from "../../models/Category";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
+import TicketCategory from "../../models/TicketCategory";
 import Whatsapp from "../../models/Whatsapp";
 import ShowContactService from "../ContactServices/ShowContactService";
 
@@ -67,6 +68,17 @@ const CreateTicketService = async ({
     queueId,
     lastMessageTimestamp
   });
+
+  const defaultCategory = await Category.findOne({
+    where: { isDefault: true }
+  });
+
+  if (id && defaultCategory) {
+    await TicketCategory.create({
+      ticketId: id,
+      categoryId: defaultCategory.id
+    });
+  }
 
   const ticket = await Ticket.findByPk(id, {
     include: [

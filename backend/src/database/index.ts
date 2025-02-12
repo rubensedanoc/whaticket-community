@@ -6,6 +6,8 @@ import Contact from "../models/Contact";
 import ContactCustomField from "../models/ContactCustomField";
 import Country from "../models/Country";
 import GroupContact from "../models/GroupContact";
+import Log from "../models/Log";
+import LogType from "../models/LogType";
 import MarketingCampaign from "../models/MarketingCampaign";
 import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
 import MarketingMessagingCampaign from "../models/MarketingMessagingCampaigns";
@@ -72,7 +74,9 @@ const models = [
   MessagingCampaignShipmentNumber,
   MarketingMessagingCampaignShipment,
   MarketingMessagingCampaignShipmentNumber,
-  SendMessageRequest
+  SendMessageRequest,
+  LogType,
+  Log
 ];
 
 sequelize.addModels(models);

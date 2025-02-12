@@ -7,6 +7,7 @@ import { Op, QueryTypes } from "sequelize";
 import AppError from "../errors/AppError";
 import Category from "../models/Category";
 import Contact from "../models/Contact";
+import Country from "../models/Country";
 import MarketingCampaign from "../models/MarketingCampaign";
 import Message from "../models/Message";
 import Queue from "../models/Queue";
@@ -2107,7 +2108,7 @@ export const getTicketsDistributionByStages = async (
     toDate: toDateAsString,
     selectedWhatsappIds: selectedUserIdsAsString,
     selectedCountryIds: selectedCountryIdsAsString,
-    selectedQueueId: selectedQueueIdAsString,
+    selectedQueueIds: selectedQueueIdsAsString,
     selectedMarketingCampaignsIds: selectedMarketingCampaignsIdsAsString,
     selectedUsersIds: selectedUsersIdsAsString,
     ticketStatus: ticketStatusAsString,
@@ -2118,6 +2119,7 @@ export const getTicketsDistributionByStages = async (
   const response: {
     logs?: string[];
     sql?: string;
+    sqlFacebook?: string;
     sqlResult?: any[];
     sqlResultGroupByTicket?: any[];
     categoryRelationsOfSelectedQueue?: QueueCategory[];
@@ -2126,6 +2128,14 @@ export const getTicketsDistributionByStages = async (
       values: any[];
     };
     data2?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    data3?: {
+      ticketsCount: number;
+      values: any[];
+    };
+    FacebookIncomingRequestByMarketingCampaigns?: {
       ticketsCount: number;
       values: any[];
     };
@@ -2177,6 +2187,14 @@ export const getTicketsDistributionByStages = async (
       ticketsCount: 0,
       values: []
     },
+    data3: {
+      ticketsCount: 0,
+      values: []
+    },
+    FacebookIncomingRequestByMarketingCampaigns: {
+      ticketsCount: 0,
+      values: []
+    },
     dataByTIENE_RESTAURANTE: {
       ticketsCount: 0,
       values: []
@@ -2215,7 +2233,7 @@ export const getTicketsDistributionByStages = async (
 
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
-  const selectedQueueId = JSON.parse(selectedQueueIdAsString) as number;
+  const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as number[];
   const selectedMarketingCampaignsIds = JSON.parse(
     selectedMarketingCampaignsIdsAsString
   ) as string[];
@@ -2224,9 +2242,23 @@ export const getTicketsDistributionByStages = async (
     selectedMarketingMessaginCampaignsIdsAsString
   ) as string[];
 
-  let sqlWhereAdd = ` c.isCompanyMember IS NOT TRUE AND t.queueId = ${selectedQueueId} AND t.createdAt between '${formatDateToMySQL(
+  let sqlWhereAdd = ` c.isCompanyMember IS NOT TRUE AND c.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
     fromDateAsString
   )}' and '${formatDateToMySQL(toDateAsString)}' `;
+
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
+  }
 
   if (selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
@@ -2278,25 +2310,39 @@ export const getTicketsDistributionByStages = async (
     }
   }
 
-  const categoryRelationsOfSelectedQueue = await QueueCategory.findAll({
-    where: {
-      queueId: selectedQueueId
-    },
-    include: [
-      {
-        model: Category,
-        as: "category",
-        required: false
-      }
-    ]
-  });
+  // const categoryRelationsOfSelectedQueue = await QueueCategory.findAll({
+  //   where: {
+  //     ...(selectedQueueIds.length > 0 && {
+  //       queueId: {
+  //         [Op.in]: selectedQueueIds
+  //       }
+  //     })
+  //   },
+  //   include: [
+  //     {
+  //       model: Category,
+  //       as: "category",
+  //       required: false
+  //     }
+  //   ]
+  // });
 
-  if (categoryRelationsOfSelectedQueue.length > 0) {
-    sqlWhereAdd += ` AND categoryId IN (${categoryRelationsOfSelectedQueue
-      .map(cr => cr.categoryId)
-      .join(",")}) `;
-  }
+  // if (categoryRelationsOfSelectedQueue.length > 0) {
+  //   sqlWhereAdd += ` AND categoryId IN (${categoryRelationsOfSelectedQueue
+  //     .map(cr => cr.categoryId)
+  //     .join(",")}) `;
+  // }
 
+  // response.categoryRelationsOfSelectedQueue = categoryRelationsOfSelectedQueue;
+
+  const allCategories = await Category.findAll();
+
+  const categoryRelationsOfSelectedQueue = allCategories.map(c => ({
+    categoryId: c.id,
+    category: c
+  }));
+
+  // @ts-ignore
   response.categoryRelationsOfSelectedQueue = categoryRelationsOfSelectedQueue;
 
   const selectedUsers = await User.findAll({
@@ -2323,6 +2369,7 @@ export const getTicketsDistributionByStages = async (
       c.name as c_name,
       c.number as c_number,
       c.isGroup as c_isGroup,
+      c.countryId as c_countryId,
       tc.categoryId as tc_categoryId,
       mc.name as mc_name,
       ccf.name AS ccf_name,
@@ -2361,6 +2408,7 @@ export const getTicketsDistributionByStages = async (
     c_name: string;
     c_number: string;
     c_isGroup: number;
+    c_countryId: number;
     tc_categoryId: number;
     mc_name: string;
     ccf_name: string;
@@ -2443,6 +2491,55 @@ export const getTicketsDistributionByStages = async (
   response.data = {
     ticketsCount: dataToReturnTicketsCount,
     values: dataToReturn
+  };
+
+  let allCountries = await Country.findAll();
+
+  if (selectedCountryIds && selectedCountryIds.length > 0) {
+    allCountries = allCountries.filter(country =>
+      // @ts-ignore
+      selectedCountryIds.includes(country.id)
+    );
+  }
+
+  let dataToReturn3TicketsCount = 0;
+  console.log("dataToReturn3 allCountries", allCountries);
+  const dataToReturn3 = allCountries.reduce((result, currentValue) => {
+    const currentValueInResult = result.find(
+      row => row.countryId === currentValue.id
+    );
+    if (!currentValueInResult) {
+      const obj = {
+        countryId: currentValue.id,
+        countryName: currentValue.name,
+        tickets: []
+      };
+
+      sqlResult.forEach(row => {
+        if (row.c_countryId === currentValue.id) {
+          const campaignProp = Object.keys(obj).find(
+            // @ts-ignore
+            key => key === `campaign_${row.t_marketingCampaignId}`
+          );
+
+          if (!campaignProp) {
+            obj[`campaign_${row.t_marketingCampaignId}`] = 1;
+          } else {
+            obj[campaignProp] += 1;
+          }
+
+          obj.tickets.push(row);
+          dataToReturn3TicketsCount += 1;
+        }
+      });
+
+      result.push(obj);
+    }
+    return result;
+  }, []);
+  response.data3 = {
+    ticketsCount: dataToReturn3TicketsCount,
+    values: dataToReturn3
   };
 
   let dataToReturnTicketsCount2 = 0;
@@ -2699,6 +2796,163 @@ export const getTicketsDistributionByStages = async (
     ticketsCount: dataByCUANTO_PAGACount,
     ticketsAvr: dataByCUANTO_PAGAAvr,
     tickets: dataByCUANTO_PAGATickets
+  };
+
+  // getFacebookIncomingRequestByMarketingCampaigns
+
+  let sqlWhereAdd2 = ` c.isCompanyMember IS NOT TRUE AND c.isGroup = 0 AND t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd2 += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd2 += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWhereAdd2 += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
+  }
+
+  if (selectedWhatsappIds.length > 0) {
+    sqlWhereAdd2 += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+
+  if (selectedCountryIds.length > 0) {
+    sqlWhereAdd2 += ` AND c.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+
+  if (selectedMarketingCampaignsIds.length > 0) {
+    if (!selectedMarketingCampaignsIds.includes(null)) {
+      sqlWhereAdd2 += ` AND t.marketingCampaignId IN (${selectedMarketingCampaignsIds.join(
+        ","
+      )}) `;
+    } else {
+      if (selectedMarketingCampaignsIds.length === 1) {
+        sqlWhereAdd2 += ` AND t.marketingCampaignId IS NULL`;
+      } else {
+        sqlWhereAdd2 += ` AND (t.marketingCampaignId IN (${selectedMarketingCampaignsIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.marketingCampaignId IS NULL)`;
+      }
+    }
+  }
+
+  if (selectedUsersIds.length > 0) {
+    sqlWhereAdd2 += ` AND t.userId IN (${selectedUsersIds.join(",")}) `;
+  }
+
+  if (ticketStatusAsString) {
+    if (ticketStatusAsString !== '"all"') {
+      sqlWhereAdd2 += ` AND t.status = ${ticketStatusAsString} `;
+    }
+  }
+
+  const sqlFacebook = `
+    SELECT
+      t.id as t_id,
+      t.createdAt as t_createdAt,
+      t.isGroup as t_isGroup,
+      t.marketingCampaignId as t_marketingCampaignId,
+      t.marketingMessagingCampaignId as t_marketingMessagingCampaignId,
+      t.userId as t_userId,
+      t.status as t_status,
+      c.id as c_id,
+      c.name as c_name,
+      c.number as c_number,
+      c.isGroup as c_isGroup,
+      c.countryId as c_countryId,
+      mc.name as mc_name
+    FROM whaticket.Logs l
+      JOIN Tickets t
+        ON l.ticketId = t.id
+      JOIN Contacts c
+        ON t.contactId = c.id
+      JOIN MarketingCampaigns mc
+        ON mc.id = l.marketingCampaignId
+    WHERE ${sqlWhereAdd2}
+    ORDER BY t.id ASC;
+  `;
+
+  response.sqlFacebook = sqlFacebook;
+  response.logs.push(`sql-inicio: ${Date()}`);
+
+  interface SqlFacebookResult {
+    t_id: number;
+    t_createdAt: string;
+    t_isGroup: number;
+    t_marketingCampaignId: number;
+    t_marketingMessagingCampaignId: number;
+    t_wasSentToZapier: number;
+    t_userId: number;
+    c_id: number;
+    c_name: string;
+    c_number: string;
+    c_isGroup: number;
+    c_countryId: number;
+    tc_categoryId: number;
+    mc_name: string;
+    ccf_name: string;
+    ccf_value: string;
+    ccfs: [{ name: string; value: string }];
+  }
+
+  let sqlFacebookResult: SqlFacebookResult[] = await Ticket.sequelize.query(
+    sqlFacebook,
+    {
+      type: QueryTypes.SELECT
+    }
+  );
+
+  let allMarketingCampaigns = await MarketingCampaign.findAll({
+    where: {
+      isActive: 1
+    }
+  });
+
+  if (
+    selectedMarketingCampaignsIds &&
+    selectedMarketingCampaignsIds.length > 0
+  ) {
+    allMarketingCampaigns = allMarketingCampaigns.filter(campaign =>
+      // @ts-ignore
+      selectedMarketingCampaignsIds.includes(campaign.id)
+    );
+  }
+
+  let dataFacebookIncomingRequestByMarketingCampaignsTicketsCount = 0;
+  const dataFacebookIncomingRequestByMarketingCampaigns =
+    allMarketingCampaigns.reduce((result, currentValue) => {
+      const currentValueInResult = result.find(
+        row => row.marketingCampaignId === currentValue.id
+      );
+      if (!currentValueInResult) {
+        const obj = {
+          marketingCampaignId: currentValue.id,
+          marketingCampaignName: currentValue.name,
+          tickets: [],
+          ticketsCount: 0
+        };
+
+        sqlFacebookResult.forEach(row => {
+          if (row.t_marketingCampaignId === currentValue.id) {
+            obj.tickets.push(row);
+            obj.ticketsCount += 1;
+            dataFacebookIncomingRequestByMarketingCampaignsTicketsCount += 1;
+          }
+        });
+
+        result.push(obj);
+      }
+      return result;
+    }, []);
+  response.FacebookIncomingRequestByMarketingCampaigns = {
+    ticketsCount: dataFacebookIncomingRequestByMarketingCampaignsTicketsCount,
+    values: dataFacebookIncomingRequestByMarketingCampaigns
   };
 
   return res.status(200).json(response);

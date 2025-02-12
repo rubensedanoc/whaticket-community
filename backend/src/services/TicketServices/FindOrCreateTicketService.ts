@@ -34,6 +34,7 @@ const FindOrCreateTicketService = async (props: {
   marketingCampaignId?: number;
   msgFromMe?: boolean;
   userId?: number;
+  categoriesIds?: number[];
 }): Promise<Ticket> => {
   const {
     contact,
@@ -47,7 +48,8 @@ const FindOrCreateTicketService = async (props: {
     marketingMessagingCampaignShipmentId,
     marketingMessagingCampaignId,
     marketingCampaignId,
-    userId
+    userId,
+    categoriesIds
   } = props;
 
   let ticket = await findTicket(props);
@@ -92,6 +94,10 @@ const FindOrCreateTicketService = async (props: {
           userId
         })
       });
+
+      if (categoriesIds) {
+        await ticket.$set("categories", categoriesIds);
+      }
 
       // find the ticket from the service ShowTicketService and return it
       ticket = await ShowTicketService(ticket.id);
@@ -144,6 +150,10 @@ const FindOrCreateTicketService = async (props: {
             userId
           })
         });
+
+        if (categoriesIds) {
+          await ticket.$set("categories", categoriesIds);
+        }
       }
 
       // find the ticket from the service ShowTicketService and return it
@@ -167,7 +177,8 @@ const findTicket = async ({
   marketingMessagingCampaignId,
   marketingCampaignId,
   msgFromMe,
-  userId
+  userId,
+  categoriesIds
 }: {
   contact: Contact;
   whatsappId: number;
@@ -182,6 +193,7 @@ const findTicket = async ({
   marketingCampaignId?: number;
   msgFromMe?: boolean;
   userId?: number;
+  categoriesIds?: number[];
 }) => {
   // find a ticket with status open or pending, from the contact or groupContact and  from the whatsappId
   let ticket = await Ticket.findOne({
@@ -250,6 +262,10 @@ const findTicket = async ({
         userId
       })
     });
+
+    if (categoriesIds) {
+      await ticket.$set("categories", categoriesIds);
+    }
   }
 
   // if ticket not exists and groupContact is trully, find a ticket from the groupContact and from the whatsappId
@@ -398,6 +414,10 @@ const findTicket = async ({
           userId
         })
       });
+
+      if (categoriesIds) {
+        await ticket.$set("categories", categoriesIds);
+      }
     }
   }
 

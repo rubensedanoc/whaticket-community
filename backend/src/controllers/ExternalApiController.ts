@@ -4,10 +4,17 @@ import WAWebJS, { MessageMedia, MessageSendOptions } from "whatsapp-web.js";
 import AppError from "../errors/AppError";
 import formatBody from "../helpers/Mustache";
 import { getWbot } from "../libs/wbot";
+import Category from "../models/Category";
+import Log from "../models/Log";
+import MarketingCampaign from "../models/MarketingCampaign";
+import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
 import MessagingCampaign from "../models/MessagingCampaign";
 import MessagingCampaignShipment from "../models/MessagingCampaignShipment";
 import MessagingCampaignShipmentNumber from "../models/MessagingCampaignShipmentNumber";
+import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
+import { getCountryIdOfNumber } from "../services/ContactServices/CreateOrUpdateContactService";
+import SearchLogTypeService from "../services/LogServices/SearchLogTypeService";
 import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTicketService";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import SendApiChatbotMessage from "../services/WbotServices/SendApiChatbotMessage";
@@ -17,10 +24,8 @@ import {
   verifyContact,
   verifyMessage
 } from "../services/WbotServices/wbotMessageListener";
-import { getCountryIdOfNumber } from "../services/ContactServices/CreateOrUpdateContactService";
-import MarketingCampaign from "../models/MarketingCampaign";
-import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
-import User from "../models/User";
+import getUnixTimestamp from "../utils/getUnixTimestamp";
+import sleepPromise from "../utils/sleepPromise";
 
 export const sendApiChatbotMessage = async (
   req: Request,
@@ -204,7 +209,7 @@ export const sendMakeMessaginCampaign = async (
             lastMessageTimestamp: msg.timestamp,
             messagingCampaignId: messagingCampaign.id,
             messagingCampaignShipmentId: newMessagingCampaignShipment.id,
-            msgFromMe: msg.fromMe,
+            msgFromMe: msg.fromMe
           });
 
           await verifyMessage({
@@ -256,7 +261,9 @@ export const sendMarketingCampaignIntro = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  console.log("--- CALL FOR sendMarketingCampaignIntro", req.body);
+  req.myLog(
+    "--- CALL FOR sendMarketingCampaignIntro" + JSON.stringify(req.body)
+  );
 
   let {
     contacto_numero,
@@ -271,13 +278,11 @@ export const sendMarketingCampaignIntro = async (
     !contacto_numero ||
     !contact_nombre ||
     !contact_correo ||
-    !contact_nombre_negocio
+    !contact_nombre_negocio ||
+    !user_id ||
+    !campaign_id
   ) {
-    throw new AppError("Faltan datos del contacto", 400);
-  }
-
-  if (!user_id || !campaign_id) {
-    throw new AppError("Faltan datos del usuario o campaña", 400);
+    throw new AppError("Faltan datos");
   }
 
   contacto_numero = contacto_numero.replace(/\D/g, "");
@@ -297,10 +302,14 @@ export const sendMarketingCampaignIntro = async (
       }
     });
     if (!whatsapp) {
-      throw new AppError("No se encontró un Whatsapp para el pais de este lead ni uno por defecto", 400);
+      throw new AppError(
+        "No se encontró un Whatsapp para el pais de este lead ni uno por defecto",
+        400
+      );
     }
   }
 
+  req.myLog("validando el contacto con el wpp id " + whatsapp.id);
   await CheckIsValidContact(contacto_numero, whatsapp.id);
 
   const wbot = getWbot(whatsapp.id);
@@ -331,85 +340,111 @@ export const sendMarketingCampaignIntro = async (
     throw new AppError("No hay mensajes para enviar", 400);
   }
 
-  console.log("antes de enviar los mensajes");
+  const logType = await SearchLogTypeService("send-marketingCampaign-intro");
 
+  const log = await Log.create({
+    logTypeId: logType.id,
+    startTimestamp: getUnixTimestamp(),
+    incomingEndpoint: req.originalUrl,
+    incomingData: JSON.stringify(req.body)
+  });
+
+  let ticket = null;
+  let contact = null;
+  let wasOk = true;
+  let errorArr = [];
+
+  const defaultCategory = await Category.findOne({
+    where: { isDefault: true }
+  });
+
+  req.myLog("enviando mensajes");
   for (const messageToSend of messagesToSend) {
     if (messageToSend.mediaType === "text") {
-      let body = formatBody(`\u200e${messageToSend.body}`);
+      try {
+        req.myLog("mensaje de texto");
+        let body = formatBody(`\u200e${messageToSend.body}`);
 
-      await new Promise(async (resolve, reject) => {
-        try {
-          const msg = await wbot.sendMessage(`${contacto_numero}@c.us`, body);
+        const msg = await wbot.sendMessage(`${contacto_numero}@c.us`, body);
 
-          const msgContact = await wbot.getContactById(msg.to);
+        const msgContact = await wbot.getContactById(msg.to);
 
-          const contact = await verifyContact(msgContact);
+        contact = await verifyContact(msgContact);
 
-          const userExists = await User.findByPk(user_id);
+        const userExists = await User.findByPk(user_id);
 
-          const ticket = await FindOrCreateTicketService({
-            contact,
-            whatsappId: whatsapp.id,
-            unreadMessages: 0,
-            groupContact: null,
-            lastMessageTimestamp: msg.timestamp,
-            marketingCampaignId: marketingCampaign.id,
-            msgFromMe: msg.fromMe,
-            userId: userExists && user_id
-          });
+        req.myLog("userExists: " + userExists);
 
-          await verifyMessage({
-            msg,
-            ticket,
-            contact
-          });
+        ticket = await FindOrCreateTicketService({
+          contact,
+          whatsappId: whatsapp.id,
+          unreadMessages: 0,
+          groupContact: null,
+          lastMessageTimestamp: msg.timestamp,
+          marketingCampaignId: marketingCampaign.id,
+          msgFromMe: msg.fromMe,
+          userId: userExists ? user_id : undefined,
+          categoriesIds:
+            userExists && defaultCategory ? [defaultCategory.id] : undefined
+        });
 
-          setTimeout(() => {
-            resolve(null);
-          }, 1500);
-        } catch (error) {
-          reject(error);
-        }
-      }).catch(error => {
+        await verifyMessage({
+          msg,
+          ticket,
+          contact
+        });
+
+        await sleepPromise(1500);
+      } catch (error) {
         console.log({ error });
-      });
-    } else {
-      const newMedia = MessageMedia.fromFilePath(
-        `public/${messageToSend.mediaUrl.split("/").pop()}`
-      );
-
-      let mediaOptions: MessageSendOptions = {
-        sendAudioAsVoice: true
-      };
-
-      if (
-        newMedia.mimetype.startsWith("image/") &&
-        !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
-      ) {
-        mediaOptions["sendMediaAsDocument"] = true;
+        wasOk = false;
+        errorArr.push(error);
       }
+    } else {
+      try {
+        req.myLog("mensaje multimedia");
+        const newMedia = MessageMedia.fromFilePath(
+          `public/${messageToSend.mediaUrl.split("/").pop()}`
+        );
 
-      await new Promise(async (resolve, reject) => {
-        try {
-          const msg = await wbot.sendMessage(
-            `${contacto_numero}@c.us`,
-            newMedia,
-            mediaOptions
-          );
+        let mediaOptions: MessageSendOptions = {
+          sendAudioAsVoice: true
+        };
 
-          setTimeout(() => {
-            resolve(null);
-          }, 1500);
-        } catch (error) {
-          reject(error);
+        if (
+          newMedia.mimetype.startsWith("image/") &&
+          !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
+        ) {
+          mediaOptions["sendMediaAsDocument"] = true;
         }
-      }).catch(error => {
+
+        const msg = await wbot.sendMessage(
+          `${contacto_numero}@c.us`,
+          newMedia,
+          mediaOptions
+        );
+
+        await sleepPromise(1500);
+      } catch (error) {
         console.log({ error });
-      });
+        wasOk = false;
+        errorArr.push(error);
+      }
     }
   }
 
-  return res.sendStatus(200);
+  await log.update({
+    endTimestamp: getUnixTimestamp(),
+    contactId: contact?.id,
+    ticketId: ticket?.id,
+    whatsappId: whatsapp?.id,
+    userId: user_id,
+    marketingCampaignId: marketingCampaign.id,
+    wasOk,
+    error: JSON.stringify(errorArr)
+  });
+
+  return res.status(200).json({ data: log, reqLogs: req.myLog });
 };
 
 export const sendImageMessage = async (
