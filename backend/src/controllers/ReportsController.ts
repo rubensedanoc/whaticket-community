@@ -15,6 +15,7 @@ import QueueCategory from "../models/QueueCategory";
 import Ticket from "../models/Ticket";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
+import CheckIfTicketsShouldBeSendToTraza from "../services/TicketServices/CheckIfTicketsShouldBeSendToTraza";
 import {
   convertDateStrToTimestamp,
   formatDate,
@@ -2122,6 +2123,7 @@ export const getTicketsDistributionByStages = async (
     sqlFacebook?: string;
     sqlResult?: any[];
     sqlResultGroupByTicket?: any[];
+    ticketsSentToTraza?: any;
     categoryRelationsOfSelectedQueue?: QueueCategory[];
     data?: {
       ticketsCount: number;
@@ -2954,6 +2956,37 @@ export const getTicketsDistributionByStages = async (
     ticketsCount: dataFacebookIncomingRequestByMarketingCampaignsTicketsCount,
     values: dataFacebookIncomingRequestByMarketingCampaigns
   };
+
+  const ticketsShouldBeSendToTraza = await CheckIfTicketsShouldBeSendToTraza(
+    response.sqlResultGroupByTicket.map(t => t.t_id)
+  );
+  response.ticketsSentToTraza = response.sqlResultGroupByTicket.reduce(
+    (acc, currentValue) => {
+      if (currentValue.t_wasSentToZapier) {
+        acc.find(t => t.name === "Enviados a Traza").tickets.push(currentValue);
+        acc.find(t => t.name === "Enviados a Traza").total += 1;
+      } else if (ticketsShouldBeSendToTraza.includes(currentValue.t_id)) {
+        acc
+          .find(t => t.name === "Por mandar a Traza")
+          .tickets.push(currentValue);
+        acc.find(t => t.name === "Por mandar a Traza").total += 1;
+      } else {
+        acc.find(t => t.name === "No enviados").tickets.push(currentValue);
+        acc.find(t => t.name === "No enviados").total += 1;
+      }
+      return acc;
+    },
+    [
+      { name: "No enviados", total: 0, tickets: [], fill: "gray" },
+      {
+        name: "Por mandar a Traza",
+        total: 0,
+        tickets: [],
+        fill: "#f7b5b5"
+      },
+      { name: "Enviados a Traza", total: 0, tickets: [], fill: "#9fadff" }
+    ]
+  );
 
   return res.status(200).json(response);
 };

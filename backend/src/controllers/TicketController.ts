@@ -31,6 +31,7 @@ type IndexQuery = {
   withUnreadMessages: string;
   queueIds: string;
   whatsappIds: string;
+  marketingCampaignIds: string;
   typeIds: string;
   showOnlyMyGroups: string;
   categoryId: string;
@@ -62,6 +63,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showAll,
     whatsappIds: whatsappIdsStringified,
     queueIds: queueIdsStringified,
+    marketingCampaignIds: marketingCampaignIdsStringified,
     typeIds: typeIdsStringified,
     withUnreadMessages,
     showOnlyMyGroups: showOnlyMyGroupsStringified,
@@ -71,6 +73,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   const userId = req.user.id;
 
+  let marketingCampaignIds: number[] = [];
   let queueIds: number[] = [];
   let whatsappIds: number[] = [];
   let typeIds: string[] = [];
@@ -90,6 +93,10 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     queueIds = JSON.parse(queueIdsStringified);
   }
 
+  if (marketingCampaignIdsStringified) {
+    marketingCampaignIds = JSON.parse(marketingCampaignIdsStringified);
+  }
+
   if (showOnlyMyGroupsStringified) {
     showOnlyMyGroups = JSON.parse(showOnlyMyGroupsStringified);
   }
@@ -102,7 +109,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showOnlyWaitingTickets = JSON.parse(showOnlyWaitingTicketsStringified);
   }
 
-  const { tickets, count, hasMore, whereCondition, includeCondition } =
+  let { tickets, count, hasMore, whereCondition, includeCondition } =
     await ListTicketsService({
       searchParam,
       pageNumber,
@@ -112,6 +119,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       userId,
       whatsappIds,
       queueIds,
+      marketingCampaignIds,
       typeIds,
       withUnreadMessages,
       showOnlyMyGroups,
@@ -119,9 +127,59 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       showOnlyWaitingTickets
     });
 
-  return res
-    .status(200)
-    .json({ tickets, count, hasMore, whereCondition, includeCondition });
+  let ticketsToSend = tickets; // Inicializamos con la lista original
+
+  if (process.env.APP_PURPOSE === "comercial") {
+    const ticketsIds: number[] = tickets.map(t => t.id);
+
+    let ticketsData = await Ticket.findAll({
+      attributes: ["id", "wasSentToZapier"],
+      include: [
+        {
+          model: Message,
+          as: "messages",
+          required: false
+        }
+      ],
+      where: {
+        id: {
+          [Op.in]: ticketsIds
+        }
+      }
+    });
+
+    const ticketsToUpdate: number[] = [];
+
+    ticketsData.forEach(ticket => {
+      if (!ticket.wasSentToZapier) {
+        const messagesFromClient = ticket.messages.filter(m => !m.fromMe);
+        const messagesFromConnection = ticket.messages.filter(m => m.fromMe);
+
+        if (
+          messagesFromClient.length > 5 &&
+          messagesFromConnection.length > 5
+        ) {
+          ticketsToUpdate.push(ticket.id);
+        }
+      }
+    });
+
+    // Creamos una nueva lista de tickets con la propiedad shouldSendToZapier
+    ticketsToSend = tickets.map(ticket => {
+      return {
+        ...ticket.toJSON(), // Importante: crea una copia del ticket como JSON
+        shouldSendToZapier: ticketsToUpdate.includes(ticket.id)
+      };
+    });
+  }
+
+  return res.status(200).json({
+    tickets: ticketsToSend,
+    count,
+    hasMore,
+    whereCondition,
+    includeCondition
+  });
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
@@ -230,8 +288,8 @@ export const ShowParticipants = async (
   if (chatParticipantsThatAreNotContacts.length) {
     for (const participant of chatParticipantsThatAreNotContacts) {
       console.log("participant", participant);
-      const newContact = await wbot.getContactById(participant.id._serialized)
-      await verifyContact(newContact)
+      const newContact = await wbot.getContactById(participant.id._serialized);
+      await verifyContact(newContact);
     }
 
     chatParticipantsContacts = await Contact.findAll({
@@ -240,7 +298,7 @@ export const ShowParticipants = async (
           [Op.in]: chatParticipants.map(participant => participant.id.user)
         }
       }
-    })
+    });
   }
 
   // chatParticipants.map(participant => participant.id.user)
@@ -391,6 +449,45 @@ export const createTicketLog = async (
   }
 
   return res.status(200).json({});
+};
+
+export const showTicketsRelationsWithTraza = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const ticketsIds: number[] = req.body;
+
+  let tickets = await Ticket.findAll({
+    attributes: ["id", "wasSentToZapier"],
+    include: [
+      {
+        model: Message,
+        as: "messages",
+        required: false
+      }
+    ],
+    where: {
+      id: {
+        [Op.in]: ticketsIds
+      }
+    }
+  });
+
+  tickets = tickets.map(ticket => {
+    if (!ticket.wasSentToZapier) {
+      const messagesFromClient = ticket.messages.filter(m => !m.fromMe);
+      const messagesFromConection = ticket.messages.filter(m => m.fromMe);
+
+      if (messagesFromClient.length > 5 && messagesFromConection.length > 5) {
+        // @ts-ignore
+        ticket.shouldSendToZapier = true;
+      }
+    }
+
+    return ticket;
+  });
+
+  return res.status(200).json(tickets);
 };
 
 export const getAndSetBeenWaitingSinceTimestampToAllTheTickets = async (

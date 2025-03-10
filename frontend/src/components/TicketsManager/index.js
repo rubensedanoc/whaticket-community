@@ -39,6 +39,7 @@ import { toast } from "react-toastify";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
+import MarketingCampaignSelect from "../MarketingCampaignSelect";
 import TicketsQueueSelect from "../TicketsQueueSelect";
 
 import "./styles.css";
@@ -151,6 +152,8 @@ const TicketsManager = () => {
   const [typeIdsForGroups] = useState(["group"]);
 
   const [selectedQueueIds, setSelectedQueueIds] = useState(userQueueIds || []);
+  const [selectedMarketingCampaignIds, setSelectedMarketingCampaignIds] =
+    useState([]);
 
   const [numberGroups, setNumberGroups] = useState([]);
   const [numberGroupsModalIsOpen, setNumberGroupsModalIsOpen] = useState(false);
@@ -188,6 +191,13 @@ const TicketsManager = () => {
       );
     localStorage.getItem("selectedQueueIds") &&
       setSelectedQueueIds(JSON.parse(localStorage.getItem("selectedQueueIds")));
+
+    localStorage.getItem("ticketsPanel-selectedMarketingCampaignIds") &&
+      setSelectedMarketingCampaignIds(
+        JSON.parse(
+          localStorage.getItem("ticketsPanel-selectedMarketingCampaignIds")
+        )
+      );
 
     localStorage.getItem("pendingColumnSide") &&
       setPendingColumnSide(
@@ -488,6 +498,28 @@ const TicketsManager = () => {
             userQueues={user?.queues}
             onChange={(values) => setSelectedQueueIds(values)}
           />
+          {/* - QUEUE SELECT */}
+          {/* MARKETING CAMPAIGN SELECT */}
+          {/* <TicketsMarketingCampaignSelect
+            style={{ marginLeft: 6 }}
+            selectedMarketingCampaignIds={selectedMarketingCampaignIds} // corrected prop name
+            marketingCampaignIds={[]} // assuming the correct prop is campaigns
+            onChange={(values) => setSelectedMarketingCampaignIds(values)} // corrected setter
+          /> */}
+          <MarketingCampaignSelect
+            style={{ marginLeft: 6 }}
+            selectedIds={selectedMarketingCampaignIds} // corrected prop name
+            onChange={(values) => {
+              localStorage.setItem(
+                "ticketsPanel-selectedMarketingCampaignIds",
+                JSON.stringify(values)
+              );
+              setSelectedMarketingCampaignIds(values);
+            }} // corrected setter
+            chips={false}
+            badgeColor={"secondary"}
+          />
+          {/* - MARKETING CAMPAIGN SELECT */}
           {/* - QUEUE SELECT */}
           {tab === "search" && (
             <>
@@ -1099,6 +1131,7 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               ticketsType={
                 principalTicketType === "groups" ? "individuals" : "groups"
               }
@@ -1119,6 +1152,7 @@ const TicketsManager = () => {
               selectedTypeIds={typeIdsForAll}
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
               columnsWidth={columnsWidth}
               ticketsType="pendings"
@@ -1168,6 +1202,9 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedMarketingCampaignIds={
+                            selectedMarketingCampaignIds
+                          }
                           showOnlyWaitingTickets={showOnlyWaitingTickets}
                           columnsWidth={columnsWidth}
                           ticketsType="no-category"
@@ -1196,6 +1233,9 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedMarketingCampaignIds={
+                            selectedMarketingCampaignIds
+                          }
                           onMoveToLeft={() =>
                             onMoveCategoryColumn(categoryIndex, "left")
                           }
@@ -1226,6 +1266,9 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedMarketingCampaignIds={
+                            selectedMarketingCampaignIds
+                          }
                           showOnlyWaitingTickets={showOnlyWaitingTickets}
                           columnsWidth={columnsWidth}
                           ticketsType="no-category"
@@ -1254,6 +1297,9 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedMarketingCampaignIds={
+                            selectedMarketingCampaignIds
+                          }
                           onMoveToLeft={() =>
                             onMoveCategoryColumn(categoryIndex, "left")
                           }
@@ -1295,6 +1341,7 @@ const TicketsManager = () => {
           selectedTypeIds={typeIdsForAll}
           selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}
+          selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
         />
       </TabPanel>

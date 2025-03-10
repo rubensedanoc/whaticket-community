@@ -410,6 +410,8 @@ const ComercialReports = () => {
     values: null,
     ticketsCount: null,
   });
+  const [ticketsSentToTraza, setTicketsSentToTraza] = useState(null);
+  const [totalTicketsCount, setTotalTicketsCount] = useState(null);
   const [ticketsDistributionByStages2, setTicketsDistributionByStages2] =
     useState({
       values: null,
@@ -641,6 +643,10 @@ const ComercialReports = () => {
           ticketsDistributionByStages
             .FacebookIncomingRequestByMarketingCampaigns.values,
       });
+      setTicketsSentToTraza(ticketsDistributionByStages.ticketsSentToTraza);
+      setTotalTicketsCount(
+        ticketsDistributionByStages.sqlResultGroupByTicket.length
+      );
       setTicketsDistributionByStages2({
         ticketsCount: ticketsDistributionByStages.data2.ticketsCount,
         values: ticketsDistributionByStages.data2.values.map((v) => {
@@ -1195,23 +1201,6 @@ const ComercialReports = () => {
                   {/* CARD CHART */}
                   {facebookTicketsData.values ? (
                     (() => {
-                      // let allCampaignsFormatIds = [];
-
-                      // setFacebookTicketsData.values.forEach(
-                      //   (ticketsDistribution) => {
-                      //     const keys = Object.keys(ticketsDistribution);
-
-                      //     keys
-                      //       .filter((k) => k.includes("campaign_"))
-                      //       .forEach((key) => {
-                      //         if (allCampaignsFormatIds.includes(key)) {
-                      //           return;
-                      //         }
-                      //         allCampaignsFormatIds.push(key);
-                      //       });
-                      //   }
-                      // );
-
                       return (
                         <ResponsiveContainer width="100%" height={400}>
                           <BarChart
@@ -1239,7 +1228,7 @@ const ComercialReports = () => {
                               axisLine={false}
                               width={20}
                             />
-                            {/* <Tooltip
+                            <Tooltip
                               cursor={{ fill: "#0000000a" }}
                               formatter={(
                                 value,
@@ -1248,135 +1237,22 @@ const ComercialReports = () => {
                                 index,
                                 payload
                               ) => {
-                                const id = name.replace("campaign_", "");
-                                return [
-                                  `${value} (${Math.round(
-                                    (value /
-                                      payload.reduce((acc, cur) => {
-                                        return acc + cur.value;
-                                      }, 0)) *
-                                      100
-                                  )}%)`,
-                                  marketingCampaigns.find((mc) => mc.id == id)
-                                    ?.name || "Sin campaña",
-                                ];
+                                return [value, "Total:"];
                               }}
-                            /> */}
-                            {/* <Legend
-                              wrapperStyle={{
-                                bottom: 0,
-                                gap: "1rem",
-                              }}
-                              formatter={(value) => {
-                                const id = value.replace("campaign_", "");
-                                return (
-                                  marketingCampaigns.find((mc) => mc.id == id)
-                                    ?.name || "Sin campaña"
-                                );
-                              }}
-                            /> */}
-
-                            {/* {allCampaignsFormatIds.map((id, index) => (
-                              <Fragment key={id}>
-                                <Bar
-                                  onClick={(e) => {
-                                    console.log("e", e);
-                                    setTicketListModalOpen(true);
-                                    setTicketListModalTitle(
-                                      `Tickets en "${e.categoryName}" por campaña`
-                                    );
-                                    setTicketListModalTicketGroups(
-                                      e.tickets.reduce((acc, t) => {
-                                        const mrktCampaignName =
-                                          t.mc_name || "Sin campaña";
-
-                                        const mc_nameIndexInResult =
-                                          acc.findIndex(
-                                            (g) => g.title === mrktCampaignName
-                                          );
-
-                                        console.log(
-                                          "mc_nameIndexInResult",
-                                          mc_nameIndexInResult
-                                        );
-
-                                        if (mc_nameIndexInResult > -1) {
-                                          acc[mc_nameIndexInResult].ids.push(
-                                            t.t_id
-                                          );
-                                        } else {
-                                          acc.push({
-                                            title: mrktCampaignName,
-                                            ids: [t.t_id],
-                                          });
-                                        }
-
-                                        return acc;
-                                      }, [])
-                                    );
-                                  }}
-                                  capHeight={10}
-                                  dataKey={`${id}`}
-                                  stackId="a"
-                                  fill={
-                                    marketingCampaigns.find(
-                                      (mc) =>
-                                        mc.id == id.replaceAll("campaign_", "")
-                                    )?.color || "gray"
-                                  }
-                                >
-                                  {index ===
-                                    allCampaignsFormatIds.length - 1 && (
-                                    <LabelList
-                                      position="top"
-                                      offset={12}
-                                      className="fill-foreground"
-                                      fontWeight={"bold"}
-                                      fontSize={12}
-                                      formatter={(value) => {
-                                        return `${value} (${Math.round(
-                                          (value /
-                                            ticketsDistributionByStages3.ticketsCount) *
-                                            100
-                                        )}%)`;
-                                      }}
-                                    />
-                                  )}
-                                </Bar>
-                              </Fragment>
-                            ))} */}
-
+                            />
                             <Bar
                               onClick={(e) => {
                                 console.log("e", e);
                                 setTicketListModalOpen(true);
                                 setTicketListModalTitle(
-                                  `Tickets en "${e.categoryName}" por campaña`
+                                  `Tickets provenientes de FACEBOOK camapaña  "${e.marketingCampaignName}"`
                                 );
-                                setTicketListModalTicketGroups(
-                                  e.tickets.reduce((acc, t) => {
-                                    // const mrktCampaignName =
-                                    //   t.mc_name || "Sin campaña";
-                                    // const mc_nameIndexInResult = acc.findIndex(
-                                    //   (g) => g.title === mrktCampaignName
-                                    // );
-                                    // console.log(
-                                    //   "mc_nameIndexInResult",
-                                    //   mc_nameIndexInResult
-                                    // );
-                                    // if (mc_nameIndexInResult > -1) {
-                                    //   acc[mc_nameIndexInResult].ids.push(
-                                    //     t.t_id
-                                    //   );
-                                    // } else {
-                                    //   acc.push({
-                                    //     title: mrktCampaignName,
-                                    //     ids: [t.t_id],
-                                    //   });
-                                    // }
-                                    // return acc;
-                                  }, [])
-                                );
+                                setTicketListModalTicketGroups([
+                                  {
+                                    title: "",
+                                    ids: e.tickets.map((t) => t.t_id),
+                                  },
+                                ]);
                               }}
                               capHeight={10}
                               dataKey={`ticketsCount`}
@@ -1393,6 +1269,116 @@ const ComercialReports = () => {
                                   return `${value} (${Math.round(
                                     (value / facebookTicketsData.ticketsCount) *
                                       100
+                                  )}%)`;
+                                }}
+                              />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      );
+                    })()
+                  ) : (
+                    <>cargando</>
+                  )}
+                </Paper>
+              </Grid>
+
+              {/* Distribución de Enviados a Traza */}
+              <Grid item xs={12}>
+                <Paper className={classes.customFixedHeightPaper}>
+                  {/* CARD HEADER */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                    }}
+                  >
+                    <Typography
+                      component="h3"
+                      variant="h6"
+                      color="primary"
+                      paragraph
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>Distribución de Enviados a Traza</span>
+                    </Typography>
+                  </div>
+
+                  {/* CARD CHART */}
+                  {ticketsSentToTraza ? (
+                    (() => {
+                      return (
+                        <ResponsiveContainer width="100%" height={400}>
+                          <BarChart
+                            data={ticketsSentToTraza}
+                            margin={{
+                              top: 20,
+                              right: 30,
+                              left: 20,
+                              bottom: 20,
+                            }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="name"
+                              fontSize={12}
+                              fontWeight={"bold"}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              tickLine={false}
+                              axisLine={false}
+                              width={20}
+                            />
+                            <Tooltip
+                              cursor={{ fill: "#0000000a" }}
+                              formatter={(
+                                value,
+                                name,
+                                item,
+                                index,
+                                payload
+                              ) => {
+                                return [value, "Total:"];
+                              }}
+                            />
+                            <Bar
+                              onClick={(e) => {
+                                console.log("e", e);
+                                setTicketListModalOpen(true);
+                                setTicketListModalTitle(
+                                  `Tickets de  "${e.name}"`
+                                );
+                                setTicketListModalTicketGroups([
+                                  {
+                                    title: "",
+                                    ids: e.tickets.map((t) => t.t_id),
+                                  },
+                                ]);
+                              }}
+                              capHeight={10}
+                              dataKey={`total`}
+                              stackId="a"
+                              // fill="barColor"
+                              // fill={`gray`}
+                            >
+                              <LabelList
+                                position="top"
+                                offset={12}
+                                className="fill-foreground"
+                                fontWeight={"bold"}
+                                fontSize={12}
+                                formatter={(value) => {
+                                  return `${value} (${Math.round(
+                                    (value / totalTicketsCount) * 100
                                   )}%)`;
                                 }}
                               />

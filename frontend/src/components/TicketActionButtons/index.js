@@ -273,13 +273,15 @@ const TicketActionButtons = ({ ticket }) => {
               {true && (
                 <Button
                   size="small"
-                  variant={!ticket.wasSentToZapier ? "contained" : "outlined"}
-                  color="default"
+                  variant="contained"
+                  color={!ticket.wasSentToZapier ? "primary" : "default"}
                   onClick={async () => {
                     setBeforeSendTicketDataToZapierModalOpen(true);
                   }}
                 >
-                  Crear en Trazabilidad
+                  {!ticket.wasSentToZapier
+                    ? "Registrar en Trazabilidad"
+                    : "Actualizar en Trazabilidad"}
                 </Button>
               )}
 
@@ -412,6 +414,7 @@ const TicketActionButtons = ({ ticket }) => {
         }}
         loggerUserName={user?.name}
         ticketId={ticket.id}
+        ticketWasSentToZapier={ticket.wasSentToZapier}
       />
     </div>
   );
