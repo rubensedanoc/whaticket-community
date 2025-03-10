@@ -4,7 +4,6 @@ import openSocket from "../../services/socket-io";
 import List from "@material-ui/core/List";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
-import { toast } from "react-toastify";
 
 import { blue } from "@material-ui/core/colors";
 import Menu from "@material-ui/core/Menu";
@@ -203,6 +202,7 @@ const TicketsList = (props) => {
     setShowAll,
     selectedWhatsappIds,
     selectedQueueIds,
+    selectedMarketingCampaignIds,
     selectedTypeIds,
     style,
     showOnlyMyGroups,
@@ -218,7 +218,7 @@ const TicketsList = (props) => {
 
   const classes = useStyles();
   const { user } = useContext(AuthContext);
-  const { reconnect } = useContext( ReloadDataBecauseSocketContext );
+  const { reconnect } = useContext(ReloadDataBecauseSocketContext);
 
   const [ticketsList, dispatch] = useReducer(reducer, []);
   const [pageNumber, setPageNumber] = useState(1);
@@ -245,6 +245,7 @@ const TicketsList = (props) => {
     showOnlyMyGroups,
     selectedWhatsappIds,
     selectedQueueIds,
+    selectedMarketingCampaignIds,
     selectedTypeIds,
     showOnlyWaitingTickets,
   ]);
@@ -256,6 +257,7 @@ const TicketsList = (props) => {
     showAll,
     whatsappIds: JSON.stringify(selectedWhatsappIds),
     queueIds: JSON.stringify(selectedQueueIds),
+    marketingCampaignIds: JSON.stringify(selectedMarketingCampaignIds),
     typeIds: JSON.stringify(selectedTypeIds),
     showOnlyMyGroups,
     showOnlyWaitingTickets,
@@ -286,7 +288,7 @@ const TicketsList = (props) => {
       setPageNumber(1);
       triggerReload();
     }
-  }, [reconnect])
+  }, [reconnect]);
 
   // useEffect(() => {
   //   if (typeof updateCount === "function") {
@@ -319,6 +321,13 @@ const TicketsList = (props) => {
         (!ticket.queueId && selectedQueueIds.includes(null)) ||
         selectedQueueIds.indexOf(ticket.queueId) !== -1 ||
         selectedQueueIds?.length === 0;
+
+      const marketingCampaignCondition =
+        (!ticket.marketingCampaignId &&
+          selectedMarketingCampaignIds.includes(null)) ||
+        selectedMarketingCampaignIds.indexOf(ticket.marketingCampaignId) !==
+          -1 ||
+        selectedMarketingCampaignIds?.length === 0;
 
       const whatsappCondition =
         selectedWhatsappIds?.indexOf(ticket.whatsappId) > -1 ||
@@ -353,7 +362,10 @@ const TicketsList = (props) => {
         noSearchParamCondition &&
         TypeCondition &&
         userCondition &&
-        (ignoreConditions || (queueCondition && whatsappCondition)) &&
+        (ignoreConditions ||
+          (queueCondition &&
+            whatsappCondition &&
+            marketingCampaignCondition)) &&
         categoryCondition;
 
       return isConditionMet;

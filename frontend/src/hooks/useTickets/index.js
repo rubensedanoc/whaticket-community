@@ -12,6 +12,7 @@ const useTickets = ({
   showAll,
   whatsappIds,
   queueIds,
+  marketingCampaignIds,
   withUnreadMessages,
   typeIds,
   showOnlyMyGroups,
@@ -38,6 +39,7 @@ const useTickets = ({
               showAll,
               whatsappIds,
               queueIds,
+              marketingCampaignIds,
               typeIds,
               withUnreadMessages,
               showOnlyMyGroups,
@@ -46,9 +48,9 @@ const useTickets = ({
             },
           });
           setTickets(data.tickets);
-  
+
           let horasFecharAutomaticamente = getHoursCloseTicketsAuto();
-  
+
           if (
             status === "open" &&
             horasFecharAutomaticamente &&
@@ -60,7 +62,7 @@ const useTickets = ({
             dataLimite.setHours(
               dataLimite.getHours() - Number(horasFecharAutomaticamente)
             );
-  
+
             data.tickets.forEach((ticket) => {
               if (ticket.status !== "closed") {
                 let dataUltimaInteracaoChamado = new Date(ticket.updatedAt);
@@ -69,7 +71,7 @@ const useTickets = ({
               }
             });
           }
-  
+
           setHasMore(data.hasMore);
           setCount(data.count);
           setLoading(false);
@@ -78,14 +80,14 @@ const useTickets = ({
           toastError(err);
         }
       };
-  
+
       const closeTicket = async (ticket) => {
         await api.put(`/tickets/${ticket.id}`, {
           status: "closed",
           userId: ticket.userId || null,
         });
       };
-  
+
       fetchTickets();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
@@ -97,11 +99,12 @@ const useTickets = ({
     showAll,
     whatsappIds,
     queueIds,
+    marketingCampaignIds,
     typeIds,
     withUnreadMessages,
     showOnlyMyGroups,
     showOnlyWaitingTickets,
-    reload
+    reload,
   ]);
 
   const triggerReload = () => {

@@ -195,6 +195,12 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
       <div
         style={{
           position: "relative",
+          ...(ticket.shouldSendToZapier && {
+            backgroundColor: "#fceee4",
+          }),
+          ...(ticket.wasSentToZapier && {
+            backgroundColor: "rgb(159 173 255 / 26%)",
+          }),
           ...(ticket?.contact?.isCompanyMember && {
             backgroundColor: "rgb(220 248 198 / 50%)",
           }),

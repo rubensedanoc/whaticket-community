@@ -16,6 +16,7 @@ import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import TextField from "@material-ui/core/TextField";
+import { Alert, AlertTitle } from "@material-ui/lab";
 import * as Yup from "yup";
 
 import Autocomplete, {
@@ -27,7 +28,6 @@ import { makeStyles } from "@material-ui/core/styles";
 import { i18n } from "../../translate/i18n";
 
 import { Divider } from "@material-ui/core";
-import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
 const useStyles = makeStyles((theme) => ({
@@ -94,6 +94,7 @@ const BeforeSendTicketDataToZapierModal = ({
   onClose,
   ticketId,
   loggerUserName,
+  ticketWasSentToZapier,
 }) => {
   const classes = useStyles();
 
@@ -134,6 +135,7 @@ const BeforeSendTicketDataToZapierModal = ({
   const [allSISTEMA_ACTUALOptions, setAllSISTEMA_ACTUALOptions] = useState([]);
   const [allCOMO_SE_ENTEROOptions, setAllCOMO_SE_ENTEROOptions] = useState([]);
   const [allDOLOROptions, setAllDOLOROptions] = useState([]);
+  const [clientAlredyInTraza, setClientAlredyInTraza] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -158,59 +160,130 @@ const BeforeSendTicketDataToZapierModal = ({
           ticketId: ticketId,
         });
 
-        setTicketDataToSendToZapier({
-          ...data,
-          contactEmail:
-            data.contactEmail || `${data.contactNumber}@restaurant.pe`,
-          contactCountryId: data.contactCountryId || "",
-          ticketCampaignId: data.ticketCampaignId || "",
-          NOMBRE_NEGOCIO:
-            data.extraInfo.find((info) => info.name === "NOMBRE_NEGOCIO")
-              ?.value || "",
-          CALIDAD_MARKETING:
-            data.extraInfo.find((info) => info.name === "CALIDAD_MARKETING")
-              ?.value || "",
-          CALIDAD_COMERCIAL:
-            data.extraInfo.find((info) => info.name === "CALIDAD_COMERCIAL")
-              ?.value || "",
-          TIENE_RESTAURANTE:
-            data.extraInfo.find((info) => info.name === "TIENE_RESTAURANTE")
-              ?.value || "",
-          TIPO_RESTAURANTE:
-            data.extraInfo.find((info) => info.name === "TIPO_RESTAURANTE")
-              ?.value || "",
-          TOMA_LA_DECISION:
-            data.extraInfo.find((info) => info.name === "TOMA_LA_DECISION")
-              ?.value || "",
-          CARGO:
-            data.extraInfo.find((info) => info.name === "CARGO")?.value || "",
-          YA_USA_SISTEMA:
-            data.extraInfo.find((info) => info.name === "YA_USA_SISTEMA")
-              ?.value || "",
-          SISTEMA_ACTUAL:
-            data.extraInfo.find((info) => info.name === "SISTEMA_ACTUAL")
-              ?.value || "",
-          NUM_SUCURSALES:
-            data.extraInfo.find((info) => info.name === "NUM_SUCURSALES")
-              ?.value || "",
-          NUM_MESAS:
-            data.extraInfo.find((info) => info.name === "NUM_MESAS")?.value ||
-            "",
-          CUANTO_PAGA:
-            data.extraInfo.find((info) => info.name === "CUANTO_PAGA")?.value ||
-            "",
-          COMO_SE_ENTERO:
-            data.extraInfo.find((info) => info.name === "COMO_SE_ENTERO")
-              ?.value || "",
-          DOLOR_1:
-            data.extraInfo.find((info) => info.name === "DOLOR_1")?.value || "",
-          DOLOR_2:
-            data.extraInfo.find((info) => info.name === "DOLOR_2")?.value || "",
-        });
+        const { data: clientInTraza } = await api.get(
+          `https://web.restaurant.pe/trazabilidad/public/rest/lead/getClienteByNumber/` +
+            // `http://localhost/trazabilidadrestaurant/public/rest/lead/getClienteByNumber/` +
+            data.contactNumber
+        );
 
-        setAllSISTEMA_ACTUALOptions(data.allSISTEMA_ACTUALOptions);
-        setAllCOMO_SE_ENTEROOptions(data.allCOMO_SE_ENTEROOptions);
-        setAllDOLOROptions(data.allDOLOROptions);
+        console.log("clientInTraza", clientInTraza);
+
+        if (clientInTraza.cliente.length) {
+          setClientAlredyInTraza(true);
+
+          const cliente = clientInTraza.cliente[0];
+
+          setTicketDataToSendToZapier({
+            ...data,
+            contactEmail:
+              data.contactEmail || `${data.contactNumber}@restaurant.pe`,
+            contactCountryId: data.contactCountryId || "",
+            ticketCampaignId: data.ticketCampaignId || "",
+            NOMBRE_NEGOCIO:
+              data.extraInfo.find((info) => info.name === "NOMBRE_NEGOCIO")
+                ?.value || "",
+            CALIDAD_MARKETING:
+              data.extraInfo.find((info) => info.name === "CALIDAD_MARKETING")
+                ?.value || "",
+            CALIDAD_COMERCIAL:
+              data.extraInfo.find((info) => info.name === "CALIDAD_COMERCIAL")
+                ?.value || "",
+            TIENE_RESTAURANTE:
+              data.extraInfo.find((info) => info.name === "TIENE_RESTAURANTE")
+                ?.value || "",
+            TIPO_RESTAURANTE:
+              data.extraInfo.find((info) => info.name === "TIPO_RESTAURANTE")
+                ?.value || "",
+            TOMA_LA_DECISION:
+              data.extraInfo.find((info) => info.name === "TOMA_LA_DECISION")
+                ?.value || "",
+            CARGO:
+              data.extraInfo.find((info) => info.name === "CARGO")?.value || "",
+            YA_USA_SISTEMA:
+              data.extraInfo.find((info) => info.name === "YA_USA_SISTEMA")
+                ?.value || "",
+            SISTEMA_ACTUAL:
+              data.extraInfo.find((info) => info.name === "SISTEMA_ACTUAL")
+                ?.value || "",
+            NUM_SUCURSALES:
+              data.extraInfo.find((info) => info.name === "NUM_SUCURSALES")
+                ?.value || "",
+            NUM_MESAS:
+              data.extraInfo.find((info) => info.name === "NUM_MESAS")?.value ||
+              "",
+            CUANTO_PAGA:
+              data.extraInfo.find((info) => info.name === "CUANTO_PAGA")
+                ?.value || "",
+            COMO_SE_ENTERO:
+              data.extraInfo.find((info) => info.name === "COMO_SE_ENTERO")
+                ?.value || "",
+            DOLOR_1:
+              data.extraInfo.find((info) => info.name === "DOLOR_1")?.value ||
+              "",
+            DOLOR_2:
+              data.extraInfo.find((info) => info.name === "DOLOR_2")?.value ||
+              "",
+
+            contactEmail: cliente.cliente_correo,
+            NOMBRE_NEGOCIO: cliente.cliente_restaurante,
+          });
+        } else {
+          setTicketDataToSendToZapier({
+            ...data,
+            contactEmail:
+              data.contactEmail || `${data.contactNumber}@restaurant.pe`,
+            contactCountryId: data.contactCountryId || "",
+            ticketCampaignId: data.ticketCampaignId || "",
+            NOMBRE_NEGOCIO:
+              data.extraInfo.find((info) => info.name === "NOMBRE_NEGOCIO")
+                ?.value || "",
+            CALIDAD_MARKETING:
+              data.extraInfo.find((info) => info.name === "CALIDAD_MARKETING")
+                ?.value || "",
+            CALIDAD_COMERCIAL:
+              data.extraInfo.find((info) => info.name === "CALIDAD_COMERCIAL")
+                ?.value || "",
+            TIENE_RESTAURANTE:
+              data.extraInfo.find((info) => info.name === "TIENE_RESTAURANTE")
+                ?.value || "",
+            TIPO_RESTAURANTE:
+              data.extraInfo.find((info) => info.name === "TIPO_RESTAURANTE")
+                ?.value || "",
+            TOMA_LA_DECISION:
+              data.extraInfo.find((info) => info.name === "TOMA_LA_DECISION")
+                ?.value || "",
+            CARGO:
+              data.extraInfo.find((info) => info.name === "CARGO")?.value || "",
+            YA_USA_SISTEMA:
+              data.extraInfo.find((info) => info.name === "YA_USA_SISTEMA")
+                ?.value || "",
+            SISTEMA_ACTUAL:
+              data.extraInfo.find((info) => info.name === "SISTEMA_ACTUAL")
+                ?.value || "",
+            NUM_SUCURSALES:
+              data.extraInfo.find((info) => info.name === "NUM_SUCURSALES")
+                ?.value || "",
+            NUM_MESAS:
+              data.extraInfo.find((info) => info.name === "NUM_MESAS")?.value ||
+              "",
+            CUANTO_PAGA:
+              data.extraInfo.find((info) => info.name === "CUANTO_PAGA")
+                ?.value || "",
+            COMO_SE_ENTERO:
+              data.extraInfo.find((info) => info.name === "COMO_SE_ENTERO")
+                ?.value || "",
+            DOLOR_1:
+              data.extraInfo.find((info) => info.name === "DOLOR_1")?.value ||
+              "",
+            DOLOR_2:
+              data.extraInfo.find((info) => info.name === "DOLOR_2")?.value ||
+              "",
+          });
+
+          setAllSISTEMA_ACTUALOptions(data.allSISTEMA_ACTUALOptions);
+          setAllCOMO_SE_ENTEROOptions(data.allCOMO_SE_ENTEROOptions);
+          setAllDOLOROptions(data.allDOLOROptions);
+        }
       } catch (err) {
         console.log("err", err);
         toast.error("Error al cargar");
@@ -342,7 +415,18 @@ const BeforeSendTicketDataToZapierModal = ({
         maxWidth="xl"
         con
       >
-        <DialogTitle>Datos a crear en Trazabilidad</DialogTitle>
+        <DialogTitle>
+          {ticketWasSentToZapier
+            ? "Datos a actualizar en trazabilidad"
+            : "Datos a registrar en trazabilidad"}
+        </DialogTitle>
+        {clientAlredyInTraza && !ticketWasSentToZapier && (
+          <Alert severity="info">
+            <AlertTitle>Este cliente ya existe en Trazabilidad</AlertTitle>
+            El boton de registrar solo actualizara los datos y los marcara como
+            enviado en whaticket
+          </Alert>
+        )}
         <Formik
           initialValues={{
             ...ticketDataToSendToZapier,
@@ -1151,7 +1235,9 @@ const BeforeSendTicketDataToZapierModal = ({
                   variant="contained"
                   className={classes.btnWrapper}
                 >
-                  Crear en Trazabilidad
+                  {ticketWasSentToZapier
+                    ? " Actualizar en Trazabilidad"
+                    : "Registrar en Trazabilidad"}
                   {isLoading && (
                     <CircularProgress
                       size={24}

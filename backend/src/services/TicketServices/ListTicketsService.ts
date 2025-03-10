@@ -26,6 +26,7 @@ interface Request {
   withUnreadMessages?: string;
   whatsappIds: Array<number>;
   queueIds: Array<number>;
+  marketingCampaignIds: Array<number>;
   typeIds: Array<string>;
   showOnlyMyGroups: boolean;
   categoryId?: number;
@@ -46,6 +47,7 @@ const buildWhereCondition = ({
   userId,
   typeIds,
   queueIds,
+  marketingCampaignIds,
   whatsappIds,
   categoryId,
   showAll,
@@ -154,6 +156,16 @@ const buildWhereCondition = ({
           [Op.or]: queueIds.includes(null)
             ? [queueIds.filter(id => id !== null), null]
             : [queueIds]
+        }
+      };
+    }
+    if (marketingCampaignIds?.length) {
+      baseCondition = {
+        ...baseCondition,
+        marketingCampaignId: {
+          [Op.or]: marketingCampaignIds.includes(null)
+            ? [marketingCampaignIds.filter(id => id !== null), null]
+            : [marketingCampaignIds]
         }
       };
     }

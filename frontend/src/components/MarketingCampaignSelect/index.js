@@ -25,6 +25,7 @@ const MarketingCampaignSelect = ({
   onChange,
   onLoadData,
   chips = true,
+  badgeColor = "primary",
 }) => {
   const classes = useStyles();
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
@@ -51,7 +52,7 @@ const MarketingCampaignSelect = ({
     <Badge
       overlap="rectangular"
       badgeContent={selectedIds.length}
-      color="primary"
+      color={badgeColor}
       max={99999}
       invisible={selectedIds.length === 0 || chips}
     >
