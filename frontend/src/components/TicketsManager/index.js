@@ -186,10 +186,12 @@ const TicketsManager = () => {
     localStorage.getItem("showOnlyMyGroups") &&
       setShowOnlyMyGroups(JSON.parse(localStorage.getItem("showOnlyMyGroups")));
 
-    localStorage.getItem("selectedWhatsappIds") &&
-      setSelectedWhatsappIds(
-        JSON.parse(localStorage.getItem("selectedWhatsappIds"))
-      );
+    if (user.profile === "admin") {
+      localStorage.getItem("selectedWhatsappIds") &&
+        setSelectedWhatsappIds(
+          JSON.parse(localStorage.getItem("selectedWhatsappIds"))
+        );
+    }
 
     // para el caso de los departamentos, primero verificamos si los departamentos
     // seleccionados en el localStorage existen en los departamentos del usuario
@@ -308,16 +310,9 @@ const TicketsManager = () => {
             JSON.stringify(selectedCategoriesIds)
           );
         } else {
-          // SI NO HAY CATEGORIAS SELECCIONADAS EN EL LOCAL STORAGE, SE SETEAN TODAS LAS CATEGORIAS
-          localStorage.setItem(
-            "selectedCategoriesIds",
-            JSON.stringify([
-              ...sortedCategories.map((category) => category.id || category),
-            ])
-          );
-          selectedCategoriesIds = [
-            ...sortedCategories.map((category) => category.id || category),
-          ];
+          // SI NO HAY CATEGORIAS SELECCIONADAS EN EL LOCAL STORAGE, SE SETEA UN ARRAY VACIO
+          localStorage.setItem("selectedCategoriesIds", JSON.stringify([]));
+          selectedCategoriesIds = [];
         }
 
         // SETEAMOS LAS CATEGORIAS SELECCIONADAS EN EL ESTADO
@@ -1174,9 +1169,7 @@ const TicketsManager = () => {
                   ? typeIdsForIndividuals
                   : typeIdsForGroups
               }
-              selectedWhatsappIds={
-                user.profile === "admin" ? selectedWhatsappIds : []
-              }
+              selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               ticketsType={
@@ -1197,9 +1190,7 @@ const TicketsManager = () => {
               status="pending"
               searchParam={searchParam}
               selectedTypeIds={typeIdsForAll}
-              selectedWhatsappIds={
-                user.profile === "admin" ? selectedWhatsappIds : []
-              }
+              selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1249,9 +1240,7 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={
-                            user.profile === "admin" ? selectedWhatsappIds : []
-                          }
+                          selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1282,9 +1271,7 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={
-                            user.profile === "admin" ? selectedWhatsappIds : []
-                          }
+                          selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1317,9 +1304,7 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={
-                            user.profile === "admin" ? selectedWhatsappIds : []
-                          }
+                          selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1350,9 +1335,7 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={
-                            user.profile === "admin" ? selectedWhatsappIds : []
-                          }
+                          selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1396,9 +1379,7 @@ const TicketsManager = () => {
           searchParam={searchParam}
           // showAll={true}
           selectedTypeIds={typeIdsForAll}
-          selectedWhatsappIds={
-            user.profile === "admin" ? selectedWhatsappIds : []
-          }
+          selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
