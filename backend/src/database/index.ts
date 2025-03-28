@@ -21,6 +21,7 @@ import MessagingCampaignShipmentNumber from "../models/MessagingCampaignShipment
 import Queue from "../models/Queue";
 import QueueCategory from "../models/QueueCategory";
 import QueueMarketingCampaign from "../models/QueueMarketingCampaigns";
+import QueueQuickAnswer from "../models/QueueQuickAnswer";
 import QuickAnswer from "../models/QuickAnswer";
 import SendMessageRequest from "../models/SendMessageRequest";
 import Setting from "../models/Setting";
@@ -76,7 +77,8 @@ const models = [
   MarketingMessagingCampaignShipmentNumber,
   SendMessageRequest,
   LogType,
-  Log
+  Log,
+  QueueQuickAnswer
 ];
 
 sequelize.addModels(models);

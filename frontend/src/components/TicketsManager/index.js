@@ -36,6 +36,7 @@ import { Button, Divider, FormControlLabel, Switch } from "@material-ui/core";
 import Menu from "@material-ui/core/Menu";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { toast } from "react-toastify";
+import { getREACT_APP_PURPOSE } from "../../config";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
@@ -163,7 +164,7 @@ const TicketsManager = () => {
 
   const [categories, setCategories] = useState([]);
 
-  const [categoriesVisible, setCategoriesVisible] = useState([]);
+  const [selectedCategoriesIds, setSelectedCategoriesIds] = useState([]);
 
   const [pendingColumnSide, setPendingColumnSide] = useState("left");
   const [secondaryColumnSide, setSecondaryColumnSide] = useState("left");
@@ -189,8 +190,29 @@ const TicketsManager = () => {
       setSelectedWhatsappIds(
         JSON.parse(localStorage.getItem("selectedWhatsappIds"))
       );
-    localStorage.getItem("selectedQueueIds") &&
-      setSelectedQueueIds(JSON.parse(localStorage.getItem("selectedQueueIds")));
+
+    // para el caso de los departamentos, primero verificamos si los departamentos
+    // seleccionados en el localStorage existen en los departamentos del usuario
+    // si no existen, los eliminamos del localStorage
+    if (localStorage.getItem("selectedQueueIds")) {
+      const selectedQueueIdsFromLocalStorage = JSON.parse(
+        localStorage.getItem("selectedQueueIds")
+      );
+
+      const selectedQueueIdsAfterFilter =
+        selectedQueueIdsFromLocalStorage.filter(
+          (selectedQueueId) =>
+            user?.queues?.find((queue) => queue.id === selectedQueueId) ||
+            selectedQueueId === null
+        );
+
+      localStorage.setItem(
+        "selectedQueueIds",
+        JSON.stringify(selectedQueueIdsAfterFilter)
+      );
+
+      setSelectedQueueIds(selectedQueueIdsAfterFilter);
+    }
 
     localStorage.getItem("ticketsPanel-selectedMarketingCampaignIds") &&
       setSelectedMarketingCampaignIds(
@@ -241,14 +263,18 @@ const TicketsManager = () => {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get("/categories");
+        // TRAEMOS TODAS LAS CATEGORIAS
+        const { data } = await api.get("/categories?filterByUserQueue=true");
 
+        // OBTENEMOS EL ORDEN GUARDADO POR EL USUARIO EN EL LOCAL STORAGE
         const categoriesOrder =
           JSON.parse(localStorage.getItem("categoriesOrder")) || [];
 
+        // ORDENAMOS LAS CATEGORIAS CON EL ORDEN GUARDADO EN EL LOCAL STORAGE
+        // SI NO HAY ORDEN GUARDADO, LAS CATEGORIAS SE ORDENAN ALFABETICAMENTE
         const sortedCategories = ["no-category", ...data].sort((a, b) => {
-          const indexA = categoriesOrder.indexOf(a.name || a);
-          const indexB = categoriesOrder.indexOf(b.name || b);
+          const indexA = categoriesOrder.indexOf(a.id || a);
+          const indexB = categoriesOrder.indexOf(b.id || b);
 
           if (indexA !== -1 && indexB !== -1) {
             return indexA - indexB;
@@ -262,27 +288,42 @@ const TicketsManager = () => {
 
         console.log("sortedCategories", sortedCategories);
 
+        // SETEAMOS LAS CATEGORIAS EN EL ESTADO
         setCategories(sortedCategories);
 
-        let categoriesVisible = localStorage.getItem("categoriesVisible");
+        // OBTENEMOS EL ID DE CATEGORIAS SELECCIONADAS DEL LOCAL STORAGE
+        let selectedCategoriesIds = JSON.parse(
+          localStorage.getItem("selectedCategoriesIds")
+        );
 
-        if (categoriesVisible) {
-          categoriesVisible = JSON.parse(categoriesVisible);
-        } else {
+        if (selectedCategoriesIds) {
+          // FILTRAMOS LO GUARDADO PARA QUE COINCIDA CON LO QUE NOS DEVUELVE EL BACKEND
+          selectedCategoriesIds = selectedCategoriesIds.filter(
+            (selectedCategoryId) =>
+              data.find((category) => category.id === selectedCategoryId) ||
+              selectedCategoryId === "no-category"
+          );
           localStorage.setItem(
-            "categoriesVisible",
+            "selectedCategoriesIds",
+            JSON.stringify(selectedCategoriesIds)
+          );
+        } else {
+          // SI NO HAY CATEGORIAS SELECCIONADAS EN EL LOCAL STORAGE, SE SETEAN TODAS LAS CATEGORIAS
+          localStorage.setItem(
+            "selectedCategoriesIds",
             JSON.stringify([
-              ...sortedCategories.map((category) => category.name || category),
+              ...sortedCategories.map((category) => category.id || category),
             ])
           );
-          categoriesVisible = [
-            ...sortedCategories.map((category) => category.name || category),
+          selectedCategoriesIds = [
+            ...sortedCategories.map((category) => category.id || category),
           ];
         }
 
-        setCategoriesVisible(categoriesVisible);
+        // SETEAMOS LAS CATEGORIAS SELECCIONADAS EN EL ESTADO
+        setSelectedCategoriesIds(selectedCategoriesIds);
 
-        console.log("categoriesVisible", categoriesVisible);
+        console.log("selectedCategoriesIds", selectedCategoriesIds);
       } catch (error) {
         toast.error("Error al cargar las categorias");
         console.log("Error al cargar las categorias - ", error);
@@ -377,8 +418,9 @@ const TicketsManager = () => {
     }
 
     const categoryIds = newCategories.map(
-      (category) => category.name || "no-category"
+      (category) => category.id || "no-category"
     );
+
     localStorage.setItem("categoriesOrder", JSON.stringify(categoryIds));
 
     console.log("newCategories", newCategories);
@@ -484,12 +526,14 @@ const TicketsManager = () => {
           </>
           {/* )} */}
           {/* WPP SELECT */}
-          <TicketsWhatsappSelect
-            style={{ marginLeft: 6 }}
-            selectedWhatsappIds={selectedWhatsappIds || []}
-            userWhatsapps={whatsApps || []}
-            onChange={(values) => setSelectedWhatsappIds(values)}
-          />
+          {user.profile === "admin" && (
+            <TicketsWhatsappSelect
+              style={{ marginLeft: 6 }}
+              selectedWhatsappIds={selectedWhatsappIds || []}
+              userWhatsapps={whatsApps || []}
+              onChange={(values) => setSelectedWhatsappIds(values)}
+            />
+          )}
           {/* - WPP SELECT */}
           {/* QUEUE SELECT */}
           <TicketsQueueSelect
@@ -500,27 +544,22 @@ const TicketsManager = () => {
           />
           {/* - QUEUE SELECT */}
           {/* MARKETING CAMPAIGN SELECT */}
-          {/* <TicketsMarketingCampaignSelect
-            style={{ marginLeft: 6 }}
-            selectedMarketingCampaignIds={selectedMarketingCampaignIds} // corrected prop name
-            marketingCampaignIds={[]} // assuming the correct prop is campaigns
-            onChange={(values) => setSelectedMarketingCampaignIds(values)} // corrected setter
-          /> */}
-          <MarketingCampaignSelect
-            style={{ marginLeft: 6 }}
-            selectedIds={selectedMarketingCampaignIds} // corrected prop name
-            onChange={(values) => {
-              localStorage.setItem(
-                "ticketsPanel-selectedMarketingCampaignIds",
-                JSON.stringify(values)
-              );
-              setSelectedMarketingCampaignIds(values);
-            }} // corrected setter
-            chips={false}
-            badgeColor={"secondary"}
-          />
+          {getREACT_APP_PURPOSE() === "comercial" && (
+            <MarketingCampaignSelect
+              style={{ marginLeft: 6 }}
+              selectedIds={selectedMarketingCampaignIds} // corrected prop name
+              onChange={(values) => {
+                localStorage.setItem(
+                  "ticketsPanel-selectedMarketingCampaignIds",
+                  JSON.stringify(values)
+                );
+                setSelectedMarketingCampaignIds(values);
+              }} // corrected setter
+              chips={false}
+              badgeColor={"secondary"}
+            />
+          )}
           {/* - MARKETING CAMPAIGN SELECT */}
-          {/* - QUEUE SELECT */}
           {tab === "search" && (
             <>
               <Badge
@@ -838,6 +877,7 @@ const TicketsManager = () => {
                 marginLeft: "auto",
               }}
             >
+              {/* SELECTOR DE MIOS O TODOS */}
               <Can
                 role={user.profile}
                 perform="tickets-manager:showall"
@@ -1012,13 +1052,15 @@ const TicketsManager = () => {
                   ) : null
                 }
               />
+              {/* - SELECTOR DE MIOS O TODOS */}
 
+              {/* SELECTOR DE CATEGORIAS */}
               <Badge
                 overlap="rectangular"
-                badgeContent={categoriesVisible?.length}
+                badgeContent={selectedCategoriesIds?.length}
                 max={99999}
                 color="secondary"
-                invisible={categoriesVisible?.length === 0}
+                invisible={selectedCategoriesIds?.length === 0}
                 className="TicketsWhatsappSelect"
               >
                 <div style={{}}>
@@ -1027,14 +1069,14 @@ const TicketsManager = () => {
                       multiple
                       displayEmpty
                       variant="outlined"
-                      value={categoriesVisible}
+                      value={selectedCategoriesIds}
                       onChange={(e) => {
                         console.log("e.target.value", e.target.value);
                         localStorage.setItem(
-                          "categoriesVisible",
+                          "selectedCategoriesIds",
                           JSON.stringify(e.target.value)
                         );
-                        setCategoriesVisible(e.target.value);
+                        setSelectedCategoriesIds(e.target.value);
                       }}
                       MenuProps={{
                         anchorOrigin: {
@@ -1053,8 +1095,8 @@ const TicketsManager = () => {
                         categories.map((category) => (
                           <MenuItem
                             dense
-                            key={category.name || category}
-                            value={category.name || category}
+                            key={category.id || category}
+                            value={category.id || category}
                           >
                             <Checkbox
                               style={{
@@ -1063,8 +1105,8 @@ const TicketsManager = () => {
                               size="small"
                               color="primary"
                               checked={
-                                categoriesVisible.indexOf(
-                                  category.name || category
+                                selectedCategoriesIds.indexOf(
+                                  category.id || category
                                 ) >= 0
                               }
                             />
@@ -1075,6 +1117,7 @@ const TicketsManager = () => {
                   </FormControl>
                 </div>
               </Badge>
+              {/* - SELECTOR DE CATEGORIAS */}
 
               <Divider
                 flexItem
@@ -1082,6 +1125,7 @@ const TicketsManager = () => {
                 style={{ marginLeft: 20, marginRight: 20 }}
               />
 
+              {/* FILTRO DE RESPUESTA */}
               <FormControlLabel
                 style={{ marginRight: 7, color: "gray", marginLeft: 0 }}
                 label={"Ver solo sin respuesta"}
@@ -1102,6 +1146,7 @@ const TicketsManager = () => {
                   />
                 }
               />
+              {/* - FILTRO DE RESPUESTA */}
             </div>
           </div>
 
@@ -1129,7 +1174,9 @@ const TicketsManager = () => {
                   ? typeIdsForIndividuals
                   : typeIdsForGroups
               }
-              selectedWhatsappIds={selectedWhatsappIds}
+              selectedWhatsappIds={
+                user.profile === "admin" ? selectedWhatsappIds : []
+              }
               selectedQueueIds={selectedQueueIds}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               ticketsType={
@@ -1150,7 +1197,9 @@ const TicketsManager = () => {
               status="pending"
               searchParam={searchParam}
               selectedTypeIds={typeIdsForAll}
-              selectedWhatsappIds={selectedWhatsappIds}
+              selectedWhatsappIds={
+                user.profile === "admin" ? selectedWhatsappIds : []
+              }
               selectedQueueIds={selectedQueueIds}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1179,7 +1228,7 @@ const TicketsManager = () => {
                     style={{
                       display: "grid",
                       "grid-template-columns": `repeat(${Math.round(
-                        categoriesVisible?.length / 2
+                        selectedCategoriesIds?.length / 2
                       )}, 1fr)`,
                       gap: "12px",
                       height: "100%",
@@ -1200,7 +1249,9 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={selectedWhatsappIds}
+                          selectedWhatsappIds={
+                            user.profile === "admin" ? selectedWhatsappIds : []
+                          }
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1214,11 +1265,11 @@ const TicketsManager = () => {
                           onMoveToRight={() => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
-                          categoriesVisible={categoriesVisible}
+                          selectedCategoriesIds={selectedCategoriesIds}
                         />
                       ) : (
                         <TicketsList
-                          key={category.name}
+                          key={category.id}
                           status="open"
                           searchParam={searchParam}
                           category={category}
@@ -1231,7 +1282,9 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={selectedWhatsappIds}
+                          selectedWhatsappIds={
+                            user.profile === "admin" ? selectedWhatsappIds : []
+                          }
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1242,7 +1295,7 @@ const TicketsManager = () => {
                           onMoveToRight={() => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
-                          categoriesVisible={categoriesVisible}
+                          selectedCategoriesIds={selectedCategoriesIds}
                         />
                       );
                     })}
@@ -1264,7 +1317,9 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={selectedWhatsappIds}
+                          selectedWhatsappIds={
+                            user.profile === "admin" ? selectedWhatsappIds : []
+                          }
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1278,11 +1333,11 @@ const TicketsManager = () => {
                           onMoveToRight={() => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
-                          categoriesVisible={categoriesVisible}
+                          selectedCategoriesIds={selectedCategoriesIds}
                         />
                       ) : (
                         <TicketsList
-                          key={category.name}
+                          key={category.id}
                           status="open"
                           searchParam={searchParam}
                           category={category}
@@ -1295,7 +1350,9 @@ const TicketsManager = () => {
                               ? typeIdsForGroups
                               : typeIdsForIndividuals
                           }
-                          selectedWhatsappIds={selectedWhatsappIds}
+                          selectedWhatsappIds={
+                            user.profile === "admin" ? selectedWhatsappIds : []
+                          }
                           selectedQueueIds={selectedQueueIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1306,7 +1363,7 @@ const TicketsManager = () => {
                           onMoveToRight={() => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
-                          categoriesVisible={categoriesVisible}
+                          selectedCategoriesIds={selectedCategoriesIds}
                         />
                       );
                     })}
@@ -1339,7 +1396,9 @@ const TicketsManager = () => {
           searchParam={searchParam}
           // showAll={true}
           selectedTypeIds={typeIdsForAll}
-          selectedWhatsappIds={selectedWhatsappIds}
+          selectedWhatsappIds={
+            user.profile === "admin" ? selectedWhatsappIds : []
+          }
           selectedQueueIds={selectedQueueIds}
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
@@ -1353,7 +1412,7 @@ const TicketsManager = () => {
           searchParam={searchParam}
           showAll={true}
           selectedTypeIds={typeIdsForAll}
-          selectedWhatsappIds={selectedWhatsappIds}
+          selectedWhatsappIds={user.profile === "admin"  ? selectedWhatsappIds : []}
           selectedQueueIds={selectedQueueIds}
         />
       </TabPanel> */}

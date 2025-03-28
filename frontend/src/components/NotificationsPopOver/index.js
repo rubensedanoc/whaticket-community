@@ -110,10 +110,16 @@ const NotificationsPopOver = () => {
     });
 
     socket.on("appMessage", (data) => {
+      // console.log("appMessage", data);
+      // console.log("user", user);
+
       if (
         data.action === "create" &&
         !data.message.read &&
-        (data.ticket.userId === user?.id || !data.ticket.userId)
+        (data.ticket.userId === user?.id ||
+          (!data.ticket.userId &&
+            user?.queues?.find((q) => q.id === data.ticket.queueId)) ||
+          !data.ticket.queueId)
       ) {
         setNotifications((prevState) => {
           const ticketIndex = prevState.findIndex(
@@ -152,6 +158,12 @@ const NotificationsPopOver = () => {
       tag: ticket.id,
       renotify: true,
     };
+
+    console.log(
+      "handleNotifications: ",
+      `${i18n.t("tickets.notification.message")} ${contact.name}`,
+      options
+    );
 
     const notification = new Notification(
       `${i18n.t("tickets.notification.message")} ${contact.name}`,

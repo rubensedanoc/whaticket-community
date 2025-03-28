@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { emitEvent } from "../libs/emitEvent";
+import Queue from "../models/Queue";
+import User from "../models/User";
 import CreateCategoryService from "../services/CategoryService/CreateCategoryService";
 import DeleteCategoryService from "../services/CategoryService/DeleteCategoryService";
 import ListCategorysService from "../services/CategoryService/ListCategorysService";
@@ -7,7 +9,25 @@ import ShowCategoryService from "../services/CategoryService/ShowCategoryService
 import UpdateCategoryService from "../services/CategoryService/UpdateCategoryService";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const categorys = await ListCategorysService();
+  const { filterByUserQueue: filterByUserQueueAsString } = req.query;
+
+  const filterByUserQueue = Boolean(filterByUserQueueAsString);
+  let queueIds = [];
+
+  if (filterByUserQueue) {
+    queueIds = (
+      await User.findByPk(req.user.id, {
+        include: [
+          {
+            model: Queue,
+            as: "queues"
+          }
+        ]
+      })
+    ).queues.map(queue => queue.id);
+  }
+
+  const categorys = await ListCategorysService({ queueIds });
 
   return res.status(200).json(categorys);
 };

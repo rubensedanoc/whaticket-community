@@ -211,7 +211,7 @@ const TicketsList = (props) => {
     category,
     onMoveToLeft,
     onMoveToRight,
-    categoriesVisible,
+    selectedCategoriesIds,
     showOnlyWaitingTickets,
     columnsWidth,
   } = props;
@@ -553,7 +553,7 @@ const TicketsList = (props) => {
         // Es la lista sin categoria o es lista de categoria
         ...((ticketsType === "no-category" || category) &&
         // la categoria esta marcada como no visible
-        !categoriesVisible.includes(category?.name || ticketsType) &&
+        !selectedCategoriesIds.includes(category?.id || ticketsType) &&
         // Tenemos almenos un ticket y no estamos viendo mis tickets en caso de solo estar viendo solo individuales
         !(
           !showAll &&

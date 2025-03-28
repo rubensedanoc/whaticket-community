@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { MessageId } from "whatsapp-web.js";
 import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
@@ -13,7 +14,7 @@ function generateRandomID(length: number) {
   return result;
 }
 
-export default function verifyPrivateMessage(
+export default async function verifyPrivateMessage(
   bodyMessage: string,
   ticket: Ticket,
   contact: Contact
@@ -36,6 +37,29 @@ export default function verifyPrivateMessage(
   };
 
   verifyMessage({ msg: testMessage, ticket, contact, isPrivate: true });
-
   ticket.update({ lastMessageTimestamp: privateMessageTimestamp });
+
+  if (ticket.isGroup) {
+    const ticketBrothers = await Ticket.findAll({
+      where: {
+        contactId: ticket.contactId,
+        isGroup: true,
+        status: { [Op.not]: "closed" },
+        id: { [Op.not]: ticket.id }
+      }
+    });
+
+    for (const ticketBrother of ticketBrothers) {
+      verifyMessage({
+        msg: {
+          ...testMessage,
+          body: `${testMessage.body}\n\n(Escrito en el ticket: ${ticket.id})`
+        },
+        ticket: ticketBrother,
+        contact,
+        isPrivate: true
+      });
+      ticketBrother.update({ lastMessageTimestamp: privateMessageTimestamp });
+    }
+  }
 }

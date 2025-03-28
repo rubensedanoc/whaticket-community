@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import openSocket from "../../services/socket-io";
 
 import {
   Button,
   IconButton,
+  InputAdornment,
   makeStyles,
   Paper,
   Table,
@@ -11,10 +12,9 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  InputAdornment,
   TextField,
 } from "@material-ui/core";
-import { Edit, DeleteOutline } from "@material-ui/icons";
+import { DeleteOutline, Edit } from "@material-ui/icons";
 import SearchIcon from "@material-ui/icons/Search";
 
 import MainContainer from "../../components/MainContainer";
@@ -22,13 +22,14 @@ import MainHeader from "../../components/MainHeader";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
 import Title from "../../components/Title";
 
+import Chip from "@material-ui/core/Chip";
+import { toast } from "react-toastify";
+import ConfirmationModal from "../../components/ConfirmationModal";
+import QuickAnswersModal from "../../components/QuickAnswersModal";
+import TableRowSkeleton from "../../components/TableRowSkeleton";
+import toastError from "../../errors/toastError";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
-import TableRowSkeleton from "../../components/TableRowSkeleton";
-import QuickAnswersModal from "../../components/QuickAnswersModal";
-import ConfirmationModal from "../../components/ConfirmationModal";
-import { toast } from "react-toastify";
-import toastError from "../../errors/toastError";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_QUICK_ANSWERS") {
@@ -245,6 +246,7 @@ const QuickAnswers = () => {
               <TableCell align="center">
                 {i18n.t("quickAnswers.table.message")}
               </TableCell>
+              <TableCell align="center">Departamentos</TableCell>
               <TableCell align="center">
                 {i18n.t("quickAnswers.table.actions")}
               </TableCell>
@@ -256,6 +258,16 @@ const QuickAnswers = () => {
                 <TableRow key={quickAnswer.id}>
                   <TableCell align="center">{quickAnswer.shortcut}</TableCell>
                   <TableCell align="center">{quickAnswer.message}</TableCell>
+                  <TableCell align="center">
+                    {quickAnswer.queues?.map((q) => (
+                      <Chip
+                        key={q.id}
+                        style={{ backgroundColor: q.color }}
+                        variant="outlined"
+                        label={q.name}
+                      />
+                    ))}
+                  </TableCell>
                   <TableCell align="center">
                     <IconButton
                       size="small"

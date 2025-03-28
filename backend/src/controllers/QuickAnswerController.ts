@@ -9,10 +9,13 @@ import UpdateQuickAnswerService from "../services/QuickAnswerService/UpdateQuick
 
 import AppError from "../errors/AppError";
 import { emitEvent } from "../libs/emitEvent";
+import Queue from "../models/Queue";
+import User from "../models/User";
 
 type IndexQuery = {
   searchParam: string;
   pageNumber: string;
+  filterByUserQueue: string;
 };
 
 interface QuickAnswerData {
@@ -21,11 +24,32 @@ interface QuickAnswerData {
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const { searchParam, pageNumber } = req.query as IndexQuery;
+  const {
+    searchParam,
+    pageNumber,
+    filterByUserQueue: filterByUserQueueAsString
+  } = req.query as IndexQuery;
+
+  const filterByUserQueue = Boolean(filterByUserQueueAsString);
+  let queueIds = [];
+
+  if (filterByUserQueue) {
+    queueIds = (
+      await User.findByPk(req.user.id, {
+        include: [
+          {
+            model: Queue,
+            as: "queues"
+          }
+        ]
+      })
+    ).queues.map(queue => queue.id);
+  }
 
   const { quickAnswers, count, hasMore } = await ListQuickAnswerService({
     searchParam,
-    pageNumber
+    pageNumber,
+    queueIds
   });
 
   return res.json({ quickAnswers, count, hasMore });
@@ -71,7 +95,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { quickAnswerId } = req.params;
 
-  const quickAnswer = await ShowQuickAnswerService(quickAnswerId);
+  const quickAnswer = await ShowQuickAnswerService(+quickAnswerId);
 
   return res.status(200).json(quickAnswer);
 };
