@@ -43,7 +43,7 @@ const TicketCategories = ({ ticket }) => {
 
     (async () => {
       if (autocompleteOpen) {
-        const { data } = await api.get("/categories");
+        const { data } = await api.get("/categories?filterByUserQueue=true");
         console.log("categories", data);
         if (active) {
           setAutocompleteOptions([...data]);

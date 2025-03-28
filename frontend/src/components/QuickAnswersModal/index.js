@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-import * as Yup from "yup";
-import { Formik, Form, Field } from "formik";
+import { Field, Form, Formik } from "formik";
 import { toast } from "react-toastify";
+import * as Yup from "yup";
 
 import {
-  makeStyles,
   Button,
-  TextField,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  CircularProgress,
+  makeStyles,
+  TextField,
 } from "@material-ui/core";
 import { green } from "@material-ui/core/colors";
 import { i18n } from "../../translate/i18n";
 
-import api from "../../services/api";
 import toastError from "../../errors/toastError";
+import api from "../../services/api";
+import QueueSelect from "../QueueSelect";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -73,6 +74,7 @@ const QuickAnswersModal = ({
   };
 
   const [quickAnswer, setQuickAnswer] = useState(initialState);
+  const [selectedQueueIds, setSelectedQueueIds] = useState([]);
 
   useEffect(() => {
     return () => {
@@ -86,6 +88,7 @@ const QuickAnswersModal = ({
         setQuickAnswer((prevState) => {
           return { ...prevState, ...initialValues };
         });
+        setSelectedQueueIds([]);
       }
 
       if (!quickAnswerId) return;
@@ -94,6 +97,7 @@ const QuickAnswersModal = ({
         const { data } = await api.get(`/quickAnswers/${quickAnswerId}`);
         if (isMounted.current) {
           setQuickAnswer(data);
+          setSelectedQueueIds(data.queues.map((queue) => queue.id));
         }
       } catch (err) {
         toastError(err);
@@ -106,15 +110,18 @@ const QuickAnswersModal = ({
   const handleClose = () => {
     onClose();
     setQuickAnswer(initialState);
+    setSelectedQueueIds([]);
   };
 
   const handleSaveQuickAnswer = async (values) => {
+    const quickAnswerData = { ...values, queueIds: selectedQueueIds };
+
     try {
       if (quickAnswerId) {
-        await api.put(`/quickAnswers/${quickAnswerId}`, values);
+        await api.put(`/quickAnswers/${quickAnswerId}`, quickAnswerData);
         handleClose();
       } else {
-        const { data } = await api.post("/quickAnswers", values);
+        const { data } = await api.post("/quickAnswers", quickAnswerData);
         if (onSave) {
           onSave(data);
         }
@@ -168,6 +175,7 @@ const QuickAnswersModal = ({
                     fullWidth
                   />
                 </div>
+                <br />
                 <div className={classes.textQuickAnswerContainer}>
                   <Field
                     as={TextField}
@@ -183,6 +191,11 @@ const QuickAnswersModal = ({
                     fullWidth
                   />
                 </div>
+                <br />
+                <QueueSelect
+                  selectedQueueIds={selectedQueueIds}
+                  onChange={(selectedIds) => setSelectedQueueIds(selectedIds)}
+                />
               </DialogContent>
               <DialogActions>
                 <Button

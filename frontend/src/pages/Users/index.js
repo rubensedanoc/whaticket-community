@@ -23,6 +23,7 @@ import MainHeader from "../../components/MainHeader";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
 import Title from "../../components/Title";
 
+import Chip from "@material-ui/core/Chip";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 import UserModal from "../../components/UserModal";
@@ -259,6 +260,9 @@ const Users = () => {
                 <TableCell align="center">
                   {i18n.t("users.table.whatsapp")}
                 </TableCell>
+                <TableCell style={{ maxWidth: "20rem" }} align="center">
+                  Departamentos
+                </TableCell>
                 <TableCell align="center">
                   {i18n.t("users.table.actions")}
                 </TableCell>
@@ -277,6 +281,16 @@ const Users = () => {
                     <TableCell align="center">{user.email}</TableCell>
                     <TableCell align="center">{user.profile}</TableCell>
                     <TableCell align="center">{user.whatsapp?.name}</TableCell>
+                    <TableCell style={{ maxWidth: "20rem" }} align="center">
+                      {user.queues?.map((q) => (
+                        <Chip
+                          key={q.id}
+                          style={{ backgroundColor: q.color }}
+                          variant="outlined"
+                          label={q.name}
+                        />
+                      ))}
+                    </TableCell>
                     <TableCell align="center">
                       <IconButton
                         size="small"

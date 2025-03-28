@@ -1,9 +1,11 @@
-import QuickAnswer from "../../models/QuickAnswer";
 import AppError from "../../errors/AppError";
+import Queue from "../../models/Queue";
+import QuickAnswer from "../../models/QuickAnswer";
 
 interface QuickAnswerData {
   shortcut?: string;
   message?: string;
+  queueIds?: number[];
 }
 
 interface Request {
@@ -15,11 +17,18 @@ const UpdateQuickAnswerService = async ({
   quickAnswerData,
   quickAnswerId
 }: Request): Promise<QuickAnswer> => {
-  const { shortcut, message } = quickAnswerData;
+  const { shortcut, message, queueIds = [] } = quickAnswerData;
 
   const quickAnswer = await QuickAnswer.findOne({
     where: { id: quickAnswerId },
-    attributes: ["id", "shortcut", "message"]
+    attributes: ["id", "shortcut", "message"],
+    include: [
+      {
+        model: Queue,
+        as: "queues",
+        required: false
+      }
+    ]
   });
 
   if (!quickAnswer) {
@@ -30,9 +39,9 @@ const UpdateQuickAnswerService = async ({
     message
   });
 
-  await quickAnswer.reload({
-    attributes: ["id", "shortcut", "message"]
-  });
+  await quickAnswer.$set("queues", queueIds);
+
+  await quickAnswer.reload();
 
   return quickAnswer;
 };

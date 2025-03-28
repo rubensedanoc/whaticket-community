@@ -1,14 +1,17 @@
 import AppError from "../../errors/AppError";
 import QuickAnswer from "../../models/QuickAnswer";
+import ShowQuickAnswerService from "./ShowQuickAnswerService";
 
 interface Request {
   shortcut: string;
   message: string;
+  queueIds?: number[];
 }
 
 const CreateQuickAnswerService = async ({
   shortcut,
-  message
+  message,
+  queueIds = []
 }: Request): Promise<QuickAnswer> => {
   const nameExists = await QuickAnswer.findOne({
     where: { shortcut }
@@ -18,7 +21,11 @@ const CreateQuickAnswerService = async ({
     throw new AppError("ERR__SHORTCUT_DUPLICATED");
   }
 
-  const quickAnswer = await QuickAnswer.create({ shortcut, message });
+  let quickAnswer = await QuickAnswer.create({ shortcut, message });
+
+  await quickAnswer.$set("queues", queueIds);
+
+  quickAnswer = await ShowQuickAnswerService(quickAnswer.id);
 
   return quickAnswer;
 };

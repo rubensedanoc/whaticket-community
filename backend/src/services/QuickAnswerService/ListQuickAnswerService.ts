@@ -1,9 +1,11 @@
 import { Sequelize } from "sequelize";
+import Queue from "../../models/Queue";
 import QuickAnswer from "../../models/QuickAnswer";
 
 interface Request {
   searchParam?: string;
   pageNumber?: string;
+  queueIds?: number[];
 }
 
 interface Response {
@@ -14,7 +16,8 @@ interface Response {
 
 const ListQuickAnswerService = async ({
   searchParam = "",
-  pageNumber = "1"
+  pageNumber = "1",
+  queueIds = []
 }: Request): Promise<Response> => {
   const whereCondition = {
     message: Sequelize.where(
@@ -28,12 +31,25 @@ const ListQuickAnswerService = async ({
 
   const { count, rows: quickAnswers } = await QuickAnswer.findAndCountAll({
     where: whereCondition,
-    limit,
-    offset,
+    include: [
+      ...(queueIds.length > 0
+        ? [{ model: Queue, where: { id: queueIds }, required: true }]
+        : [
+            {
+              model: Queue,
+              as: "queues",
+              attributes: ["id", "name", "color"],
+              required: false
+            }
+          ])
+    ],
+    // limit,
+    // offset,
     order: [["message", "ASC"]]
   });
 
-  const hasMore = count > offset + quickAnswers.length;
+  // const hasMore = count > offset + quickAnswers.length;
+  const hasMore = false;
 
   return {
     quickAnswers,
