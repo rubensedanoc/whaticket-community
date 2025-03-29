@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { emitEvent } from "../libs/emitEvent";
+import Category from "../models/Category";
 import Queue from "../models/Queue";
 import User from "../models/User";
 import CreateCategoryService from "../services/CategoryService/CreateCategoryService";
@@ -9,27 +10,51 @@ import ShowCategoryService from "../services/CategoryService/ShowCategoryService
 import UpdateCategoryService from "../services/CategoryService/UpdateCategoryService";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const { filterByUserQueue: filterByUserQueueAsString } = req.query;
+  const {
+    filterByUserQueue: filterByUserQueueAsString,
+    markByUserQueue: markByUserQueueAsString
+  } = req.query;
 
   const filterByUserQueue = Boolean(filterByUserQueueAsString);
-  let queueIds = [];
+  const markByUserQueue = Boolean(markByUserQueueAsString);
 
-  if (filterByUserQueue) {
-    queueIds = (
-      await User.findByPk(req.user.id, {
-        include: [
-          {
-            model: Queue,
-            as: "queues"
-          }
-        ]
-      })
-    ).queues.map(queue => queue.id);
+  let userQueueIds = [];
+
+  userQueueIds = (
+    await User.findByPk(req.user.id, {
+      include: [
+        {
+          model: Queue,
+          as: "queues"
+        }
+      ]
+    })
+  ).queues.map(queue => queue.id);
+
+  let categories = await ListCategorysService({
+    queueIds: filterByUserQueue ? userQueueIds : []
+  });
+
+  if (markByUserQueue) {
+    categories = categories.map(category => {
+      category = category.toJSON() as Category;
+
+      if (
+        category.queues.length > 0 &&
+        category.queues.find(queue => userQueueIds.includes(queue.id))
+      ) {
+        // @ts-ignore
+        category.userHasThisCategory = true;
+      } else {
+        // @ts-ignore
+        category.userHasThisCategory = false;
+      }
+
+      return category;
+    });
   }
 
-  const categorys = await ListCategorysService({ queueIds });
-
-  return res.status(200).json(categorys);
+  return res.status(200).json(categories);
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {

@@ -18,6 +18,7 @@ const useTickets = ({
   showOnlyMyGroups,
   categoryId,
   showOnlyWaitingTickets,
+  filterByUserQueue = false,
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -45,6 +46,7 @@ const useTickets = ({
               showOnlyMyGroups,
               categoryId,
               showOnlyWaitingTickets,
+              filterByUserQueue,
             },
           });
           setTickets(data.tickets);
