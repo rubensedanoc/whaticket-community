@@ -9,7 +9,13 @@ const ListCategorysService = async ({
     include: [
       ...(queueIds.length > 0
         ? [{ model: Queue, where: { id: queueIds }, required: true }]
-        : [])
+        : [
+            {
+              model: Queue,
+              as: "queues",
+              required: false
+            }
+          ])
     ]
   });
 

@@ -266,7 +266,7 @@ const TicketsManager = () => {
     (async () => {
       try {
         // TRAEMOS TODAS LAS CATEGORIAS
-        const { data } = await api.get("/categories?filterByUserQueue=true");
+        const { data } = await api.get("/categories?markByUserQueue=true");
 
         // OBTENEMOS EL ORDEN GUARDADO POR EL USUARIO EN EL LOCAL STORAGE
         const categoriesOrder =
@@ -1087,27 +1087,33 @@ const TicketsManager = () => {
                       renderValue={() => "Categorias"}
                     >
                       {categories?.length > 0 &&
-                        categories.map((category) => (
-                          <MenuItem
-                            dense
-                            key={category.id || category}
-                            value={category.id || category}
-                          >
-                            <Checkbox
-                              style={{
-                                color: "black",
-                              }}
-                              size="small"
-                              color="primary"
-                              checked={
-                                selectedCategoriesIds.indexOf(
-                                  category.id || category
-                                ) >= 0
-                              }
-                            />
-                            <ListItemText primary={category.name || category} />
-                          </MenuItem>
-                        ))}
+                        categories
+                          .filter(
+                            (c) => c.userHasThisCategory || c === "no-category"
+                          )
+                          .map((category) => (
+                            <MenuItem
+                              dense
+                              key={category.id || category}
+                              value={category.id || category}
+                            >
+                              <Checkbox
+                                style={{
+                                  color: "black",
+                                }}
+                                size="small"
+                                color="primary"
+                                checked={
+                                  selectedCategoriesIds.indexOf(
+                                    category.id || category
+                                  ) >= 0
+                                }
+                              />
+                              <ListItemText
+                                primary={category.name || category}
+                              />
+                            </MenuItem>
+                          ))}
                     </Select>
                   </FormControl>
                 </div>

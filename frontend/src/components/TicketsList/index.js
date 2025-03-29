@@ -263,6 +263,7 @@ const TicketsList = (props) => {
     showOnlyWaitingTickets,
     ...(category && { categoryId: category.id }),
     ...(ticketsType === "no-category" && { categoryId: 0 }),
+    filterByUserQueue: true,
   });
 
   useEffect(() => {

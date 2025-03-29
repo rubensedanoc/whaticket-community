@@ -14,6 +14,8 @@ import CreateTicketService from "../services/TicketServices/CreateTicketService"
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
 // import ListTicketsServicev2 from "../services/TicketServices/ListTicketsServicev2";
 import { emitEvent } from "../libs/emitEvent";
+import Queue from "../models/Queue";
+import User from "../models/User";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../services/TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
@@ -36,6 +38,7 @@ type IndexQuery = {
   showOnlyMyGroups: string;
   categoryId: string;
   showOnlyWaitingTickets: string;
+  filterByUserQueue: string;
 };
 
 interface TicketData {
@@ -68,7 +71,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     withUnreadMessages,
     showOnlyMyGroups: showOnlyMyGroupsStringified,
     categoryId: categoryIdStringified,
-    showOnlyWaitingTickets: showOnlyWaitingTicketsStringified
+    showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
+    filterByUserQueue: filterByUserQueueStringified
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -80,6 +84,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let showOnlyMyGroups: boolean = false;
   let categoryId: number | null = null;
   let showOnlyWaitingTickets: boolean = false;
+  let filterByUserQueue: boolean = false;
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -107,6 +112,26 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   if (showOnlyWaitingTicketsStringified) {
     showOnlyWaitingTickets = JSON.parse(showOnlyWaitingTicketsStringified);
+  }
+
+  if (filterByUserQueueStringified) {
+    filterByUserQueue = JSON.parse(filterByUserQueueStringified);
+  }
+
+  // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
+  if (filterByUserQueue && queueIds.length === 0) {
+    const userWithQueues = await User.findByPk(req.user.id, {
+      include: [
+        {
+          model: Queue,
+          as: "queues"
+        }
+      ]
+    });
+
+    if (userWithQueues && userWithQueues.queues) {
+      queueIds = [...userWithQueues.queues.map(queue => queue.id), null];
+    }
   }
 
   let { tickets, count, hasMore, whereCondition, includeCondition } =

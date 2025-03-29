@@ -146,7 +146,7 @@ const buildWhereCondition = ({
         typeIds[0] === "individual" &&
         status === "open") ||
         (showOnlyMyGroups && typeIds[0] === "group"))
-    ) ||
+    ) &&
     !searchParam
   ) {
     if (queueIds?.length) {
