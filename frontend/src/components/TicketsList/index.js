@@ -319,9 +319,12 @@ const TicketsList = (props) => {
             !showOnlyMyGroups));
 
       const queueCondition =
-        (!ticket.queueId && selectedQueueIds.includes(null)) ||
+        (!ticket.queueId &&
+          (selectedQueueIds.includes(null) ||
+            selectedQueueIds?.length === 0)) ||
         selectedQueueIds.indexOf(ticket.queueId) !== -1 ||
-        selectedQueueIds?.length === 0;
+        (selectedQueueIds?.length === 0 &&
+          user?.queues?.find((q) => q?.id === ticket.queueId));
 
       const marketingCampaignCondition =
         (!ticket.marketingCampaignId &&
