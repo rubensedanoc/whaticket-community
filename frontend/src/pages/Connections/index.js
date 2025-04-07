@@ -34,6 +34,7 @@ import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper"
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 import Title from "../../components/Title";
 
+import Chip from "@material-ui/core/Chip";
 import ConectionsMenu from "../../components/ConectionsMenu";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import QrcodeModal from "../../components/QrcodeModal";
@@ -356,6 +357,9 @@ const Connections = () => {
               <TableCell align="center">
                 {i18n.t("connections.table.default")}
               </TableCell>
+              <TableCell style={{ maxWidth: "20rem" }} align="center">
+                Departamentos
+              </TableCell>
               <TableCell align="center">
                 {i18n.t("connections.table.actions")}
               </TableCell>
@@ -405,6 +409,17 @@ const Connections = () => {
                             <CheckCircle style={{ color: green[500] }} />
                           </div>
                         )}
+                      </TableCell>
+                      <TableCell style={{ maxWidth: "20rem" }} align="center">
+                        {whatsApp.queues?.map((q) => (
+                          <Chip
+                            key={q.id}
+                            style={{ backgroundColor: q.color }}
+                            variant="outlined"
+                            label={q.name}
+                            size="small"
+                          />
+                        ))}
                       </TableCell>
                       <TableCell align="center">
                         <IconButton

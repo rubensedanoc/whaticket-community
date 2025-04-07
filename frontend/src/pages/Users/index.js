@@ -288,6 +288,7 @@ const Users = () => {
                           style={{ backgroundColor: q.color }}
                           variant="outlined"
                           label={q.name}
+                          size="small"
                         />
                       ))}
                     </TableCell>
