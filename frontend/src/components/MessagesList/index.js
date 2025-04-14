@@ -769,6 +769,22 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   };
 
   const renderMessageAck = (message) => {
+    if (message.ack === -1) {
+      return (
+        <span
+          style={{
+            padding: "2px 7px",
+            background: "red",
+            color: "white",
+            borderRadius: "25px",
+            display: "inline-block",
+            marginLeft: "5px",
+          }}
+        >
+          ERROR AL ENVIAR
+        </span>
+      );
+    }
     if (message.ack === 0) {
       return <AccessTime fontSize="small" className={classes.ackIcons} />;
     }

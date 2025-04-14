@@ -193,7 +193,14 @@ const MarketingCampaigns = () => {
         onClose={handleCloseMarketingCampaignModal}
         marketingCampaignId={selectedMarketingCampaign?.id}
       />
-      <div style={{ padding: "2rem", height: "85%" }}>
+      <div
+        style={{
+          padding: "2rem",
+          height: "90%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <MainHeader>
           <Title>Campañas de marketing</Title>
           <MainHeaderButtonsWrapper>
@@ -220,9 +227,7 @@ const MarketingCampaigns = () => {
               <>
                 {marketingCampaigns?.map((marketingCampaign) => (
                   <TableRow key={marketingCampaign.id}>
-                    <TableCell align="center">
-                      {marketingCampaign.id}
-                    </TableCell>
+                    <TableCell align="center">{marketingCampaign.id}</TableCell>
                     <TableCell align="center">
                       {marketingCampaign.name}
                     </TableCell>

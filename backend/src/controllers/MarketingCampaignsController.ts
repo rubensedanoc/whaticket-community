@@ -13,7 +13,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
         as: "marketingMessagingCampaigns",
         required: false
       }
-    ]
+    ],
+    order: [["id", "DESC"]]
   });
 
   return res.status(200).json(marketingCampaigns);
