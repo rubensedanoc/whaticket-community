@@ -77,8 +77,9 @@ const SendWhatsAppMessage = async ({
         linkPreview: false,
         ...(mentionedNumbers &&
           mentionedNumbers.length > 0 && {
-            // mentions: mentionedNumbers.map(number => number + "@c.us")
-            mentions: mentionedNumbers.map(number => number + "@lid")
+            mentions: mentionedNumbers.map(
+              number => number + (number.length >= 14 ? "@lid" : "@c.us")
+            )
           })
       }
     );
