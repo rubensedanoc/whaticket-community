@@ -26,6 +26,7 @@ import Title from "../../components/Title";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
+import Chip from "@material-ui/core/Chip";
 
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
@@ -219,6 +220,7 @@ const MarketingCampaigns = () => {
               <TableRow>
                 <TableCell align="center">ID</TableCell>
                 <TableCell align="center">Nombre</TableCell>
+                <TableCell align="center">Keywords</TableCell>
                 <TableCell align="center">Activa</TableCell>
                 <TableCell align="center">Acciones</TableCell>
               </TableRow>
@@ -231,6 +233,18 @@ const MarketingCampaigns = () => {
                     <TableCell align="center">
                       {marketingCampaign.name}
                     </TableCell>
+
+                    <TableCell style={{ maxWidth: "20rem" }} align="center">
+                      {marketingCampaign.keywords && JSON.parse(marketingCampaign.keywords)?.map((m, i) => (
+                        <Chip
+                          key={i}
+                          variant="outlined"
+                          label={m}
+                          size="small"
+                        />
+                      ))}
+                    </TableCell>
+
                     <TableCell align="center">
                       {marketingCampaign.isActive ? (
                         <span style={{ color: "green" }}>Si</span>

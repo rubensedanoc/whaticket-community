@@ -248,6 +248,7 @@ const Users = () => {
             <TableHead>
               <TableRow>
                 <TableCell align="center">Estado</TableCell>
+                <TableCell align="center">Id</TableCell>
                 <TableCell align="center">
                   {i18n.t("users.table.name")}
                 </TableCell>
@@ -277,6 +278,7 @@ const Users = () => {
                         ? "🟢"
                         : "🟡"}
                     </TableCell>
+                    <TableCell align="center">{user.id}</TableCell>
                     <TableCell align="center">{user.name}</TableCell>
                     <TableCell align="center">{user.email}</TableCell>
                     <TableCell align="center">{user.profile}</TableCell>
