@@ -83,6 +83,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
   const [chooseCountryId, setChooseCountryId] = useState(null);
   const [newContactDomainModal, setNewContactDomainModal] = useState(false);
   const [isCompanyMember, setIsCompanyMember] = useState(false);
+  const [isExclusive, setIsExclusive] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -121,6 +122,9 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
           if (data?.isCompanyMember) {
             setIsCompanyMember(data.isCompanyMember);
           }
+          if (data?.isExclusive) {
+            setIsExclusive(data.isExclusive);
+          }
         }
       } catch (err) {
         toastError(err);
@@ -147,6 +151,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
           ...values,
           countryId: chooseCountryId,
           isCompanyMember,
+          isExclusive
         });
         handleClose();
       } else {
@@ -267,25 +272,46 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                 </div>
 
                 {contactId && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Typography variant="subtitle1" gutterBottom>
-                      Es miembro o colaborador de la empresa
-                    </Typography>
-                    <Switch
-                      checked={isCompanyMember}
-                      onChange={(e) => {
-                        setIsCompanyMember(e.target.checked);
+                  <>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
                       }}
-                      color="primary"
-                      inputProps={{ "aria-label": "primary checkbox" }}
-                    />
-                  </div>
+                    >
+                      <Typography variant="subtitle1" gutterBottom>
+                        Es miembro o colaborador de la empresa
+                      </Typography>
+                      <Switch
+                        checked={isCompanyMember}
+                        onChange={(e) => {
+                          setIsCompanyMember(e.target.checked);
+                        }}
+                        color="primary"
+                        inputProps={{ "aria-label": "primary checkbox" }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography variant="subtitle1" gutterBottom>
+                        Es exclusivo (muy importante)
+                      </Typography>
+                      <Switch
+                        checked={isExclusive}
+                        onChange={(e) => {
+                          setIsExclusive(e.target.checked);
+                        }}
+                        color="primary"
+                        inputProps={{ "aria-label": "primary checkbox" }}
+                      />
+                    </div>
+                  </>
                 )}
 
                 {contactId && (

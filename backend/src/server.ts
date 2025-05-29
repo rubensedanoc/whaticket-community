@@ -247,3 +247,49 @@ cron.schedule("*/20 * * * *", async () => {
     console.log("error", error);
   }
 });
+
+
+// Every hour of the day
+cron.schedule('0 * * * *', async () => {
+  try {
+    // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
+    const response = await fetch(
+      "https://microservices.restaurant.pe/backendrestaurantpe/public/rest/common/localbi/searchExclusivePhones",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "searchForExclusiveNumbers was not ok " + response.statusText
+      );
+    }
+
+    const data = await response.json();
+
+    if (typeof data.data === "object") {
+
+      const exclusiveNumbers = Object.keys(data.data).map(number => number.replace(/\D/g, "")).filter(number => number.length > 6);
+
+      Contact.update(
+        { isExclusive: true },
+        {
+          where: {
+            [Op.or]: exclusiveNumbers.map(number => ({
+              number: { [Op.like]: `%${number}` }
+            }))
+          }
+        }
+      );
+
+    }
+  } catch (error) {
+    console.log("--- Error in searchForExclusiveNumbers", error);
+    Sentry.captureException(error);
+  }
+});

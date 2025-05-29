@@ -241,6 +241,9 @@ const QuickAnswers = () => {
           <TableHead>
             <TableRow>
               <TableCell align="center">
+                Slug
+              </TableCell>
+              <TableCell align="center">
                 {i18n.t("quickAnswers.table.shortcut")}
               </TableCell>
               <TableCell align="center">
@@ -256,6 +259,7 @@ const QuickAnswers = () => {
             <>
               {quickAnswers.map((quickAnswer) => (
                 <TableRow key={quickAnswer.id}>
+                  <TableCell align="center">{quickAnswer.slug}</TableCell>
                   <TableCell align="center">{quickAnswer.shortcut}</TableCell>
                   <TableCell align="center">{quickAnswer.message}</TableCell>
                   <TableCell align="center">

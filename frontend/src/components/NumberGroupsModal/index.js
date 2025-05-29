@@ -29,13 +29,21 @@ const useRowStyles = makeStyles({
 });
 
 function Row(props) {
-  const { row, handleClose } = props;
+  const { row, handleClose, compact } = props;
   const [open, setOpen] = useState(false);
   const classes = useRowStyles();
 
   // console.log(group);
 
-  return (
+  return compact ? (
+    <React.Fragment>
+      {row.tickets.map((ticket) => (
+        <div key={ticket.id} onClick={handleClose} style={{ overflow: "hidden" }}>
+          <TicketListItem ticket={ticket} />
+        </div>
+      ))}
+    </React.Fragment>
+  ) : (
     <React.Fragment>
       <TableRow className={classes.root}>
         {/* <TableCell className={classes.collapseColumn}> */}
@@ -97,8 +105,16 @@ const NumberGroupsModal = ({ modalOpen, onClose, number, groups }) => {
   );
 };
 
-export const NumberGroups = ({ groups }) => {
-  return (
+export const NumberGroups = ({ groups, compact }) => {
+  return compact ? (
+    <>
+      {groups.map((group, index) => (
+        <React.Fragment key={index}>
+          <Row row={group} compact={compact} />
+        </React.Fragment>
+      ))}
+    </>
+  ): (
     <TableContainer >
       <Table aria-label="collapsible table">
         <TableBody>
