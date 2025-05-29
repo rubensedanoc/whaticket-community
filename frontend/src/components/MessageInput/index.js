@@ -690,23 +690,53 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
                 }
               }}
             />
-            {typeBar ? (
-              <ul className={classes.messageQuickAnswersWrapper}>
-                {quickAnswers.map((value, index) => {
-                  return (
-                    <li
-                      className={classes.messageQuickAnswersWrapperItem}
-                      key={index}
-                    >
-                      {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                      <a onClick={() => handleQuickAnswersClick(value.message)}>
-                        {`${value.shortcut} - ${value.message}`}
-                      </a>
+            {typeBar ? (() => {
+              const groupedQuickAnswers = quickAnswers.reduce((acc, item) => {
+                if (!acc[item.slug]) {
+                  acc[item.slug] = [];
+                }
+                acc[item.slug].push(item);
+                return acc;
+              }, {});
+
+              return (
+                <ul className={classes.messageQuickAnswersWrapper}>
+                  {Object.entries(groupedQuickAnswers).map(([slug, items]) => (
+                    <li key={slug} className={classes.messageQuickAnswersGroup}>
+                      <strong className={classes.messageQuickAnswersGroupTitle}>{slug === "null" ? "Sin Slug" : slug}</strong>
+                      <ul>
+                        {items.map((value, index) => (
+                          <li
+                            className={classes.messageQuickAnswersWrapperItem}
+                            key={index}
+                          >
+                            <a onClick={() => handleQuickAnswersClick(value.message)}>
+                              {`${value.shortcut} - ${value.message}`}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
                     </li>
-                  );
-                })}
-              </ul>
-            ) : (
+                  ))}
+                </ul>
+                // <ul className={classes.messageQuickAnswersWrapper}>
+                //   {quickAnswers.map((value, index) => {
+                //     return (
+                //       <li
+                //         className={classes.messageQuickAnswersWrapperItem}
+                //         key={index}
+                //       >
+                //         {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+                //         <a onClick={() => handleQuickAnswersClick(value.message)}>
+                //           {`${value.slug} | ${value.shortcut} - ${value.message}`}
+                //         </a>
+                //       </li>
+                //     );
+                //   })}
+                // </ul>
+              )
+            }
+            )() : (
               <div></div>
             )}
             {typeBar2 ? (

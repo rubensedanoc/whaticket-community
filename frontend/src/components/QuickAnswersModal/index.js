@@ -164,6 +164,19 @@ const QuickAnswersModal = ({
                 <div className={classes.textQuickAnswerContainer}>
                   <Field
                     as={TextField}
+                    label={'Slug'}
+                    name="slug"
+                    autoFocus
+                    variant="outlined"
+                    margin="dense"
+                    className={classes.textField}
+                    fullWidth
+                  />
+                </div>
+                <br />
+                <div className={classes.textQuickAnswerContainer}>
+                  <Field
+                    as={TextField}
                     label={i18n.t("quickAnswersModal.form.shortcut")}
                     name="shortcut"
                     autoFocus

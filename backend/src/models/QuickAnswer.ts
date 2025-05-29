@@ -25,6 +25,9 @@ class QuickAnswer extends Model<QuickAnswer> {
   @Column(DataType.TEXT)
   message: string;
 
+  @Column(DataType.TEXT)
+  slug: string;
+
   @CreatedAt
   createdAt: Date;
 

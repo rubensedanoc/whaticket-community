@@ -3,6 +3,7 @@ import Queue from "../../models/Queue";
 import QuickAnswer from "../../models/QuickAnswer";
 
 interface QuickAnswerData {
+  slug?: string;
   shortcut?: string;
   message?: string;
   queueIds?: number[];
@@ -17,7 +18,7 @@ const UpdateQuickAnswerService = async ({
   quickAnswerData,
   quickAnswerId
 }: Request): Promise<QuickAnswer> => {
-  const { shortcut, message, queueIds = [] } = quickAnswerData;
+  const { slug, shortcut, message, queueIds = [] } = quickAnswerData;
 
   const quickAnswer = await QuickAnswer.findOne({
     where: { id: quickAnswerId },
@@ -35,6 +36,7 @@ const UpdateQuickAnswerService = async ({
     throw new AppError("ERR_NO_QUICK_ANSWERS_FOUND", 404);
   }
   await quickAnswer.update({
+    slug,
     shortcut,
     message
   });
