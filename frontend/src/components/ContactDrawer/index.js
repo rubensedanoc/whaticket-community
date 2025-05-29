@@ -21,6 +21,10 @@ import ContactDrawerSkeleton from "../ContactDrawerSkeleton";
 import ContactModal from "../ContactModal";
 import MarkdownWrapper from "../MarkdownWrapper";
 
+import toastError from "../../errors/toastError";
+import TicketListItem from "../TicketListItem";
+import { NumberGroups } from "../NumberGroupsModal";  
+
 const drawerWidth = 320;
 
 const useStyles = makeStyles((theme) => ({
@@ -58,8 +62,8 @@ const useStyles = makeStyles((theme) => ({
 
   contactAvatar: {
     margin: 15,
-    width: 160,
-    height: 160,
+    width: 120,
+    height: 120,
   },
 
   contactHeader: {
@@ -80,6 +84,7 @@ const useStyles = makeStyles((theme) => ({
     flexDirection: "column",
   },
   contactExtraInfo: {
+    display: "flex",
     marginTop: 4,
     padding: 6,
   },
@@ -97,24 +102,72 @@ const ContactDrawer = ({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [groupParticipants, setGroupParticipants] = useState([]);
+  const [ticketSiblings, setTicketSiblings] = useState([]);
+  const [contactGroups, setContactGroups] = useState([]);
   const { whatsApps } = useContext(WhatsAppsContext);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      if (open && ticketId && contact?.isGroup) {
+      if (open && ticketId) {
+
+        if (contact?.isGroup) {
+          (async () => {
+            try {
+              console.log("Pidiendo integrantes del grupo");
+  
+              const { data } = await api.get("/showParticipants/" + ticketId);
+  
+              setGroupParticipants(data || []);
+  
+              console.log("integrantes del grupo ", data);
+            } catch (err) {
+              console.log("Error al obtener integrantes del grupo", err);
+              toastError("Error al obtener los integrantes del grupo");
+            }
+          })();
+        }
+
         (async () => {
+
           try {
-            console.log("Pidiendo integrantes del grupo");
+            const { data: contactTicketSummary } = await api.post(
+              "/contacts/getContactTicketSummary",
+              {
+                contactId: contact.id,
+                onlyIds: true,
+              }
+            );
 
-            const { data } = await api.get("/showParticipants/" + ticketId);
+            const { data } = await api.get("/getATicketsList", {
+              params: {
+                ticketIds: JSON.stringify(
+                  contactTicketSummary.map((ticket) => ticket.id).filter(id => id != ticketId)
+                ),
+              },
+            });
 
-            setGroupParticipants(data || []);
-
-            console.log("integrantes del grupo ", data);
-          } catch (err) {
-            console.log("Error al obtener integrantes del grupo", err);
+            setTicketSiblings(data.tickets);
+          } catch (error) {
+            console.log("Error al obtener los tickets hermanos del contacto", error);
+            toastError("Error al obtener los tickets hermanos del contacto");
           }
+
         })();
+
+        if (!contact?.isGroup) {
+          (async () => {
+            try {
+              const { data } = await api.get(
+                `/getNumberGroupsByContactId/${contact.id}`
+              );
+              setContactGroups(data.registerGroups);
+            } catch (err) {
+              console.log("Error al recuperar los grupos del contacto", err);
+              toastError("Error al recuperar los grupos del contacto");
+            }
+          })();
+        }
+        
       }
     }, 500);
 
@@ -167,6 +220,7 @@ const ContactDrawer = ({
             <Button
               variant="outlined"
               color="primary"
+              size="small"
               onClick={() => setModalOpen(true)}
             >
               {i18n.t("contactDrawer.buttons.edit")}
@@ -229,6 +283,56 @@ const ContactDrawer = ({
             </Paper>
           )}
 
+          <Paper
+            square
+            variant="outlined"
+            className={classes.contactDetails}
+            style={{ gap: "6px" }}
+          >
+            <Typography variant="subtitle1">
+              <span style={{ fontWeight: "bold" }}>Otros Tickets Individuales {ticketSiblings.length}</span>
+            </Typography>
+            <div></div>
+            {(() => {
+              return ticketSiblings
+                .sort((a, b) => {
+                  if (
+                    a.beenWaitingSinceTimestamp > b.beenWaitingSinceTimestamp
+                  ) {
+                    return 1;
+                  }
+                  if (
+                    a.beenWaitingSinceTimestamp < b.beenWaitingSinceTimestamp
+                  ) {
+                    return -1;
+                  }
+                  return 0;
+                })
+                .map((ticket) => (
+                  <div style={{ overflow: "hidden" }} key={ticket.id}>
+                    <TicketListItem
+                      ticket={ticket}
+                      key={ticket.id}
+                      openInANewWindowOnSelect={true}
+                    />
+                  </div>
+                ))
+            })()}
+          </Paper>
+
+          <Paper
+            square
+            variant="outlined"
+            className={classes.contactDetails}
+            style={{ gap: "6px" }}
+          >
+            <Typography variant="subtitle1">
+              <span style={{ fontWeight: "bold" }}>Grupos {contactGroups.length}</span>
+            </Typography>
+            <div></div>
+            <NumberGroups groups={contactGroups} compact={true} />
+          </Paper>
+
           {microServiceData &&
             microServiceData.map((data, index) => (
               <Paper
@@ -273,20 +377,23 @@ const ContactDrawer = ({
                         variant="outlined"
                         className={classes.contactExtraInfo}
                       >
-                        <InputLabel
+                        <Typography
                           style={{
                             fontWeight: "bold",
                             textTransform: "uppercase",
                             fontSize: "0.8rem",
+                            marginRight: 4,
                           }}
                         >
-                          {key}
-                        </InputLabel>
+                          {key}:
+                        </Typography>
                         {
                           <Typography
                             component="div"
                             noWrap
-                            style={{ paddingTop: 4 }}
+                            style={{
+                              fontSize: "0.8rem",
+                            }}
                           >
                             {value || "-"}
                           </Typography>
