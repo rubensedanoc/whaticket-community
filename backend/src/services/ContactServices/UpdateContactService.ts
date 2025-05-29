@@ -15,6 +15,7 @@ interface ContactData {
   countryId?: number;
   extraInfo?: ExtraInfo[];
   isCompanyMember?: boolean;
+  isExclusive?: boolean;
 }
 
 interface Request {
@@ -26,7 +27,7 @@ const UpdateContactService = async ({
   contactData,
   contactId
 }: Request): Promise<Contact> => {
-  const { email, name, number, extraInfo, domain, isCompanyMember, countryId } =
+  const { email, name, number, extraInfo, domain, isCompanyMember, countryId, isExclusive } =
     contactData;
 
   const contact = await Contact.findOne({
@@ -63,6 +64,7 @@ const UpdateContactService = async ({
     email,
     domain,
     isCompanyMember,
+    isExclusive,
     countryId
   });
 
@@ -75,6 +77,7 @@ const UpdateContactService = async ({
       "domain",
       "profilePicUrl",
       "isCompanyMember",
+      "isExclusive",
       "countryId"
     ],
     include: ["extraInfo"]

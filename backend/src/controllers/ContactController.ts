@@ -350,7 +350,8 @@ export const getNumberGroups = async (
                     "number",
                     "domain",
                     "profilePicUrl",
-                    "isCompanyMember"
+                    "isCompanyMember",
+                    "isExclusive"
                   ]
                 },
                 {
@@ -455,7 +456,8 @@ export const getNumberGroups = async (
                             "number",
                             "domain",
                             "profilePicUrl",
-                            "isCompanyMember"
+                            "isCompanyMember",
+                            "isExclusive"
                           ]
                         },
                         {
@@ -577,7 +579,8 @@ export const getNumberGroupsByContactId = async (
                     "number",
                     "domain",
                     "profilePicUrl",
-                    "isCompanyMember"
+                    "isCompanyMember",
+                    "isExclusive"
                   ]
                 },
                 {
@@ -673,7 +676,8 @@ export const getNumberGroupsByContactId = async (
                             "number",
                             "domain",
                             "profilePicUrl",
-                            "isCompanyMember"
+                            "isCompanyMember",
+                            "isExclusive"
                           ]
                         },
                         {

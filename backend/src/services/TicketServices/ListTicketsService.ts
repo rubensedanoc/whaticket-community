@@ -255,7 +255,8 @@ const buildIncludeCondition = ({
         "domain",
         "profilePicUrl",
         "countryId",
-        "isCompanyMember"
+        "isCompanyMember",
+        "isExclusive"
       ],
       ...(searchParam && { required: true })
     },
