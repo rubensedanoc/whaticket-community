@@ -34,9 +34,9 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-RUN sed -i "s|res.isGroup = chat.isGroup;|//res.isGroup = chat.isGroup;|g" node_modules/whatsapp-web.js/src/util/Injected/Utils.js
-RUN sed -i "s|res.isMuted = chat.mute && chat.mute.isMuted;|res.isMuted = chat.muteExpiration == 0 ? false : true;|g" node_modules/whatsapp-web.js/src/util/Injected/Utils.js
-RUN sed -i '/if (chat.groupMetadata)/a \    res.isGroup = true;' node_modules/whatsapp-web.js/src/util/Injected/Utils.js
+# RUN sed -i "s|res.isGroup = chat.isGroup;|//res.isGroup = chat.isGroup;|g" node_modules/whatsapp-web.js/src/util/Injected/Utils.js
+# RUN sed -i "s|res.isMuted = chat.mute && chat.mute.isMuted;|res.isMuted = chat.muteExpiration == 0 ? false : true;|g" node_modules/whatsapp-web.js/src/util/Injected/Utils.js
+# RUN sed -i '/if (chat.groupMetadata)/a \    res.isGroup = true;' node_modules/whatsapp-web.js/src/util/Injected/Utils.js
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD dockerize -wait tcp://${DB_HOST}:3306 \
