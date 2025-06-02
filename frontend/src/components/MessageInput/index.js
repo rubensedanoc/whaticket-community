@@ -692,53 +692,49 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
             />
             {typeBar ? (() => {
               const groupedQuickAnswers = quickAnswers.reduce((acc, item) => {
-                if (!acc[item.slug]) {
-                  acc[item.slug] = [];
+                const key = item.slug || "null";
+                if (!acc[key]) {
+                  acc[key] = [];
                 }
-                acc[item.slug].push(item);
+                acc[key].push(item);
                 return acc;
               }, {});
 
+              // Ordenar los grupos por slug
+              const sortedGroups = Object.entries(groupedQuickAnswers).sort(([slugA], [slugB]) => {
+                // Asegurar que "null" (sin slug) se vaya al final o al inicio, como prefieras
+                if (slugA === "null") return 1;
+                if (slugB === "null") return -1;
+                return slugA.localeCompare(slugB);
+              });
+
               return (
                 <ul className={classes.messageQuickAnswersWrapper}>
-                  {Object.entries(groupedQuickAnswers).map(([slug, items]) => (
+                  {sortedGroups.map(([slug, items]) => (
                     <li key={slug} className={classes.messageQuickAnswersGroup}>
-                      <strong className={classes.messageQuickAnswersGroupTitle}>{slug === "null" ? "Sin Slug" : slug}</strong>
+                      <strong className={classes.messageQuickAnswersGroupTitle}>
+                        {slug === "null" ? "Sin Slug" : slug}
+                      </strong>
                       <ul>
-                        {items.map((value, index) => (
-                          <li
-                            className={classes.messageQuickAnswersWrapperItem}
-                            key={index}
-                          >
-                            <a onClick={() => handleQuickAnswersClick(value.message)}>
-                              {`${value.shortcut} - ${value.message}`}
-                            </a>
-                          </li>
-                        ))}
+                        {items
+                          .sort((a, b) => a.shortcut.localeCompare(b.shortcut)) // Ordenar ítems por shortcut
+                          .map((value, index) => (
+                            <li
+                              className={classes.messageQuickAnswersWrapperItem}
+                              key={index}
+                            >
+                              <a onClick={() => handleQuickAnswersClick(value.message)}>
+                                {`${value.shortcut} - ${value.message}`}
+                              </a>
+                            </li>
+                          ))}
                       </ul>
                     </li>
                   ))}
                 </ul>
-                // <ul className={classes.messageQuickAnswersWrapper}>
-                //   {quickAnswers.map((value, index) => {
-                //     return (
-                //       <li
-                //         className={classes.messageQuickAnswersWrapperItem}
-                //         key={index}
-                //       >
-                //         {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                //         <a onClick={() => handleQuickAnswersClick(value.message)}>
-                //           {`${value.slug} | ${value.shortcut} - ${value.message}`}
-                //         </a>
-                //       </li>
-                //     );
-                //   })}
-                // </ul>
-              )
-            }
-            )() : (
-              <div></div>
-            )}
+              );
+            })() : null}
+
             {typeBar2 ? (
               <ul className={classes.messageQuickAnswersWrapper}>
                 {groupParticipants.map((value, index) => {
