@@ -174,7 +174,7 @@ const replaceWhatsAppNumbersInNode = async (node, onWppNumberClick) => {
 
               const wppNumberSpan = document.createElement("span");
               wppNumberSpan.className = "wppNumberSpan";
-              wppNumberSpan.textContent = contact ? contact.name + "----" : part.trim();
+              wppNumberSpan.textContent = contact ? contact.name : part.trim();
               wppNumberSpan.onclick = () =>
                 onWppNumberClick(part.replaceAll(" ", ""));
               wppNumberSpan.style.color = "rgb(83, 189, 235)";
@@ -210,7 +210,7 @@ const replaceWhatsAppNumbersInNode = async (node, onWppNumberClick) => {
 
             const wppNumberSpan = document.createElement("span");
             wppNumberSpan.className = "wppNumberSpan";
-            wppNumberSpan.textContent = contact ? contact.name + "----" : part.trim();;
+            wppNumberSpan.textContent = contact ? contact.name : part.trim();;
             wppNumberSpan.onclick = () =>
               onWppNumberClick(part.replaceAll(" ", ""));
             wppNumberSpan.style.color = "rgb(83, 189, 235)";
