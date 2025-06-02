@@ -16,6 +16,8 @@ contactRoutes.get("/contacts", isAuth, ContactController.index);
 
 contactRoutes.get("/contacts/:contactId", isAuth, ContactController.show);
 
+contactRoutes.get("/contacts/getByNumber/:number", isAuth, ContactController.getByNumber);
+
 contactRoutes.get(
   "/contacts-showWithActualTickets/:contactId",
   isAuth,

@@ -35,6 +35,7 @@ import UserQueue from "../models/UserQueue";
 import Whatsapp from "../models/Whatsapp";
 import WhatsappOwnerUsers from "../models/WhatsappOwnerUsers";
 import WhatsappQueue from "../models/WhatsappQueue";
+import Notification from "../models/Notification";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -78,7 +79,8 @@ const models = [
   SendMessageRequest,
   LogType,
   Log,
-  QueueQuickAnswer
+  QueueQuickAnswer,
+  Notification
 ];
 
 sequelize.addModels(models);

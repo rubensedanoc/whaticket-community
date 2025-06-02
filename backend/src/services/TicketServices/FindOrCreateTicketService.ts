@@ -9,6 +9,7 @@ import MarketingCampaign from "../../models/MarketingCampaign";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
+import User from "../../models/User";
 
 /**
  * search for a existing "open" or "pending" ticket from the contact or groupContact and whatsappId
@@ -229,7 +230,12 @@ const findTicket = async ({
             required: false
           }
         ]
-      }
+      },
+      {
+        model: User,
+        as: "participantUsers",
+        required: false
+      },
     ]
   });
 
@@ -281,7 +287,12 @@ const findTicket = async ({
           model: Category,
           as: "categories",
           attributes: ["id"]
-        }
+        },
+        {
+          model: User,
+          as: "participantUsers",
+          required: false
+        },
       ],
       order: [["updatedAt", "DESC"]]
     });

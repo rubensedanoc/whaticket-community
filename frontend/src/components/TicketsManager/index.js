@@ -42,6 +42,9 @@ import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
 import MarketingCampaignSelect from "../MarketingCampaignSelect";
 import TicketsQueueSelect from "../TicketsQueueSelect";
+import NotificationsList from "../NotificationsList";
+import NotificationsIcon from '@material-ui/icons/Notifications';
+import UsersSelect from "../UsersSelect";
 
 import "./styles.css";
 
@@ -91,7 +94,7 @@ const useStyles = makeStyles((theme) => ({
   serachInputWrapper: {
     // minWidth: 200,
     // minWidth: "100%",
-    width: "25rem",
+    width: "20rem",
     flex: 1,
     background: "#fff",
     display: "flex",
@@ -173,6 +176,11 @@ const TicketsManager = () => {
 
   const [columnsWidth, setColumnsWidth] = useState("normal");
   const [doubleRow, setDoubleRow] = useState(false);
+  const [selectedUsersIds, setSelectedUsersIds] = useState([]);
+  const [currentUserId, _] = useState([user.id]);
+  const [users, setUsers] = useState([]);
+
+  const [notificationsCount, setNotificationsCount] = useState(null);
 
   useEffect(() => {
     localStorage.getItem("principalTicketType") &&
@@ -353,6 +361,15 @@ const TicketsManager = () => {
     }
   }, [searchParam]);
 
+  useEffect(() => {
+      const notificationsInterval = setInterval(async () => {
+        const notificationsCount = await api.get("/notifications/getNotificationsCountForUser")
+
+        setNotificationsCount(notificationsCount.data.count);
+      }, 2000);
+      return () => clearInterval(notificationsInterval);
+    }, [whatsApps]);
+
   let searchTimeout;
 
   const handleSearch = (e) => {
@@ -453,6 +470,23 @@ const TicketsManager = () => {
             value={"closed"}
             icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
             label={i18n.t("tickets.tabs.closed.title")}
+            classes={{ root: classes.tab }}
+          />
+          {/* - closed */}
+
+          {/* closed */}
+          <Tab
+            value={"notifications"}
+            icon={
+              <Badge
+                overlap="rectangular"
+                badgeContent={notificationsCount !== null ? notificationsCount : 0}
+                color="error"
+              >
+                <NotificationsIcon style={{ fontSize: 21 }} />
+              </Badge>
+            }
+            label={"Notificaciones"}
             classes={{ root: classes.tab }}
           />
           {/* - closed */}
@@ -1392,6 +1426,83 @@ const TicketsManager = () => {
         />
       </TabPanel>
       {/* - closed TAB CONTENT */}
+
+      {/* notifications TAB CONTENT */}
+      <TabPanel
+        value={tab}
+        name="notifications"
+        className={classes.ticketsWrapper}
+      >
+        <Paper
+          className={classes.ticketsWrapper}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: "16 0",
+            overflow: "auto",
+          }}
+        >
+
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px 0px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                marginLeft: "auto",
+              }}
+            >
+
+              {user.profile === "admin" && (
+                <>
+                  <UsersSelect
+                    selectedIds={selectedUsersIds}
+                    onChange={(values) => {
+                      localStorage.setItem(
+                        "NotificationsUsersIds",
+                        JSON.stringify(values)
+                      );
+                      setSelectedUsersIds(values);
+                    }}
+                    onLoadData={(data) => {
+                      // console.log("users data", data);
+                      setUsers(data);
+                    }}
+                    chips={false}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+          
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 12,
+              padding: "16px 16px 16px",
+              overflow: "auto",
+              flexGrow: 1,
+            }}
+          >
+            <NotificationsList
+              searchParam={searchParam}
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              selectedUsersIds={user.profile === "admin" ? selectedUsersIds : currentUserId}
+            />
+          </div>
+        </Paper>
+      </TabPanel>
+      {/* - notifications TAB CONTENT */}
 
       {/* search TAB CONTENT */}
       {/* <TabPanel value={tab} name="search" className={classes.ticketsWrapper}>
