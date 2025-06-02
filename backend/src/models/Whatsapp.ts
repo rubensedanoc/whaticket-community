@@ -79,6 +79,10 @@ class Whatsapp extends Model<Whatsapp> {
   @Column
   phoneToNotify: string;
 
+  @AllowNull
+  @Column
+  lid: string;
+
   @CreatedAt
   createdAt: Date;
 

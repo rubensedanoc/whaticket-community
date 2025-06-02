@@ -4,3 +4,8 @@ export const TICKETLOGTYPES = {
   TRANSFER: 2,
   CLOSE: 3
 };
+
+export const NOTIFICATIONTYPES = {
+  GROUP_MENTION_CREATE: "group_mention_create",
+  GROUP_MENTION_UPDATE: "group_mention_update",
+};

@@ -23,6 +23,7 @@ import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import { getClientTimeWaitingForTickets } from "./ReportsController";
+import GetContactByNumberService from "../services/ContactServices/GetContactByNumberService";
 
 type IndexQuery = {
   searchParam: string;
@@ -137,6 +138,14 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const { contactId } = req.params;
 
   const contact = await ShowContactService(contactId);
+
+  return res.status(200).json(contact);
+};
+
+export const getByNumber = async (req: Request, res: Response): Promise<Response> => {
+  const { number } = req.params;
+
+  const contact = await GetContactByNumberService({number});
 
   return res.status(200).json(contact);
 };

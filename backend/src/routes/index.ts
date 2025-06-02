@@ -23,6 +23,7 @@ import ticketRoutes from "./ticketRoutes";
 import userRoutes from "./userRoutes";
 import whatsappRoutes from "./whatsappRoutes";
 import whatsappSessionRoutes from "./whatsappSessionRoutes";
+import notificationRoutes from "./notificationRoutes";
 
 const routes = Router();
 
@@ -49,5 +50,6 @@ routes.use(messagingCampaignRoutes);
 routes.use(messagingCampaignMessageRoutes);
 routes.use(marketingMessagingCampaignRoutes);
 routes.use("/extra", extraRoutes);
+routes.use(notificationRoutes);
 
 export default routes;

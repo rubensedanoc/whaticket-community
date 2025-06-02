@@ -42,6 +42,11 @@ import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketServi
 import SearchTicketForAMessageService from "../TicketServices/SearchTicketForAMessageService";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
+import Notification from "../../models/Notification";
+import { NOTIFICATIONTYPES } from "../../constants";
+import Queue from "../../models/Queue";
+import ShowTicketService from "../TicketServices/ShowTicketService";
+import ShowNotificationService from "../NotificationService/ShowNotificationService";
 
 interface Session extends Client {
   id?: number;
@@ -734,10 +739,12 @@ const handleMessage = async ({
       });
     }
 
+    let incomingMessage: null | Message = null;
+
     if (msg.hasMedia) {
-      await verifyMediaMessage(msg, ticket, contact);
+      incomingMessage = await verifyMediaMessage(msg, ticket, contact);
     } else {
-      await verifyMessage({ msg, ticket, contact });
+      incomingMessage = await verifyMessage({ msg, ticket, contact });
     }
 
     // If the message is not from a group or from me,
@@ -1091,6 +1098,110 @@ const handleMessage = async ({
           ticketId: ticket.id
         });
       }
+    }
+
+    try {
+
+      // console.log("............................................");
+      // console.log("---- handleMessage - msg: ", msg);
+      // console.log("---- handleMessage - whatsapp: ", whatsapp);
+
+      // @ts-ignore
+      if (msg.mentionedIds.length > 0 && whatsapp.lid && msg.mentionedIds.find( id => id === whatsapp.lid)) {
+
+        // console.log("---- handleMessage - ENTRO A LA CONDICION UNO --- TICKET: ", ticket);
+
+        if (ticket.participantUsers?.length > 0) {
+
+
+          Promise.all(
+            ticket.participantUsers.map(async user => {
+              // console.log("---- handleMessage - ENTRO A LA CONDICION DE PARTICIPANTS: ", {
+              // });
+
+              const newNotification = await Notification.create({
+                type: NOTIFICATIONTYPES.GROUP_MENTION,
+                toUserId: user.id,
+                ticketId: ticket.id,
+                messageId: incomingMessage.id,
+                whatsappId: whatsapp.id,
+                queueId: ticket.queueId,
+                contactId: ticket.contactId
+              })
+
+              const notification = await ShowNotificationService(
+                newNotification.id
+              )
+
+              emitEvent({
+                event: {
+                  name: "notification",
+                  data: {
+                    action: NOTIFICATIONTYPES.GROUP_MENTION_CREATE,
+                    data: notification
+                  }
+                }
+              })
+          }))
+
+
+
+        } else if (ticket.queue) {
+
+          const queue = await Queue.findByPk(ticket.queue.id, {
+            include: [
+              {
+                model: User,
+                as: "users",
+               required: false
+              }
+            ]
+          });
+
+          const usersToNotify = queue.users;
+
+          // console.log("---- handleMessage - ANTES DE REVISAR USERS TO NOTFIY");
+
+          if (usersToNotify.length === 0) {
+            return;
+          }
+
+          // console.log("---- handleMessage - USERS TO NOTFIY: ", usersToNotify.map(u => u.id));
+
+          Promise.all(
+            usersToNotify.map(async user => {
+
+              // console.log("---- handleMessage - ANTES DE CREAR NOTIFICACIONES PARA TODOS LOS USUARIOS DEL GRUPO", {
+              // });
+
+              const newNotification = await Notification.create({
+                type: NOTIFICATIONTYPES.GROUP_MENTION,
+                toUserId: user.id,
+                ticketId: ticket.id,
+                messageId: incomingMessage.id,
+                whatsappId: whatsapp.id,
+                queueId: ticket.queueId,
+                contactId: ticket.contactId
+              })
+
+              emitEvent({
+                event: {
+                  name: "notification",
+                  data: {
+                    action: NOTIFICATIONTYPES.GROUP_MENTION,
+                    data: newNotification
+                  }
+                }
+              })
+            })
+          )
+
+        }
+
+      }
+    } catch (error) {
+      console.log("Error creating group mention notification: ", error);
+      Sentry.captureException(error);
     }
 
     /* if (msg.type === "multi_vcard") {

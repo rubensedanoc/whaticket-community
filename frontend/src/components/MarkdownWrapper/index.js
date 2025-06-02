@@ -1,5 +1,7 @@
 import Markdown from "markdown-to-jsx";
 import React, { useEffect, useRef } from "react";
+import api from "../../services/api";
+import { getContactByNumber } from "../../helpers/getContactByNumber";
 
 const elements = [
   "a",
@@ -149,11 +151,12 @@ const CustomLink = ({ children, ...props }) => (
   </a>
 );
 
-const replaceWhatsAppNumbersInNode = (node, onWppNumberClick) => {
+const replaceWhatsAppNumbersInNode = async (node, onWppNumberClick) => {
+
   const childNodes = Array.from(node.childNodes);
 
   if (childNodes.length > 0) {
-    childNodes.forEach((node) => {
+    childNodes.forEach(async (node) => {
       if (
         node.nodeType === Node.TEXT_NODE &&
         !node?.parentNode?.className?.includes("wppNumberSpan")
@@ -164,11 +167,14 @@ const replaceWhatsAppNumbersInNode = (node, onWppNumberClick) => {
         if (parts.some((part) => wppNumberRegex.test(part))) {
           const fragment = document.createDocumentFragment();
 
-          parts.forEach((part) => {
+          for (const part of parts) {
             if (wppNumberRegex.test(part)) {
+
+              let contact = await getContactByNumber(part);
+
               const wppNumberSpan = document.createElement("span");
               wppNumberSpan.className = "wppNumberSpan";
-              wppNumberSpan.textContent = part.trim();
+              wppNumberSpan.textContent = contact ? contact.name + "----" : part.trim();
               wppNumberSpan.onclick = () =>
                 onWppNumberClick(part.replaceAll(" ", ""));
               wppNumberSpan.style.color = "rgb(83, 189, 235)";
@@ -178,10 +184,14 @@ const replaceWhatsAppNumbersInNode = (node, onWppNumberClick) => {
             } else {
               fragment.appendChild(document.createTextNode(part));
             }
-          });
+          }
 
           const parent = node.parentNode;
-          parent.replaceChild(fragment, node);
+
+          if (parent) {
+            parent.replaceChild(fragment, node);
+          }
+
         }
       }
     });
@@ -192,11 +202,15 @@ const replaceWhatsAppNumbersInNode = (node, onWppNumberClick) => {
       const parts = node.nodeValue.split(wppNumberRegex);
       if (parts.some((part) => wppNumberRegex.test(part))) {
         const fragment = document.createDocumentFragment();
-        parts.forEach((part) => {
+
+        for (const part of parts) {
           if (wppNumberRegex.test(part)) {
+
+            let contact = await getContactByNumber(part);
+
             const wppNumberSpan = document.createElement("span");
             wppNumberSpan.className = "wppNumberSpan";
-            wppNumberSpan.textContent = part.trim();
+            wppNumberSpan.textContent = contact ? contact.name + "----" : part.trim();;
             wppNumberSpan.onclick = () =>
               onWppNumberClick(part.replaceAll(" ", ""));
             wppNumberSpan.style.color = "rgb(83, 189, 235)";
@@ -206,9 +220,13 @@ const replaceWhatsAppNumbersInNode = (node, onWppNumberClick) => {
           } else {
             fragment.appendChild(document.createTextNode(part));
           }
-        });
+        }
+
         const parent = node.parentNode;
-        parent.replaceChild(fragment, node);
+
+        if (parent) {
+          parent.replaceChild(fragment, node);
+        }
       }
     }
   }

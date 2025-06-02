@@ -145,7 +145,13 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
+const TicketListItem = ({ 
+  ticket, 
+  openInANewWindowOnSelect = false, 
+  messageToShow = null,
+  notificacionUnseen = false,
+  extraActionOnSelect = null,
+}) => { 
   const classes = useStyles();
   const history = useHistory();
   const [loading, setLoading] = useState(false);
@@ -187,6 +193,10 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
       window.open(`/tickets/${id}`, "_blank");
     } else {
       history.push(`/tickets/${id}`);
+    }
+
+    if (extraActionOnSelect) {
+      extraActionOnSelect();
     }
   };
 
@@ -433,7 +443,7 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
                     color="textSecondary"
                   >
                     {ticket.lastMessage ? (
-                      <MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper>
+                      <MarkdownWrapper checkForWppNumbers={true}>{messageToShow ? messageToShow.contact?.name + ": " + messageToShow.body: ticket.lastMessage}</MarkdownWrapper>
                     ) : (
                       <br />
                     )}
@@ -623,7 +633,14 @@ const TicketListItem = ({ ticket, openInANewWindowOnSelect = false }) => {
             </Tooltip>
             // ACEPPT TICKET BUTTON
           )}
+
+          {notificacionUnseen && (
+            <div style={{ padding: "0px 10px", marginLeft: "10px", backgroundColor: "#3b82f6", color: "white", borderRadius: "5px", fontSize: "10px" }}>
+                NUEVO
+            </div>
+          )}
         </ListItem>
+
       </div>
 
       <Divider component="li" />
