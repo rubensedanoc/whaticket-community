@@ -465,16 +465,7 @@ const TicketsManager = () => {
           />
           {/* - open */}
 
-          {/* closed */}
-          <Tab
-            value={"closed"}
-            icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
-            label={i18n.t("tickets.tabs.closed.title")}
-            classes={{ root: classes.tab }}
-          />
-          {/* - closed */}
-
-          {/* closed */}
+          {/* Notifications */}
           <Tab
             value={"notifications"}
             icon={
@@ -487,6 +478,15 @@ const TicketsManager = () => {
               </Badge>
             }
             label={"Notificaciones"}
+            classes={{ root: classes.tab }}
+          />
+          {/* - Notifications */}
+
+          {/* closed */}
+          <Tab
+            value={"closed"}
+            icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
+            label={i18n.t("tickets.tabs.closed.title")}
             classes={{ root: classes.tab }}
           />
           {/* - closed */}
