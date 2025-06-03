@@ -8,6 +8,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import { blue } from "@material-ui/core/colors";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { ReloadDataBecauseSocketContext } from "../../context/ReloadDataBecauseSocketContext";
+import { SearchMessageContext } from "../../context/SearchMessage/SearchMessageContext";
 import useNotifications from "../../hooks/useNotifications";
 import TicketsListSkeleton from "../TicketsListSkeleton";
 
@@ -207,6 +208,8 @@ const NotificationsList = (props) => {
   const [anchorEl, setAnchorEl] = useState(null);
   // const [wasDisConnected, setWasDisConnected] = useState('connecting');
 
+  const { setSearchingMessageId } = useContext(SearchMessageContext);
+
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -353,6 +356,7 @@ const NotificationsList = (props) => {
                   messageToShow={ticket.message} 
                   notificacionUnseen={!ticket.seen}
                   extraActionOnSelect={()=>{
+                    setSearchingMessageId(ticket.message?.id);
                     api.post("/notifications/seenNotification", {
                       notificationId: ticket.id,
                     })

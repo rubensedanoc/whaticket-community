@@ -622,13 +622,15 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   }, [whatsApps]);
 
   const loadMore = () => {
-    setTicketsQueue(() => {
-      const next = JSON.parse(JSON.stringify(nextTicketsQueue));
-      next[next.length - 1].pageNumber = +next[next.length - 1].pageNumber + 1;
-      console.log("---- loadMore setTicketsQueue", next);
-      next[0].isTheInitialFetch = false;
-      return next;
-    });
+    if (nextTicketsQueue.length) {
+      setTicketsQueue(() => {
+        const next = JSON.parse(JSON.stringify(nextTicketsQueue));
+        next[next.length - 1].pageNumber = +next[next.length - 1].pageNumber + 1;
+        console.log("---- loadMore setTicketsQueue", next);
+        next[0].isTheInitialFetch = false;
+        return next;
+      });
+    }
   };
 
   const scrollToBottom = () => {
