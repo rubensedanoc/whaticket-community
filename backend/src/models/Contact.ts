@@ -72,6 +72,12 @@ class Contact extends Model<Contact> {
 
   @Column
   isExclusive: boolean;
+
+  @Column
+  traza_clientelicencia_id: number;
+
+  @Column
+  traza_clientelicencia_currentetapaid: number;
 }
 
 export default Contact;

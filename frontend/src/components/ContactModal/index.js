@@ -141,7 +141,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 
   const handleSaveContact = async (values) => {
     try {
-      if (!chooseCountryId) {
+      if (!chooseCountryId && !contactId) {
         toast.error("El país es obligatorio");
         return;
       }
@@ -270,6 +270,20 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                       ))}
                   </Field>
                 </div>
+
+                {contactId && (
+                  <div className={classes.extraAttr}>
+                    <Field
+                      as={TextField}
+                      label="LicenciaId (Trazabilidad)"
+                      name="traza_clientelicencia_id"
+                      variant="outlined"
+                      fullWidth
+                      margin="dense"
+                      type="number"
+                    />
+                  </div>
+                )}
 
                 {contactId && (
                   <>

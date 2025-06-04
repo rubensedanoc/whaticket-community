@@ -16,6 +16,7 @@ interface ContactData {
   extraInfo?: ExtraInfo[];
   isCompanyMember?: boolean;
   isExclusive?: boolean;
+  traza_clientelicencia_id?: number;
 }
 
 interface Request {
@@ -27,7 +28,7 @@ const UpdateContactService = async ({
   contactData,
   contactId
 }: Request): Promise<Contact> => {
-  const { email, name, number, extraInfo, domain, isCompanyMember, countryId, isExclusive } =
+  const { email, name, number, extraInfo, domain, isCompanyMember, countryId, isExclusive, traza_clientelicencia_id } =
     contactData;
 
   const contact = await Contact.findOne({
@@ -65,7 +66,8 @@ const UpdateContactService = async ({
     domain,
     isCompanyMember,
     isExclusive,
-    countryId
+    countryId,
+    traza_clientelicencia_id
   });
 
   await contact.reload({
@@ -78,7 +80,8 @@ const UpdateContactService = async ({
       "profilePicUrl",
       "isCompanyMember",
       "isExclusive",
-      "countryId"
+      "countryId",
+      "traza_clientelicencia_id"
     ],
     include: ["extraInfo"]
   });

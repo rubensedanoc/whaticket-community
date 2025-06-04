@@ -6,3 +6,8 @@
   padding-top: 9px !important;
   padding-bottom: 9px !important;
 }
+
+
+#showOnlyWaitingTicketsLabel * {
+  font-size: 12px !important;
+}

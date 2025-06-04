@@ -19,6 +19,7 @@ const useTickets = ({
   categoryId,
   showOnlyWaitingTickets,
   filterByUserQueue = false,
+  clientelicenciaEtapaIds
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -47,6 +48,7 @@ const useTickets = ({
               categoryId,
               showOnlyWaitingTickets,
               filterByUserQueue,
+              clientelicenciaEtapaIds
             },
           });
           setTickets(data.tickets);
@@ -107,6 +109,7 @@ const useTickets = ({
     showOnlyMyGroups,
     showOnlyWaitingTickets,
     reload,
+    clientelicenciaEtapaIds
   ]);
 
   const triggerReload = () => {
