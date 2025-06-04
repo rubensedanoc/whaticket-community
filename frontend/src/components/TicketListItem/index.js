@@ -47,6 +47,8 @@ const useStyles = makeStyles((theme) => ({
 
   exclusiveTicket: { backgroundColor: "rgba(147, 51, 234, 0.15) !important" },
 
+  seenNotification: { backgroundColor: "rgb(0 0 0 / 7%) !important" },
+
   noTicketsDiv: {
     display: "flex",
     height: "100px",
@@ -149,7 +151,7 @@ const TicketListItem = ({
   ticket, 
   openInANewWindowOnSelect = false, 
   messageToShow = null,
-  notificacionUnseen = false,
+  notificacionUnseen = null,
   extraActionOnSelect = null,
 }) => { 
   const classes = useStyles();
@@ -214,6 +216,9 @@ const TicketListItem = ({
           ...(ticket?.contact?.isCompanyMember && {
             backgroundColor: "rgb(220 248 198 / 50%)",
           }),
+          ...(ticket?.contact?.isExclusive && {
+            backgroundColor: "rgba(147, 51, 234, 0.15)",
+          }),
         }}
       >
         <ListItem
@@ -231,8 +236,8 @@ const TicketListItem = ({
               [classes.pendingTicket]: ticket.status === "pending",
             },
             {
-              [classes.exclusiveTicket]: ticket?.contact?.isExclusive,
-            }
+              [classes.seenNotification]: notificacionUnseen === false,
+            },
           )}
         >
           <Tooltip
@@ -634,7 +639,7 @@ const TicketListItem = ({
             // ACEPPT TICKET BUTTON
           )}
 
-          {notificacionUnseen && (
+          {notificacionUnseen === true && (
             <div style={{ padding: "0px 10px", marginLeft: "10px", backgroundColor: "#3b82f6", color: "white", borderRadius: "5px", fontSize: "10px" }}>
                 NUEVO
             </div>

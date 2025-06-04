@@ -25,4 +25,9 @@ externalRoutes.post(
   ExternalApiController.sendImageMessage
 );
 
+externalRoutes.post(
+  "/updateFromTrazaByClientelicenciaId",
+  ExternalApiController.updateFromTrazaByClientelicenciaId
+);
+
 export default externalRoutes;

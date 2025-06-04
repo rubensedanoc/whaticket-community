@@ -26,6 +26,10 @@ import {
 } from "../services/WbotServices/wbotMessageListener";
 import getUnixTimestamp from "../utils/getUnixTimestamp";
 import sleepPromise from "../utils/sleepPromise";
+import Contact from "../models/Contact";
+import Ticket from "../models/Ticket";
+import ShowTicketService from "../services/TicketServices/ShowTicketService";
+import { emitEvent } from "../libs/emitEvent";
 
 export const sendApiChatbotMessage = async (
   req: Request,
@@ -461,4 +465,57 @@ export const sendImageMessage = async (
   });
 
   return res.status(200).json(newMessage);
+};
+
+export const updateFromTrazaByClientelicenciaId = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { clientelicenciaId, etapacl_id } = req.body;
+
+  if (!clientelicenciaId || !etapacl_id) {
+    throw new AppError("Faltan datos: clientelicenciaId o etapacl_id");
+  }
+
+  const contact = await Contact.findOne({
+    where: {
+      traza_clientelicencia_id: clientelicenciaId
+    }
+  });
+
+  if (!contact) {
+    throw new AppError("No se encontró el contacto con el clientelicenciaId proporcionado", 404);
+  }
+
+  await contact.update({
+    traza_clientelicencia_currentetapaid: etapacl_id
+  });
+
+  const ticketsToUpdate = await Ticket.findAll({
+    where: {
+      contactId: contact.id,
+    }
+  });
+
+
+  ticketsToUpdate.forEach(async (ticket) => {
+    const ticketWithAllData = await ShowTicketService(ticket.id, true);
+
+    emitEvent({
+      to: [ticket.status],
+      event: {
+        name: "ticket",
+        data: {
+          action: "update",
+          ticket: ticketWithAllData
+        }
+      }
+    });
+  });
+
+  return res.status(200).json({
+    tipo: 1,
+    mensajes: ["Whaticket - Contacto actualizado correctamente"],
+    data: contact
+  });
 };

@@ -23,6 +23,8 @@ import UpdateTicketService from "../services/TicketServices/UpdateTicketService"
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
 import { verifyContact } from "../services/WbotServices/wbotMessageListener";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
+import Notification from "../models/Notification";
+import { NOTIFICATIONTYPES } from "../constants";
 
 type IndexQuery = {
   searchParam: string;
@@ -39,6 +41,7 @@ type IndexQuery = {
   categoryId: string;
   showOnlyWaitingTickets: string;
   filterByUserQueue: string;
+  clientelicenciaEtapaIds: string;
 };
 
 interface TicketData {
@@ -72,7 +75,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showOnlyMyGroups: showOnlyMyGroupsStringified,
     categoryId: categoryIdStringified,
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
-    filterByUserQueue: filterByUserQueueStringified
+    filterByUserQueue: filterByUserQueueStringified,
+    clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -85,6 +89,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let categoryId: number | null = null;
   let showOnlyWaitingTickets: boolean = false;
   let filterByUserQueue: boolean = false;
+  let clientelicenciaEtapaIds: number[] = [];
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -118,6 +123,10 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     filterByUserQueue = JSON.parse(filterByUserQueueStringified);
   }
 
+  if (clientelicenciaEtapaIdsStringified) {
+    clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified);
+  }
+
   // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
   if (filterByUserQueue && queueIds.length === 0) {
     const userWithQueues = await User.findByPk(req.user.id, {
@@ -149,7 +158,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       withUnreadMessages,
       showOnlyMyGroups,
       categoryId,
-      showOnlyWaitingTickets
+      showOnlyWaitingTickets,
+      clientelicenciaEtapaIds
     });
 
   let ticketsToSend = tickets; // Inicializamos con la lista original
@@ -359,7 +369,7 @@ export const update = async (
   // console.log("ticketData", ticketData);
   // console.log({ withFarewellMessage });
 
-  const { ticket } = await UpdateTicketService({
+  const { ticket, oldUserId } = await UpdateTicketService({
     ticketData,
     ticketId
   });
@@ -388,6 +398,31 @@ export const update = async (
 
     await wbotGroupChat.leave();
   }
+
+  // if (ticket.userId !== oldUserId) {
+  //   const newNotification = await Notification.create({
+  //     type: NOTIFICATIONTYPES.TICKET_TRANSFER,
+  //     toUserId: ticket.userId,
+  //     ticketId: ticket.id,
+  //     messageId: incomingMessage.id,
+  //     whatsappId: whatsapp.id,
+  //     queueId: ticket.queueId,
+  //     contactId: ticket.contactId
+  //   })
+
+  //   emitEvent({
+  //     event: {
+  //       name: "notification",
+  //       data: {
+  //         action: NOTIFICATIONTYPES.GROUP_MENTION,
+  //         data: newNotification
+  //       }
+  //     }
+  //   })
+  // }
+
+  console.log("ticket userId", ticket.userId);
+  console.log("ticket oldUserId", oldUserId);
 
   return res.status(200).json(ticket);
 };

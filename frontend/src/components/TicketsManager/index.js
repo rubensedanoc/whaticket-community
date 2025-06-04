@@ -31,8 +31,9 @@ import { Can } from "../Can";
 import NewTicketModal from "../NewTicketModal";
 import TabPanel from "../TabPanel";
 import TicketsList from "../TicketsList";
+import TicketsCountChips from "../TicketsCountChips";
 
-import { Button, Divider, FormControlLabel, Switch } from "@material-ui/core";
+import { Button, Divider, FormControlLabel, Switch, Chip } from "@material-ui/core";
 import Menu from "@material-ui/core/Menu";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { toast } from "react-toastify";
@@ -134,6 +135,15 @@ const StyledTab = withStyles({
   },
 })((props) => <Tab {...props} />);
 
+const sinEtapaChipValueId = [null];
+const onboardingChipValueId = [6];
+const inspTecnicaChipValueId = [1];
+const configPlataformaChipValueId = [2];
+const configEquiposChipValueId = [3];
+const capOpYMonitoreoChipValueId = [4];
+const altaChipValueId = [5];
+const altaFeChipValueId = [7];
+
 const TicketsManager = () => {
   const classes = useStyles();
 
@@ -179,9 +189,11 @@ const TicketsManager = () => {
   const [selectedUsersIds, setSelectedUsersIds] = useState([]);
   const [currentUserId, _] = useState([user.id]);
   const [users, setUsers] = useState([]);
-
+  
   const [notificationsCount, setNotificationsCount] = useState(null);
 
+  const [selectedClientelicenciaEtapaIds, setSelectedClientelicenciaEtapaIds] = useState([]);
+  
   useEffect(() => {
     localStorage.getItem("principalTicketType") &&
       setPrincipalTicketType(
@@ -440,6 +452,15 @@ const TicketsManager = () => {
     setCategories(newCategories);
   };
 
+  const onSelectTicketsCountChips = (selectedEtapa) => {
+    setSelectedClientelicenciaEtapaIds(e => {
+      if (e.includes(selectedEtapa)) {
+        return e.filter(id => id !== selectedEtapa);
+      }
+      return [...e, selectedEtapa];
+    })
+  }
+
   return (
     <Paper elevation={0} variant="outlined" className={classes.ticketsWrapper}>
       <NewTicketModal
@@ -465,16 +486,7 @@ const TicketsManager = () => {
           />
           {/* - open */}
 
-          {/* closed */}
-          <Tab
-            value={"closed"}
-            icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
-            label={i18n.t("tickets.tabs.closed.title")}
-            classes={{ root: classes.tab }}
-          />
-          {/* - closed */}
-
-          {/* closed */}
+          {/* Notifications */}
           <Tab
             value={"notifications"}
             icon={
@@ -487,6 +499,15 @@ const TicketsManager = () => {
               </Badge>
             }
             label={"Notificaciones"}
+            classes={{ root: classes.tab }}
+          />
+          {/* - Notifications */}
+
+          {/* closed */}
+          <Tab
+            value={"closed"}
+            icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
+            label={i18n.t("tickets.tabs.closed.title")}
             classes={{ root: classes.tab }}
           />
           {/* - closed */}
@@ -846,13 +867,14 @@ const TicketsManager = () => {
                     gap: 6,
                     alignItems: "center",
                     padding: "0px 16px 0px",
+                    fontSize: 12
                   }}
                 >
                   <div>
-                    DIVIDIR POR -{" "}
+                    DIV -{" "}
                     {principalTicketType === "groups"
-                      ? "GRUPALES"
-                      : "INDIVIDUALES"}
+                      ? "GRUP"
+                      : "INDIV"}
                   </div>
                   <ArrowDropDownIcon
                     fontSize="medium"
@@ -898,12 +920,122 @@ const TicketsManager = () => {
                 </div>
               </>
             )}
+
             <div
               style={{
                 display: "flex",
                 gap: 6,
                 alignItems: "center",
                 marginLeft: "auto",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Sin Etapa"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={sinEtapaChipValueId}
+                onClick={() => {onSelectTicketsCountChips(null)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Onboarding"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={onboardingChipValueId}
+                onClick={() => {onSelectTicketsCountChips(6)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Insp. tecnica"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={inspTecnicaChipValueId}
+                onClick={() => {onSelectTicketsCountChips(1)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Config. plataforma"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={configPlataformaChipValueId}
+                onClick={() => {onSelectTicketsCountChips(2)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Config. equipos"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={configEquiposChipValueId}
+                onClick={() => {onSelectTicketsCountChips(3)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Cap. op y monitoreo"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={capOpYMonitoreoChipValueId}
+                onClick={() => {onSelectTicketsCountChips(4)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Alta"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={altaChipValueId}
+                onClick={() => {onSelectTicketsCountChips(5)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Alta FE"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={altaFeChipValueId}
+                onClick={() => {onSelectTicketsCountChips(7)}}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                marginLeft: "auto",
+                fontSize: 12
               }}
             >
               {/* SELECTOR DE MIOS O TODOS */}
@@ -924,8 +1056,8 @@ const TicketsManager = () => {
                       >
                         <div>
                           {principalTicketType === "groups"
-                            ? "GRUPOS"
-                            : "INDIVIDUALES"}{" "}
+                            ? "GRUP"
+                            : "INDIV"}{" "}
                           -{" "}
                           {/* {principalTicketType === "groups"
                             ? showAll
@@ -936,10 +1068,10 @@ const TicketsManager = () => {
                             : "TODOS"} */}
                           {principalTicketType === "groups"
                             ? showOnlyMyGroups
-                              ? "PARTICIPANDO"
-                              : "TODOS"
+                              ? "PART"
+                              : "TODS"
                             : showAll
-                            ? "TODOS"
+                            ? "TODS"
                             : "MÍOS"}
                         </div>
                         <ArrowDropDownIcon
@@ -1162,8 +1294,9 @@ const TicketsManager = () => {
 
               {/* FILTRO DE RESPUESTA */}
               <FormControlLabel
+                id="showOnlyWaitingTicketsLabel"
                 style={{ marginRight: 7, color: "gray", marginLeft: 0 }}
-                label={"Ver solo sin respuesta"}
+                label={"Solo sin respuesta"}
                 labelPlacement="start"
                 control={
                   <Switch
@@ -1224,6 +1357,7 @@ const TicketsManager = () => {
                   ? { order: 0 }
                   : { order: 2 }),
               }}
+              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
             />
 
             <TicketsList
@@ -1295,6 +1429,7 @@ const TicketsManager = () => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
+                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                         />
                       ) : (
                         <TicketsList
@@ -1323,6 +1458,7 @@ const TicketsManager = () => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
+                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                         />
                       );
                     })}
@@ -1359,6 +1495,7 @@ const TicketsManager = () => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
+                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                         />
                       ) : (
                         <TicketsList
@@ -1387,6 +1524,7 @@ const TicketsManager = () => {
                             onMoveCategoryColumn(categoryIndex, "right");
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
+                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                         />
                       );
                     })}

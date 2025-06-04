@@ -214,6 +214,7 @@ const TicketsList = (props) => {
     selectedCategoriesIds,
     showOnlyWaitingTickets,
     columnsWidth,
+    selectedClientelicenciaEtapaIds
   } = props;
 
   const classes = useStyles();
@@ -248,6 +249,7 @@ const TicketsList = (props) => {
     selectedMarketingCampaignIds,
     selectedTypeIds,
     showOnlyWaitingTickets,
+    selectedClientelicenciaEtapaIds
   ]);
 
   const { tickets, hasMore, loading, count, triggerReload } = useTickets({
@@ -257,6 +259,7 @@ const TicketsList = (props) => {
     showAll,
     whatsappIds: JSON.stringify(selectedWhatsappIds),
     queueIds: JSON.stringify(selectedQueueIds),
+    clientelicenciaEtapaIds: JSON.stringify(selectedClientelicenciaEtapaIds),
     marketingCampaignIds: JSON.stringify(selectedMarketingCampaignIds),
     typeIds: JSON.stringify(selectedTypeIds),
     showOnlyMyGroups,
@@ -352,6 +355,10 @@ const TicketsList = (props) => {
         (category && ticket.categories.find((tc) => tc.id === category.id)) ||
         (ticketsType === "no-category" && !ticket.categories?.length);
 
+      const clientelicenciaEtapaIdCondition =
+        selectedClientelicenciaEtapaIds?.length === 0 ||
+        selectedClientelicenciaEtapaIds?.some((id) => ticket.contact.traza_clientelicencia_currentetapaid === id);
+
       // console.log({
       //   noSearchParamCondition,
       //   TypeCondition,
@@ -370,7 +377,7 @@ const TicketsList = (props) => {
           (queueCondition &&
             whatsappCondition &&
             marketingCampaignCondition)) &&
-        categoryCondition;
+        categoryCondition && clientelicenciaEtapaIdCondition;
 
       return isConditionMet;
     };
@@ -524,6 +531,7 @@ const TicketsList = (props) => {
     selectedWhatsappIds,
     showOnlyMyGroups,
     showOnlyWaitingTickets,
+    selectedClientelicenciaEtapaIds
   ]);
 
   const loadMore = () => {

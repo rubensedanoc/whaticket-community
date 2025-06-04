@@ -32,6 +32,7 @@ interface Request {
   categoryId?: number;
   userWhatsappsId?: number[];
   showOnlyWaitingTickets?: boolean;
+  clientelicenciaEtapaIds?: number[];
 }
 
 interface Response {
@@ -57,7 +58,8 @@ const buildWhereCondition = ({
   date,
   withUnreadMessages,
   userWhatsappsId,
-  showOnlyWaitingTickets
+  showOnlyWaitingTickets,
+  clientelicenciaEtapaIds
 }: Request): Filterable["where"] => {
   let baseCondition: Filterable["where"] = {};
 
@@ -102,6 +104,17 @@ const buildWhereCondition = ({
       ...baseCondition,
       beenWaitingSinceTimestamp: {
         [Op.not]: null
+      }
+    };
+  }
+
+  if (clientelicenciaEtapaIds.length) {
+    baseCondition = {
+      ...baseCondition,
+      "$contact.traza_clientelicencia_currentetapaid$": {
+        [Op.or]: clientelicenciaEtapaIds.includes(null)
+          ? [clientelicenciaEtapaIds.filter(id => id !== null), null]
+          : [clientelicenciaEtapaIds]
       }
     };
   }
@@ -256,9 +269,12 @@ const buildIncludeCondition = ({
         "profilePicUrl",
         "countryId",
         "isCompanyMember",
-        "isExclusive"
+        "isExclusive",
+        "traza_clientelicencia_id",
+        "traza_clientelicencia_currentetapaid"
       ],
-      ...(searchParam && { required: true })
+      // ...(searchParam && { required: true })
+      required: true,
     },
     {
       model: Queue,

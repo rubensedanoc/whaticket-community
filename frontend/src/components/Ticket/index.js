@@ -26,6 +26,7 @@ import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
+import Typography from "@material-ui/core/Typography";
 
 const drawerWidth = 320;
 
@@ -250,6 +251,12 @@ const Ticket = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {contact?.traza_clientelicencia_id && (
+              <Typography color="primary">
+                LicenciaId: {contact?.traza_clientelicencia_id}
+              </Typography>
+            )}
+
             <FormControl margin="dense" variant="outlined">
               <InputLabel>Ticket</InputLabel>
               <Select
@@ -286,14 +293,14 @@ const Ticket = () => {
               </Select>
             </FormControl>
 
-            <Button
+            {/* <Button
               size="small"
               variant="text"
               color="primary"
               onClick={onSeeMoreTicketsClickHandler}
             >
               Ver más tickets
-            </Button>
+            </Button> */}
           </div>
 
           <div className={classes.ticketActionButtons}>
