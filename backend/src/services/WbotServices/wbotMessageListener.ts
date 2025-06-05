@@ -1097,6 +1097,61 @@ const handleMessage = async ({
           ticketData: { marketingCampaignId: ticketMarketingCampaign.id },
           ticketId: ticket.id
         });
+
+        try {
+          // console.log("---- handleMessage - dataToSendToTrazabilidad TICKET: ", JSON.stringify(ticket));
+
+          const dataToSendToTrazabilidad = {
+            correo: ticket.contact?.email,
+            nombre_cliente: ticket.contact?.name,
+            telefono: ticket.contact?.number,
+            paisIsocode: ticket.contact?.country?.textCode,
+            rubro: "Restaurant.pe",
+            cliente_origenregistro: "whaticket",
+            campana_whatrestaurantid: ticketMarketingCampaign.id,
+            returnFreshClient: true,
+          };
+
+          console.log("---- handleMessage - dataToSendToTrazabilidad: ", dataToSendToTrazabilidad);
+
+
+          const newTrazaLeadRequest = await fetch(
+            "https://web.restaurant.pe/trazabilidad/public/rest/cliente/webHookQuiPuposWebLead",
+            // "http://localhost/trazabilidadrestaurant/public/rest/cliente/webHookQuiPuposWebLead",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(dataToSendToTrazabilidad)
+            }
+          );
+
+          const newTrazaLead = await newTrazaLeadRequest.json();
+
+          if (
+            newTrazaLead?.data &&
+            newTrazaLead?.data?.usuario &&
+            newTrazaLead?.data?.usuario?.usuario_whatrestaurantid
+          ) {
+
+            const newTrazaLeadUserId = newTrazaLead?.data?.usuario?.usuario_whatrestaurantid;
+
+            UpdateTicketService({
+              ticketData: {
+                userId: newTrazaLeadUserId,
+                status: "open",
+              },
+              ticketId: ticket.id
+            });
+
+          }
+
+        } catch (error) {
+          console.log("Error sending data to Trazabilidad: ", error);
+          Sentry.captureException(error);
+        }
+
       }
     }
 
