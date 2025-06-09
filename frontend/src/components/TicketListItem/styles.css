@@ -1,0 +1,9 @@
+.clientelicenciaEtapa_chip .MuiChip-label {
+  font-size: 10px;  
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.clientelicenciaEtapa_chip .MuiChip-sizeSmall {
+  height: 15px;  
+}
