@@ -33,6 +33,7 @@ import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import MarkdownWrapper from "../MarkdownWrapper";
 import TicketListItemLastMessageTime from "../TicketListItemLastMessageTime";
+import "./styles.css";
 
 const useStyles = makeStyles((theme) => ({
   ticket: {
@@ -236,7 +237,7 @@ const TicketListItem = ({
               [classes.pendingTicket]: ticket.status === "pending",
             },
             {
-              [classes.seenNotification]: notificacionUnseen === false,
+              [classes.seenNotification]: notificacionUnseen === true,
             },
           )}
         >
@@ -315,126 +316,176 @@ const TicketListItem = ({
           <ListItemText
             disableTypography
             primary={
-              <span className={classes.contactNameWrapper}>
-                {/* CONTACT NAME */}
-                <Typography
-                  noWrap
-                  component="span"
-                  variant="body2"
-                  color="textPrimary"
-                >
-                  {ticket.contact?.name}
-                </Typography>
-                {/* - CONTACT NAME */}
+              <div
+                className="clientelicenciaEtapa_chip"
+              >
+                <Chip
+                  onClick={() => {
+                  }}
+                  size="small"
+                  color={"default"}
+                  label={
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      {
+                        ticket.contact?.traza_clientelicencia_currentetapaid ? (()=>{
+                          let etapaText = "Sin Etapa";
 
-                <div style={{ display: "flex", gap: "4px" }}>
-                  {/* PARTICIPANTS BADGE */}
-                  {ticket.participantUsers?.find(
-                    (hu) => hu.id === user?.id
-                  ) && (
-                    <Chip
-                      style={{ height: "16px", fontSize: "9px" }}
-                      color="primary"
-                      size="small"
-                      label="Partici"
-                    />
-                  )}
-                  {/* PARTICIPANTS BADGE */}
+                          switch (ticket.contact?.traza_clientelicencia_currentetapaid) {
+                            case 6:
+                              etapaText = "Onboarding";
+                              break;
+                            case 1:
+                              etapaText = "Insp. tecnica";
+                              break;
+                            case 2:
+                              etapaText = "Config. plataforma";
+                              break;
+                            case 3:
+                              etapaText = "Config. equipos";
+                              break;
+                            case 4:
+                              etapaText = "Cap. op y monitoreo";
+                              break;
+                            case 5:
+                              etapaText = "Alta";
+                              break;
+                            case 7:
+                              etapaText = "Alta FE";
+                              break;
+                          
+                            default:
+                              break;
+                          }
 
-                  {/* HELP BADGE */}
-                  {ticket.helpUsers?.length > 0 ? (
-                    ticket.helpUsers?.find((hu) => hu.id === user?.id) ? (
+                          return <>{etapaText}</>;
+                        })() : "Sin Etapa"
+                      }
+                    </div>
+                  }
+                />
+                <div className={classes.contactNameWrapper}>
+                  {/* CONTACT NAME */}
+                  <Typography
+                    noWrap
+                    component="span"
+                    variant="body2"
+                    color="textPrimary"
+                  >
+                    {ticket.contact?.name}
+                  </Typography>
+                  {/* - CONTACT NAME */}
+
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    {/* PARTICIPANTS BADGE */}
+                    {ticket.participantUsers?.find(
+                      (hu) => hu.id === user?.id
+                    ) && (
                       <Chip
-                        style={{
-                          height: "16px",
-                          fontSize: "9px",
-                        }}
+                        style={{ height: "16px", fontSize: "9px" }}
                         color="primary"
                         size="small"
-                        label="Apoy"
+                        label="Partici"
                       />
-                    ) : (
-                      <Chip
-                        style={{
-                          height: "16px",
-                          fontSize: "9px",
-                        }}
-                        color="primary"
-                        size="small"
-                        label="Con apoy"
-                      />
-                    )
-                  ) : null}
-                  {/* HELP BADGE */}
+                    )}
+                    {/* PARTICIPANTS BADGE */}
 
-                  {/* TRANFER BADGE */}
-                  {ticket.transferred && (
-                    <Chip
-                      style={{ height: "16px", fontSize: "9px" }}
-                      color="primary"
-                      size="small"
-                      label="Transf"
-                    />
-                  )}
-                  {/* TRANFER BADGE */}
-
-                  {/* CLOSED BADGE */}
-                  {ticket.status === "closed" && (
-                    <Chip
-                      style={{ height: "16px", fontSize: "9px" }}
-                      color="primary"
-                      size="small"
-                      label="Cerrado"
-                    />
-                  )}
-                  {/* CLOSED BADGE */}
-
-                  {(() => {
-                    if (!ticket.beenWaitingSinceTimestamp) {
-                      return null;
-                    }
-
-                    return (
-                      <TicketListItemLastMessageTime
-                        beenWaitingSinceTimestamp={
-                          ticket.beenWaitingSinceTimestamp
-                        }
-                      />
-                    );
-                  })()}
-
-                  {/* LAST MESSAGE TIMESTAMP */}
-                  {ticket.lastMessageTimestamp && (
-                    <Typography
-                      className={classes.lastMessageTime}
-                      component="span"
-                      variant="body2"
-                      color="textSecondary"
-                      style={{ fontSize: 10 }}
-                    >
-                      {isSameDay(
-                        fromUnixTime(ticket.lastMessageTimestamp),
-                        new Date()
-                      ) ? (
-                        <>
-                          {format(
-                            fromUnixTime(ticket.lastMessageTimestamp),
-                            "HH:mm"
-                          )}
-                        </>
+                    {/* HELP BADGE */}
+                    {ticket.helpUsers?.length > 0 ? (
+                      ticket.helpUsers?.find((hu) => hu.id === user?.id) ? (
+                        <Chip
+                          style={{
+                            height: "16px",
+                            fontSize: "9px",
+                          }}
+                          color="primary"
+                          size="small"
+                          label="Apoy"
+                        />
                       ) : (
-                        <>
-                          {format(
-                            fromUnixTime(ticket.lastMessageTimestamp),
-                            "dd/MM/yy"
-                          )}
-                        </>
-                      )}
-                    </Typography>
-                  )}
-                  {/* LAST MESSAGE TIMESTAMP */}
+                        <Chip
+                          style={{
+                            height: "16px",
+                            fontSize: "9px",
+                          }}
+                          color="primary"
+                          size="small"
+                          label="Con apoy"
+                        />
+                      )
+                    ) : null}
+                    {/* HELP BADGE */}
+
+                    {/* TRANFER BADGE */}
+                    {ticket.transferred && (
+                      <Chip
+                        style={{ height: "16px", fontSize: "9px" }}
+                        color="primary"
+                        size="small"
+                        label="Transf"
+                      />
+                    )}
+                    {/* TRANFER BADGE */}
+
+                    {/* CLOSED BADGE */}
+                    {ticket.status === "closed" && (
+                      <Chip
+                        style={{ height: "16px", fontSize: "9px" }}
+                        color="primary"
+                        size="small"
+                        label="Cerrado"
+                      />
+                    )}
+                    {/* CLOSED BADGE */}
+
+                    {/* WAITING BADGE */}
+                    {(() => {
+                      if (!ticket.beenWaitingSinceTimestamp) {
+                        return null;
+                      }
+
+                      return (
+                        <TicketListItemLastMessageTime
+                          beenWaitingSinceTimestamp={
+                            ticket.beenWaitingSinceTimestamp
+                          }
+                        />
+                      );
+                    })()}
+                    {/* WAITING BADGE */}
+
+                    {/* LAST MESSAGE TIMESTAMP */}
+                    {ticket.lastMessageTimestamp && (
+                      <Typography
+                        className={classes.lastMessageTime}
+                        component="span"
+                        variant="body2"
+                        color="textSecondary"
+                        style={{ fontSize: 10 }}
+                      >
+                        {isSameDay(
+                          fromUnixTime(ticket.lastMessageTimestamp),
+                          new Date()
+                        ) ? (
+                          <>
+                            {format(
+                              fromUnixTime(ticket.lastMessageTimestamp),
+                              "HH:mm"
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {format(
+                              fromUnixTime(ticket.lastMessageTimestamp),
+                              "dd/MM/yy"
+                            )}
+                          </>
+                        )}
+                      </Typography>
+                    )}
+                    {/* LAST MESSAGE TIMESTAMP */}
+                  </div>
                 </div>
-              </span>
+              </div>
             }
             secondary={
               <>

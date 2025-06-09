@@ -1,13 +1,14 @@
 import AppError from "../../errors/AppError";
 import Contact from "../../models/Contact";
 import ContactCustomField from "../../models/ContactCustomField";
+import SearchContactInformationFromTrazaService from "./SearchContactInformationFromTrazaService";
 
 interface ExtraInfo {
   id?: number;
   name: string;
   value: string;
 }
-interface ContactData {
+export interface ContactData {
   email?: string;
   number?: string;
   name?: string;
@@ -17,6 +18,7 @@ interface ContactData {
   isCompanyMember?: boolean;
   isExclusive?: boolean;
   traza_clientelicencia_id?: number;
+  traza_clientelicencia_currentetapaid?: number;
 }
 
 interface Request {
@@ -28,7 +30,7 @@ const UpdateContactService = async ({
   contactData,
   contactId
 }: Request): Promise<Contact> => {
-  const { email, name, number, extraInfo, domain, isCompanyMember, countryId, isExclusive, traza_clientelicencia_id } =
+  const { email, name, number, extraInfo, domain, isCompanyMember, countryId, isExclusive, traza_clientelicencia_id, traza_clientelicencia_currentetapaid } =
     contactData;
 
   const contact = await Contact.findOne({
@@ -67,7 +69,8 @@ const UpdateContactService = async ({
     isCompanyMember,
     isExclusive,
     countryId,
-    traza_clientelicencia_id
+    traza_clientelicencia_id,
+    traza_clientelicencia_currentetapaid
   });
 
   await contact.reload({
@@ -81,10 +84,21 @@ const UpdateContactService = async ({
       "isCompanyMember",
       "isExclusive",
       "countryId",
-      "traza_clientelicencia_id"
+      "traza_clientelicencia_id",
+      "traza_clientelicencia_currentetapaid"
     ],
     include: ["extraInfo"]
   });
+
+  if (traza_clientelicencia_id) {
+    try {
+      SearchContactInformationFromTrazaService({
+        contactId: contact.id
+      })
+    } catch (error) {
+      console.log("--- UpdateContactService: Error searching contact information from Traza", error);
+    }
+  }
 
   return contact;
 };

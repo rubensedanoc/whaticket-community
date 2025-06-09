@@ -1015,7 +1015,7 @@ const TicketsManager = () => {
                 clientelicenciaEtapaIds={altaChipValueId}
                 onClick={() => {onSelectTicketsCountChips(5)}}
               />
-              <TicketsCountChips
+              {/* <TicketsCountChips
                 status="open"
                 searchParam={searchParam}
                 selectedTypeIds={typeIdsForGroups}
@@ -1026,7 +1026,7 @@ const TicketsManager = () => {
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 clientelicenciaEtapaIds={altaFeChipValueId}
                 onClick={() => {onSelectTicketsCountChips(7)}}
-              />
+              /> */}
             </div>
 
             <div

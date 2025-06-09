@@ -657,7 +657,7 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
           <div className={classes.messageInputWrapper}>
             <InputBase
               inputRef={(input) => {
-                input && input.focus();
+                // input && input.focus();
                 input && (inputRef.current = input);
               }}
               className={classes.messageInput}

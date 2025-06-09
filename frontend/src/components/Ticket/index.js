@@ -27,6 +27,13 @@ import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import Typography from "@material-ui/core/Typography";
+import SaveIcon from '@material-ui/icons/Save';
+import IconButton from '@material-ui/core/IconButton';
+import InputAdornment from '@material-ui/core/InputAdornment';
+import OutlinedInput from '@material-ui/core/OutlinedInput';
+import "./styles.css";
+import { getREACT_APP_PURPOSE } from "../../config";
+
 
 const drawerWidth = 320;
 
@@ -104,6 +111,7 @@ const Ticket = () => {
   const [selectedContactId, setSelectedContactId] = useState(null);
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
   const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
+  const [clientelicenciaId, setClientelicenciaId] = useState(null);
 
   async function searchForMicroServiceData(contactNumber) {
     try {
@@ -231,6 +239,18 @@ const Ticket = () => {
     }
   };
 
+  const saveClientelicenciaId = async () => {
+    try {
+      await api.put(`/contacts/${ticket.contact?.id}`, {
+        traza_clientelicencia_id: clientelicenciaId || null,
+      });
+      toast.success("Clientelicencia ID actualizado correctamente.");
+    } catch (err) {
+      console.log(err);
+      toastError(err);
+    }
+  };
+
   return (
     <div className={classes.root} id="drawer-container">
       <Paper
@@ -308,52 +328,79 @@ const Ticket = () => {
           </div>
         </TicketHeader>
 
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", height: "2.5rem" }}>
           <div style={{ flexGrow: "1" }}>
             <TicketCategories ticket={ticket} />
           </div>
-          <div style={{ flexGrow: "1" }}>
-            <Select
-              style={{ height: "100%", padding: "0 16px" }}
-              onChange={async (e) => {
-                try {
-                  await api.put(`/tickets/${ticket.id}`, {
-                    marketingCampaignId:
-                      e.target.value === 0 ? null : e.target.value,
-                  });
 
-                  toast.success(
-                    "Campaña de marketing actualizada correctamente."
-                  );
-                } catch (err) {
-                  console.log(err);
-                  toastError(err);
+          {getREACT_APP_PURPOSE() !== "comercial" && (
+            <FormControl style={{ flexGrow: "1" }} id="input-clientelicencia_id">
+              <OutlinedInput
+                type='number'
+                placeholder="Clientelicencia ID"
+                value={clientelicenciaId}
+                onChange={(event)=>{
+                  setClientelicenciaId(event.target.value)
+                }}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={()=>{
+                        saveClientelicenciaId()
+                      }}
+                    >
+                      <SaveIcon />
+                    </IconButton>
+                  </InputAdornment>
                 }
+              />
+            </FormControl>
+          )}
 
-                setSelectMarketingCampaign(e.target.value);
-              }}
-              fullWidth
-              value={selectMarketingCampaign}
-              MenuProps={{
-                anchorOrigin: {
-                  vertical: "bottom",
-                  horizontal: "left",
-                },
-                transformOrigin: {
-                  vertical: "top",
-                  horizontal: "left",
-                },
-                getContentAnchorEl: null,
-              }}
-            >
-              <MenuItem value={0}>Sin campaña</MenuItem>
-              {marketingCampaigns.map((mc) => (
-                <MenuItem key={mc.id} value={mc.id}>
-                  {mc.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </div>
+          {getREACT_APP_PURPOSE() === "comercial" && (
+            <div style={{ flexGrow: "1" }}>
+              <Select
+                style={{ height: "100%", padding: "0 16px" }}
+                onChange={async (e) => {
+                  try {
+                    await api.put(`/tickets/${ticket.id}`, {
+                      marketingCampaignId:
+                        e.target.value === 0 ? null : e.target.value,
+                    });
+
+                    toast.success(
+                      "Campaña de marketing actualizada correctamente."
+                    );
+                  } catch (err) {
+                    console.log(err);
+                    toastError(err);
+                  }
+
+                  setSelectMarketingCampaign(e.target.value);
+                }}
+                fullWidth
+                value={selectMarketingCampaign}
+                MenuProps={{
+                  anchorOrigin: {
+                    vertical: "bottom",
+                    horizontal: "left",
+                  },
+                  transformOrigin: {
+                    vertical: "top",
+                    horizontal: "left",
+                  },
+                  getContentAnchorEl: null,
+                }}
+              >
+                <MenuItem value={0}>Sin campaña</MenuItem>
+                {marketingCampaigns.map((mc) => (
+                  <MenuItem key={mc.id} value={mc.id}>
+                    {mc.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </div>
+          )}
         </div>
 
         <ReplyMessageProvider>
