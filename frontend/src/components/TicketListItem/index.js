@@ -344,13 +344,16 @@ const TicketListItem = ({
                               etapaText = "Config. equipos";
                               break;
                             case 4:
-                              etapaText = "Cap. op y monitoreo";
+                              etapaText = "Cap. op y mantenimiento";
                               break;
                             case 5:
                               etapaText = "Alta";
                               break;
                             case 7:
                               etapaText = "Alta FE";
+                              break;
+                            case 8:
+                              etapaText = "Monitoreo";
                               break;
                           
                             default:
