@@ -143,6 +143,7 @@ const configEquiposChipValueId = [3];
 const capOpYMonitoreoChipValueId = [4];
 const altaChipValueId = [5];
 const altaFeChipValueId = [7];
+const monitoreoChipValueId = [8];
 
 const TicketsManager = () => {
   const classes = useStyles();
@@ -998,10 +999,22 @@ const TicketsManager = () => {
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Cap. op y monitoreo"
+                chipLabel="Cap. op y mantenimiento"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 clientelicenciaEtapaIds={capOpYMonitoreoChipValueId}
                 onClick={() => {onSelectTicketsCountChips(4)}}
+              />
+              <TicketsCountChips
+                status="open"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForGroups}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                chipLabel="Monitoreo"
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                clientelicenciaEtapaIds={monitoreoChipValueId}
+                onClick={() => {onSelectTicketsCountChips(8)}}
               />
               <TicketsCountChips
                 status="open"
