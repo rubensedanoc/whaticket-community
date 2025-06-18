@@ -30,6 +30,7 @@ import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import { emitEvent } from "../libs/emitEvent";
+import ContactClientelicencia from "../models/ContactClientelicencias";
 
 export const sendApiChatbotMessage = async (
   req: Request,
@@ -477,45 +478,53 @@ export const updateFromTrazaByClientelicenciaId = async (
     throw new AppError("Faltan datos: clientelicenciaId o etapacl_id");
   }
 
-  const contact = await Contact.findOne({
-    where: {
-      traza_clientelicencia_id: clientelicenciaId
-    }
+  const contacts = await Contact.findAll({
+    include: [
+      {
+        model: ContactClientelicencia,
+        as: "contactClientelicencias",
+        where: {
+          traza_clientelicencia_id: clientelicenciaId
+        },
+        required: true
+      }
+    ],
   });
 
-  if (!contact) {
-    throw new AppError("No se encontró el contacto con el clientelicenciaId proporcionado", 404);
+  if (!contacts || contacts.length === 0) {
+    throw new AppError("No se encontró un contacto con el clientelicenciaId proporcionado", 404);
   }
 
-  await contact.update({
-    traza_clientelicencia_currentetapaid: etapacl_id
-  });
+  for (const contact of contacts) {
+    await contact.update({
+      traza_clientelicencia_currentetapaid: etapacl_id
+    });
 
-  const ticketsToUpdate = await Ticket.findAll({
-    where: {
-      contactId: contact.id,
-    }
-  });
-
-
-  ticketsToUpdate.forEach(async (ticket) => {
-    const ticketWithAllData = await ShowTicketService(ticket.id, true);
-
-    emitEvent({
-      to: [ticket.status],
-      event: {
-        name: "ticket",
-        data: {
-          action: "update",
-          ticket: ticketWithAllData
-        }
+    const ticketsToUpdate = await Ticket.findAll({
+      where: {
+        contactId: contact.id,
       }
     });
-  });
+
+    ticketsToUpdate.forEach(async (ticket) => {
+      const ticketWithAllData = await ShowTicketService(ticket.id, true);
+
+      emitEvent({
+        to: [ticket.status],
+        event: {
+          name: "ticket",
+          data: {
+            action: "update",
+            ticket: ticketWithAllData
+          }
+        }
+      });
+    });
+  }
 
   return res.status(200).json({
     tipo: 1,
     mensajes: ["Whaticket - Contacto actualizado correctamente"],
-    data: contact
+    data: contacts
   });
 };

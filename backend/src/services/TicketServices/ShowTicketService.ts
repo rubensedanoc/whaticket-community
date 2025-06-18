@@ -24,7 +24,8 @@ const ShowTicketService = async (
           model: Country,
           as: "country",
           required: false
-        }
+        },
+        "contactClientelicencias"
       ]
     },
     {

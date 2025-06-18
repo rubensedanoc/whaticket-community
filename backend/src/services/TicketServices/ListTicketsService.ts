@@ -15,6 +15,7 @@ import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
+import ContactClientelicencias from "../../models/ContactClientelicencias";
 
 interface Request {
   searchParam?: string;
@@ -272,6 +273,13 @@ const buildIncludeCondition = ({
         "isExclusive",
         "traza_clientelicencia_id",
         "traza_clientelicencia_currentetapaid"
+      ],
+      include: [
+        {
+          model: ContactClientelicencias,
+          as: "contactClientelicencias",
+          required: false,
+        }
       ],
       // ...(searchParam && { required: true })
       required: true,

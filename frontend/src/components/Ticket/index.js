@@ -251,6 +251,18 @@ const Ticket = () => {
     }
   };
 
+  const removeClientelicencia = async (traza_clientelicencia_id) => {
+    try {
+      await api.put(`/contacts/removeClientelicencia/${ticket.contact?.id}`, {
+        traza_clientelicencia_id: traza_clientelicencia_id,
+      });
+      toast.success("Clientelicencia ID eliminado correctamente.");
+    } catch (err) {
+      console.log(err);
+      toastError(err);
+    }
+  };
+
   return (
     <div className={classes.root} id="drawer-container">
       <Paper
@@ -270,12 +282,30 @@ const Ticket = () => {
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {contact?.traza_clientelicencia_id && (
-              <Typography color="primary">
-                LicenciaId: {contact?.traza_clientelicencia_id}
-              </Typography>
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+            {contact?.contactClientelicencias?.length ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                Licencias: 
+                <Typography color="primary">
+                  {
+                    contact.contactClientelicencias.map(
+                      (ccl) => {
+                        return (
+                          <div key={ccl.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div>
+                              {ccl.traza_clientelicencia_id}
+                            </div>
+                            <div style={{ cursor: "pointer", color: "red" }} onClick={() => removeClientelicencia(ccl.traza_clientelicencia_id)}>
+                              x
+                            </div>
+                          </div>
+                        );
+                      }
+                    )
+                  }
+                </Typography>
+              </div>
+            ) : null}
 
             <FormControl margin="dense" variant="outlined">
               <InputLabel>Ticket</InputLabel>

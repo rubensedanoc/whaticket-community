@@ -4,6 +4,7 @@ import UpdateContactService, { ContactData } from "./UpdateContactService";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "../TicketServices/ShowTicketService";
 import { emitEvent } from "../../libs/emitEvent";
+import ContactClientelicencia from "../../models/ContactClientelicencias";
 
 interface Request {
   contactId: number | string;
@@ -22,7 +23,14 @@ const SearchContactInformationFromTrazaService = async ({
 
   const contact = await Contact.findOne({
     where: { id: contactId },
-    attributes: ["id", "traza_clientelicencia_id"],
+    attributes: ["id"],
+    include: [{
+      model: ContactClientelicencia,
+      as: "contactClientelicencias",
+      order: [["createdAt", "DESC"]],
+      required: true,
+      separate: true,
+    }]
   });
 
   if (!contact) {
@@ -30,17 +38,19 @@ const SearchContactInformationFromTrazaService = async ({
     return false;
   }
 
-  if (!contact.traza_clientelicencia_id) {
+  if (!contact.contactClientelicencias || contact.contactClientelicencias.length === 0) {
     console.log("--- SearchContactInformationFromTrazaService: No traza_clientelicencia_id found for contact", contactId);
     return false;
   }
 
+  const lastContactClientelicencia = contact.contactClientelicencias[0];
+
   const result = await fetch(
-    "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + contact.traza_clientelicencia_id,
+    "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + lastContactClientelicencia.traza_clientelicencia_id,
   );
 
   if (!result.ok) {
-    console.error("--- SearchContactInformationFromTrazaService: Error fetching contact information from external service: ", result, " - url: ", "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + contact.traza_clientelicencia_id);
+    console.error("--- SearchContactInformationFromTrazaService: Error fetching contact information from external service: ", result, " - url: ", "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + lastContactClientelicencia.traza_clientelicencia_id);
     Sentry.captureException(result);
     return false;
   }
@@ -49,11 +59,10 @@ const SearchContactInformationFromTrazaService = async ({
 
   console.log("--- SearchContactInformationFromTrazaService: Updating contact with data from Traza", data);
 
-  if (data?.datos?.clientelicencia_currentetapaid) {
-
+  const next_traza_clientelicencia_currentetapaid = data?.datos?.clientelicencia_currentetapaid || null;
 
     const contactData: ContactData = {
-      traza_clientelicencia_currentetapaid: data.datos.clientelicencia_currentetapaid,
+      traza_clientelicencia_currentetapaid: next_traza_clientelicencia_currentetapaid,
     }
 
     UpdateContactService({ contactId: contactId + "", contactData });
@@ -63,7 +72,6 @@ const SearchContactInformationFromTrazaService = async ({
         contactId: contactId,
       }
     });
-
 
     ticketsToUpdate.forEach(async (ticket) => {
       const ticketWithAllData = await ShowTicketService(ticket.id, true);
@@ -79,7 +87,6 @@ const SearchContactInformationFromTrazaService = async ({
         }
       });
     });
-  }
 
   return true;
 };
