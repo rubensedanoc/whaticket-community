@@ -36,6 +36,7 @@ import Whatsapp from "../models/Whatsapp";
 import WhatsappOwnerUsers from "../models/WhatsappOwnerUsers";
 import WhatsappQueue from "../models/WhatsappQueue";
 import Notification from "../models/Notification";
+import ContactClientelicencia from "../models/ContactClientelicencias";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -80,7 +81,8 @@ const models = [
   LogType,
   Log,
   QueueQuickAnswer,
-  Notification
+  Notification,
+  ContactClientelicencia
 ];
 
 sequelize.addModels(models);

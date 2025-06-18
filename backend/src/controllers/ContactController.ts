@@ -24,6 +24,7 @@ import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import { getClientTimeWaitingForTickets } from "./ReportsController";
 import GetContactByNumberService from "../services/ContactServices/GetContactByNumberService";
+import RemoveContactClientelicenciaService from "../services/ContactServices/RemoveContactClientelicenciaService";
 
 type IndexQuery = {
   searchParam: string;
@@ -288,6 +289,28 @@ export const update = async (
 
   return res.status(200).json(contact);
 };
+
+export const removeClientelicencia = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { contactId } = req.params;
+  const contactData: any = req.body;
+
+  const contact = await RemoveContactClientelicenciaService({ contactData, contactId });
+
+  emitEvent({
+    event: {
+      name: "contact",
+      data: {
+        action: "update",
+        contact
+      }
+    }
+  });
+
+  return res.status(200).json(contact);
+}
 
 export const remove = async (
   req: Request,

@@ -1,5 +1,6 @@
 import AppError from "../../errors/AppError";
 import Contact from "../../models/Contact";
+import ContactClientelicencia from "../../models/ContactClientelicencias";
 import ContactCustomField from "../../models/ContactCustomField";
 import SearchContactInformationFromTrazaService from "./SearchContactInformationFromTrazaService";
 
@@ -36,7 +37,7 @@ const UpdateContactService = async ({
   const contact = await Contact.findOne({
     where: { id: contactId },
     attributes: ["id", "name", "number", "email", "profilePicUrl"],
-    include: ["extraInfo"]
+    include: ["extraInfo", "contactClientelicencias"]
   });
 
   if (!contact) {
@@ -61,6 +62,22 @@ const UpdateContactService = async ({
     );
   }
 
+  if (traza_clientelicencia_id) {
+    const existingClientelicencia = await ContactClientelicencia.findOne({
+      where: {
+        traza_clientelicencia_id,
+        contactId: contact.id
+      }
+    });
+
+    if (!existingClientelicencia) {
+      await ContactClientelicencia.create({
+        contactId: contact.id,
+        traza_clientelicencia_id
+      });
+    }
+  }
+
   await contact.update({
     name,
     // number, dont update number never
@@ -69,7 +86,7 @@ const UpdateContactService = async ({
     isCompanyMember,
     isExclusive,
     countryId,
-    traza_clientelicencia_id,
+    // traza_clientelicencia_id, // ya no se usa esta propiedad
     traza_clientelicencia_currentetapaid
   });
 
@@ -85,9 +102,12 @@ const UpdateContactService = async ({
       "isExclusive",
       "countryId",
       "traza_clientelicencia_id",
-      "traza_clientelicencia_currentetapaid"
+      "traza_clientelicencia_currentetapaid",
     ],
-    include: ["extraInfo"]
+    include: [
+      "extraInfo",
+      "contactClientelicencias"
+    ]
   });
 
   if (traza_clientelicencia_id) {

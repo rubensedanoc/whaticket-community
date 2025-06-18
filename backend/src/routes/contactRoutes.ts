@@ -48,6 +48,8 @@ contactRoutes.post("/contact", isAuth, ContactController.getContact);
 
 contactRoutes.put("/contacts/:contactId", isAuth, ContactController.update);
 
+contactRoutes.put("/contacts/removeClientelicencia/:contactId", isAuth, ContactController.removeClientelicencia);
+
 contactRoutes.delete("/contacts/:contactId", isAuth, ContactController.remove);
 
 export default contactRoutes;

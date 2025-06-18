@@ -16,6 +16,7 @@ import {
 import ContactCustomField from "./ContactCustomField";
 import Country from "./Country";
 import Ticket from "./Ticket";
+import ContactClientelicencia from "./ContactClientelicencias";
 
 @Table
 class Contact extends Model<Contact> {
@@ -69,6 +70,9 @@ class Contact extends Model<Contact> {
 
   @HasMany(() => ContactCustomField)
   extraInfo: ContactCustomField[];
+
+  @HasMany(() => ContactClientelicencia)
+  contactClientelicencias: ContactClientelicencia[];
 
   @Column
   isExclusive: boolean;
