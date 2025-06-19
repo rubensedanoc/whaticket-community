@@ -46,7 +46,12 @@ app.use(async (err: Error, req: Request, res: Response, _: NextFunction) => {
   logger.error(err);
   return res
     .status(500)
-    .json({ error: err, errorMessage: err?.message, logs: req.myLogData });
+    .json({
+      errorName: err?.name,
+      errorMessage: err?.message,
+      stack: err?.stack,
+      logs: req.myLogData
+    });
 });
 
 export default app;
