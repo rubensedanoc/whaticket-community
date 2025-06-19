@@ -30,4 +30,9 @@ externalRoutes.post(
   ExternalApiController.updateFromTrazaByClientelicenciaId
 );
 
+externalRoutes.get(
+  "/getConversationMessages/:fecha_inicio/:fecha_fin/:user_id",
+  ExternalApiController.getConversationMessages
+);
+
 export default externalRoutes;

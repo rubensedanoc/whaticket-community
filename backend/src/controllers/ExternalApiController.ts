@@ -31,6 +31,9 @@ import Ticket from "../models/Ticket";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import { emitEvent } from "../libs/emitEvent";
 import ContactClientelicencia from "../models/ContactClientelicencias";
+import { Op } from "sequelize";
+import dayjs from "dayjs";
+import Message from "../models/Message";
 
 export const sendApiChatbotMessage = async (
   req: Request,
@@ -526,5 +529,151 @@ export const updateFromTrazaByClientelicenciaId = async (
     tipo: 1,
     mensajes: ["Whaticket - Contacto actualizado correctamente"],
     data: contacts
+  });
+};
+
+export const getConversationMessages = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+
+  const mensajes = [];
+  const data = {};
+
+  const { fecha_inicio, fecha_fin, user_id } = req.params;
+
+  if (!mensajes.length) {
+    const ticketsInTimeRange = await Ticket.findAll({
+      where: {
+        createdAt: {
+          [Op.gte]: dayjs(fecha_inicio).startOf("day").toDate(),
+          [Op.lte]: dayjs(fecha_fin).endOf("day").toDate()
+        },
+        isGroup: false,
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ["id", "name"],
+          where: {
+            isCompanyMember: {
+              [Op.or]: [null, false]
+            }
+          },
+          required: true
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp",
+          attributes: ["id", "name"],
+          required: true
+        },
+      ],
+      // logging: (sql) => {
+      //   mensajes.push(`SQL: ${sql}`);
+      // }
+    });
+
+    mensajes.push(
+      `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${fecha_inicio} y ${fecha_fin}`);
+
+    const contactsIdsInTimeRange = ticketsInTimeRange.map(ticket => ticket.contactId);
+
+    const ticketsToGetMessages = await Ticket.findAll({
+      where: {
+        contactId: {
+          [Op.in]: contactsIdsInTimeRange
+        },
+      }
+    });
+
+    mensajes.push(
+      `De los anteriores se van a recuperar mensajes de ${ticketsToGetMessages.length} tickets`);
+
+    const messages = await Message.findAll({
+      attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate", "ticketId"],
+      where: {
+        ticketId: {
+          [Op.in]: ticketsToGetMessages.map(ticket => ticket.id)
+        },
+        isPrivate: {
+          [Op.or]: [null, false]
+        },
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Ticket,
+          as: "ticket",
+          attributes: ["id"],
+          include: [
+            {
+              model: Contact,
+              as: "contact",
+              attributes: ["id", "name", "number"],
+            },
+            {
+              model: Whatsapp,
+              as: "whatsapp",
+              attributes: ["id", "name", "number"],
+              required: true
+            },
+          ]
+        }
+      ],
+      order: [["timestamp", "ASC"]]
+    });
+
+    mensajes.push(
+      `Se encontraron ${messages.length} mensajes de los tickets recuperados`
+    );
+
+    messages.forEach(messageInstance => {
+      const message: any = messageInstance.get({ plain: true }); // 👈 Conversión a objeto plano
+
+      if (message.ticket.id === 27204) {
+        console.log("Mensaje de ticket 27204", message);
+      }
+
+      const ticketContact = message.ticket.contact;
+      const ticketWhatsapp = message.ticket.whatsapp;
+
+      if (!data[ticketContact.id]) {
+        data[ticketContact.id] = {
+          contact: {
+            id: ticketContact.id,
+            name: ticketContact.name,
+            number: ticketContact.number,
+            createdAt: ticketContact.createdAt
+          },
+          whatsapp: {
+            id: ticketWhatsapp.id,
+            name: ticketWhatsapp.name,
+            number: ticketWhatsapp.number
+          },
+          messages: []
+        };
+      }
+
+      delete message.contact;
+      delete message.ticket;
+
+      if (message.body.length > 1000) {
+        message.body = message.body.substring(0, 1000) + "...";
+      }
+
+      data[ticketContact.id].messages.push(message);
+    })
+
+  }
+
+  return res.status(200).json({
+    mensajes,
+    data
   });
 };
