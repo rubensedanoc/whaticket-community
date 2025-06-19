@@ -21,6 +21,7 @@ interface TicketData {
   wasSentToZapier?: boolean;
   beenWaitingSinceTimestamp?: number | null;
   lastMessage?: string;
+  updateSiblingsCategories?: boolean;
 }
 
 interface Request {
@@ -52,7 +53,8 @@ const UpdateTicketService = async ({
     marketingCampaignId,
     wasSentToZapier,
     beenWaitingSinceTimestamp,
-    lastMessage
+    lastMessage,
+    updateSiblingsCategories = false
   } = ticketData;
 
   const ticket = await ShowTicketService(ticketId, true);
@@ -124,7 +126,7 @@ const UpdateTicketService = async ({
       }
     }
 
-    if (ticket.isGroup) {
+    if (ticket.isGroup && updateSiblingsCategories) {
       console.log("--- ticket a actualizar es grupo --- ", ticket.contact);
 
       const relatedTickets = await Ticket.findAll({
