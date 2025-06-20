@@ -298,7 +298,7 @@ cron.schedule('0 * * * *', async () => {
 
 
 // Every minute of every hour of the day
-cron.schedule('*/15 * * * *', async () => {
+cron.schedule('*/10 * * * *', async () => {
 
   console.log("------ searchForImplementationAreaGroupsTickets CRON ------");
 
@@ -656,7 +656,7 @@ cron.schedule('*/15 * * * *', async () => {
     }
 
   } catch (error) {
-    console.log("--- Error in searchForExclusiveNumbers", error);
+    console.log(" ------ Error in searchForImplementationAreaGroupsTickets ------", error);
     Sentry.captureException(error);
   }
 });
