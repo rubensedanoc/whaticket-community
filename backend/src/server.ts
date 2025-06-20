@@ -613,6 +613,8 @@ cron.schedule('*/10 * * * *', async () => {
           No escribas nada fuera del JSON de salida.
         `;
 
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Esperar 1 segundo para evitar problemas de límite de tasa
+
         const secondIARequest = await fetch(
           "https://api.openai.com/v1/chat/completions", {
             method: "POST",
@@ -660,6 +662,8 @@ cron.schedule('*/10 * * * *', async () => {
             ticketId: ticket.id
           });
         }
+
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Esperar 1 segundo para evitar problemas de límite de tasa
       }
 
 
