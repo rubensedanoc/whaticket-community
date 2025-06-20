@@ -321,7 +321,7 @@ cron.schedule('*/10 * * * *', async () => {
         updatedAt: {
           [Op.gte]: dateToStartToConsiderateTickets
         },
-        // id: 37378
+        id: 42687
       },
       include: [
         {
