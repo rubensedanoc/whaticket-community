@@ -361,9 +361,13 @@ cron.schedule('*/10 * * * *', async () => {
     });
 
 
-    console.log("--- ticketsToReview", ticketsToReview.length);
+    console.log("--- ticketsToReview length", ticketsToReview.length);
+    console.log("--- ticketsToReview", ticketsToReview.map(ticket => ticket.id));
 
     for (const ticket of ticketsToReview) {
+
+      console.log("--- ticket.id", ticket.id);
+
 
       let shoudBeEvaluatedByAI = false;
 
