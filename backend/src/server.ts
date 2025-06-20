@@ -298,7 +298,7 @@ cron.schedule('0 * * * *', async () => {
 
 
 // Every minute of every hour of the day
-cron.schedule('*/3 * * * *', async () => {
+cron.schedule('*/40 * * * *', async () => {
 
   console.log("------ searchForImplementationAreaGroupsTickets CRON ------");
 
@@ -321,7 +321,8 @@ cron.schedule('*/3 * * * *', async () => {
         updatedAt: {
           [Op.gte]: dateToStartToConsiderateTickets
         },
-        id: 42687
+        // id: 41192
+        // id: 42687
       },
       include: [
         {
@@ -559,12 +560,30 @@ cron.schedule('*/3 * * * *', async () => {
             },
             {
               'id': '23',
-              'nombre': 'Cliente con problemas',
+              'nombre': 'Cliente con problemas restaurant',
               'pautas': [
-                'Excede el tiempo esperado para onboarding o inspección.',
                 'La coordinadora responde con demora o no cierra acuerdos.',
+                'No se agenda la reunión pese a solicitud del cliente.',
+                'Implementador no se conecta.',
+                'Mala configuración del sistema.',
+                'Fallas técnicas internas (impresión, facturación, boletas).',
+                'Comunicación confusa o por el canal incorrecto.',
+                'No se entregan conclusiones a tiempo.',
                 'El cliente expresa molestia o confusión.',
                 'Hay mensajes duplicados, sin respuestas o falta de seguimiento.'
+              ]
+            },
+            {
+              'id': '29',
+              'nombre': 'Cliente con problemas cliente',
+              'pautas': [
+                'Cliente no responde mensajes ni agenda.',
+                'Se ausenta en reuniones confirmadas.',
+                'No tiene equipos listos, internet deficiente.',
+                'Cambia de responsable sin avisar.',
+                'Quiere saltarse pasos del proceso.',
+                'Hace consultas por privado sin usar el grupo.',
+                'El cliente responde con demora, o fuera de horario, o causa la demora en el proceso.',
               ]
             },
             {
