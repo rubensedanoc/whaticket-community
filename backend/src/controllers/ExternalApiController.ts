@@ -623,7 +623,8 @@ export const getConversationMessages = async (
               attributes: ["id", "name", "number"],
               required: true
             },
-          ]
+          ],
+          required: true
         }
       ],
       order: [["timestamp", "ASC"]]
@@ -636,25 +637,25 @@ export const getConversationMessages = async (
     messages.forEach(messageInstance => {
       const message: any = messageInstance.get({ plain: true }); // 👈 Conversión a objeto plano
 
-      if (message.ticket.id === 27204) {
+      if (message.ticket?.id === 27204) {
         console.log("Mensaje de ticket 27204", message);
       }
 
       const ticketContact = message.ticket.contact;
       const ticketWhatsapp = message.ticket.whatsapp;
 
-      if (!data[ticketContact.id]) {
-        data[ticketContact.id] = {
+      if (!data[ticketContact?.id]) {
+        data[ticketContact?.id] = {
           contact: {
-            id: ticketContact.id,
+            id: ticketContact?.id,
             name: ticketContact.name,
             number: ticketContact.number,
             createdAt: ticketContact.createdAt
           },
           whatsapp: {
-            id: ticketWhatsapp.id,
-            name: ticketWhatsapp.name,
-            number: ticketWhatsapp.number
+            id: ticketWhatsapp?.id,
+            name: ticketWhatsapp?.name,
+            number: ticketWhatsapp?.number
           },
           messages: []
         };

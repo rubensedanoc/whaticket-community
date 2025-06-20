@@ -421,8 +421,8 @@ export const update = async (
   //   })
   // }
 
-  console.log("ticket userId", ticket.userId);
-  console.log("ticket oldUserId", oldUserId);
+  // console.log("ticket userId", ticket.userId);
+  // console.log("ticket oldUserId", oldUserId);
 
   return res.status(200).json(ticket);
 };
