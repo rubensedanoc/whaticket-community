@@ -366,7 +366,7 @@ cron.schedule('*/10 * * * *', async () => {
 
     for (const ticket of ticketsToReview) {
 
-      console.log("--- ticket.id", ticket.id);
+      console.log("--- ticketsToReview ticket.id", ticket.id);
 
 
       let shoudBeEvaluatedByAI = false;
@@ -493,6 +493,9 @@ cron.schedule('*/10 * * * *', async () => {
         Devuelve un array JSON de resultados, uno por cada pregunta. No expliques fuera del JSON.
       `;
 
+      console.log("--- ticketsToReview ticket.id antes de 1 promt", ticket.id);
+
+
       const firstIARequest = await fetch(
         "https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -530,6 +533,8 @@ cron.schedule('*/10 * * * *', async () => {
       const firstIAResponse = await firstIARequest.json();
 
       const firstIAResponseData = JSON.parse(firstIAResponse.choices[0].message.content);
+
+      console.log("--- ticketsToReview ticket.id despues de 1 promt", ticket.id);
 
       // console.log("--- firstIAResponseData", JSON.stringify(firstIAResponseData)) ;
 
@@ -635,6 +640,8 @@ cron.schedule('*/10 * * * *', async () => {
       }
 
       const secondIAResponse = await secondIARequest.json();
+
+      console.log("--- ticketsToReview ticket.id despues de 2 promt", ticket.id);
 
       const secondIAResponseData = JSON.parse(secondIAResponse.choices[0].message.content);
 
