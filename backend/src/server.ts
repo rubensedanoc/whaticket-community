@@ -298,7 +298,7 @@ cron.schedule('0 * * * *', async () => {
 
 
 // Every minute of every hour of the day
-cron.schedule('*/40 * * * *', async () => {
+cron.schedule('*/15 * * * *', async () => {
 
   console.log("------ searchForImplementationAreaGroupsTickets CRON ------");
 
