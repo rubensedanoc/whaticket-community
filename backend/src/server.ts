@@ -298,7 +298,7 @@ cron.schedule('0 * * * *', async () => {
 
 
 // Every minute of every hour of the day
-cron.schedule('*/10 * * * *', async () => {
+cron.schedule('*/3 * * * *', async () => {
 
   console.log("------ searchForImplementationAreaGroupsTickets CRON ------");
 
@@ -321,7 +321,7 @@ cron.schedule('*/10 * * * *', async () => {
         updatedAt: {
           [Op.gte]: dateToStartToConsiderateTickets
         },
-        // id: 37378
+        id: 42687
       },
       include: [
         {
@@ -385,7 +385,7 @@ cron.schedule('*/10 * * * *', async () => {
 
       if (shoudBeEvaluatedByAI) {
 
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Esperar 1 segundo para evitar problemas de límite de tasa
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
 
         const messagesToEvaluate = ticket.messages.map(m => {
           return {
@@ -616,7 +616,7 @@ cron.schedule('*/10 * * * *', async () => {
           No escribas nada fuera del JSON de salida.
         `;
 
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Esperar 1 segundo para evitar problemas de límite de tasa
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
 
         const secondIARequest = await fetch(
           "https://api.openai.com/v1/chat/completions", {
@@ -666,7 +666,7 @@ cron.schedule('*/10 * * * *', async () => {
           });
         }
 
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Esperar 1 segundo para evitar problemas de límite de tasa
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
       }
 
 
