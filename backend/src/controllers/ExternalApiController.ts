@@ -613,6 +613,11 @@ export const getConversationMessages = async (
           attributes: ["id"],
           include: [
             {
+              model: User,
+              as: "user",
+              attributes: ["id", "name"],
+            },
+            {
               model: Contact,
               as: "contact",
               attributes: ["id", "name", "number"],
@@ -660,6 +665,8 @@ export const getConversationMessages = async (
           messages: []
         };
       }
+
+      message.ticket_user_name = message.ticket?.user?.name || "Sin asignar";
 
       delete message.contact;
       delete message.ticket;
