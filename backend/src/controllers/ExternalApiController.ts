@@ -540,16 +540,21 @@ export const getConversationMessages = async (
   const mensajes = [];
   const data = {};
 
-  const { fecha_inicio, fecha_fin, user_id } = req.params;
+  const {
+    start_date,
+    end_date,
+    queue_ids
+  } = req.body;
 
   if (!mensajes.length) {
     const ticketsInTimeRange = await Ticket.findAll({
       where: {
         createdAt: {
-          [Op.gte]: dayjs(fecha_inicio).startOf("day").toDate(),
-          [Op.lte]: dayjs(fecha_fin).endOf("day").toDate()
+          [Op.gte]: dayjs(start_date).startOf("day").toDate(),
+          [Op.lte]: dayjs(end_date).endOf("day").toDate()
         },
         isGroup: false,
+        ...(queue_ids ? { queueId: { [Op.in]: queue_ids } } : {}),
       },
       include: [
         {
@@ -576,7 +581,7 @@ export const getConversationMessages = async (
     });
 
     mensajes.push(
-      `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${fecha_inicio} y ${fecha_fin}`);
+      `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${start_date} y ${end_date}`);
 
     const contactsIdsInTimeRange = ticketsInTimeRange.map(ticket => ticket.contactId);
 
