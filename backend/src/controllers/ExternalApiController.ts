@@ -704,8 +704,13 @@ export const getConversationMessages = async (
 
   }
 
+  const dataToReturn = Object.entries(data).map(([conversationId, value]: any) => ({
+    conversationId,
+    ...value
+  }));
+
   return res.status(200).json({
     mensajes,
-    data
+    data: dataToReturn
   });
 };
