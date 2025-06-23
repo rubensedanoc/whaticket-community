@@ -46,6 +46,7 @@ import TicketsQueueSelect from "../TicketsQueueSelect";
 import NotificationsList from "../NotificationsList";
 import NotificationsIcon from '@material-ui/icons/Notifications';
 import UsersSelect from "../UsersSelect";
+import HomeIcon from '@material-ui/icons/Home';
 
 import "./styles.css";
 
@@ -478,6 +479,16 @@ const TicketsManager = () => {
           textColor="primary"
           aria-label="icon label tabs example"
         >
+
+          {/* Panel */}
+          <Tab
+            value={"general"}
+            icon={<HomeIcon style={{ fontSize: 21 }} />}
+            label={"General"}
+            classes={{ root: classes.tab }}
+          />
+          {/* - Panel */}
+
           {/* open */}
           <Tab
             value={"open"}
@@ -1654,6 +1665,444 @@ const TicketsManager = () => {
         </Paper>
       </TabPanel>
       {/* - notifications TAB CONTENT */}
+
+      {/* general TAB CONTENT */}
+      <TabPanel value={tab} name="general" className={classes.ticketsWrapper}>
+        {/* TABS CONTENT */}
+          <Paper
+            className={classes.ticketsWrapper}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              padding: "16 0",
+              overflow: "auto",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 16px 0px",
+              }}
+            >
+              {tab === "open" && (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      alignItems: "center",
+                      padding: "0px 16px 0px",
+                      fontSize: 12
+                    }}
+                  >
+                    <div>
+                      DIV -{" "}
+                      {principalTicketType === "groups"
+                        ? "GRUP"
+                        : "INDIV"}
+                    </div>
+                    <ArrowDropDownIcon
+                      fontSize="medium"
+                      style={{
+                        cursor: "pointer",
+                        scale: "1.5",
+                      }}
+                      onClick={(e) => {
+                        setAnchorEl2(e.currentTarget);
+                      }}
+                    />
+
+                    <Menu
+                      anchorEl={anchorEl2}
+                      open={Boolean(anchorEl2)}
+                      onClose={() => setAnchorEl2(null)}
+                    >
+                      <MenuItem
+                        onClick={() => {
+                          localStorage.setItem(
+                            "principalTicketType",
+                            JSON.stringify("individuals")
+                          );
+                          setPrincipalTicketType("individuals");
+                          setAnchorEl2(null);
+                        }}
+                      >
+                        Chats individuales
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          localStorage.setItem(
+                            "principalTicketType",
+                            JSON.stringify("groups")
+                          );
+                          setPrincipalTicketType("groups");
+                          setAnchorEl2(null);
+                        }}
+                      >
+                        Chats grupales
+                      </MenuItem>
+                    </Menu>
+                  </div>
+                </>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "center",
+                  marginLeft: "auto",
+                  fontSize: 12
+                }}
+              >
+                {/* SELECTOR DE MIOS O TODOS */}
+                <Can
+                  role={user.profile}
+                  perform="tickets-manager:showall"
+                  yes={() => (
+                    <>
+                      {tab === "open" && (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 6,
+                            alignItems: "center",
+                            marginLeft: "auto",
+                            padding: "0px 16px 0px",
+                          }}
+                        >
+                          <div>
+                            {principalTicketType === "groups"
+                              ? "GRUP"
+                              : "INDIV"}{" "}
+                            -{" "}
+                            {/* {principalTicketType === "groups"
+                              ? showAll
+                                ? "TODOS"
+                                : "MÍOS"
+                              : showOnlyMyGroups
+                              ? "PARTICIPANDO"
+                              : "TODOS"} */}
+                            {principalTicketType === "groups"
+                              ? showOnlyMyGroups
+                                ? "PART"
+                                : "TODS"
+                              : showAll
+                              ? "TODS"
+                              : "MÍOS"}
+                          </div>
+                          <ArrowDropDownIcon
+                            fontSize="medium"
+                            style={{
+                              cursor: "pointer",
+                              scale: "1.5",
+                            }}
+                            onClick={(e) => {
+                              setAnchorEl(e.currentTarget);
+                            }}
+                          />
+
+                          <Menu
+                            anchorEl={anchorEl}
+                            open={Boolean(anchorEl)}
+                            onClose={() => {
+                              setAnchorEl(null);
+                            }}
+                          >
+                            <MenuItem
+                              onClick={(e) => {
+                                if (principalTicketType === "groups") {
+                                  localStorage.setItem(
+                                    "showOnlyMyGroups",
+                                    JSON.stringify(false)
+                                  );
+                                  setShowOnlyMyGroups(false);
+                                } else {
+                                  localStorage.setItem(
+                                    "showAll",
+                                    JSON.stringify(true)
+                                  );
+                                  setShowAll(true);
+                                }
+
+                                setAnchorEl(null);
+                              }}
+                            >
+                              {principalTicketType === "groups"
+                                ? "Todos los grupos"
+                                : "Todos los tickets"}
+                            </MenuItem>
+                            <MenuItem
+                              onClick={(e) => {
+                                if (principalTicketType === "groups") {
+                                  localStorage.setItem(
+                                    "showOnlyMyGroups",
+                                    JSON.stringify(true)
+                                  );
+                                  setShowOnlyMyGroups(true);
+                                } else {
+                                  localStorage.setItem(
+                                    "showAll",
+                                    JSON.stringify(false)
+                                  );
+                                  setShowAll(false);
+                                }
+
+                                setAnchorEl(null);
+                              }}
+                            >
+                              {principalTicketType === "groups"
+                                ? "En los que participo"
+                                : "Mis tickets"}
+                            </MenuItem>
+                          </Menu>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  no={() =>
+                    principalTicketType === "groups" ? (
+                      <>
+                        {tab === "open" && (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 6,
+                              alignItems: "center",
+                              marginLeft: "auto",
+                              padding: "0px 16px 0px",
+                            }}
+                          >
+                            <div>
+                              GRUPOS -{" "}
+                              {showOnlyMyGroups ? "PARTICIPANDO" : "TODOS"}
+                            </div>
+                            <ArrowDropDownIcon
+                              fontSize="medium"
+                              style={{
+                                cursor: "pointer",
+                                scale: "1.5",
+                              }}
+                              onClick={(e) => {
+                                setAnchorEl(e.currentTarget);
+                              }}
+                            />
+
+                            <Menu
+                              anchorEl={anchorEl}
+                              open={Boolean(anchorEl)}
+                              onClose={() => {
+                                setAnchorEl(null);
+                              }}
+                            >
+                              <MenuItem
+                                onClick={(e) => {
+                                  if (principalTicketType === "groups") {
+                                    localStorage.setItem(
+                                      "showOnlyMyGroups",
+                                      JSON.stringify(false)
+                                    );
+                                    setShowOnlyMyGroups(false);
+                                  }
+                                  setAnchorEl(null);
+                                }}
+                              >
+                                Todos los grupos
+                              </MenuItem>
+                              <MenuItem
+                                onClick={(e) => {
+                                  if (principalTicketType === "groups") {
+                                    localStorage.setItem(
+                                      "showOnlyMyGroups",
+                                      JSON.stringify(true)
+                                    );
+                                    setShowOnlyMyGroups(true);
+                                  }
+                                  setAnchorEl(null);
+                                }}
+                              >
+                                En los que participo
+                              </MenuItem>
+                            </Menu>
+                          </div>
+                        )}
+                      </>
+                    ) : null
+                  }
+                />
+                {/* - SELECTOR DE MIOS O TODOS */}
+
+                {/* SELECTOR DE CATEGORIAS */}
+                <Badge
+                  overlap="rectangular"
+                  badgeContent={selectedCategoriesIds?.length}
+                  max={99999}
+                  color="secondary"
+                  invisible={selectedCategoriesIds?.length === 0}
+                  className="TicketsWhatsappSelect"
+                >
+                  <div style={{}}>
+                    <FormControl>
+                      <Select
+                        multiple
+                        displayEmpty
+                        variant="outlined"
+                        value={selectedCategoriesIds}
+                        onChange={(e) => {
+                          console.log("e.target.value", e.target.value);
+                          localStorage.setItem(
+                            "selectedCategoriesIds",
+                            JSON.stringify(e.target.value)
+                          );
+                          setSelectedCategoriesIds(e.target.value);
+                        }}
+                        MenuProps={{
+                          anchorOrigin: {
+                            vertical: "bottom",
+                            horizontal: "left",
+                          },
+                          transformOrigin: {
+                            vertical: "top",
+                            horizontal: "left",
+                          },
+                          getContentAnchorEl: null,
+                        }}
+                        renderValue={() => "Categorias"}
+                      >
+                        {categories?.length > 0 &&
+                          categories
+                            .filter(
+                              (c) => c.userHasThisCategory || c === "no-category"
+                            )
+                            .map((category) => (
+                              <MenuItem
+                                dense
+                                key={category.id || category}
+                                value={category.id || category}
+                              >
+                                <Checkbox
+                                  style={{
+                                    color: "black",
+                                  }}
+                                  size="small"
+                                  color="primary"
+                                  checked={
+                                    selectedCategoriesIds.indexOf(
+                                      category.id || category
+                                    ) >= 0
+                                  }
+                                />
+                                <ListItemText
+                                  primary={category.name || category}
+                                />
+                              </MenuItem>
+                            ))}
+                      </Select>
+                    </FormControl>
+                  </div>
+                </Badge>
+                {/* - SELECTOR DE CATEGORIAS */}
+
+                <Divider
+                  flexItem
+                  orientation="vertical"
+                  style={{ marginLeft: 20, marginRight: 20 }}
+                />
+
+                {/* FILTRO DE RESPUESTA */}
+                <FormControlLabel
+                  id="showOnlyWaitingTicketsLabel"
+                  style={{ marginRight: 7, color: "gray", marginLeft: 0 }}
+                  label={"Solo sin respuesta"}
+                  labelPlacement="start"
+                  control={
+                    <Switch
+                      size="small"
+                      checked={showOnlyWaitingTickets}
+                      onChange={(e) => {
+                        setShowOnlyWaitingTickets(e.target.checked);
+                        localStorage.setItem(
+                          "TicketsManager-showOnlyWaitingTickets",
+                          JSON.stringify(e.target.checked)
+                        );
+                      }}
+                      name="showOnlyWaitingTickets"
+                      color="primary"
+                    />
+                  }
+                />
+                {/* - FILTRO DE RESPUESTA */}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                gap: 12,
+                padding: "16px 16px 16px",
+                overflow: "auto",
+                flexGrow: 1,
+              }}
+            >
+              <TicketsList
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForAll}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                showOnlyWaitingTickets={showOnlyWaitingTickets}
+                ticketsType={"no-response"}
+                advancedList={"no-response"}
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                showAll={true}
+                showOnlyMyGroups={false}
+              />
+
+              <TicketsList
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForAll}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                showOnlyWaitingTickets={showOnlyWaitingTickets}
+                ticketsType={"in-progress"}
+                advancedList={"in-progress"}
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                showAll={true}
+                showOnlyMyGroups={false}
+              />
+
+              {/* <TicketsList
+                status="pending"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForAll}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                showOnlyWaitingTickets={showOnlyWaitingTickets}
+              /> */}
+
+              <TicketsList
+                status="closed"
+                searchParam={searchParam}
+                selectedTypeIds={typeIdsForAll}
+                selectedWhatsappIds={selectedWhatsappIds}
+                selectedQueueIds={selectedQueueIds}
+                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                showAll={true}
+                showOnlyMyGroups={false}
+              />
+
+            </div>
+          </Paper>
+        {/* - TABS CONTENT */}
+      </TabPanel>
+      {/* - general TAB CONTENT */}
 
       {/* search TAB CONTENT */}
       {/* <TabPanel value={tab} name="search" className={classes.ticketsWrapper}>

@@ -25,6 +25,7 @@ import { verifyContact } from "../services/WbotServices/wbotMessageListener";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import Notification from "../models/Notification";
 import { NOTIFICATIONTYPES } from "../constants";
+import AdvancedListTicketsService, { TicketGroupType } from "../services/TicketServices/AdvancedListTicketsService";
 
 type IndexQuery = {
   searchParam: string;
@@ -42,6 +43,7 @@ type IndexQuery = {
   showOnlyWaitingTickets: string;
   filterByUserQueue: string;
   clientelicenciaEtapaIds: string;
+  ticketGroupType: TicketGroupType;
 };
 
 interface TicketData {
@@ -160,6 +162,165 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       categoryId,
       showOnlyWaitingTickets,
       clientelicenciaEtapaIds
+    });
+
+  let ticketsToSend = tickets; // Inicializamos con la lista original
+
+  if (process.env.APP_PURPOSE === "comercial") {
+    const ticketsIds: number[] = tickets.map(t => t.id);
+
+    let ticketsData = await Ticket.findAll({
+      attributes: ["id", "wasSentToZapier"],
+      include: [
+        {
+          model: Message,
+          as: "messages",
+          required: false
+        }
+      ],
+      where: {
+        id: {
+          [Op.in]: ticketsIds
+        }
+      }
+    });
+
+    const ticketsToUpdate: number[] = [];
+
+    ticketsData.forEach(ticket => {
+      if (!ticket.wasSentToZapier) {
+        const messagesFromClient = ticket.messages.filter(m => !m.fromMe);
+        const messagesFromConnection = ticket.messages.filter(m => m.fromMe);
+
+        if (
+          messagesFromClient.length > 5 &&
+          messagesFromConnection.length > 5
+        ) {
+          ticketsToUpdate.push(ticket.id);
+        }
+      }
+    });
+
+    // Creamos una nueva lista de tickets con la propiedad shouldSendToZapier
+    ticketsToSend = tickets.map(ticket => {
+      return {
+        ...ticket.toJSON(), // Importante: crea una copia del ticket como JSON
+        shouldSendToZapier: ticketsToUpdate.includes(ticket.id)
+      };
+    });
+  }
+
+  return res.status(200).json({
+    tickets: ticketsToSend,
+    count,
+    hasMore,
+    whereCondition,
+    includeCondition
+  });
+};
+
+export const advancedIndex = async (req: Request, res: Response): Promise<Response> => {
+  const {
+    pageNumber,
+    status,
+    date,
+    searchParam,
+    showAll,
+    whatsappIds: whatsappIdsStringified,
+    queueIds: queueIdsStringified,
+    marketingCampaignIds: marketingCampaignIdsStringified,
+    typeIds: typeIdsStringified,
+    withUnreadMessages,
+    showOnlyMyGroups: showOnlyMyGroupsStringified,
+    categoryId: categoryIdStringified,
+    showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
+    filterByUserQueue: filterByUserQueueStringified,
+    clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
+    ticketGroupType
+  } = req.query as IndexQuery;
+
+  const userId = req.user.id;
+
+  let marketingCampaignIds: number[] = [];
+  let queueIds: number[] = [];
+  let whatsappIds: number[] = [];
+  let typeIds: string[] = [];
+  let showOnlyMyGroups: boolean = false;
+  let categoryId: number | null = null;
+  let showOnlyWaitingTickets: boolean = false;
+  let filterByUserQueue: boolean = false;
+  let clientelicenciaEtapaIds: number[] = [];
+
+  if (typeIdsStringified) {
+    typeIds = JSON.parse(typeIdsStringified);
+  }
+
+  if (whatsappIdsStringified) {
+    whatsappIds = JSON.parse(whatsappIdsStringified);
+  }
+
+  if (queueIdsStringified) {
+    queueIds = JSON.parse(queueIdsStringified);
+  }
+
+  if (marketingCampaignIdsStringified) {
+    marketingCampaignIds = JSON.parse(marketingCampaignIdsStringified);
+  }
+
+  if (showOnlyMyGroupsStringified) {
+    showOnlyMyGroups = JSON.parse(showOnlyMyGroupsStringified);
+  }
+
+  if (categoryIdStringified) {
+    categoryId = JSON.parse(categoryIdStringified);
+  }
+
+  if (showOnlyWaitingTicketsStringified) {
+    showOnlyWaitingTickets = JSON.parse(showOnlyWaitingTicketsStringified);
+  }
+
+  if (filterByUserQueueStringified) {
+    filterByUserQueue = JSON.parse(filterByUserQueueStringified);
+  }
+
+  if (clientelicenciaEtapaIdsStringified) {
+    clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified);
+  }
+
+  // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
+  if (filterByUserQueue && queueIds.length === 0) {
+    const userWithQueues = await User.findByPk(req.user.id, {
+      include: [
+        {
+          model: Queue,
+          as: "queues"
+        }
+      ]
+    });
+
+    if (userWithQueues && userWithQueues.queues) {
+      queueIds = [...userWithQueues.queues.map(queue => queue.id), null];
+    }
+  }
+
+  let { tickets, count, hasMore, whereCondition, includeCondition } =
+    await AdvancedListTicketsService({
+      searchParam,
+      pageNumber,
+      status,
+      date,
+      showAll,
+      userId,
+      whatsappIds,
+      queueIds,
+      marketingCampaignIds,
+      typeIds,
+      withUnreadMessages,
+      showOnlyMyGroups,
+      categoryId,
+      showOnlyWaitingTickets,
+      clientelicenciaEtapaIds,
+      ticketGroupType
     });
 
   let ticketsToSend = tickets; // Inicializamos con la lista original
