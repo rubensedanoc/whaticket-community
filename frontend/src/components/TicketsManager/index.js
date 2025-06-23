@@ -47,6 +47,7 @@ import NotificationsList from "../NotificationsList";
 import NotificationsIcon from '@material-ui/icons/Notifications';
 import UsersSelect from "../UsersSelect";
 import HomeIcon from '@material-ui/icons/Home';
+import InputLabel from "@material-ui/core/InputLabel";
 
 import "./styles.css";
 
@@ -150,7 +151,7 @@ const TicketsManager = () => {
   const classes = useStyles();
 
   const [searchParam, setSearchParam] = useState("");
-  const [tab, setTab] = useState("open");
+  const [tab, setTab] = useState("general");
   const [tabOpen, setTabOpen] = useState("open");
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -162,6 +163,7 @@ const TicketsManager = () => {
   const { whatsApps } = useContext(WhatsAppsContext);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
   const [principalTicketType, setPrincipalTicketType] = useState("");
+  const [principalTicketTypeForGeneralView, setPrincipalTicketTypeForGeneralView] = useState("all");
 
   const [typeIdsForAll] = useState(["individual", "group"]);
   const [typeIdsForIndividuals] = useState(["individual"]);
@@ -712,146 +714,6 @@ const TicketsManager = () => {
 
       {/* INBOX TAB CONTENT  */}
       <TabPanel value={tab} name="open" className={classes.ticketsWrapper}>
-        {/* TABS */}
-        {/* <Tabs
-          value={tabOpen}
-          onChange={handleChangeTabOpen}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="fullWidth"
-        >
-          <StyledTab
-            label={
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0px",
-                  fontSize: "13px",
-                  textTransform: "initial",
-                }}
-              >
-                <Badge
-                  overlap="rectangular"
-                  badgeContent={groupCount}
-                  color="primary"
-                  max={99999}
-                >
-                  {!showOnlyMyGroups ? "Todos los grupos" : "Mis grupos"}
-                </Badge>
-
-                <>
-                  <ArrowDropDownIcon fontSize="medium" onClick={handleClick2} />
-
-                  <Menu
-                    anchorEl={anchorEl2}
-                    open={Boolean(anchorEl2)}
-                    onClose={handleClose2}
-                  >
-                    <MenuItem
-                      onClick={(e) => {
-                        setShowOnlyMyGroups(false);
-                        handleClose2(e);
-                      }}
-                    >
-                      Todos los grupos
-                    </MenuItem>
-                    <MenuItem
-                      onClick={(e) => {
-                        setShowOnlyMyGroups(true);
-                        handleClose2(e);
-                      }}
-                    >
-                      Mis grupos
-                    </MenuItem>
-                  </Menu>
-                </>
-              </div>
-            }
-            value={"groups"}
-          />
-          <StyledTab
-            label={
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0px",
-                  fontSize: "13px",
-                  textTransform: "initial",
-                }}
-              >
-                <Badge
-                  overlap="rectangular"
-                  badgeContent={openCount}
-                  color="primary"
-                  max={99999}
-                >
-                  {showAllTickets ? "Todos los chats" : "Mis chats"}
-                </Badge>
-
-                <Can
-                  role={user.profile}
-                  perform="tickets-manager:showall"
-                  yes={() => (
-                    <>
-                      <ArrowDropDownIcon
-                        fontSize="medium"
-                        onClick={handleClick}
-                      />
-
-                      <Menu
-                        anchorEl={anchorEl}
-                        open={Boolean(anchorEl)}
-                        onClose={handleClose}
-                      >
-                        <MenuItem
-                          onClick={(e) => {
-                            setShowAllTickets(true);
-                            handleClose(e);
-                          }}
-                        >
-                          Todos los chats
-                        </MenuItem>
-                        <MenuItem
-                          onClick={(e) => {
-                            setShowAllTickets(false);
-                            handleClose(e);
-                          }}
-                        >
-                          Mis chats
-                        </MenuItem>
-                      </Menu>
-                    </>
-                  )}
-                />
-              </div>
-            }
-            value={"open"}
-          />
-          <StyledTab
-            label={
-              <div
-                style={{
-                  fontSize: "13px",
-                  textTransform: "initial",
-                }}
-              >
-                <Badge
-                  overlap="rectangular"
-                  badgeContent={pendingCount}
-                  color="secondary"
-                  max={99999}
-                >
-                  Pendientes
-                </Badge>
-              </div>
-            }
-            value={"pending"}
-          />
-        </Tabs> */}
-        {/* - TABS */}
-
         {/* TABS CONTENT */}
         <Paper
           className={classes.ticketsWrapper}
@@ -1687,7 +1549,7 @@ const TicketsManager = () => {
                 padding: "12px 16px 0px",
               }}
             >
-              {tab === "open" && (
+              {tab === "general" && (
                 <>
                   <div
                     style={{
@@ -1698,53 +1560,28 @@ const TicketsManager = () => {
                       fontSize: 12
                     }}
                   >
-                    <div>
-                      DIV -{" "}
-                      {principalTicketType === "groups"
-                        ? "GRUP"
-                        : "INDIV"}
-                    </div>
-                    <ArrowDropDownIcon
-                      fontSize="medium"
-                      style={{
-                        cursor: "pointer",
-                        scale: "1.5",
-                      }}
-                      onClick={(e) => {
-                        setAnchorEl2(e.currentTarget);
-                      }}
-                    />
-
-                    <Menu
-                      anchorEl={anchorEl2}
-                      open={Boolean(anchorEl2)}
-                      onClose={() => setAnchorEl2(null)}
+                    <FormControl
+                      fullWidth
+                      margin="dense"
+                      variant="outlined"
+                      style={{width: "10rem"}}
                     >
-                      <MenuItem
-                        onClick={() => {
-                          localStorage.setItem(
-                            "principalTicketType",
-                            JSON.stringify("individuals")
-                          );
-                          setPrincipalTicketType("individuals");
-                          setAnchorEl2(null);
+                      <InputLabel id="principalTicketTypeForGeneralView-label">
+                        Tipo de Ticket
+                      </InputLabel>
+                      <Select
+                        labelId="principalTicketTypeForGeneralView-label"
+                        value={principalTicketTypeForGeneralView}
+                        onChange={(e) => {
+                          setPrincipalTicketTypeForGeneralView(e.target.value);
                         }}
+                        label="Tipo de Ticket"
                       >
-                        Chats individuales
-                      </MenuItem>
-                      <MenuItem
-                        onClick={() => {
-                          localStorage.setItem(
-                            "principalTicketType",
-                            JSON.stringify("groups")
-                          );
-                          setPrincipalTicketType("groups");
-                          setAnchorEl2(null);
-                        }}
-                      >
-                        Chats grupales
-                      </MenuItem>
-                    </Menu>
+                        <MenuItem value="all">Todos</MenuItem>
+                        <MenuItem value="individuals">Individuales</MenuItem>
+                        <MenuItem value="groups">Grupales</MenuItem>
+                      </Select>
+                    </FormControl>
                   </div>
                 </>
               )}
@@ -2050,7 +1887,13 @@ const TicketsManager = () => {
             >
               <TicketsList
                 searchParam={searchParam}
-                selectedTypeIds={typeIdsForAll}
+                selectedTypeIds={
+                  principalTicketTypeForGeneralView === "all"
+                    ? typeIdsForAll
+                    : principalTicketTypeForGeneralView === "groups"
+                      ? typeIdsForGroups
+                      : typeIdsForIndividuals
+                }
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
@@ -2064,7 +1907,13 @@ const TicketsManager = () => {
 
               <TicketsList
                 searchParam={searchParam}
-                selectedTypeIds={typeIdsForAll}
+                selectedTypeIds={
+                  principalTicketTypeForGeneralView === "all"
+                    ? typeIdsForAll
+                    : principalTicketTypeForGeneralView === "groups"
+                      ? typeIdsForGroups
+                      : typeIdsForIndividuals
+                }
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
