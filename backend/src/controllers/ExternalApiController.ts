@@ -540,11 +540,16 @@ export const getConversationMessages = async (
   const mensajes = [];
   const data = {};
 
-  const {
+
+  let {
     start_date,
     end_date,
     queue_ids
   } = req.body;
+
+  if(queue_ids && !Array.isArray(queue_ids)) {
+    queue_ids = JSON.parse(queue_ids);
+  }
 
   if (!mensajes.length) {
     const ticketsInTimeRange = await Ticket.findAll({
@@ -583,18 +588,30 @@ export const getConversationMessages = async (
     mensajes.push(
       `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${start_date} y ${end_date}`);
 
-    const contactsIdsInTimeRange = ticketsInTimeRange.map(ticket => ticket.contactId);
+
+    const uniqueContactWhatsappPairs = ticketsInTimeRange.reduce((acc, ticket) => {
+      if (ticket.contactId && ticket.whatsappId) {
+        const key = `${ticket.contactId}-${ticket.whatsappId}`;
+        if (!acc.has(key)) {
+          acc.add(key);
+          acc.data.push({ contactId: ticket.contactId, whatsappId: ticket.whatsappId });
+        }
+      }
+      return acc;
+    }, Object.assign(new Set<string>(), { data: [] }) as Set<string> & { data: { contactId: number, whatsappId: number }[] });
 
     const ticketsToGetMessages = await Ticket.findAll({
       where: {
-        contactId: {
-          [Op.in]: contactsIdsInTimeRange
-        },
-      }
+        [Op.or]: uniqueContactWhatsappPairs.data.map(pair => ({
+          contactId: pair.contactId,
+          whatsappId: pair.whatsappId
+        }))
+      },
+      include: [
+          { model: Contact, as: "contact", attributes: ["id", "name", "number", "createdAt"] },
+          { model: Whatsapp, as: "whatsapp", attributes: ["id", "name", "number"] },
+      ],
     });
-
-    mensajes.push(
-      `De los anteriores se van a recuperar mensajes de ${ticketsToGetMessages.length} tickets`);
 
     const messages = await Message.findAll({
       attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate", "ticketId"],
@@ -654,8 +671,10 @@ export const getConversationMessages = async (
       const ticketContact = message.ticket.contact;
       const ticketWhatsapp = message.ticket.whatsapp;
 
-      if (!data[ticketContact?.id]) {
-        data[ticketContact?.id] = {
+      const conversationKey = `${ticketContact?.id}-${ticketWhatsapp?.id}`;
+
+      if (!data[conversationKey]) {
+        data[conversationKey] = {
           contact: {
             id: ticketContact?.id,
             name: ticketContact.name,
@@ -680,7 +699,7 @@ export const getConversationMessages = async (
         message.body = message.body.substring(0, 1000) + "...";
       }
 
-      data[ticketContact.id].messages.push(message);
+      data[conversationKey].messages.push(message);
     })
 
   }
