@@ -214,7 +214,8 @@ const TicketsList = (props) => {
     selectedCategoriesIds,
     showOnlyWaitingTickets,
     columnsWidth,
-    selectedClientelicenciaEtapaIds
+    selectedClientelicenciaEtapaIds,
+    advancedList
   } = props;
 
   const classes = useStyles();
@@ -267,11 +268,12 @@ const TicketsList = (props) => {
     ...(category && { categoryId: category.id }),
     ...(ticketsType === "no-category" && { categoryId: 0 }),
     filterByUserQueue: true,
+    advancedList
   });
 
   useEffect(() => {
     // console.log("PREV_TICKETS - STATUS:", status, "SEARCH_PARAM:", searchParam);
-    if (!status && !searchParam) return;
+    if (!advancedList && !status && !searchParam) return;
 
     (async () => {
       dispatch({
@@ -359,15 +361,40 @@ const TicketsList = (props) => {
         selectedClientelicenciaEtapaIds?.length === 0 ||
         selectedClientelicenciaEtapaIds?.some((id) => ticket.contact.traza_clientelicencia_currentetapaid === id);
 
-      // console.log({
-      //   noSearchParamCondition,
-      //   TypeCondition,
-      //   userCondition,
-      //   queueCondition,
-      //   whatsappCondition,
-      //   ignoreConditions,
-      //   categoryCondition,
-      // });
+      // Función auxiliar para calcular el timestamp hace N minutos
+      const getNMinutesAgo = (minutes) => {
+        return (Date.now() - minutes * 60 * 1000) / 1000; // Convertir a segundos
+      };
+
+      const noResponseColCondition =
+        advancedList !== "no-response" ||
+        (advancedList === "no-response" && (
+          ticket?.beenWaitingSinceTimestamp < getNMinutesAgo(15) && 
+          (ticket.status === "pending" || ticket.status === "open")
+        ))
+
+      const inProgressColCondition =
+        advancedList !== "in-progress" ||
+        (advancedList === "in-progress" && (
+          (ticket?.beenWaitingSinceTimestamp > getNMinutesAgo(15) || 
+          !ticket?.beenWaitingSinceTimestamp) && 
+          (ticket.status === "open")
+        ))
+
+      console.log("--- shouldUpdateTicket ---", {
+        noSearchParamCondition,
+        TypeCondition,
+        userCondition,
+        queueCondition,
+        whatsappCondition,
+        ignoreConditions,
+        categoryCondition,
+        marketingCampaignCondition,
+        clientelicenciaEtapaIdCondition,
+        advancedList,
+        noResponseColCondition,
+        inProgressColCondition,
+      });
 
       const isConditionMet =
         noSearchParamCondition &&
@@ -377,7 +404,12 @@ const TicketsList = (props) => {
           (queueCondition &&
             whatsappCondition &&
             marketingCampaignCondition)) &&
-        categoryCondition && clientelicenciaEtapaIdCondition;
+        categoryCondition && 
+        clientelicenciaEtapaIdCondition &&
+        (!advancedList || (
+          (advancedList === "no-response" && noResponseColCondition) ||
+          (advancedList === "in-progress" && inProgressColCondition)
+        ));
 
       return isConditionMet;
     };
@@ -554,14 +586,18 @@ const TicketsList = (props) => {
       className={classes.ticketsListWrapper}
       style={{
         ...style,
-        width:
-          columnsWidth === "normal"
-            ? "20rem"
-            : columnsWidth === "large"
-            ? "25rem"
-            : "20rem",
-        borderRadius: 8,
-        flexShrink: 0,
+        ...(columnsWidth ? {
+          width:
+            columnsWidth === "normal"
+              ? "20rem"
+              : columnsWidth === "large"
+              ? "25rem"
+              : "20rem",
+          borderRadius: 8,
+          flexShrink: 0,
+        } : {
+          flex: 1,
+        } ),
         // Es la lista sin categoria o es lista de categoria
         ...((ticketsType === "no-category" || category) &&
         // la categoria esta marcada como no visible
@@ -763,6 +799,24 @@ const TicketsList = (props) => {
         {ticketsType === "no-category" && (
           <>
             <div>Sin Categoria</div>
+          </>
+        )}
+
+        {ticketsType === "no-response" && (
+          <>
+            <div>Sin Respuesta</div>
+          </>
+        )}
+
+        {ticketsType === "in-progress" && (
+          <>
+            <div>En Progreso</div>
+          </>
+        )}
+
+        {ticketsType === "waiting-response" && (
+          <>
+            <div>Esperando Respuesta</div>
           </>
         )}
 

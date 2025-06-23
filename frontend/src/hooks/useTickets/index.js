@@ -19,7 +19,8 @@ const useTickets = ({
   categoryId,
   showOnlyWaitingTickets,
   filterByUserQueue = false,
-  clientelicenciaEtapaIds
+  clientelicenciaEtapaIds,
+  advancedList = false,
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -32,25 +33,55 @@ const useTickets = ({
     const delayDebounceFn = setTimeout(() => {
       const fetchTickets = async () => {
         try {
-          const { data } = await api.get("/tickets", {
-            params: {
-              searchParam,
-              pageNumber,
-              status,
-              date,
-              showAll,
-              whatsappIds,
-              queueIds,
-              marketingCampaignIds,
-              typeIds,
-              withUnreadMessages,
-              showOnlyMyGroups,
-              categoryId,
-              showOnlyWaitingTickets,
-              filterByUserQueue,
-              clientelicenciaEtapaIds
-            },
-          });
+          let data;
+
+          if (advancedList) {
+            let { data: advancedData } = await api.get("/tickets/advanced", {
+              params: {
+                searchParam,
+                pageNumber,
+                status,
+                date,
+                showAll,
+                whatsappIds,
+                queueIds,
+                marketingCampaignIds,
+                typeIds,
+                withUnreadMessages,
+                showOnlyMyGroups,
+                categoryId,
+                showOnlyWaitingTickets,
+                // filterByUserQueue,
+                clientelicenciaEtapaIds,
+                ticketGroupType: advancedList
+              },
+            });
+
+            data = advancedData
+          } else {
+            const { data: normalData } = await api.get("/tickets", {
+              params: {
+                searchParam,
+                pageNumber,
+                status,
+                date,
+                showAll,
+                whatsappIds,
+                queueIds,
+                marketingCampaignIds,
+                typeIds,
+                withUnreadMessages,
+                showOnlyMyGroups,
+                categoryId,
+                showOnlyWaitingTickets,
+                filterByUserQueue,
+                clientelicenciaEtapaIds
+              },
+            });
+
+            data = normalData;
+          }
+
           setTickets(data.tickets);
 
           let horasFecharAutomaticamente = getHoursCloseTicketsAuto();
