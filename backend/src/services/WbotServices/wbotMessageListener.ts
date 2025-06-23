@@ -1112,6 +1112,12 @@ const handleMessage = async ({
             returnFreshClient: true,
           };
 
+          // EVALUAMOS SI LA CONEXION DE DONDE PROVIENE EL TICKET ES DE JUAN FAUSTO
+          // SI ES ASI, SE ENVIA A TRAZABILIDAD CON UN PAIS ISOCODE ESPECIFICO
+          if (ticket.whatsappId === 45) {
+            dataToSendToTrazabilidad.paisIsocode = "MU";
+          }
+
           console.log("---- handleMessage - dataToSendToTrazabilidad: ", dataToSendToTrazabilidad);
 
 
