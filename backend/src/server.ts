@@ -513,7 +513,7 @@ cron.schedule('*/15 * * * *', async () => {
                     {
                       "type": "file",
                       "file": {
-                        "file_id": "file-17cqCSyr9zDTfcahD9Qzzp"
+                        "file_id": "file-JgfAgvp3Fm9zZUV1Qnr3Ht"
                       }
                     },
                     {
@@ -649,7 +649,19 @@ cron.schedule('*/15 * * * *', async () => {
               "messages": [
                 {
                   "role": "user",
-                  "content": secondPrompt
+                  // "content": secondPrompt,
+                  "content": [
+                    {
+                      "type": "file",
+                      "file": {
+                        "file_id": "file-JgfAgvp3Fm9zZUV1Qnr3Ht"
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "text": secondPrompt
+                    }
+                  ]
                 }
               ]
             })
