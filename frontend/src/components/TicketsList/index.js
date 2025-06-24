@@ -804,13 +804,13 @@ const TicketsList = (props) => {
 
         {ticketsType === "no-response" && (
           <>
-            <div>Sin Respuesta</div>
+            <div>SIN RESPUESTA</div>
           </>
         )}
 
         {ticketsType === "in-progress" && (
           <>
-            <div>En Progreso</div>
+            <div>EN PROCESO</div>
           </>
         )}
 

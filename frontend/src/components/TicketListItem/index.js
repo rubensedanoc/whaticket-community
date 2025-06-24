@@ -33,6 +33,7 @@ import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import MarkdownWrapper from "../MarkdownWrapper";
 import TicketListItemLastMessageTime from "../TicketListItemLastMessageTime";
+import PersonIcon from '@material-ui/icons/Person';
 import "./styles.css";
 
 const useStyles = makeStyles((theme) => ({
@@ -506,25 +507,49 @@ const TicketListItem = ({
                     ) : (
                       <br />
                     )}
-                  </Typography>
-                  {/* - CATEGORY OR LAST MESSAGE */}
 
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                    <br />
+
+                    {/* USER ICON */}
+                    {!ticket.isGroup && ticket.userId && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <PersonIcon
+                          style={{
+                            fontSize: 16,
+                            ...(ticket.userId === user?.id && {
+                              color: "#3b82f6",
+                            }),
+                          }}
+                        />
+                        {ticket.user?.name}
+                      </div>
+                    )}
+                    {/* - USER ICON */}
+
+                    {/* HELP ICON */}
+                    {!ticket.isGroup && ticket.helpUsers?.length > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <PeopleAltIcon
+                          style={{
+                            fontSize: 16,
+                            ...(ticket.helpUsers.find(
+                              (u) => u.id === user?.id
+                            ) && {
+                              color: "#3b82f6",
+                            }),
+                          }}
+                        />
+                        {ticket.helpUsers
+                                  .map((hu) => hu.name)
+                                  .join(" - ")}
+                      </div>
+                    )}
+                    {/* - HELP ICON */}
+
+
                     {/* PARTICIPANTS ICON */}
                     {ticket.isGroup && ticket.participantUsers?.length > 0 && (
-                      <Tooltip
-                        title={`PARTICIPANDO: 
-                            ${[...ticket.participantUsers]
-                              .map((u) => u.name)
-                              .join(" - ")}`}
-                        aria-label="add"
-                      >
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                         <PeopleAltIcon
                           style={{
                             fontSize: 16,
@@ -535,33 +560,23 @@ const TicketListItem = ({
                             }),
                           }}
                         />
-                      </Tooltip>
+                        {[...ticket.participantUsers]
+                              .map((u) => u.name)
+                              .join(" - ")}
+                      </div>
                     )}
                     {/* - PARTICIPANTS ICON */}
 
-                    {/* USER ICON */}
-                    {!ticket.isGroup && ticket.userId && (
-                      <Tooltip
-                        title={`ASIGNADO: ${ticket.user?.name}${
-                          ticket.helpUsers?.length > 0
-                            ? ` | APOYO: ${ticket.helpUsers
-                                .map((hu) => hu.name)
-                                .join(" - ")}`
-                            : ""
-                        }`}
-                        aria-label="add"
-                      >
-                        <PeopleAltIcon
-                          style={{
-                            fontSize: 16,
-                            ...(ticket.userId === user?.id && {
-                              color: "#3b82f6",
-                            }),
-                          }}
-                        />
-                      </Tooltip>
-                    )}
-                    {/* - USER ICON */}
+                  </Typography>
+                  {/* - CATEGORY OR LAST MESSAGE */}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
 
                     {/* SEE PREVIEW BTN */}
                     <IconButton

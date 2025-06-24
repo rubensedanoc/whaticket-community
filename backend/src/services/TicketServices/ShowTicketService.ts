@@ -9,6 +9,8 @@ import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
 import Whatsapp from "../../models/Whatsapp";
+import ConversationIAEvalutaion from "../../models/ConversationIAEvalutaion";
+import ConversationIAQuestions from "../../models/ConversationIAQuestions";
 
 const ShowTicketService = async (
   id: string | number,
@@ -88,6 +90,28 @@ const ShowTicketService = async (
       model: MarketingMessagingCampaign,
       as: "marketingMessagingCampaign",
       required: false
+    },
+    {
+      model: ConversationIAEvalutaion,
+      as: "conversationIAEvalutaions",
+      required: false,
+      separate: true,
+      order: [["createdAt", "DESC"]]
+    },
+    {
+      model: ConversationIAQuestions,
+      as: "conversationIAQuestions",
+      required: false,
+      separate: true,
+      order: [["createdAt", "ASC"]],
+      include: [
+        {
+          model: User,
+          attributes: ["id", "name"],
+          as: "user",
+          required: false
+        }
+      ]
     }
   ];
 
