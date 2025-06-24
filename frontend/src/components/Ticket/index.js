@@ -15,6 +15,7 @@ import toastError from "../../errors/toastError";
 import api from "../../services/api";
 import microserviceApi from "../../services/microserviceApi";
 import ContactDrawer from "../ContactDrawer";
+import TicketIaDrawer from "../TicketIaDrawer";
 import MessageInput from "../MessageInput/";
 import MessagesList from "../MessagesList";
 import TicketActionButtons from "../TicketActionButtons";
@@ -98,6 +99,7 @@ const Ticket = () => {
   const classes = useStyles();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [iaDrawerOpen, setIaDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [contact, setContact] = useState({});
   const [ticket, setTicket] = useState({});
@@ -164,6 +166,10 @@ const Ticket = () => {
           setSelectRelatedTicketId(ticketId);
 
           setLoading(false);
+
+          if (data.whatsappId === 11 && data.conversationIAEvalutaions?.length > 0) {
+            setIaDrawerOpen(true);
+          }
 
           await searchForMicroServiceData(data.contact?.number);
         } catch (err) {
@@ -265,6 +271,14 @@ const Ticket = () => {
 
   return (
     <div className={classes.root} id="drawer-container">
+      <TicketIaDrawer
+        open={iaDrawerOpen}
+        contact={contact}
+        ticketId={ticketId}
+        loading={loading}
+        microServiceData={microServiceData}
+        ticket={ticket}
+      />
       <Paper
         variant="outlined"
         elevation={0}
@@ -447,6 +461,7 @@ const Ticket = () => {
           )}
         </ReplyMessageProvider>
       </Paper>
+
       <ContactDrawer
         open={drawerOpen}
         handleDrawerClose={handleDrawerClose}

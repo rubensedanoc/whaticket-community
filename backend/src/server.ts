@@ -16,6 +16,7 @@ import ListWhatsAppsService from "./services/WhatsappService/ListWhatsAppsServic
 import { logger } from "./utils/logger";
 import CheckSettingsHelper from "./helpers/CheckSettings";
 import ConversationIAEvalutaion from "./models/ConversationIAEvalutaion";
+import ContactClientelicencia from "./models/ContactClientelicencias";
 
 const server = app.listen(process.env.PORT, () => {
   logger.info(`Server started on port: ${process.env.PORT}`);
@@ -342,12 +343,15 @@ cron.schedule('*/15 * * * *', async () => {
           model: Contact,
           as: "contact",
           attributes: ["id", "name", "traza_clientelicencia_id"],
-          required: true,
-          where: {
-            traza_clientelicencia_id: {
-              [Op.not]: null
+          include: [
+            {
+              model: ContactClientelicencia,
+              as: "contactClientelicencias",
+              order: [["createdAt", "DESC"]],
+              required: true,
             }
-          }
+          ],
+          required: true,
         },
         {
           model: ConversationIAEvalutaion,
@@ -400,8 +404,10 @@ cron.schedule('*/15 * * * *', async () => {
           }
         })
 
+        const licenseToEvaluate = ticket.contact.contactClientelicencias[0];
+
         const trazaDataToEvaluateRequest = await fetch(
-          "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + ticket.contact.traza_clientelicencia_id,
+          "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + licenseToEvaluate.traza_clientelicencia_id,
         );
 
         const trazaDataToEvaluate = (await trazaDataToEvaluateRequest.json()).datos;

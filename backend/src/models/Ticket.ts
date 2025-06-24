@@ -28,6 +28,7 @@ import TicketParticipantUsers from "./TicketParticipantUsers";
 import User from "./User";
 import Whatsapp from "./Whatsapp";
 import ConversationIAEvalutaion from "./ConversationIAEvalutaion";
+import ConversationIAQuestions from "./ConversationIAQuestions";
 
 @Table
 class Ticket extends Model<Ticket> {
@@ -161,6 +162,9 @@ class Ticket extends Model<Ticket> {
 
   @HasMany(() => ConversationIAEvalutaion)
   conversationIAEvalutaions: ConversationIAEvalutaion[];
+
+  @HasMany(() => ConversationIAQuestions)
+  conversationIAQuestions: ConversationIAQuestions[];
 
   // Sobrescribir el método toJSON para incluir clientTimeWaiting
   toJSON() {
