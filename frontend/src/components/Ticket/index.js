@@ -271,14 +271,16 @@ const Ticket = () => {
 
   return (
     <div className={classes.root} id="drawer-container">
-      <TicketIaDrawer
-        open={iaDrawerOpen}
-        contact={contact}
-        ticketId={ticketId}
-        loading={loading}
-        microServiceData={microServiceData}
-        ticket={ticket}
-      />
+      {iaDrawerOpen && (
+        <TicketIaDrawer
+          open={iaDrawerOpen}
+          contact={contact}
+          ticketId={ticketId}
+          loading={loading}
+          microServiceData={microServiceData}
+          ticket={ticket}
+        />
+      )}
       <Paper
         variant="outlined"
         elevation={0}
