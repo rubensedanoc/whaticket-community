@@ -1549,42 +1549,158 @@ const TicketsManager = () => {
                 padding: "12px 16px 0px",
               }}
             >
-              {tab === "general" && (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 6,
-                      alignItems: "center",
-                      padding: "0px 16px 0px",
-                      fontSize: 12
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "center",
+                  padding: "0px 16px 0px",
+                  fontSize: 12
+                }}
+              >
+                <FormControl
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  style={{width: "10rem"}}
+                >
+                  <InputLabel id="principalTicketTypeForGeneralView-label">
+                    Tipo de Ticket
+                  </InputLabel>
+                  <Select
+                    labelId="principalTicketTypeForGeneralView-label"
+                    value={principalTicketTypeForGeneralView}
+                    onChange={(e) => {
+                      setPrincipalTicketTypeForGeneralView(e.target.value);
                     }}
+                    label="Tipo de Ticket"
                   >
-                    <FormControl
-                      fullWidth
-                      margin="dense"
-                      variant="outlined"
-                      style={{width: "10rem"}}
-                    >
-                      <InputLabel id="principalTicketTypeForGeneralView-label">
-                        Tipo de Ticket
-                      </InputLabel>
-                      <Select
-                        labelId="principalTicketTypeForGeneralView-label"
-                        value={principalTicketTypeForGeneralView}
-                        onChange={(e) => {
-                          setPrincipalTicketTypeForGeneralView(e.target.value);
-                        }}
-                        label="Tipo de Ticket"
-                      >
-                        <MenuItem value="all">Todos</MenuItem>
-                        <MenuItem value="individuals">Individuales</MenuItem>
-                        <MenuItem value="groups">Grupales</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </div>
-                </>
-              )}
+                    <MenuItem value="all">Todos</MenuItem>
+                    <MenuItem value="individuals">Individuales</MenuItem>
+                    <MenuItem value="groups">Grupales</MenuItem>
+                  </Select>
+                </FormControl>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "center",
+                  marginLeft: "auto",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                }}
+              >
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Sin Etapa"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={sinEtapaChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(null)}}
+                />
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Onboarding"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={onboardingChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(6)}}
+                />
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Insp. tecnica"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={inspTecnicaChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(1)}}
+                />
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Config. plataforma"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={configPlataformaChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(2)}}
+                />
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Config. equipos"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={configEquiposChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(3)}}
+                />
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Cap. op y mantenimiento"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={capOpYMonitoreoChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(4)}}
+                />
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Monitoreo"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={monitoreoChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(8)}}
+                />
+                <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Alta"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={altaChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(5)}}
+                />
+                {/* <TicketsCountChips
+                  status="open"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForGroups}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  chipLabel="Alta FE"
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                  clientelicenciaEtapaIds={altaFeChipValueId}
+                  onClick={() => {onSelectTicketsCountChips(7)}}
+                /> */}
+              </div>
 
               <div
                 style={{
