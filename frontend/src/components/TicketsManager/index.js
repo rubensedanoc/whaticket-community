@@ -1889,7 +1889,7 @@ const TicketsManager = () => {
                 {/* - SELECTOR DE MIOS O TODOS */}
 
                 {/* SELECTOR DE CATEGORIAS */}
-                <Badge
+                {/* <Badge
                   overlap="rectangular"
                   badgeContent={selectedCategoriesIds?.length}
                   max={99999}
@@ -1956,7 +1956,7 @@ const TicketsManager = () => {
                       </Select>
                     </FormControl>
                   </div>
-                </Badge>
+                </Badge> */}
                 {/* - SELECTOR DE CATEGORIAS */}
 
                 <Divider
