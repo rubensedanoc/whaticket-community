@@ -299,7 +299,7 @@ cron.schedule('0 * * * *', async () => {
 
 
 // Every minute of every hour of the day
-cron.schedule('*/15 * * * *', async () => {
+cron.schedule('*/2 * * * *', async () => {
 
   console.log("------ searchForImplementationAreaGroupsTickets CRON ------");
 
@@ -322,7 +322,7 @@ cron.schedule('*/15 * * * *', async () => {
         updatedAt: {
           [Op.gte]: dateToStartToConsiderateTickets
         },
-        // id: 41192
+        id: 45784
         // id: 42687
       },
       include: [
