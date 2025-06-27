@@ -34,6 +34,11 @@ import ContactClientelicencia from "../models/ContactClientelicencias";
 import { Op } from "sequelize";
 import dayjs from "dayjs";
 import Message from "../models/Message";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const sendApiChatbotMessage = async (
   req: Request,
@@ -544,7 +549,8 @@ export const getConversationMessages = async (
   let {
     start_date,
     end_date,
-    queue_ids
+    queue_ids,
+    optimized_for_ia
   } = req.body;
 
   if(queue_ids && !Array.isArray(queue_ids)) {
@@ -699,15 +705,53 @@ export const getConversationMessages = async (
         message.body = message.body.substring(0, 1000) + "...";
       }
 
+      message.date = dayjs.unix(message.timestamp).tz("America/Lima").format("YYYY-MM-DD HH:mm:ss");
+
       data[conversationKey].messages.push(message);
     })
 
   }
 
-  const dataToReturn = Object.entries(data).map(([conversationId, value]: any) => ({
+  let dataToReturn = null;
+
+  dataToReturn = Object.entries(data).map(([conversationId, value]: any) => ({
     conversationId,
     ...value
   }));
+
+  // SI NOS PIDEN OPTIMIZAR PARA IA, COMPRIMIMOS LOS MENSAJES
+  if (optimized_for_ia) {
+    dataToReturn = dataToReturn.map((item: any) => {
+
+      const ticketsMap = new Map();
+
+      item.messages.forEach(msg => {
+        if (!ticketsMap.has(msg.ticketId)) {
+          ticketsMap.set(msg.ticketId, {
+            user: msg.ticket_user_name,
+            messages: []
+          });
+        }
+        const author = msg.fromMe ? "Tú" : "Cliente";
+        const content = msg.mediaType === "image" ? `${msg.body} [imagen]` : msg.body;
+        const line = `${msg.date} - ${author}: ${content}`;
+        ticketsMap.get(msg.ticketId).messages.push(line);
+      });
+
+      let compressedMessages = ""
+
+      for (const [ticketId, { user, messages }] of ticketsMap.entries()) {
+        compressedMessages += `[Ticket: ${user}]\n` + messages.join('\n') + '\n\n';
+      }
+
+      compressedMessages = compressedMessages.trim();
+
+      return {
+        ...item,
+        messages: compressedMessages,
+      };
+    });
+  }
 
   return res.status(200).json({
     mensajes,
