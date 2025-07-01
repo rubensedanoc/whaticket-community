@@ -17,6 +17,7 @@ import { logger } from "./utils/logger";
 import CheckSettingsHelper from "./helpers/CheckSettings";
 import ConversationIAEvalutaion from "./models/ConversationIAEvalutaion";
 import ContactClientelicencia from "./models/ContactClientelicencias";
+import AnalizeTicketToCreateAConversationIAEvaluationService from "./services/ConversationIAEvalutaion/AnalizeTicketToCreateAConversationIAEvaluationService";
 
 const server = app.listen(process.env.PORT, () => {
   logger.info(`Server started on port: ${process.env.PORT}`);
@@ -299,9 +300,9 @@ cron.schedule('0 * * * *', async () => {
 
 
 // Every minute of every hour of the day
-cron.schedule('*/2 * * * *', async () => {
+cron.schedule('0 * * * *', async () => {
 
-  console.log("------ searchForImplementationAreaGroupsTickets CRON ------");
+  logger.info("------ searchForImplementationAreaGroupsTickets CRON ------");
 
   try {
 
@@ -313,7 +314,7 @@ cron.schedule('*/2 * * * *', async () => {
 
     const dateToStartToConsiderateTickets = '2025-06-19';
 
-    const ticketsToReview = await Ticket.findAll({
+    let ticketsToReview = await Ticket.findAll({
       attributes: ["id", "status", "createdAt", "updatedAt"],
       where: {
         whatsappId: 11,
@@ -322,8 +323,7 @@ cron.schedule('*/2 * * * *', async () => {
         updatedAt: {
           [Op.gte]: dateToStartToConsiderateTickets
         },
-        id: 45784
-        // id: 42687
+        // id: 45784
       },
       include: [
         {
@@ -366,14 +366,10 @@ cron.schedule('*/2 * * * *', async () => {
     });
 
 
-    console.log("--- ticketsToReview length", ticketsToReview.length);
-    console.log("--- ticketsToReview", ticketsToReview.map(ticket => ticket.id));
+    console.log("------ searchForImplementationAreaGroupsTickets groups length: ", ticketsToReview.length);
+    console.log("------ searchForImplementationAreaGroupsTickets groups: ", ticketsToReview.map(ticket => ticket.id));
 
-    for (const ticket of ticketsToReview) {
-
-      console.log("--- ticketsToReview ticket.id", ticket.id);
-
-
+    ticketsToReview = ticketsToReview.filter(ticket => {
       let shoudBeEvaluatedByAI = false;
 
       if (!ticket.conversationIAEvalutaions?.length) {
@@ -388,324 +384,37 @@ cron.schedule('*/2 * * * *', async () => {
         });
       }
 
-      if (shoudBeEvaluatedByAI) {
+      return shoudBeEvaluatedByAI;
+    })
 
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
+    ticketsToReview.sort((a, b) => {
+      const aHasReview = a.conversationIAEvalutaions?.length > 0;
+      const bHasReview = b.conversationIAEvalutaions?.length > 0;
 
-        const messagesToEvaluate = ticket.messages.map(m => {
-          return {
-            id: m.id,
-            fromMe: m.fromMe,
-            body: m.body,
-            mediaType: m.mediaType,
-            timestamp: m.timestamp,
-            isPrivate: m.isPrivate,
-            contact_name: m.fromMe ? null :  m.contact.name,
-          }
-        })
+      // Si uno no tiene review, va primero
+      if (!aHasReview && bHasReview) return -1;
+      if (aHasReview && !bHasReview) return 1;
 
-        const licenseToEvaluate = ticket.contact.contactClientelicencias[0];
+      // Ambos no tienen review
+      if (!aHasReview && !bHasReview) return 0;
 
-        const trazaDataToEvaluateRequest = await fetch(
-          "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + licenseToEvaluate.traza_clientelicencia_id,
-        );
+      // Ambos tienen reviews: ordenar por la fecha de la última evaluación (ascendente)
+      const aLatestReview = a.conversationIAEvalutaions[0].createdAt;
+      const bLatestReview = b.conversationIAEvalutaions[0].createdAt;
 
-        const trazaDataToEvaluate = (await trazaDataToEvaluateRequest.json()).datos;
+      return aLatestReview.getTime() - bLatestReview.getTime();
+    });
 
-        const firstPrompt = `
-          Eres un asistente experto en análisis de conversaciones del área de implementaciónes de la empresa Restaurant.pe. A continuación se te proporciona una conversación grupal en formato JSON entre el equipo del cliente y el equipo de implementación.
+    console.log("------ searchForImplementationAreaGroupsTickets filter groups length: ", ticketsToReview.length);
+    console.log("------ searchForImplementationAreaGroupsTickets filter groups: ", ticketsToReview.map(ticket => ticket.id));
 
-          Tu tarea es analizar la conversación que te pasare junto con la data de nuestro sistema de trazabilidad (sistema interno de la empresa que te dará la información actual de la licencia) y a criterio, teniendo en cuenta el manual de los implementadores para responder una serie de preguntas de evaluación.
+    for (const ticket of ticketsToReview) {
 
-          Formato de cada mensaje:
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
 
-          {
-            'id': string - id del mensaje en la conversacion,
-            'fromMe': boolean - indica si el mensaje fue escrito por nuestro equipo,
-            'body': string - cuerpo del mensaje,
-            'mediaType': string - tipo de mensaje,
-            'timestamp': number - timestamp del mensaje,
-            'isPrivate': null | boolean - indica si el mensaje es interno, puede ser del sistema o un comentario interno (null es equivalente a false),
-            'contact_name': string - nombre del autor del mensaje (en casos en donde el fromMe sea true, el nombre del que escribió el mensaje se puede encontrar al inicio del mensaje)
-          }
-
-          Formato de información obtenida desde trazabilidad:
-
-          {
-            'clientelicencia_id:': number - id de la licencia dentro de traza,
-            'clientelicencia_localnombre:': string - nombre del negocio,
-            'clientelicencia_fecha:': date - fecha en el que se creo la licencia y empezó el proceso de implementacion,
-            'clientelicencia_nombrecontacto:': string - nombre del representante de la licencia,
-            'clientelicencia_fechaalta:': date - fecha en la cual la licencia espera llegar a estar en alta tanto etapa como estado,
-            'contact_name': string - nombre del autor del mensaje (en casos en donde el fromMe sea true, el nombre del que escribió el mensaje se puede encontrar al inicio del mensaje),
-            'etapas': un array que contiene datos de la licencia en donde tienes que fijarte las fechas de inicio y fin y siguiendo el orden proporciaonado en el archivo
-          }
-
-          Para cada pregunta, debes:
-
-          - Evaluar si hay suficiente información en la conversación para dar una respuesta clara. Debes de tener motivos suficientes y validos, apegados a los temas mencionados en el manual.
-          - Si sí, responde la pregunta con un numero entre el 0-5 en donde 0 es un no rotundo y el 5 un sí definitivo, y justifica tu respuesta.
-          - Si no hay suficiente información, responde la pregunta con null y deja 'justificacion' como null.
-
-          Tu salida debe ser en formato JSON con este esquema por cada pregunta:
-
-          {
-            'id': '1',
-            'pregunta': '¿El cliente está cumpliendo el flujo esperado?',
-            'respuesta': '...',
-            'justificacion': '...',
-          }
-
-          Evalúa las siguientes preguntas:
-
-          [
-            {
-                'id': 1,
-                'pregunta': '¿El cliente está cumpliendo el flujo esperado?'
-            },
-            {
-                'id': 2,
-                'pregunta': '¿El equipo de implementación está respondiendo a tiempo y de manera clara?'
-            },
-            {
-                'id': 3,
-                'pregunta': '¿Se evidencia retraso o inactividad por parte del cliente o del equipo?'
-            },
-            {
-                'id': 4,
-                'pregunta': '¿La coordinadora mantiene el protocolo de comunicación profesional y cordial?'
-            },
-            {
-                'id': 5,
-                'pregunta': '¿Se esta presentando algún tipo de problema? (Ej. instalación, facturación, lentitud, fallas técnicas)'
-            },
-          ]
-
-          Aquí está la conversación en formato JSON:
-
-          ${JSON.stringify(messagesToEvaluate)}
-
-          Aquí está la información de trazabilidad en formato JSON:
-
-          ${JSON.stringify(trazaDataToEvaluate)}
-
-          Ultimas consideraciones a tener en cuenta:
-
-          - Fijate bien en los timestamps de los mensajes ya que nuestro horario de atencion es de lunes a sabado de 8 a 1 pm y de 3 a 6 pm hora Perú, ten muy en cuenta en las respuestas la diferencia entre el horario de atención y el horario del cliente, ya que si el cliente escribe fuera del horario de atención, no se le puede exigir una respuesta inmediata.
-          - Nos importa mucho saber el tiempo de respuesta del cliente y también del equipo de implementación, es algo importante que tienes que tener en cuenta en las respuestas. El proceso de implementacion es un proceso en el cual el tiempo vale oro, asi que es importante que el cliente cumpla con los tiempos establecidos y que el equipo de implementación responda a tiempo.
-          - Cuando te toque mencionar a personas, encierra sus nombres entre asteriscos y se muy tajante con los comentarios.
-          - Ve directo al grano y no des muchas vueltas en la justificación, sé claro y conciso en tus respuestas, con datos claros.
-          - Toma mucho en consideracion el tiempo de inicio y fin de las etapas de la licencia, ya que si el cliente no cumple con los tiempos establecidos, es un problema que tenemos que resolver. Las etapas son muy importantes a tener en cuenta y estan detalladas en el archivo adjunto.
-
-          Devuelve un array JSON de resultados, uno por cada pregunta. No expliques fuera del JSON.
-        `;
-
-        console.log("--- ticketsToReview ticket.id antes de 1 promt", ticket.id);
-
-
-        const firstIARequest = await fetch(
-          "https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-              "model": "gpt-4.1",
-              "messages": [
-                {
-                  "role": "user",
-                  "content": [
-                    {
-                      "type": "file",
-                      "file": {
-                        "file_id": "file-JgfAgvp3Fm9zZUV1Qnr3Ht"
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "text": firstPrompt
-                    }
-                  ]
-                }
-              ]
-            })
-          }
-        );
-
-        if (!firstIARequest.ok) {
-          throw new Error("Error en la petición a OpenAI: " + firstIARequest.statusText);
-        }
-
-        const firstIAResponse = await firstIARequest.json();
-
-        const firstIAResponseData = JSON.parse(firstIAResponse.choices[0].message.content);
-
-        console.log("--- ticketsToReview ticket.id despues de 1 promt", ticket.id);
-
-        // console.log("--- firstIAResponseData", JSON.stringify(firstIAResponseData)) ;
-
-        const secondPrompt = `
-          Eres un asistente experto en análisis de conversaciones del área de implementaciones de la empresa Restaurant.pe. A continuación, se te proporciona:
-
-          1. Un consolidado de evaluación basado en una conversación grupal entre el equipo del cliente y el equipo de implementación.
-          2. Información adicional obtenida desde el sistema de trazabilidad.
-
-          Tu tarea es analizar toda esta información y, **solo si hay suficientes elementos válidos y claros**, clasificar el caso en una de las siguientes tres categorías:
-
-          [
-            {
-              'id': '24',
-              'nombre': 'Cliente que sigue el flujo de implementación',
-              'pautas': [
-                'Recibe respuestas rápidas y completas.',
-                'Se coordina bien con la agenda.',
-                'Agradece o confirma pasos.',
-                'Las reuniones se programan sin retrasos mayores.'
-              ]
-            },
-            {
-              'id': '23',
-              'nombre': 'Cliente con problemas restaurant',
-              'pautas': [
-                'La coordinadora responde con demora o no cierra acuerdos.',
-                'No se agenda la reunión pese a solicitud del cliente.',
-                'Implementador no se conecta.',
-                'Mala configuración del sistema.',
-                'Fallas técnicas internas (impresión, facturación, boletas).',
-                'Comunicación confusa o por el canal incorrecto.',
-                'No se entregan conclusiones a tiempo.',
-                'El cliente expresa molestia o confusión.',
-                'Hay mensajes duplicados, sin respuestas o falta de seguimiento.'
-              ]
-            },
-            {
-              'id': '29',
-              'nombre': 'Cliente con problemas cliente',
-              'pautas': [
-                'Cliente no responde mensajes ni agenda.',
-                'Se ausenta en reuniones confirmadas.',
-                'No tiene equipos listos, internet deficiente.',
-                'Cambia de responsable sin avisar.',
-                'Quiere saltarse pasos del proceso.',
-                'Hace consultas por privado sin usar el grupo.',
-                'El cliente responde con demora, o fuera de horario, o causa la demora en el proceso.',
-              ]
-            },
-            {
-              'id': '10',
-              'nombre': 'Cliente de alta con problemas',
-              'pautas': [
-                'El cliente ya completó la instalación o está vendiendo.',
-                'Sigue reportando errores técnicos u operativos.',
-                'La coordinadora demora en responder o no soluciona adecuadamente.',
-                'Se evidencian fallas persistentes sin resolución clara.'
-              ]
-            }
-          ]
-
-          **Muy importante**:
-
-          - **Debes considerar la etapa actual de la licencia y su historial de etapas completas**. Evalúa si el cliente está avanzando conforme a los tiempos estimados o si hay retrasos en alguna etapa del proceso. Las etapas son fundamentales para entender en qué parte del flujo se encuentra el cliente y si está cumpliendo con lo esperado.
-          - Si el consolidado contiene respuestas en \`null\`, o si no hay evidencia clara y suficiente en la conversación y trazabilidad, **NO clasifiques el caso**. En ese caso, responde con \`null\` tanto en la categoría como en la justificación.
-          - No adivines ni completes vacíos. Clasifica solo si hay fundamento claro y justificado con base en los criterios establecidos.
-          - Considera los horarios de atención (lunes a sábado, 8:00 a 13:00 y 15:00 a 18:00, hora Perú), así como los tiempos de respuesta y el cumplimiento de pasos por parte del cliente y el equipo.
-          - Si mencionas a personas, encierra sus nombres entre asteriscos (*nombre*). Usa un lenguaje claro, profesional y directo.
-          - No olvides siempre tener muy presente el documento subido ya que es el manual base de todos los implementadores y es la guía que debes seguir para clasificar correctamente.
-
-          Tu salida debe estar en este formato JSON:
-
-          {
-            'clasificacion': {
-              'id': '2',
-              'nombre': 'Cliente con problemas'
-            },
-            'justificacion': '...'
-          }
-
-          Si no hay suficiente información para clasificar:
-
-          {
-            'clasificacion': null,
-            'justificacion': '...'
-          }
-
-          Aquí está el consolidado de preguntas:
-
-          ${JSON.stringify(firstIAResponseData)}
-
-          Aquí está la información de trazabilidad en formato JSON:
-
-          ${JSON.stringify(trazaDataToEvaluate)}
-
-          No escribas nada fuera del JSON de salida.
-        `;
-
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
-
-        const secondIARequest = await fetch(
-          "https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-              "model": "gpt-4.1",
-              "messages": [
-                {
-                  "role": "user",
-                  // "content": secondPrompt,
-                  "content": [
-                    {
-                      "type": "file",
-                      "file": {
-                        "file_id": "file-JgfAgvp3Fm9zZUV1Qnr3Ht"
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "text": secondPrompt
-                    }
-                  ]
-                }
-              ]
-            })
-          }
-        );
-
-        if (!secondIARequest.ok) {
-          throw new Error("Error en la petición a OpenAI: " + secondIARequest.statusText);
-        }
-
-        const secondIAResponse = await secondIARequest.json();
-
-        console.log("--- ticketsToReview ticket.id despues de 2 promt", ticket.id);
-
-        const secondIAResponseData = JSON.parse(secondIAResponse.choices[0].message.content);
-
-        // console.log("--- secondIAResponseData", JSON.stringify(secondIAResponseData));
-
-        await ConversationIAEvalutaion.create({
-          ticketId: ticket.id,
-          evaluationType: "implementation_area_groups_categorization",
-          resultOne: JSON.stringify(firstIAResponseData),
-          resultTwo: JSON.stringify(secondIAResponseData)
-        })
-
-        if (secondIAResponseData.clasificacion) {
-          await UpdateTicketService({
-            ticketData: {
-              categoriesIds: [secondIAResponseData.clasificacion.id],
-              categorizedByAI: true,
-            },
-            ticketId: ticket.id
-          });
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
-      }
-
+      await AnalizeTicketToCreateAConversationIAEvaluationService({
+        ticketId: ticket.id
+      })
 
     }
 
