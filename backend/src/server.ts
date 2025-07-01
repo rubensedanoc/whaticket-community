@@ -300,7 +300,7 @@ cron.schedule('0 * * * *', async () => {
 
 
 // Every minute of every hour of the day
-cron.schedule('*/10 * * * *', async () => {
+cron.schedule('0 * * * *', async () => {
 
   logger.info("------ searchForImplementationAreaGroupsTickets CRON ------");
 
