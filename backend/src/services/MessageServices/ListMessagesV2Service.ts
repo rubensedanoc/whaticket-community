@@ -55,7 +55,7 @@ const ListMessagesV2Service = async ({
       +ticketsToFetchMessagesQueue[0].pageNumber === 1 &&
       +ticketsToFetchMessagesQueue[1].pageNumber === 0)
   ) {
-    console.log("____________________ListMessagesV2Service");
+    // console.log("____________________ListMessagesV2Service");
 
     // Incrementar el número de página del último ticket en la cola
     nextTicketsToFetchMessagesQueue = incrementPageNumber(
