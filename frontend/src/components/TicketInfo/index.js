@@ -27,7 +27,7 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
               </div>
             )}
           </div>
-          <div style={{ maxHeight: "15vh", overflowY: "auto" }}>
+          <div style={{ maxHeight: "10vh", overflowY: "auto" }}>
             {microServiceData
               ? microServiceData.map((data, index) => (
                   <div key={index}>
