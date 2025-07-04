@@ -1379,9 +1379,9 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 
 const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("message_create", async msg => {
-    logger.info(
-      `BOT wbotMessageListener message_create - wpp id: ${whatsapp.id} - from: ${msg.from} - type ${msg.type}`
-    );
+    // logger.info(
+    //   `BOT wbotMessageListener message_create - wpp id: ${whatsapp.id} - from: ${msg.from} - type ${msg.type}`
+    // );
 
     handleMessage({ msg, wbot });
 

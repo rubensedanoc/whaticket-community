@@ -628,6 +628,10 @@ export const getConversationMessages = async (
         isPrivate: {
           [Op.or]: [null, false]
         },
+        timestamp: {
+          [Op.gte]: dayjs(start_date).startOf("day").unix(),
+          [Op.lte]: dayjs(end_date).endOf("day").unix()
+        }
       },
       include: [
         {
