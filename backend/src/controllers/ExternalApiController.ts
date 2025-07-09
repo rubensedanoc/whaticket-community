@@ -36,6 +36,7 @@ import dayjs from "dayjs";
 import Message from "../models/Message";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import Country from "../models/Country";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -653,6 +654,14 @@ export const getConversationMessages = async (
               model: Contact,
               as: "contact",
               attributes: ["id", "name", "number"],
+              include: [
+                {
+                  model: Country,
+                  as: "country",
+                  attributes: ["id", "name"],
+                  required: false
+                }
+              ]
             },
             {
               model: Whatsapp,
@@ -689,7 +698,8 @@ export const getConversationMessages = async (
             id: ticketContact?.id,
             name: ticketContact.name,
             number: ticketContact.number,
-            createdAt: ticketContact.createdAt
+            createdAt: ticketContact.createdAt,
+            country: ticketContact.country?.name || "Sin país"
           },
           whatsapp: {
             id: ticketWhatsapp?.id,
