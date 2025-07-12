@@ -47,7 +47,7 @@ const useStyles = makeStyles((theme) => ({
     cursor: "unset",
   },
 
-  exclusiveTicket: { backgroundColor: "rgba(147, 51, 234, 0.15) !important" },
+  exclusiveTicket: { backgroundColor: "rgb(255 0 0 / 22%) !important" },
 
   seenNotification: { backgroundColor: "rgb(0 0 0 / 7%) !important" },
 
@@ -219,7 +219,7 @@ const TicketListItem = ({
             backgroundColor: "rgb(220 248 198 / 50%)",
           }),
           ...(ticket?.contact?.isExclusive && {
-            backgroundColor: "rgba(147, 51, 234, 0.15)",
+            backgroundColor: "rgb(255 0 0 / 22%)",
           }),
         }}
       >
