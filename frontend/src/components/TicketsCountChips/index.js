@@ -7,7 +7,7 @@ import { ReloadDataBecauseSocketContext } from "../../context/ReloadDataBecauseS
 import useTickets from "../../hooks/useTickets";
 
 const reducer = (state, action) => {
-  console.log("REDUCER: ", action.type, action.payload);
+  // console.log("REDUCER: ", action.type, action.payload);
 
   if (action.type === "LOAD_TICKETS") {
     const newTickets = action.payload;
@@ -99,14 +99,14 @@ const reducer = (state, action) => {
     const { ticketId, setUpdatedCount } = action.payload;
     const ticketIndex = state.findIndex((t) => t.id === ticketId);
 
-    console.log("DELETE TICKET LIST", state);
+    // console.log("DELETE TICKET LIST", state);
 
     if (ticketIndex !== -1) {
-      console.log("SE ENCONTRO TICKET AHORA A DELETE_TICKET", ticketId);
+      // console.log("SE ENCONTRO TICKET AHORA A DELETE_TICKET", ticketId);
       state.splice(ticketIndex, 1);
       setUpdatedCount((oldCount) => oldCount - 1);
     } else {
-      console.log("NO SE ENCONTRO TICKET AHORA A DELETE_TICKET", ticketId);
+      // console.log("NO SE ENCONTRO TICKET AHORA A DELETE_TICKET", ticketId);
     }
 
     return [...state];
@@ -144,7 +144,7 @@ const TicketsCountChips = (props) => {
   const [updatedCount, setUpdatedCount] = useState(0);
 
   useEffect(() => {
-    console.log("------------------------ SE VA A DISPARAR RESET ------------------------");
+    // console.log("------------------------ SE VA A DISPARAR RESET ------------------------");
     dispatch({ type: "RESET" });
     setPageNumber(1);
   }, [
@@ -187,7 +187,7 @@ const TicketsCountChips = (props) => {
         payload: tickets,
       });
 
-      console.log("Tickets loaded:", tickets);
+      // console.log("Tickets loaded:", tickets);
       
     })();
   }, [tickets]);
@@ -197,7 +197,7 @@ const TicketsCountChips = (props) => {
   }, [count]);
 
   useEffect(() => {
-    console.log("RECONNECT", reconnect);
+    // console.log("RECONNECT", reconnect);
     if (reconnect) {
       dispatch({ type: "RESET" });
       setPageNumber(1);
@@ -267,10 +267,6 @@ const TicketsCountChips = (props) => {
         clientelicenciaEtapaIds?.length === 0 ||
         clientelicenciaEtapaIds?.some((id) => ticket.contact.traza_clientelicencia_currentetapaid === id);
 
-      console.log("shouldUpdateTicket clientelicenciaEtapaIdCondition clientelicenciaEtapaIds", clientelicenciaEtapaIds);
-      console.log("shouldUpdateTicket clientelicenciaEtapaIdCondition ticket.contact.traza_clientelicencia_currentetapaid", ticket.contact.traza_clientelicencia_currentetapaid);
-      console.log("shouldUpdateTicket clientelicenciaEtapaIdCondition", clientelicenciaEtapaIdCondition);
-
       // console.log({
       //   noSearchParamCondition,
       //   TypeCondition,
@@ -326,7 +322,7 @@ const TicketsCountChips = (props) => {
           (!showOnlyWaitingTickets ||
             (showOnlyWaitingTickets && data.ticket?.beenWaitingSinceTimestamp))
         ) {
-          console.log("UPDATE_TICKET");
+          // console.log("UPDATE_TICKET");
           dispatch({
             type: "UPDATE_TICKET", // si encuentra el ticket en el estado lo actualiza sino lo agrega
             payload: {
@@ -335,7 +331,7 @@ const TicketsCountChips = (props) => {
             },
           });
         } else {
-          console.log("DELETE_TICKET");
+          // console.log("DELETE_TICKET");
           dispatch({
             type: "DELETE_TICKET", // si encuentra el ticket en el estado lo elimina
             payload: { ticketId: data.ticket?.id, user, setUpdatedCount },

@@ -245,12 +245,12 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
 
   useEffect(() => {
     if (medias.length > 0) {
-      console.log("se agrega el addEventListener para el enter");
+      // console.log("se agrega el addEventListener para el enter");
       document.addEventListener("keydown", handleEnterOnMedia);
     }
 
     return () => {
-      console.log("se remueve el addEventListener para el enter");
+      // console.log("se remueve el addEventListener para el enter");
       document.removeEventListener("keydown", handleEnterOnMedia);
     };
   }, [medias]);

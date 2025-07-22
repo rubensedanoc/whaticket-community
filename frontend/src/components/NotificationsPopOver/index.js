@@ -166,11 +166,11 @@ const NotificationsPopOver = () => {
       renotify: true,
     };
 
-    console.log(
-      "handleNotifications: ",
-      `${i18n.t("tickets.notification.message")} ${contact.name}`,
-      options
-    );
+    // console.log(
+    //   "handleNotifications: ",
+    //   `${i18n.t("tickets.notification.message")} ${contact.name}`,
+    //   options
+    // );
 
     const notification = new Notification(
       `${i18n.t("tickets.notification.message")} ${contact.name}`,
