@@ -370,6 +370,7 @@ const TicketsList = (props) => {
         advancedList !== "no-response" ||
         (advancedList === "no-response" && (
           ticket?.beenWaitingSinceTimestamp < getNMinutesAgo(15) && 
+          ( ticket.status === "pending" || (ticket?.beenWaitingSinceTimestamp && ticket.status === "open")) && 
           (ticket.status === "pending" || ticket.status === "open")
         ))
 
@@ -381,20 +382,22 @@ const TicketsList = (props) => {
           (ticket.status === "open")
         ))
 
-      console.log("--- shouldUpdateTicket ---", {
-        noSearchParamCondition,
-        TypeCondition,
-        userCondition,
-        queueCondition,
-        whatsappCondition,
-        ignoreConditions,
-        categoryCondition,
-        marketingCampaignCondition,
-        clientelicenciaEtapaIdCondition,
-        advancedList,
-        noResponseColCondition,
-        inProgressColCondition,
-      });
+      // if (status) {
+      //   console.log("--- shouldUpdateTicket  ---" + status, {
+      //     noSearchParamCondition,
+      //     TypeCondition,
+      //     userCondition,
+      //     queueCondition,
+      //     whatsappCondition,
+      //     ignoreConditions,
+      //     categoryCondition,
+      //     marketingCampaignCondition,
+      //     clientelicenciaEtapaIdCondition,
+      //     advancedList,
+      //     noResponseColCondition,
+      //     inProgressColCondition,
+      //   }, ticket);
+      // }
 
       const isConditionMet =
         noSearchParamCondition &&
@@ -446,17 +449,10 @@ const TicketsList = (props) => {
     });
 
     socket.on("ticket", async (data) => {
-      // console.log("ticket socket::::::::::::::::::::", data, {
-      //   status,
-      //   searchParam,
-      //   showAll,
-      //   selectedWhatsappIds,
-      //   selectedQueueIds,
-      //   selectedTypeIds,
-      //   style,
-      //   ticketsType,
-      //   category,
-      // });
+
+      // if (status) {
+      //   console.log("ticket socket::::::::::::::::::::" + status, data);
+      // }
 
       if (data.action === "updateUnread") {
         dispatch({
@@ -495,6 +491,11 @@ const TicketsList = (props) => {
     });
 
     socket.on("appMessage", (data) => {
+
+      // if (status) {
+      //   console.log("appMessage socket::::::::::::::::::::" + status);
+      // }
+
       // console.log("ticket socket::::::::::::::::::::", data, {
       //   status,
       //   searchParam,
@@ -527,6 +528,11 @@ const TicketsList = (props) => {
     });
 
     socket.on("contact", async (data) => {
+
+      // if (status) {
+      //   console.log("appMessage socket::::::::::::::::::::" + status);
+      // }
+
       // console.log("contact socket::::::::::::::::::::", data);
       if (data.action === "update") {
         dispatch({

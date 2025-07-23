@@ -89,7 +89,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     // flexWrap: "wrap",
     justifyContent: "end",
-    gap: 16,
+    gap: 10,
     alignItems: "center",
     padding: "8px 16px",
   },
@@ -97,7 +97,7 @@ const useStyles = makeStyles((theme) => ({
   serachInputWrapper: {
     // minWidth: 200,
     // minWidth: "100%",
-    width: "20rem",
+    width: "15rem",
     flex: 1,
     background: "#fff",
     display: "flex",

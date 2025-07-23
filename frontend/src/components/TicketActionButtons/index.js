@@ -19,6 +19,7 @@ import CloseTicketModal from "../CloseTicketModal";
 
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import TicketOptionsMenu from "../TicketOptionsMenu";
+import { getREACT_APP_PURPOSE } from "../../config";
 
 const useStyles = makeStyles((theme) => ({
   actionButtons: {
@@ -270,7 +271,7 @@ const TicketActionButtons = ({ ticket }) => {
                 </>
               )}
 
-              {true && (
+              {getREACT_APP_PURPOSE() === "comercial" && (
                 <Button
                   size="small"
                   variant="contained"

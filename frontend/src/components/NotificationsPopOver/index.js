@@ -15,6 +15,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import ChatIcon from "@material-ui/icons/Chat";
 
 import alertSound from "../../assets/sound2.mp3";
+import alertSoundlatigo from "../../assets/sound-latigo.mp3";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import useTickets from "../../hooks/useTickets";
 import { i18n } from "../../translate/i18n";
@@ -55,7 +56,9 @@ const NotificationsPopOver = () => {
 
   const { tickets } = useTickets({ withUnreadMessages: "true" });
   const [play] = useSound(alertSound);
+  const [playlatigo] = useSound(alertSoundlatigo);
   const soundAlertRef = useRef();
+  const soundLatigoAlertRef = useRef();
 
   const historyRef = useRef(history);
 
@@ -68,6 +71,10 @@ const NotificationsPopOver = () => {
       Notification.requestPermission();
     }
   }, [play]);
+  
+  useEffect(() => {
+    soundLatigoAlertRef.current = playlatigo;
+  }, [playlatigo]);
 
   useEffect(() => {
     setNotifications(tickets);
@@ -159,11 +166,11 @@ const NotificationsPopOver = () => {
       renotify: true,
     };
 
-    console.log(
-      "handleNotifications: ",
-      `${i18n.t("tickets.notification.message")} ${contact.name}`,
-      options
-    );
+    // console.log(
+    //   "handleNotifications: ",
+    //   `${i18n.t("tickets.notification.message")} ${contact.name}`,
+    //   options
+    // );
 
     const notification = new Notification(
       `${i18n.t("tickets.notification.message")} ${contact.name}`,
@@ -187,7 +194,11 @@ const NotificationsPopOver = () => {
       return [notification, ...prevState];
     });
 
-    soundAlertRef.current();
+    if (ticket.queueId === 10) {
+      soundLatigoAlertRef.current();
+    } else {
+      soundAlertRef.current();
+    }
   };
 
   const handleClick = () => {

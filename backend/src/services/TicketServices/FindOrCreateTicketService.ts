@@ -10,6 +10,7 @@ import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
 import User from "../../models/User";
+import { emitEvent } from "../../libs/emitEvent";
 
 /**
  * search for a existing "open" or "pending" ticket from the contact or groupContact and whatsappId
@@ -389,6 +390,8 @@ const findTicket = async ({
     }
 
     if (ticket) {
+      const oldStatus = ticket.status;
+
       await ticket.update({
         status:
           (!ticket.messagingCampaignId &&
@@ -428,6 +431,20 @@ const findTicket = async ({
 
       if (categoriesIds) {
         await ticket.$set("categories", categoriesIds);
+      }
+
+      // si el ticket pasa de closed a open, se emitira un evento de delete para el status closed
+      if (ticket.status === "open" && oldStatus === "closed") {
+        emitEvent({
+          to: [oldStatus],
+          event: {
+            name: "ticket",
+            data: {
+              action: "delete",
+              ticketId: ticket.id
+            }
+          }
+        });
       }
     }
   }
