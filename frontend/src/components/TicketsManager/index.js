@@ -151,7 +151,7 @@ const TicketsManager = () => {
   const classes = useStyles();
 
   const [searchParam, setSearchParam] = useState("");
-  const [tab, setTab] = useState("general");
+  const [tab, setTab] = useState("open");
   const [tabOpen, setTabOpen] = useState("open");
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
