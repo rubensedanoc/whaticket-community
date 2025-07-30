@@ -772,3 +772,219 @@ export const getConversationMessages = async (
     data: dataToReturn
   });
 };
+
+export const getConversationMessagesFromTicket = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+
+  const mensajes = [];
+  const data = {};
+
+
+  let {
+    ticketId
+  } = req.body;
+
+  if (!ticketId) {
+    throw new AppError("Falta el ticketId");
+  }
+
+  if (!mensajes.length) {
+    const ticketsInTimeRange = await Ticket.findAll({
+      where: {
+        id: ticketId,
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ["id", "name"],
+          required: true
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp",
+          attributes: ["id", "name"],
+          required: true
+        },
+      ],
+      // logging: (sql) => {
+      //   mensajes.push(`SQL: ${sql}`);
+      // }
+    });
+
+    mensajes.push(
+      `Se encontraron ${ticketsInTimeRange.length} tickets con el ID ${ticketId}`);
+
+
+    const uniqueContactWhatsappPairs = ticketsInTimeRange.reduce((acc, ticket) => {
+      if (ticket.contactId && ticket.whatsappId) {
+        const key = `${ticket.contactId}-${ticket.whatsappId}`;
+        if (!acc.has(key)) {
+          acc.add(key);
+          acc.data.push({ contactId: ticket.contactId, whatsappId: ticket.whatsappId });
+        }
+      }
+      return acc;
+    }, Object.assign(new Set<string>(), { data: [] }) as Set<string> & { data: { contactId: number, whatsappId: number }[] });
+
+    const ticketsToGetMessages = await Ticket.findAll({
+      where: {
+        [Op.or]: uniqueContactWhatsappPairs.data.map(pair => ({
+          contactId: pair.contactId,
+          whatsappId: pair.whatsappId
+        }))
+      },
+      include: [
+          { model: Contact, as: "contact", attributes: ["id", "name", "number", "createdAt"] },
+          { model: Whatsapp, as: "whatsapp", attributes: ["id", "name", "number"] },
+      ],
+    });
+
+    const messages = await Message.findAll({
+      attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate", "ticketId"],
+      where: {
+        ticketId: {
+          [Op.in]: ticketsToGetMessages.map(ticket => ticket.id)
+        },
+        isPrivate: {
+          [Op.or]: [null, false]
+        },
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Ticket,
+          as: "ticket",
+          attributes: ["id"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["id", "name"],
+            },
+            {
+              model: Contact,
+              as: "contact",
+              attributes: ["id", "name", "number"],
+              include: [
+                {
+                  model: Country,
+                  as: "country",
+                  attributes: ["id", "name"],
+                  required: false
+                }
+              ]
+            },
+            {
+              model: Whatsapp,
+              as: "whatsapp",
+              attributes: ["id", "name", "number"],
+              required: true
+            },
+          ],
+          required: true
+        }
+      ],
+      order: [["timestamp", "ASC"]]
+    });
+
+    mensajes.push(
+      `Se encontraron ${messages.length} mensajes de los tickets recuperados`
+    );
+
+    messages.forEach(messageInstance => {
+      const message: any = messageInstance.get({ plain: true }); // 👈 Conversión a objeto plano
+
+      if (message.ticket?.id === 27204) {
+        console.log("Mensaje de ticket 27204", message);
+      }
+
+      const ticketContact = message.ticket.contact;
+      const ticketWhatsapp = message.ticket.whatsapp;
+
+      const conversationKey = `${ticketContact?.id}-${ticketWhatsapp?.id}`;
+
+      if (!data[conversationKey]) {
+        data[conversationKey] = {
+          contact: {
+            id: ticketContact?.id,
+            name: ticketContact.name,
+            number: ticketContact.number,
+            createdAt: ticketContact.createdAt,
+            country: ticketContact.country?.name || "Sin país"
+          },
+          whatsapp: {
+            id: ticketWhatsapp?.id,
+            name: ticketWhatsapp?.name,
+            number: ticketWhatsapp?.number
+          },
+          messages: []
+        };
+      }
+
+      message.ticket_user_name = message.ticket?.user?.name || "Sin asignar";
+
+      delete message.contact;
+      delete message.ticket;
+
+      if (message.body.length > 1000) {
+        message.body = message.body.substring(0, 1000) + "...";
+      }
+
+      message.date = dayjs.unix(message.timestamp).tz("America/Lima").format("YYYY-MM-DD HH:mm:ss");
+
+      data[conversationKey].messages.push(message);
+    })
+
+  }
+
+  let dataToReturn = null;
+
+  dataToReturn = Object.entries(data).map(([conversationId, value]: any) => ({
+    conversationId,
+    ...value
+  }));
+
+  // SI NOS PIDEN OPTIMIZAR PARA IA, COMPRIMIMOS LOS MENSAJES
+  dataToReturn = dataToReturn.map((item: any) => {
+
+    const ticketsMap = new Map();
+
+    item.messages.forEach(msg => {
+      if (!ticketsMap.has(msg.ticketId)) {
+        ticketsMap.set(msg.ticketId, {
+          user: msg.ticket_user_name,
+          messages: []
+        });
+      }
+      const author = msg.fromMe ? "Tú" : "Cliente";
+      const content = msg.mediaType === "image" ? `${msg.body} [imagen]` : msg.body;
+      const line = `${msg.date} - ${author}: ${content}`;
+      ticketsMap.get(msg.ticketId).messages.push(line);
+    });
+
+    let compressedMessages = ""
+
+    for (const [ticketId, { user, messages }] of ticketsMap.entries()) {
+      compressedMessages += `[Ticket: ${user}]\n` + messages.join('\n') + '\n\n';
+    }
+
+    compressedMessages = compressedMessages.trim();
+
+    return {
+      ...item,
+      messages: compressedMessages,
+    };
+  });
+
+  return res.status(200).json({
+    mensajes,
+    data: dataToReturn
+  });
+};

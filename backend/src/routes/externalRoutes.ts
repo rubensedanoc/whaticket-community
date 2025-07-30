@@ -35,4 +35,9 @@ externalRoutes.post(
   ExternalApiController.getConversationMessages
 );
 
+externalRoutes.post(
+  "/getConversationMessagesFromTicket",
+  ExternalApiController.getConversationMessagesFromTicket
+);
+
 export default externalRoutes;
