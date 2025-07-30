@@ -37,7 +37,7 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
     response.messages.push(`--- Ticket ${ticketId} ---`);
 
     const ticket = await Ticket.findByPk(ticketId, {
-      attributes: ["id", "status", "createdAt", "updatedAt"],
+      attributes: ["id", "status", "createdAt", "updatedAt", "whatsappId"],
       include: [
         {
           model: Message,
@@ -61,7 +61,7 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
               model: ContactClientelicencia,
               as: "contactClientelicencias",
               order: [["createdAt", "DESC"]],
-              required: true,
+              required: false,
             }
           ],
           required: true,
@@ -74,13 +74,16 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
 
     })
 
-    const licenseToEvaluate = ticket.contact.contactClientelicencias[0];
+    const licenseToEvaluate = ticket?.contact?.contactClientelicencias?.length > 0 ? ticket?.contact?.contactClientelicencias[0] : null;
+    let trazaDataToEvaluate = null;
 
-    const trazaDataToEvaluateRequest = await fetch(
-      "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + licenseToEvaluate.traza_clientelicencia_id,
-    );
+    if (licenseToEvaluate) {
+      const trazaDataToEvaluateRequest = await fetch(
+        "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + licenseToEvaluate.traza_clientelicencia_id,
+      );
 
-    const trazaDataToEvaluate = (await trazaDataToEvaluateRequest.json()).datos;
+      trazaDataToEvaluate = (await trazaDataToEvaluateRequest.json()).datos;
+    }
 
     const firstPrompt = `
       Eres un asistente experto en análisis de conversaciones del área de implementaciónes de la empresa Restaurant.pe. A continuación se te proporciona una conversación grupal en formato JSON entre el equipo del cliente y el equipo de implementación.
@@ -199,9 +202,11 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
 
       ${JSON.stringify(messagesToEvaluate)}
 
-      Aquí está la información de trazabilidad en formato JSON:
+      ${trazaDataToEvaluate ? `
+        Aquí está la información de trazabilidad en formato JSON:
 
-      ${JSON.stringify(trazaDataToEvaluate)}
+        ${JSON.stringify(trazaDataToEvaluate)}
+      ` : "No existe data de trazabilidad para esta conversación."}
 
       Ultimas consideraciones a tener en cuenta:
 
@@ -356,9 +361,11 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
 
       ${JSON.stringify(firstIAResponseData)}
 
-      Aquí está la información de trazabilidad en formato JSON:
+      ${trazaDataToEvaluate ? `
+        Aquí está la información de trazabilidad en formato JSON:
 
-      ${JSON.stringify(trazaDataToEvaluate)}
+        ${JSON.stringify(trazaDataToEvaluate)}
+      ` : "No existe data de trazabilidad para esta conversación."}
 
       No escribas nada fuera del JSON de salida.
 
@@ -427,7 +434,7 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
 
     response.data = newConversationIAEvalutaion;
 
-    if (secondIAResponseData.clasificacion) {
+    if (secondIAResponseData.clasificacion && ticket.whatsappId === 11) {
 
       response.messages.push(`--- before ticket update ${JSON.stringify({ticketData: {
           categoriesIds: [secondIAResponseData.clasificacion.id],
