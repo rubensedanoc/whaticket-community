@@ -15,6 +15,9 @@ import ConversationIAQuestions from "../models/ConversationIAQuestions";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import Message from "../models/Message";
 import Contact from "../models/Contact";
+import { Op } from "sequelize";
+import Ticket from "../models/Ticket";
+import Whatsapp from "../models/Whatsapp";
 
 type IndexQuery = {
   ticketId: string;
@@ -49,15 +52,26 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   const ticket = await ShowTicketService(ticketId);
 
-  if (!ticket.contact?.contactClientelicencias || ticket.contact?.contactClientelicencias?.length === 0) {
-    throw new AppError("No hay licencias de cliente para este ticket.", 400);
-  }
+  // if (!ticket.contact?.contactClientelicencias || ticket.contact?.contactClientelicencias?.length === 0) {
+  //   throw new AppError("No hay licencias de cliente para este ticket.", 400);
+  // }
 
   if (!ticket.conversationIAEvalutaions || ticket.conversationIAEvalutaions.length === 0) {
     throw new AppError("No hay evaluaciones de IA para este ticket.", 400);
   }
 
   const lastIAResponseData = ticket.conversationIAEvalutaions[0].resultOne;
+
+  const ticketsToGetMessages = await Ticket.findAll({
+  where: {
+    whatsappId: ticket.whatsappId,
+    contactId: ticket.contactId
+  },
+  include: [
+      { model: Contact, as: "contact", attributes: ["id", "name", "number", "createdAt"] },
+      { model: Whatsapp, as: "whatsapp", attributes: ["id", "name", "number"] },
+  ],
+});
 
   const ticketMessages = await Message.findAll({
     attributes: ["id", "body", "timestamp", "fromMe", "mediaType", "isPrivate"],
@@ -68,7 +82,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       attributes: ["id", "name", "isCompanyMember"],
     }],
     where: {
-      ticketId,
+      ticketId: {
+        [Op.in]: ticketsToGetMessages.map(ticket => ticket.id)
+      }
     },
   });
 
@@ -84,13 +100,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     }
   })
 
-  const licenseToEvaluate = ticket.contact.contactClientelicencias[0];
 
-  const trazaDataToEvaluateRequest = await fetch(
-    "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + licenseToEvaluate.traza_clientelicencia_id,
-  );
+  const licenseToEvaluate = ticket?.contact?.contactClientelicencias?.length > 0 ? ticket?.contact?.contactClientelicencias[0] : null;
+  let trazaDataToEvaluate = null;
 
-  const trazaDataToEvaluate = (await trazaDataToEvaluateRequest.json()).datos;
+  if (licenseToEvaluate) {
+    const trazaDataToEvaluateRequest = await fetch(
+      "https://web.restaurant.pe/trazabilidad/public/rest/cliente/getClienteLicenciaById/" + licenseToEvaluate.traza_clientelicencia_id,
+    );
+
+    trazaDataToEvaluate = (await trazaDataToEvaluateRequest.json()).datos;
+  }
 
   const response = {
     text: "Sin respuesta",
@@ -128,9 +148,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
     ${JSON.stringify(lastIAResponseData)}
 
-    Aquí está la información de trazabilidad en formato JSON:
+    ${trazaDataToEvaluate ? `
+      Aquí está la información de trazabilidad en formato JSON:
 
-    ${JSON.stringify(trazaDataToEvaluate)}
+      ${JSON.stringify(trazaDataToEvaluate)}
+    ` : "No existe data de trazabilidad para esta conversación."}
 
     Aquí está la pregunta del implementador:
 

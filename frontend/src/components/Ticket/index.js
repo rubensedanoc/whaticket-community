@@ -167,7 +167,7 @@ const Ticket = () => {
 
           setLoading(false);
 
-          if (data.whatsappId === 11 && data.conversationIAEvalutaions?.length > 0) {
+          if (data.conversationIAEvalutaions?.length > 0) {
             setIaDrawerOpen(true);
           }
 

@@ -65,6 +65,17 @@ const TicketOptionsMenu = ({
     );
   };
 
+  const handleIARevision = async () => {
+    try {
+      api.post(`conversationIAEvalutaion/analize`, {
+        ticketId: ticket.id,
+      });
+      toast.success("Revisión con IA iniciada, Espera unos minutos para ver los resultados.");
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   return (
     <>
       <Menu
@@ -178,6 +189,7 @@ const TicketOptionsMenu = ({
           </div>
         )}
         <MenuItem onClick={handlePublicLink}>Link publico</MenuItem>
+        <MenuItem onClick={handleIARevision}>Revisar Con IA</MenuItem>
       </Menu>
       <ConfirmationModal
         title={`${i18n.t("ticketOptionsMenu.confirmationModal.title")}${
