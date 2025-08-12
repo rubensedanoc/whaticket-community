@@ -8,6 +8,8 @@ import Ticket from "../../models/Ticket";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import Whatsapp from "../../models/Whatsapp";
+import { Op } from "sequelize";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -37,7 +39,7 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
     response.messages.push(`--- Ticket ${ticketId} ---`);
 
     const ticket = await Ticket.findByPk(ticketId, {
-      attributes: ["id", "status", "createdAt", "updatedAt", "whatsappId"],
+      attributes: ["id", "status", "createdAt", "updatedAt", "whatsappId", "contactId"],
       include: [
         {
           model: Message,
@@ -69,7 +71,33 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
       ]
     })
 
-    const messagesToEvaluate = ticket.messages.map(m => {
+    const ticketsToGetMessages = await Ticket.findAll({
+      where: {
+        whatsappId: ticket.whatsappId,
+        contactId: ticket.contactId
+      },
+      include: [
+          { model: Contact, as: "contact", attributes: ["id", "name", "number", "createdAt"] },
+          { model: Whatsapp, as: "whatsapp", attributes: ["id", "name", "number"] },
+      ],
+    });
+
+    const ticketMessages = await Message.findAll({
+      attributes: ["id", "body", "timestamp", "fromMe", "mediaType", "isPrivate"],
+      order: [["timestamp", "ASC"]],
+      include: [{
+        model: Contact,
+        as: "contact",
+        attributes: ["id", "name", "isCompanyMember"],
+      }],
+      where: {
+        ticketId: {
+          [Op.in]: ticketsToGetMessages.map(ticket => ticket.id)
+        }
+      },
+    });
+
+    const messagesToEvaluate = ticketMessages.map(m => {
       return `(${m.id}) ${m.fromMe ? "Nosotros: " : m.contact.name + ": "}${m.body} (${dayjs.unix(m.timestamp).tz("America/Lima").format("YYYY-MM-DD HH:mm:ss")}) - ${m.mediaType}${m.isPrivate ? " (Privado)" : ""}`;
 
     })

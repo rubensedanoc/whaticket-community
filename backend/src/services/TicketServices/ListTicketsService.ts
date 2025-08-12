@@ -27,6 +27,7 @@ interface Request {
   withUnreadMessages?: string;
   whatsappIds: Array<number>;
   queueIds: Array<number>;
+  ticketUsersIds: Array<number>;
   marketingCampaignIds: Array<number>;
   typeIds: Array<string>;
   showOnlyMyGroups: boolean;
@@ -49,6 +50,7 @@ const buildWhereCondition = ({
   userId,
   typeIds,
   queueIds,
+  ticketUsersIds,
   marketingCampaignIds,
   whatsappIds,
   categoryId,
@@ -172,6 +174,38 @@ const buildWhereCondition = ({
         }
       };
     }
+    if (ticketUsersIds?.length) {
+      baseCondition = {
+        ...baseCondition,
+        [Op.and]: [
+          ...(baseCondition[Op.and] || []),
+          {
+            [Op.or]: [
+              {
+                userId: {
+                  [Op.in]: ticketUsersIds
+                }
+              },
+              {
+                id: {
+                  [Op.in]: Sequelize.literal(
+                    `(SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` IN (${ticketUsersIds.join(",")}))`
+                  )
+                }
+              },
+              Sequelize.literal(
+                `EXISTS (
+                  SELECT 1
+                  FROM \`TicketParticipantUsers\`
+                  WHERE \`TicketParticipantUsers\`.\`ticketId\`  = \`Ticket\`.\`id\`
+                  AND \`TicketParticipantUsers\`.\`userId\` IN (${ticketUsersIds.join(",")})
+                )`
+              )
+            ]
+          }
+        ]
+      };
+    }
     if (marketingCampaignIds?.length) {
       baseCondition = {
         ...baseCondition,
@@ -241,6 +275,11 @@ const buildWhereCondition = ({
       ...(whatsappIds?.length && {
         whatsappId: {
           [Op.or]: [whatsappIds]
+        }
+      }),
+      ...(ticketUsersIds?.length && {
+        userId: {
+          [Op.or]: [ticketUsersIds]
         }
       }),
       unreadMessages: { [Op.gt]: 0 }

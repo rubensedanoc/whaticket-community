@@ -126,6 +126,7 @@ const TicketsCountChips = (props) => {
     selectedQueueIds,
     selectedMarketingCampaignIds,
     selectedTypeIds,
+    selectedTicketUsersIds,
     showOnlyMyGroups,
     ticketsType,
     category,
@@ -155,6 +156,7 @@ const TicketsCountChips = (props) => {
     showOnlyMyGroups,
     selectedWhatsappIds,
     selectedQueueIds,
+    selectedTicketUsersIds,
     selectedMarketingCampaignIds,
     selectedTypeIds,
     showOnlyWaitingTickets,
@@ -168,6 +170,7 @@ const TicketsCountChips = (props) => {
     showAll,
     whatsappIds: JSON.stringify(selectedWhatsappIds),
     queueIds: JSON.stringify(selectedQueueIds),
+    ticketUsersIds: JSON.stringify(selectedTicketUsersIds),
     marketingCampaignIds: JSON.stringify(selectedMarketingCampaignIds),
     typeIds: JSON.stringify(selectedTypeIds),
     clientelicenciaEtapaIds: JSON.stringify(clientelicenciaEtapaIds),
@@ -231,11 +234,13 @@ const TicketsCountChips = (props) => {
 
       const queueCondition =
         (!ticket.queueId &&
-          (selectedQueueIds.includes(null) ||
+          (selectedQueueIds?.includes(null) ||
             selectedQueueIds?.length === 0)) ||
-        selectedQueueIds.indexOf(ticket.queueId) !== -1 ||
+        selectedQueueIds?.indexOf(ticket.queueId) !== -1 ||
         (selectedQueueIds?.length === 0 &&
           user?.queues?.find((q) => q?.id === ticket.queueId));
+
+      const ticketUserCondition = !selectedTicketUsersIds || selectedTicketUsersIds?.length === 0 || selectedTicketUsersIds.includes(ticket.userId);
 
       const marketingCampaignCondition =
         (!ticket.marketingCampaignId &&
@@ -284,7 +289,7 @@ const TicketsCountChips = (props) => {
         (ignoreConditions ||
           (queueCondition &&
             whatsappCondition &&
-            marketingCampaignCondition)) &&
+            marketingCampaignCondition && ticketUserCondition)) &&
         categoryCondition && clientelicenciaEtapaIdCondition;
 
       return isConditionMet;
@@ -388,6 +393,7 @@ const TicketsCountChips = (props) => {
     selectedQueueIds,
     selectedTypeIds,
     selectedWhatsappIds,
+    selectedTicketUsersIds,
     showOnlyMyGroups,
     showOnlyWaitingTickets,
     clientelicenciaEtapaIds

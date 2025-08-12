@@ -21,6 +21,7 @@ const useTickets = ({
   filterByUserQueue = false,
   clientelicenciaEtapaIds,
   advancedList = false,
+  ticketUsersIds
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -45,6 +46,7 @@ const useTickets = ({
                 showAll,
                 whatsappIds,
                 queueIds,
+                ticketUsersIds,
                 marketingCampaignIds,
                 typeIds,
                 withUnreadMessages,
@@ -68,6 +70,7 @@ const useTickets = ({
                 showAll,
                 whatsappIds,
                 queueIds,
+                ticketUsersIds,
                 marketingCampaignIds,
                 typeIds,
                 withUnreadMessages,
@@ -134,6 +137,7 @@ const useTickets = ({
     showAll,
     whatsappIds,
     queueIds,
+    ticketUsersIds,
     marketingCampaignIds,
     typeIds,
     withUnreadMessages,

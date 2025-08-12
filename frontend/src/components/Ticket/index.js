@@ -22,6 +22,8 @@ import TicketActionButtons from "../TicketActionButtons";
 import TicketCategories from "../TicketCategories";
 import TicketHeader from "../TicketHeader";
 import TicketInfo from "../TicketInfo";
+import ButtonWithSpinner from "../ButtonWithSpinner";
+import RedditIcon from '@material-ui/icons/Reddit';
 
 import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -32,6 +34,7 @@ import SaveIcon from '@material-ui/icons/Save';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import OutlinedInput from '@material-ui/core/OutlinedInput';
+import Tooltip from "@material-ui/core/Tooltip";
 import "./styles.css";
 import { getREACT_APP_PURPOSE } from "../../config";
 
@@ -49,6 +52,8 @@ const useStyles = makeStyles((theme) => ({
   ticketInfo: {
     maxWidth: "45%",
     overflow: "hidden",
+    display: "flex",
+    height: "100%",
     // flexBasis: "50%",
     // [theme.breakpoints.down("sm")]: {
     //   maxWidth: "80%",
@@ -114,6 +119,7 @@ const Ticket = () => {
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
   const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
   const [clientelicenciaId, setClientelicenciaId] = useState(null);
+  const [iaRevisionLoading, setIaRevisionLoading] = useState(false);
 
   async function searchForMicroServiceData(contactNumber) {
     try {
@@ -269,6 +275,21 @@ const Ticket = () => {
     }
   };
 
+  const handleIARevision = async () => {
+    try {
+      setIaRevisionLoading(true);
+      api.post(`conversationIAEvalutaion/analize`, {
+        ticketId: ticket.id,
+      });
+      setTimeout(() => {
+        setIaRevisionLoading(false);
+        toast.success("Revisión con IA iniciada, Espera unos minutos para ver los resultados.");
+      }, 1000);
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   return (
     <div className={classes.root} id="drawer-container">
       {iaDrawerOpen && (
@@ -290,6 +311,15 @@ const Ticket = () => {
       >
         <TicketHeader withArrow={false} loading={loading}>
           <div className={classes.ticketInfo}>
+            <ButtonWithSpinner
+              variant="contained" color="primary"
+              loading={iaRevisionLoading}
+              startIcon={
+                <RedditIcon />
+              }
+              size="small"
+              onClick={(e) => handleIARevision()}
+            ></ButtonWithSpinner>
             <TicketInfo
               contact={contact}
               ticket={ticket}

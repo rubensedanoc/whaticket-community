@@ -204,6 +204,7 @@ const TicketsList = (props) => {
     selectedQueueIds,
     selectedMarketingCampaignIds,
     selectedTypeIds,
+    selectedTicketUsersIds,
     style,
     showOnlyMyGroups,
     setShowOnlyMyGroups,
@@ -249,6 +250,7 @@ const TicketsList = (props) => {
     selectedQueueIds,
     selectedMarketingCampaignIds,
     selectedTypeIds,
+    selectedTicketUsersIds,
     showOnlyWaitingTickets,
     selectedClientelicenciaEtapaIds
   ]);
@@ -263,6 +265,7 @@ const TicketsList = (props) => {
     clientelicenciaEtapaIds: JSON.stringify(selectedClientelicenciaEtapaIds),
     marketingCampaignIds: JSON.stringify(selectedMarketingCampaignIds),
     typeIds: JSON.stringify(selectedTypeIds),
+    ticketUsersIds: JSON.stringify(selectedTicketUsersIds),
     showOnlyMyGroups,
     showOnlyWaitingTickets,
     ...(category && { categoryId: category.id }),
@@ -342,6 +345,8 @@ const TicketsList = (props) => {
         selectedWhatsappIds?.indexOf(ticket.whatsappId) > -1 ||
         selectedWhatsappIds?.length === 0;
 
+      const ticketUserCondition = !selectedTicketUsersIds || selectedTicketUsersIds?.length === 0 || selectedTicketUsersIds.includes(ticket.userId);
+
       const ignoreConditions =
         (!ticket.isGroup &&
           selectedTypeIds.length === 1 &&
@@ -406,7 +411,7 @@ const TicketsList = (props) => {
         (ignoreConditions ||
           (queueCondition &&
             whatsappCondition &&
-            marketingCampaignCondition)) &&
+            marketingCampaignCondition && ticketUserCondition)) &&
         categoryCondition && 
         clientelicenciaEtapaIdCondition &&
         (!advancedList || (
@@ -567,6 +572,7 @@ const TicketsList = (props) => {
     selectedQueueIds,
     selectedTypeIds,
     selectedWhatsappIds,
+    selectedTicketUsersIds,
     showOnlyMyGroups,
     showOnlyWaitingTickets,
     selectedClientelicenciaEtapaIds
