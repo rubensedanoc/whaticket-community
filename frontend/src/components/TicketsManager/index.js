@@ -614,18 +614,20 @@ const TicketsManager = () => {
           />
           {/* - QUEUE SELECT */}
           {/* USER SELECT */}
-          <UsersSelect
-            selectedIds={selectedTicketUsersIds}
-            onChange={(values) => {
-              localStorage.setItem(
-                "TicketUsersIds",
-                JSON.stringify(values)
-              );
-              setSelectedTicketUsersIds(values);
-            }}
-            chips={false}
-            badgeColor={"secondary"}
-          />
+          {user.profile === "admin" && (
+            <UsersSelect
+              selectedIds={selectedTicketUsersIds}
+              onChange={(values) => {
+                localStorage.setItem(
+                  "TicketUsersIds",
+                  JSON.stringify(values)
+                );
+                setSelectedTicketUsersIds(values);
+              }}
+              chips={false}
+              badgeColor={"secondary"}
+            />
+          )}
           {/* - USER SELECT */}
           {/* MARKETING CAMPAIGN SELECT */}
           {getREACT_APP_PURPOSE() === "comercial" && (
