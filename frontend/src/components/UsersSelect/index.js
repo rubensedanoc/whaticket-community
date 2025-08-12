@@ -20,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true }) => {
+const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeColor }) => {
   const classes = useStyles();
   const [users, setUsers] = useState([]);
 
@@ -48,7 +48,7 @@ const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true }) => {
     <Badge
       overlap="rectangular"
       badgeContent={selectedIds.length}
-      color="primary"
+      color={badgeColor || "primary"}
       max={99999}
       invisible={selectedIds.length === 0 || chips}
     >

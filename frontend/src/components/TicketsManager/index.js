@@ -193,6 +193,7 @@ const TicketsManager = () => {
   const [selectedUsersIds, setSelectedUsersIds] = useState([]);
   const [currentUserId, _] = useState([user.id]);
   const [users, setUsers] = useState([]);
+  const [selectedTicketUsersIds, setSelectedTicketUsersIds] = useState([]);
   
   const [notificationsCount, setNotificationsCount] = useState(null);
 
@@ -272,6 +273,11 @@ const TicketsManager = () => {
     localStorage.getItem("TicketsManager-doubleRow") &&
       setDoubleRow(
         JSON.parse(localStorage.getItem("TicketsManager-doubleRow"))
+      );
+
+    localStorage.getItem("TicketUsersIds") &&
+      setSelectedTicketUsersIds(
+        JSON.parse(localStorage.getItem("TicketUsersIds"))
       );
   }, []);
 
@@ -564,7 +570,7 @@ const TicketsManager = () => {
             </Button>
             {/* - ADD TICKECT BUTTON */}
 
-            {/* SHOW ALL TICKETS SWITCH */}
+            {/* SHOW ALL TICKETS SWITCH */}   
             {/* <Can
               role={user.profile}
               perform="tickets-manager:showall"
@@ -607,6 +613,20 @@ const TicketsManager = () => {
             onChange={(values) => setSelectedQueueIds(values)}
           />
           {/* - QUEUE SELECT */}
+          {/* USER SELECT */}
+          <UsersSelect
+            selectedIds={selectedTicketUsersIds}
+            onChange={(values) => {
+              localStorage.setItem(
+                "TicketUsersIds",
+                JSON.stringify(values)
+              );
+              setSelectedTicketUsersIds(values);
+            }}
+            chips={false}
+            badgeColor={"secondary"}
+          />
+          {/* - USER SELECT */}
           {/* MARKETING CAMPAIGN SELECT */}
           {getREACT_APP_PURPOSE() === "comercial" && (
             <MarketingCampaignSelect
@@ -680,11 +700,11 @@ const TicketsManager = () => {
               <ViewWeekIcon />
             </ToggleButton>
           </ToggleButtonGroup>
-          <Divider
+          {/* <Divider
             flexItem
             orientation="vertical"
             style={{ marginLeft: 20, marginRight: 20 }}
-          />
+          /> */}
           N° Filas:
           <ToggleButtonGroup
             value={doubleRow}
@@ -811,6 +831,7 @@ const TicketsManager = () => {
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Sin Etapa"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -823,6 +844,7 @@ const TicketsManager = () => {
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Onboarding"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -835,6 +857,7 @@ const TicketsManager = () => {
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Insp. tecnica"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -847,6 +870,7 @@ const TicketsManager = () => {
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Config. plataforma"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -859,6 +883,7 @@ const TicketsManager = () => {
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Config. equipos"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -870,7 +895,7 @@ const TicketsManager = () => {
                 searchParam={searchParam}
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Cap. op y mantenimiento"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -882,7 +907,7 @@ const TicketsManager = () => {
                 searchParam={searchParam}
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Monitoreo"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -894,7 +919,7 @@ const TicketsManager = () => {
                 searchParam={searchParam}
                 selectedTypeIds={typeIdsForGroups}
                 selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 chipLabel="Alta"
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1230,6 +1255,7 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              selectedTicketUsersIds={selectedTicketUsersIds}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               ticketsType={
                 principalTicketType === "groups" ? "individuals" : "groups"
@@ -1252,6 +1278,7 @@ const TicketsManager = () => {
               selectedTypeIds={typeIdsForAll}
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              // selectedTicketUsersIds={selectedTic  ketUsersIds}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
               columnsWidth={columnsWidth}
@@ -1302,6 +1329,7 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedTicketUsersIds={selectedTicketUsersIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1334,6 +1362,7 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedTicketUsersIds={selectedTicketUsersIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1368,6 +1397,7 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedTicketUsersIds={selectedTicketUsersIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1400,6 +1430,7 @@ const TicketsManager = () => {
                           }
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
+                          selectedTicketUsersIds={selectedTicketUsersIds}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1445,6 +1476,7 @@ const TicketsManager = () => {
           selectedTypeIds={typeIdsForAll}
           selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}
+          selectedTicketUsersIds={selectedTicketUsersIds}
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
         />
@@ -1521,6 +1553,7 @@ const TicketsManager = () => {
               searchParam={searchParam}
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              selectedTicketUsersIds={selectedTicketUsersIds}
               selectedUsersIds={user.profile === "admin" ? selectedUsersIds : currentUserId}
             />
           </div>
@@ -1598,6 +1631,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Sin Etapa"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1610,6 +1644,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Onboarding"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1622,6 +1657,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Insp. tecnica"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1634,6 +1670,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Config. plataforma"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1646,6 +1683,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Config. equipos"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1658,6 +1696,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Cap. op y mantenimiento"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1670,6 +1709,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Monitoreo"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -1682,6 +1722,7 @@ const TicketsManager = () => {
                   selectedTypeIds={typeIdsForGroups}
                   selectedWhatsappIds={selectedWhatsappIds}
                   selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   chipLabel="Alta"
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -2012,6 +2053,7 @@ const TicketsManager = () => {
                 }
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
                 ticketsType={"no-response"}
@@ -2032,6 +2074,7 @@ const TicketsManager = () => {
                 }
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
                 ticketsType={"in-progress"}
@@ -2057,6 +2100,7 @@ const TicketsManager = () => {
                 selectedTypeIds={typeIdsForAll}
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
+                selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}
