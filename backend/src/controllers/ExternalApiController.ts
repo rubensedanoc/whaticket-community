@@ -551,7 +551,8 @@ export const getConversationMessages = async (
     start_date,
     end_date,
     queue_ids,
-    optimized_for_ia
+    optimized_for_ia,
+    include_groups
   } = req.body;
 
   if(queue_ids && !Array.isArray(queue_ids)) {
@@ -565,7 +566,7 @@ export const getConversationMessages = async (
           [Op.gte]: dayjs(start_date).startOf("day").toDate(),
           [Op.lte]: dayjs(end_date).endOf("day").toDate()
         },
-        isGroup: false,
+        ...(!include_groups && { isGroup: false }),
         ...(queue_ids ? { queueId: { [Op.in]: queue_ids } } : {}),
       },
       include: [
@@ -653,12 +654,18 @@ export const getConversationMessages = async (
             {
               model: Contact,
               as: "contact",
-              attributes: ["id", "name", "number"],
+              attributes: ["id", "name", "number", "isGroup"],
               include: [
                 {
                   model: Country,
                   as: "country",
                   attributes: ["id", "name"],
+                  required: false
+                },
+                {
+                  model: ContactClientelicencia,
+                  as: "contactClientelicencias",
+                  attributes: ["id", "traza_clientelicencia_id"],
                   required: false
                 }
               ]
@@ -699,7 +706,9 @@ export const getConversationMessages = async (
             name: ticketContact.name,
             number: ticketContact.number,
             createdAt: ticketContact.createdAt,
-            country: ticketContact.country?.name || "Sin país"
+            country: ticketContact.country?.name || "Sin país",
+            isGroup: ticketContact.isGroup,
+            contactClientelicencias: ticketContact.contactClientelicencias.map(clientelicencia =>  clientelicencia.traza_clientelicencia_id),
           },
           whatsapp: {
             id: ticketWhatsapp?.id,
@@ -712,7 +721,7 @@ export const getConversationMessages = async (
 
       message.ticket_user_name = message.ticket?.user?.name || "Sin asignar";
 
-      delete message.contact;
+      // delete message.contact;
       delete message.ticket;
 
       if (message.body.length > 1000) {
@@ -746,22 +755,28 @@ export const getConversationMessages = async (
             messages: []
           });
         }
-        const author = msg.fromMe ? "Tú" : "Cliente";
+        const author = msg.fromMe ? "Tú" : "Cliente" + (item.contact?.isGroup ? ` (${msg.contact?.name})` : "");
         const content = msg.mediaType === "image" ? `${msg.body} [imagen]` : msg.body;
         const line = `${msg.date} - ${author}: ${content}`;
         ticketsMap.get(msg.ticketId).messages.push(line);
       });
 
       let compressedMessages = ""
+      let lastTicketId = null;
+      let lastUser = null;
 
       for (const [ticketId, { user, messages }] of ticketsMap.entries()) {
-        compressedMessages += `[Ticket: ${user}]\n` + messages.join('\n') + '\n\n';
+        compressedMessages += `[Ticket (${ticketId}): ${user}]\n` + messages.join('\n') + '\n\n';
+        lastTicketId = ticketId;
+        lastUser = user;
       }
 
       compressedMessages = compressedMessages.trim();
 
       return {
         ...item,
+        lastTicketId,
+        lastUser,
         messages: compressedMessages,
       };
     });

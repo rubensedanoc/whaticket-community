@@ -1309,25 +1309,28 @@ export const reportToExcel = async (
 ): Promise<Response> => {
   const {
     fromDate: fromDateAsString,
-    toDate: toDateAsString
-    // selectedWhatsappIds: selectedUserIdsAsString,
-    // selectedCountryIds: selectedCountryIdsAsString
+    toDate: toDateAsString,
+    selectedWhatsappIds: selectedWhatsappIdsAsString = 'null',
+    selectedQueueIds: selectedQueueIdsAsString = 'null'
   } = req.query as IndexQuery;
 
-  // const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
-  // const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
+  const selectedWhatsappIds = JSON.parse(selectedWhatsappIdsAsString) as string[];
+  const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
-  let sqlWhereAdd = `t.status != 'pending' AND ( t.chatbotMessageIdentifier IS NULL || (t.chatbotMessageIdentifier IS NOT NULL AND ( t.chatbotMessageLastStep IS NOT NULL OR t.userId ) ) ) and (ct.isCompanyMember = 0 or ct.isCompanyMember is null) and t.createdAt between '${formatDateToMySQL(
-    fromDateAsString
-  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+  let sqlWhereAdd = `
+      t.status != 'pending' AND
+      ( t.chatbotMessageIdentifier IS NULL || (t.chatbotMessageIdentifier IS NOT NULL AND ( t.chatbotMessageLastStep IS NOT NULL OR t.userId ) ) ) AND
+      (ct.isCompanyMember = 0 or ct.isCompanyMember is null) AND
+      t.createdAt between '${formatDateToMySQL(fromDateAsString)}' AND '${formatDateToMySQL(toDateAsString)}'
+    `;
   // const sqlWhereAdd = " t.id = 3318 ";
 
-  // if (selectedWhatsappIds.length > 0) {
-  //   sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
-  // }
-  // if (selectedCountryIds.length > 0) {
-  //   sqlWhereAdd += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
-  // }
+  if (selectedWhatsappIds && selectedWhatsappIds.length > 0) {
+    sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedQueueIds && selectedQueueIds.length > 0) {
+    sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+  }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
     "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",

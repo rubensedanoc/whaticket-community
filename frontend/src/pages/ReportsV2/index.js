@@ -298,8 +298,8 @@ const Reports = () => {
   const getReportToExcel = async ({
     fromDate,
     toDate,
-    // selectedWhatsappIds,
-    // selectedCountryIds,
+    selectedWhatsappIds,
+    selectedQueueIds,
   }) => {
     try {
       setLoadingReportToExcel(true);
@@ -307,8 +307,8 @@ const Reports = () => {
         params: {
           fromDate: format(new Date(fromDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
           toDate: format(new Date(toDate), "yyyy-MM-dd'T'HH:mm:ssXXX"),
-          // selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
-          // selectedCountryIds: JSON.stringify(selectedCountryIds),
+          selectedWhatsappIds: JSON.stringify(selectedWhatsappIds),
+          selectedQueueIds: JSON.stringify(selectedQueueIds),
         },
       });
 
@@ -1253,6 +1253,8 @@ const Reports = () => {
                       getReportToExcel({
                         fromDate,
                         toDate,
+                        selectedWhatsappIds,
+                        selectedQueueIds,
                       })
                     }
                     loading={loadingReportToExcel}
