@@ -563,8 +563,8 @@ export const getConversationMessages = async (
     const ticketsInTimeRange = await Ticket.findAll({
       where: {
         createdAt: {
-          [Op.gte]: dayjs(start_date).startOf("day").toDate(),
-          [Op.lte]: dayjs(end_date).endOf("day").toDate()
+          [Op.gte]: dayjs(start_date).startOf("day").add(5, "hour").toDate(),
+          [Op.lte]: (dayjs(end_date).endOf("day").add(5, "hour").toDate())
         },
         ...(!include_groups && { isGroup: false }),
         ...(queue_ids ? { queueId: { [Op.in]: queue_ids } } : {}),
@@ -594,7 +594,7 @@ export const getConversationMessages = async (
     });
 
     mensajes.push(
-      `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${start_date} y ${end_date}`);
+      `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${start_date}, ${dayjs(start_date).startOf("day").toDate()} y ${end_date}, ${dayjs(end_date).endOf("day").toDate()}`);
 
 
     const uniqueContactWhatsappPairs = ticketsInTimeRange.reduce((acc, ticket) => {
@@ -631,8 +631,8 @@ export const getConversationMessages = async (
           [Op.or]: [null, false]
         },
         timestamp: {
-          [Op.gte]: dayjs(start_date).startOf("day").unix(),
-          [Op.lte]: dayjs(end_date).endOf("day").unix()
+          [Op.gte]: dayjs(start_date).startOf("day").add(5, "hour").unix(),
+          [Op.lte]: dayjs(end_date).endOf("day").add(5, "hour").unix()
         }
       },
       include: [
