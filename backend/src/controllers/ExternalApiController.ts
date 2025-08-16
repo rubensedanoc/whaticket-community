@@ -564,7 +564,7 @@ export const getConversationMessages = async (
       where: {
         createdAt: {
           [Op.gte]: dayjs(start_date).startOf("day").add(5, "hour").toDate(),
-          [Op.lte]: (dayjs(end_date).endOf("day").add(5, "hour").toDate())
+          [Op.lte]: dayjs(end_date).endOf("day").add(5, "hour").toDate()
         },
         ...(!include_groups && { isGroup: false }),
         ...(queue_ids ? { queueId: { [Op.in]: queue_ids } } : {}),
@@ -594,7 +594,7 @@ export const getConversationMessages = async (
     });
 
     mensajes.push(
-      `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${start_date}, ${dayjs(start_date).startOf("day").toDate()} y ${end_date}, ${dayjs(end_date).endOf("day").toDate()}`);
+      `Se encontraron ${ticketsInTimeRange.length} tickets entre las fechas ${start_date} y ${end_date}`);
 
 
     const uniqueContactWhatsappPairs = ticketsInTimeRange.reduce((acc, ticket) => {
