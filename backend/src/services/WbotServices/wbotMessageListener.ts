@@ -1399,6 +1399,17 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
         }
 
         if (freshWpp.webhook) {
+
+          if (msg.from) {
+            // @ts-ignore
+            msg.fromNumber = msg.from.replace(/\D/g, "");
+          }
+
+          if (msg.to) {
+            // @ts-ignore
+            msg.toNumber = msg.to.replace(/\D/g, "");
+          }
+
           fetch(freshWpp.webhook, {
             method: "POST",
             headers: {
