@@ -37,6 +37,7 @@ import Message from "../models/Message";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import Country from "../models/Country";
+import WhatsappCountry from "../models/WhatsappCountry";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -304,9 +305,16 @@ export const sendMarketingCampaignIntro = async (
   const countryId = await getCountryIdOfNumber(contacto_numero);
 
   let whatsapp = await Whatsapp.findOne({
-    where: {
-      countryId
-    }
+    include: [
+      {
+        model: WhatsappCountry,
+        as: "whatsappCountries",
+        where: {
+          countryId
+        },
+        required: true
+      }
+    ]
   });
 
   if (!whatsapp) {

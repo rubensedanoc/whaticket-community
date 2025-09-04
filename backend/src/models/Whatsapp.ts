@@ -21,6 +21,7 @@ import User from "./User";
 import WhatsappOwnerUsers from "./WhatsappOwnerUsers";
 import WhatsappQueue from "./WhatsappQueue";
 import Country from "./Country";
+import WhatsappCountry from "./WhatsappCountry";
 
 @Table
 class Whatsapp extends Model<Whatsapp> {
@@ -110,6 +111,9 @@ class Whatsapp extends Model<Whatsapp> {
 
   @BelongsTo(() => Country)
   country: Country;
+
+  @HasMany(() => WhatsappCountry)
+  whatsappCountries: WhatsappCountry[];
 }
 
 export default Whatsapp;
