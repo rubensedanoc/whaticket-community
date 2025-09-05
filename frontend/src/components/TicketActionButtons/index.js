@@ -322,69 +322,71 @@ const TicketActionButtons = ({ ticket }) => {
 
       {ticket.isGroup && ticket.status === "open" && (
         <>
-          {ticket.participantUsers?.find((pu) => pu.id === user?.id) ? (
-            <ButtonWithSpinner
-              loading={loading}
+          <span style={{ display: "inline-flex", flexDirection: "column", gap: "6px", marginRight: 16 }}>
+            {ticket.participantUsers?.find((pu) => pu.id === user?.id) ? (
+              <ButtonWithSpinner
+                loading={loading}
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={async () => {
+                  try {
+                    await api.put(`/tickets/${ticket.id}`, {
+                      participantUsersIds: ticket.participantUsers
+                        .filter((pu) => pu.id !== user?.id)
+                        .map((pu) => pu.id),
+                    });
+
+                    await api.post(`/privateMessages/${ticket.id}`, {
+                      body: `${user?.name} *Terminó su participación* en la conversación`,
+                    });
+                    history.push(`/tickets`);
+                  } catch (err) {
+                    toastError(err);
+                  }
+                }}
+              >
+                Terminar participación
+              </ButtonWithSpinner>
+            ) : (
+              <ButtonWithSpinner
+                loading={loading}
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={async () => {
+                  try {
+                    await api.put(`/tickets/${ticket.id}`, {
+                      participantUsersIds: [
+                        ...ticket.participantUsers.map((pu) => pu.id),
+                        user?.id,
+                      ],
+                    });
+
+                    await api.post(`/privateMessages/${ticket.id}`, {
+                      body: `${user?.name} *Empezó a participar* en la conversación`,
+                    });
+                  } catch (err) {
+                    toastError(err);
+                  }
+                }}
+              >
+                <GroupAddIcon style={{ marginRight: 6 }} />
+                Empezar participación
+              </ButtonWithSpinner>
+            )}
+
+            <Button
               size="small"
               variant="contained"
-              color="primary"
-              onClick={async () => {
-                try {
-                  await api.put(`/tickets/${ticket.id}`, {
-                    participantUsersIds: ticket.participantUsers
-                      .filter((pu) => pu.id !== user?.id)
-                      .map((pu) => pu.id),
-                  });
-
-                  await api.post(`/privateMessages/${ticket.id}`, {
-                    body: `${user?.name} *Terminó su participación* en la conversación`,
-                  });
-                  history.push(`/tickets`);
-                } catch (err) {
-                  toastError(err);
-                }
+              color="default"
+              onClick={() => {
+                setAskForParticipationTicketModalOpen(true);
               }}
             >
-              Terminar participación
-            </ButtonWithSpinner>
-          ) : (
-            <ButtonWithSpinner
-              loading={loading}
-              size="small"
-              variant="contained"
-              color="primary"
-              onClick={async () => {
-                try {
-                  await api.put(`/tickets/${ticket.id}`, {
-                    participantUsersIds: [
-                      ...ticket.participantUsers.map((pu) => pu.id),
-                      user?.id,
-                    ],
-                  });
-
-                  await api.post(`/privateMessages/${ticket.id}`, {
-                    body: `${user?.name} *Empezó a participar* en la conversación`,
-                  });
-                } catch (err) {
-                  toastError(err);
-                }
-              }}
-            >
-              <GroupAddIcon style={{ marginRight: 6 }} />
-              Empezar participación
-            </ButtonWithSpinner>
-          )}
-
-          <Button
-            size="small"
-            variant="contained"
-            color="default"
-            onClick={() => {
-              setAskForParticipationTicketModalOpen(true);
-            }}
-          >
-            Pedir participación
-          </Button>
+              Pedir participación
+            </Button>
+          </span>
 
           <IconButton onClick={handleOpenTicketOptionsMenu}>
             <MoreVert />

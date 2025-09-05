@@ -7,8 +7,8 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
     <CardHeader
       onClick={onClick}
       style={{ cursor: "pointer" }}
-      titleTypographyProps={{ noWrap: true }}
-      subheaderTypographyProps={{ noWrap: true }}
+      titleTypographyProps={{ noWrap: false }}
+      subheaderTypographyProps={{ noWrap: false }}
       avatar={<Avatar src={contact.profilePicUrl} alt="contact_image" />}
       title={`${contact.name} #${contact.id}`}
       subheader={

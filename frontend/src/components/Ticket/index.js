@@ -64,6 +64,7 @@ const useStyles = makeStyles((theme) => ({
     // maxWidth: "50%",
     // flexBasis: "50%",
     display: "flex",
+    flexShrink: 0,
     [theme.breakpoints.down("sm")]: {
       // maxWidth: "100%",
       // flexBasis: "100%",
@@ -119,7 +120,6 @@ const Ticket = () => {
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
   const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
   const [clientelicenciaId, setClientelicenciaId] = useState(null);
-  const [iaRevisionLoading, setIaRevisionLoading] = useState(false);
 
   async function searchForMicroServiceData(contactNumber) {
     try {
@@ -275,21 +275,6 @@ const Ticket = () => {
     }
   };
 
-  const handleIARevision = async () => {
-    try {
-      setIaRevisionLoading(true);
-      api.post(`conversationIAEvalutaion/analize`, {
-        ticketId: ticket.id,
-      });
-      setTimeout(() => {
-        setIaRevisionLoading(false);
-        toast.success("Revisión con IA iniciada, Espera unos minutos para ver los resultados.");
-      }, 1000);
-    } catch (err) {
-      toastError(err);
-    }
-  };
-
   return (
     <div className={classes.root} id="drawer-container">
       {iaDrawerOpen && (
@@ -300,6 +285,7 @@ const Ticket = () => {
           loading={loading}
           microServiceData={microServiceData}
           ticket={ticket}
+          handleDrawerClose={() => setIaDrawerOpen((open) => !open)}
         />
       )}
       <Paper
@@ -311,15 +297,18 @@ const Ticket = () => {
       >
         <TicketHeader withArrow={false} loading={loading}>
           <div className={classes.ticketInfo}>
-            <ButtonWithSpinner
-              variant="contained" color="primary"
-              loading={iaRevisionLoading}
-              startIcon={
-                <RedditIcon />
-              }
-              size="small"
-              onClick={(e) => handleIARevision()}
-            ></ButtonWithSpinner>
+            {
+              !iaDrawerOpen && (
+                <ButtonWithSpinner
+                  variant="contained" color="primary"
+                  startIcon={
+                    <RedditIcon />
+                  }
+                  size="small"
+                  onClick={(e) => setIaDrawerOpen((open) => !open)}
+                ></ButtonWithSpinner>
+              )
+            }
             <TicketInfo
               contact={contact}
               ticket={ticket}
@@ -400,7 +389,7 @@ const Ticket = () => {
           </div>
 
           <div className={classes.ticketActionButtons}>
-            <TicketActionButtons ticket={ticket} />
+            <TicketActionButtons ticket={ticket}  />
           </div>
         </TicketHeader>
 
