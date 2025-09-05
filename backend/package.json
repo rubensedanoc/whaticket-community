@@ -44,7 +44,7 @@
     "socket.io": "^3.0.5",
     "socket.io-client": "^3.0.5",
     "uuid": "^8.3.2",
-    "whatsapp-web.js": "^1.33.2",
+    "whatsapp-web.js": "github:BenyFilho/whatsapp-web.js#fix_participant_sendMessage",
     "yup": "^0.32.8"
   },
   "devDependencies": {
