@@ -14,6 +14,8 @@ import Typography from "@material-ui/core/Typography";
 import CloseIcon from "@material-ui/icons/Close";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import api from "../../services/api";
+import ButtonWithSpinner from "../ButtonWithSpinner";
+import { toast } from "react-toastify";
 
 import { i18n } from "../../translate/i18n";
 
@@ -26,7 +28,7 @@ import TicketListItem from "../TicketListItem";
 import { NumberGroups } from "../NumberGroupsModal";  
 import InputBase from "@material-ui/core/InputBase";
 
-const drawerWidth = 320;
+const drawerWidth = 280;
 
 const useStyles = makeStyles((theme) => ({
   drawer: {
@@ -102,85 +104,11 @@ const TicketIaDrawer = ({
 }) => {
   const classes = useStyles();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [groupParticipants, setGroupParticipants] = useState([]);
-  const [ticketSiblings, setTicketSiblings] = useState([]);
-  const [contactGroups, setContactGroups] = useState([]);
   const [iaInputMessage, setIaInputMessage] = useState([]);
   const [loadingIaResponse, setLoadingIaResponse] = useState(false);
-  const { whatsApps } = useContext(WhatsAppsContext);
+  const [iaRevisionLoading, setIaRevisionLoading] = useState(false);
+
   const inputRef = useRef();
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (open && ticketId) {
-
-        if (contact?.isGroup) {
-          (async () => {
-            try {
-              console.log("Pidiendo integrantes del grupo");
-  
-              const { data } = await api.get("/showParticipants/" + ticketId);
-  
-              setGroupParticipants(data || []);
-  
-              console.log("integrantes del grupo ", data);
-            } catch (err) {
-              console.log("Error al obtener integrantes del grupo", err);
-              toastError("Error al obtener los integrantes del grupo");
-            }
-          })();
-        }
-
-        (async () => {
-
-          try {
-            const { data: contactTicketSummary } = await api.post(
-              "/contacts/getContactTicketSummary",
-              {
-                contactId: contact.id,
-                onlyIds: true,
-              }
-            );
-
-            const { data } = await api.get("/getATicketsList", {
-              params: {
-                ticketIds: JSON.stringify(
-                  contactTicketSummary.map((ticket) => ticket.id).filter(id => id != ticketId)
-                ),
-              },
-            });
-
-            setTicketSiblings(data.tickets);
-          } catch (error) {
-            console.log("Error al obtener los tickets hermanos del contacto", error);
-            toastError("Error al obtener los tickets hermanos del contacto");
-          }
-
-        })();
-
-        if (!contact?.isGroup) {
-          (async () => {
-            try {
-              const { data } = await api.get(
-                `/getNumberGroupsByContactId/${contact.id}`
-              );
-              setContactGroups(data.registerGroups);
-            } catch (err) {
-              console.log("Error al recuperar los grupos del contacto", err);
-              toastError("Error al recuperar los grupos del contacto");
-            }
-          })();
-        }
-        
-      }
-    }, 500);
-
-    return () => {
-      setGroupParticipants([]);
-      clearTimeout(delayDebounceFn);
-    };
-  }, [open, ticketId, contact]);
 
   const handleSendMessage = async () => {
     if (iaInputMessage.trim() === "") return;
@@ -203,6 +131,21 @@ const TicketIaDrawer = ({
     setLoadingIaResponse(false);
   };
 
+  const handleIARevision = async () => {
+    try {
+      setIaRevisionLoading(true);
+      api.post(`conversationIAEvalutaion/analize`, {
+        ticketId: ticket.id,
+      });
+      setTimeout(() => {
+        setIaRevisionLoading(false);
+        toast.success("Revisión con IA iniciada, Espera unos minutos y recarga la pagina para ver los resultados.");
+      }, 1000);
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   return (
     <Drawer
       className={classes.drawer}
@@ -220,13 +163,20 @@ const TicketIaDrawer = ({
       }}
     >
       <div className={classes.header}>
-        {/* <IconButton onClick={handleDrawerClose}>
+        <IconButton onClick={handleDrawerClose}>
           <CloseIcon />
-        </IconButton> */}
+        </IconButton>
         <Typography style={{ justifySelf: "center" }}>
           Informe IA
         </Typography>
       </div>
+
+      <ButtonWithSpinner
+        variant="contained" color="primary"
+        loading={iaRevisionLoading}
+        size="small"
+        onClick={(e) => handleIARevision()}
+      >Generar revisión IA</ButtonWithSpinner>
 
       {loading ? (
         <ContactDrawerSkeleton classes={classes} />
