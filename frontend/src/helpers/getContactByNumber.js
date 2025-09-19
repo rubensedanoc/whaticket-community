@@ -10,6 +10,10 @@ export async function getContactByNumber(number) {
     return numbersHistorial[cleanNumber];
   }
 
+  if (cleanNumber.length < 8) {
+    return null;
+  }
+
   let contact = null;
 
   const response = await api.get(
