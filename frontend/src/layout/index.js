@@ -250,22 +250,9 @@ const LoggedInLayout = ({ children }) => {
               noWrap
               className={classes.title}
             >
-              WhatRestaurant
+              TICKETERA 
             </Typography>
-            <img src={`/ollita2.png`} alt="logo" style={{ width: "26px" }} />
-            <div
-              style={{
-                fontStyle: "italic",
-                marginLeft: 8,
-                fontWeight: "bold",
-                fontSize: 20,
-              }}
-            >
-              LITE
-            </div>
-
-            {/* <span>by</span> */}
-            {/* <img src="https://restaurant.pe/wp-content/uploads/2022/05/cropped-restaurantpelogo-300x59.png" /> */}
+            <img src={`/logo_pidego.png`} alt="logo" style={{ width: "80px", marginLeft: "10px" }} />
           </div>
           {user.id && <NotificationsPopOver />}
           <div>
@@ -301,7 +288,7 @@ const LoggedInLayout = ({ children }) => {
               </MenuItem>
             </Menu>
           </div>
-          <div>USUARIO ID:  {user?.id}</div>
+          <div>{user?.name}</div>
         </Toolbar>
       </AppBar>
       <main className={classes.content}>
