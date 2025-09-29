@@ -359,7 +359,18 @@ const findTicket = async ({
       !ticket.marketingMessagingCampaignId
     ) {
       const twoHoursAgo = subHours(new Date(), 2);
+      const fiveMinutesAgo = subMinutes(new Date(), 5);
+
       let validTime = twoHoursAgo;
+
+      // si no estamos en la app comercial
+      if (process.env.APP_PURPOSE !== "comercial") {
+        // validamos si es el area de soporte tecnico
+        if (ticket.queueId && ticket.queueId === 10) {
+          // bajamos el valid time a 5 minutos
+          validTime = fiveMinutesAgo;
+        }
+      }
 
       if (ticket.chatbotMessageIdentifier && !ticket.userId) {
         const chatbotMessage = await ChatbotMessage.findOne({
@@ -381,8 +392,6 @@ const findTicket = async ({
           "xxx Ticket antiguo no tiene chatbotMessageIdentifier o ya ha tenido usuario se va a usar el validTime de 2 horas"
         );
       }
-
-      console.log("xxx validTime", validTime);
 
       if (new Date(ticket.updatedAt) < validTime) {
         ticket = null;
