@@ -172,15 +172,20 @@ const replaceWhatsAppNumbersInNode = async (node, onWppNumberClick) => {
 
               let contact = await getContactByNumber(part);
 
-              const wppNumberSpan = document.createElement("span");
-              wppNumberSpan.className = "wppNumberSpan";
-              wppNumberSpan.textContent = contact ? contact.name : part.trim();
-              wppNumberSpan.onclick = () =>
-                onWppNumberClick(part.replaceAll(" ", ""));
-              wppNumberSpan.style.color = "rgb(83, 189, 235)";
-              wppNumberSpan.style.cursor = "pointer";
-              wppNumberSpan.style.fontWeight = "bold";
-              fragment.appendChild(wppNumberSpan);
+              if (contact) {
+                // si se encontró el contacto, mostrar su nombre de manera especial
+                const wppNumberSpan = document.createElement("span");
+                wppNumberSpan.className = "wppNumberSpan";
+                wppNumberSpan.textContent = contact ? contact.name : part.trim();
+                wppNumberSpan.onclick = () =>
+                  onWppNumberClick(part.replaceAll(" ", ""));
+                wppNumberSpan.style.color = "rgb(83, 189, 235)";
+                wppNumberSpan.style.cursor = "pointer";
+                wppNumberSpan.style.fontWeight = "bold";
+                fragment.appendChild(wppNumberSpan);
+              } else {
+                fragment.appendChild(document.createTextNode(part));
+              }
             } else {
               fragment.appendChild(document.createTextNode(part));
             }
@@ -208,15 +213,19 @@ const replaceWhatsAppNumbersInNode = async (node, onWppNumberClick) => {
 
             let contact = await getContactByNumber(part);
 
-            const wppNumberSpan = document.createElement("span");
-            wppNumberSpan.className = "wppNumberSpan";
-            wppNumberSpan.textContent = contact ? contact.name : part.trim();;
-            wppNumberSpan.onclick = () =>
-              onWppNumberClick(part.replaceAll(" ", ""));
-            wppNumberSpan.style.color = "rgb(83, 189, 235)";
-            wppNumberSpan.style.cursor = "pointer";
-            wppNumberSpan.style.fontWeight = "bold";
-            fragment.appendChild(wppNumberSpan);
+            if (contact) {
+              const wppNumberSpan = document.createElement("span");
+              wppNumberSpan.className = "wppNumberSpan";
+              wppNumberSpan.textContent = contact ? contact.name : part.trim();;
+              wppNumberSpan.onclick = () =>
+                onWppNumberClick(part.replaceAll(" ", ""));
+              wppNumberSpan.style.color = "rgb(83, 189, 235)";
+              wppNumberSpan.style.cursor = "pointer";
+              wppNumberSpan.style.fontWeight = "bold";
+              fragment.appendChild(wppNumberSpan);
+            } else {
+              fragment.appendChild(document.createTextNode(part));
+            }
           } else {
             fragment.appendChild(document.createTextNode(part));
           }
