@@ -360,11 +360,13 @@ const buildIncludeCondition = ({
     {
       model: User,
       as: "helpUsers",
+      attributes: ["id", "name"],
       required: false
     },
     {
       model: User,
       as: "participantUsers",
+      attributes: ["id", "name"],
       ...(showOnlyMyGroups && typeIds.length === 1 && typeIds.includes("group")
         ? {
             where: {
@@ -409,7 +411,8 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
 
   // console.log("--- whereCondition", whereCondition);
 
-  const limit = 40;
+  // const limit = 40;
+  const limit = 20;
   const offset = limit * (+pageNumber - 1);
 
   const { count, rows: tickets } = await Ticket.findAndCountAll({
