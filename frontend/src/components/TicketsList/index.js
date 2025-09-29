@@ -362,9 +362,10 @@ const TicketsList = (props) => {
         (category && ticket.categories.find((tc) => tc.id === category.id)) ||
         (ticketsType === "no-category" && !ticket.categories?.length);
 
-      const clientelicenciaEtapaIdCondition =
+      const clientelicenciaEtapaIdCondition = !selectedClientelicenciaEtapaIds || (
         selectedClientelicenciaEtapaIds?.length === 0 ||
-        selectedClientelicenciaEtapaIds?.some((id) => ticket.contact.traza_clientelicencia_currentetapaid === id);
+        selectedClientelicenciaEtapaIds?.some((id) => ticket.contact.traza_clientelicencia_currentetapaid === id)
+      );
 
       // Función auxiliar para calcular el timestamp hace N minutos
       const getNMinutesAgo = (minutes) => {
@@ -387,16 +388,17 @@ const TicketsList = (props) => {
           (ticket.status === "open")
         ))
 
-      // if (status) {
+      // if (status === "pending") {
       //   console.log("--- shouldUpdateTicket  ---" + status, {
       //     noSearchParamCondition,
       //     TypeCondition,
       //     userCondition,
+      //     ignoreConditions,
       //     queueCondition,
       //     whatsappCondition,
-      //     ignoreConditions,
       //     categoryCondition,
       //     marketingCampaignCondition,
+      //     ticketUserCondition,
       //     clientelicenciaEtapaIdCondition,
       //     advancedList,
       //     noResponseColCondition,
