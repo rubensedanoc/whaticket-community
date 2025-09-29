@@ -451,9 +451,9 @@ const AdvancedListTicketsService = async (
     limit,
     offset,
     order: [["lastMessageTimestamp", "DESC"]],
-    logging(sql, timing) {
-      console.log(`SQL: ${request.ticketGroupType} ${sql} - Timing: ${timing}ms`);
-    },
+    // logging(sql, timing) {
+    //   console.log(`SQL: ${request.ticketGroupType} ${sql} - Timing: ${timing}ms`);
+    // },
   });
 
   const hasMore = count > offset + tickets.length;
