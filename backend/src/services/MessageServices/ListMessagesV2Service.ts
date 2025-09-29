@@ -96,7 +96,8 @@ const fetchMessages = async (
 ): Promise<Response> => {
   const lastTicketToFetchMessages =
     ticketsToFetchMessagesQueue[ticketsToFetchMessagesQueue.length - 1];
-  const ticket = await ShowTicketService(lastTicketToFetchMessages.ticketId);
+  // const ticket = await ShowTicketService(lastTicketToFetchMessages.ticketId);
+  const ticket = await Ticket.findByPk(lastTicketToFetchMessages.ticketId);
 
   // Validar si el ticket existe
   if (!ticket) {
@@ -137,43 +138,45 @@ const getMessagesForTicket = async (
   const offset = limit * (+ticketToFetchMessages.pageNumber - 1);
 
   // Obtener todos los mensajes del ticket
-  const ticketMessages = await Message.findAll({
-    where: { ticketId: ticketToFetchMessages.ticketId },
-    attributes: ["id", "timestamp"]
-  });
+  // const ticketMessages = await Message.findAll({
+  //   where: { ticketId: ticketToFetchMessages.ticketId },
+  //   attributes: ["id", "timestamp"]
+  // });
 
   // Determinar la propiedad de ordenación (timestamp o createdAt)
-  const orderProp = ticketMessages.some(msg => !msg.timestamp)
-    ? "createdAt"
-    : "timestamp";
+  // const orderProp = ticketMessages.some(msg => !msg.timestamp)
+  //   ? "createdAt"
+  //   : "timestamp";
 
-  let relatedTickets: number | null = null;
+  const orderProp = "timestamp";
 
-  if (ticketToFetchMessages.ticket) {
-    relatedTickets = await Ticket.count({
-      where: {
-        whatsappId: ticketToFetchMessages.ticket.whatsappId,
-        contactId: ticketToFetchMessages.ticket.contactId
-      }
-    });
+  // let relatedTickets: number | null = null;
 
-    // console.log("relatedTickets at getMessagesForTicket", relatedTickets);
-  }
+  // if (ticketToFetchMessages.ticket) {
+  //   relatedTickets = await Ticket.count({
+  //     where: {
+  //       whatsappId: ticketToFetchMessages.ticket.whatsappId,
+  //       contactId: ticketToFetchMessages.ticket.contactId
+  //     }
+  //   });
+
+  //   // console.log("relatedTickets at getMessagesForTicket", relatedTickets);
+  // }
 
   // Buscar y contar mensajes con la propiedad de ordenación adecuada
   const { count, rows: messages } = await Message.findAndCountAll({
     where: {
       ticketId: ticketToFetchMessages.ticketId,
-      ...(relatedTickets > 1 && {
-        timestamp: {
-          [Op.gte]:
-            Math.floor(
-              new Date(ticketToFetchMessages.ticket?.createdAt!).getTime() /
-                1000
-            ) -
-            60 * 60 * 72 // 72 horas en segundos por si acaso el server se cayo por tiempo prolognado
-        }
-      })
+      // ...(relatedTickets > 1 && {
+      //   timestamp: {
+      //     [Op.gte]:
+      //       Math.floor(
+      //         new Date(ticketToFetchMessages.ticket?.createdAt!).getTime() /
+      //           1000
+      //       ) -
+      //       60 * 60 * 72 // 72 horas en segundos por si acaso el server se cayo por tiempo prolognado
+      //   }
+      // })
     },
     limit,
     offset,

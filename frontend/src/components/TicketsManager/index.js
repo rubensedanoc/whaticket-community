@@ -388,7 +388,7 @@ const TicketsManager = () => {
         const notificationsCount = await api.get("/notifications/getNotificationsCountForUser")
 
         setNotificationsCount(notificationsCount.data.count);
-      }, 5000);
+      }, 10000);
       return () => clearInterval(notificationsInterval);
     }, [whatsApps]);
 
