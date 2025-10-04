@@ -38,6 +38,7 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import Country from "../models/Country";
 import WhatsappCountry from "../models/WhatsappCountry";
+import Queue from "../models/Queue";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -796,6 +797,181 @@ export const getConversationMessages = async (
   });
 };
 
+// ESTA VERSION DE LA FUNCION RECUPERA TODOS LOS TICKETS CREADOS EN LA VENTANA DE TIEMPO Y LUEGO TODOS LOS MENSAJES DE ESOS TICKETS (SIN IMPORTAR LA VENTANA DE TIEMPO)
+export const getConversationMessagesV2 = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+
+  const mensajes = [];
+  const data = {};
+
+
+  let {
+    start_date,
+    end_date,
+    queue_ids,
+    include_groups
+  } = req.body;
+
+  if(queue_ids && !Array.isArray(queue_ids)) {
+    queue_ids = JSON.parse(queue_ids);
+  }
+
+  if (!mensajes.length) {
+    const ticketsToGetMessages = await Ticket.findAll({
+      attributes: ["id"],
+      where: {
+        createdAt: {
+          [Op.gte]: dayjs(start_date).startOf("day").add(5, "hour").toDate(),
+          [Op.lte]: dayjs(end_date).endOf("day").add(5, "hour").toDate()
+        },
+        ...(!include_groups && { isGroup: false }),
+        ...(queue_ids ? { queueId: { [Op.in]: queue_ids } } : {}),
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ["id"],
+          where: {
+            isCompanyMember: {
+              [Op.or]: [null, false]
+            }
+          },
+          required: true
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp",
+          attributes: ["id"],
+          required: true
+        },
+      ],
+    });
+
+    mensajes.push(
+      `Se encontraron ${ticketsToGetMessages.length} tickets entre las fechas ${start_date} y ${end_date}`);
+
+    const messages = await Message.findAll({
+      attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate", "ticketId"],
+      where: {
+        ticketId: {
+          [Op.in]: ticketsToGetMessages.map(ticket => ticket.id)
+        }
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Ticket,
+          as: "ticket",
+          attributes: ["id"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["id", "name"],
+            },
+            {
+              model: Contact,
+              as: "contact",
+              attributes: ["id", "name", "number", "isGroup"],
+              include: [
+                {
+                  model: Country,
+                  as: "country",
+                  attributes: ["id", "name"],
+                  required: false
+                },
+                {
+                  model: ContactClientelicencia,
+                  as: "contactClientelicencias",
+                  attributes: ["id", "traza_clientelicencia_id"],
+                  required: false
+                }
+              ]
+            },
+            {
+              model: Whatsapp,
+              as: "whatsapp",
+              attributes: ["id", "name", "number"],
+              required: true
+            },
+          ],
+          required: true
+        }
+      ],
+      order: [["timestamp", "ASC"]]
+    });
+
+    mensajes.push(
+      `Se encontraron ${messages.length} mensajes de los tickets recuperados`
+    );
+
+    messages.forEach(messageInstance => {
+      const message: any = messageInstance.get({ plain: true }); // 👈 Conversión a objeto plano
+
+      // if (message.ticket?.id === 27204) {
+      //   console.log("Mensaje de ticket 27204", message);
+      // }
+
+      const ticketContact = message.ticket.contact;
+      const ticketWhatsapp = message.ticket.whatsapp;
+
+      const conversationKey = `${ticketContact?.id}-${ticketWhatsapp?.id}`;
+
+      if (!data[conversationKey]) {
+        data[conversationKey] = {
+          contact: {
+            id: ticketContact?.id,
+            name: ticketContact.name,
+            number: ticketContact.number,
+            createdAt: ticketContact.createdAt,
+            country: ticketContact.country?.name || "Sin país",
+            isGroup: ticketContact.isGroup,
+            contactClientelicencias: ticketContact.contactClientelicencias.map(clientelicencia =>  clientelicencia.traza_clientelicencia_id),
+          },
+          whatsapp: {
+            id: ticketWhatsapp?.id,
+            name: ticketWhatsapp?.name,
+            number: ticketWhatsapp?.number
+          },
+          messages: []
+        };
+      }
+
+      message.ticket_user_name = message.ticket?.user?.name || "Sin asignar";
+
+      delete message.contact;
+      delete message.ticket;
+
+      if (message.body.length > 1000) {
+        message.body = message.body.substring(0, 1000) + "...";
+      }
+
+      message.date = dayjs.unix(message.timestamp).tz("America/Lima").format("YYYY-MM-DD HH:mm:ss");
+
+      data[conversationKey].messages.push(message);
+    })
+  }
+
+  let dataToReturn = null;
+
+  dataToReturn = Object.entries(data).map(([conversationId, value]: any) => ({
+    conversationId,
+    ...value
+  }));
+
+  return res.status(200).json({
+    mensajes,
+    data: dataToReturn
+  });
+};
+
 export const getConversationMessagesFromTicket = async (
   req: Request,
   res: Response
@@ -1009,5 +1185,97 @@ export const getConversationMessagesFromTicket = async (
   return res.status(200).json({
     mensajes,
     data: dataToReturn
+  });
+};
+
+export const getUpdatedTickets = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+
+  const mensajes = [];
+  const data: any = {};
+
+  let {
+    start_date,
+    end_date,
+    queue_ids,
+    exclude_groups
+  } = req.body;
+
+  if(queue_ids && !Array.isArray(queue_ids)) {
+    queue_ids = JSON.parse(queue_ids);
+  }
+
+  if (!mensajes.length) {
+    const tickets = await Ticket.findAll({
+      attributes: ["id", "status", "isGroup"],
+      where: {
+        updatedAt: {
+          [Op.gte]: dayjs(start_date).startOf("day").add(5, "hour").toDate(),
+          [Op.lte]: dayjs(end_date).endOf("day").add(5, "hour").toDate()
+        },
+        ...(exclude_groups && { isGroup: false }),
+        ...(queue_ids ? { queueId: { [Op.in]: queue_ids } } : {}),
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ["id", "name", "number", "isGroup"],
+          where: {
+            isCompanyMember: {
+              [Op.or]: [null, false]
+            }
+          },
+          include: [
+            {
+              model: ContactClientelicencia,
+              as: "contactClientelicencias",
+              attributes: ["id", "traza_clientelicencia_id"],
+              required: false
+            }
+          ],
+          required: true
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp",
+          attributes: ["id", "name", "number"],
+          required: true
+        },
+        {
+          model: Queue,
+          as: "queue",
+          attributes: ["id", "name"],
+          required: true
+        },
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Message,
+          as: "messages",
+          attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate", "ticketId"],
+          required: true,
+          separate: true,
+          order: [["timestamp", "ASC"]]
+        }
+      ],
+      order: [["updatedAt", "ASC"]]
+    });
+
+    mensajes.push(
+      `Se encontraron ${tickets.length} tickets entre las fechas ${start_date} y ${end_date}`
+    );
+
+    data.tickets = tickets;
+  }
+
+  return res.status(200).json({
+    mensajes,
+    data
   });
 };
