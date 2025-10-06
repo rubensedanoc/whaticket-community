@@ -1259,6 +1259,14 @@ export const getUpdatedTickets = async (
           model: Message,
           as: "messages",
           attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate", "ticketId"],
+          include: [
+            {
+              attributes: ["id", "name", "isCompanyMember"],
+              model: Contact,
+              as: "contact",
+              required: false,
+            }
+          ],
           required: true,
           separate: true,
           order: [["timestamp", "ASC"]]
