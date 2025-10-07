@@ -1209,7 +1209,7 @@ export const getUpdatedTickets = async (
 
   if (!mensajes.length) {
     const tickets = await Ticket.findAll({
-      attributes: ["id", "status", "isGroup"],
+      attributes: ["id", "status", "isGroup", "createdAt", "updatedAt"],
       where: {
         updatedAt: {
           [Op.gte]: dayjs(start_date).startOf("day").add(5, "hour").toDate(),
@@ -1259,6 +1259,14 @@ export const getUpdatedTickets = async (
           model: Message,
           as: "messages",
           attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate", "ticketId"],
+          include: [
+            {
+              attributes: ["id", "name", "isCompanyMember"],
+              model: Contact,
+              as: "contact",
+              required: false,
+            }
+          ],
           required: true,
           separate: true,
           order: [["timestamp", "ASC"]]
