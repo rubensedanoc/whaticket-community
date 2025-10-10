@@ -1208,7 +1208,7 @@ export const getUpdatedTickets = async (
   }
 
   if (!mensajes.length) {
-    const tickets = await Ticket.findAll({
+    let tickets: any = await Ticket.findAll({
       attributes: ["id", "status", "isGroup", "createdAt", "updatedAt"],
       where: {
         updatedAt: {
@@ -1269,11 +1269,19 @@ export const getUpdatedTickets = async (
           ],
           required: true,
           separate: true,
-          order: [["timestamp", "ASC"]]
+          order: [["timestamp", "DESC"]] // ✅ Los más recientes primero
         }
       ],
       order: [["updatedAt", "ASC"]]
     });
+
+    tickets = tickets.map(ticket => ticket.get({ plain: true }));
+
+    tickets = tickets.map(ticket => {
+      ticket.messages = JSON.parse(JSON.stringify(ticket.messages.slice(0, 150)));
+      ticket.messages = ticket.messages.reverse();
+      return ticket
+    })
 
     mensajes.push(
       `Se encontraron ${tickets.length} tickets entre las fechas ${start_date} y ${end_date}`
