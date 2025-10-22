@@ -287,7 +287,8 @@ export const sendMarketingCampaignIntro = async (
     contact_correo,
     contact_nombre_negocio,
     user_id,
-    campaign_id
+    campaign_id,
+    whatsapp_number
   } = req.body;
 
   if (
@@ -305,30 +306,42 @@ export const sendMarketingCampaignIntro = async (
 
   const countryId = await getCountryIdOfNumber(contacto_numero);
 
-  let whatsapp = await Whatsapp.findOne({
-    include: [
-      {
-        model: WhatsappCountry,
-        as: "whatsappCountries",
-        where: {
-          countryId
-        },
-        required: true
+  let whatsapp = null;
+
+  if (whatsapp_number) {
+    whatsapp = await Whatsapp.findOne({
+      where: {
+        number: whatsapp_number
       }
-    ]
-  });
+    });
+  }
 
   if (!whatsapp) {
     whatsapp = await Whatsapp.findOne({
-      where: {
-        isDefault: true
-      }
+      include: [
+        {
+          model: WhatsappCountry,
+          as: "whatsappCountries",
+          where: {
+            countryId
+          },
+          required: true
+        }
+      ]
     });
+
     if (!whatsapp) {
-      throw new AppError(
-        "No se encontró un Whatsapp para el pais de este lead ni uno por defecto",
-        400
-      );
+      whatsapp = await Whatsapp.findOne({
+        where: {
+          isDefault: true
+        }
+      });
+      if (!whatsapp) {
+        throw new AppError(
+          "No se encontró un Whatsapp para el pais de este lead ni uno por defecto",
+          400
+        );
+      }
     }
   }
 
