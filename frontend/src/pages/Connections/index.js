@@ -40,6 +40,7 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 import QrcodeModal from "../../components/QrcodeModal";
 import WhatsAppModal from "../../components/WhatsAppModal";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
+import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
@@ -99,6 +100,8 @@ const Connections = () => {
   const classes = useStyles();
 
   const { whatsApps, loading } = useContext(WhatsAppsContext);
+  const { user } = useContext(AuthContext);
+
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedWhatsApp, setSelectedWhatsApp] = useState(null);
@@ -210,7 +213,7 @@ const Connections = () => {
     setConfirmModalInfo(confirmationModalInitialState);
   };
 
-  const renderActionButtons = (whatsApp) => {
+  const renderActionButtons = (whatsApp, isAdmin) => {
     return (
       <>
         {whatsApp.status === "qrcode" && (
@@ -245,7 +248,7 @@ const Connections = () => {
         )}
         {(whatsApp.status === "CONNECTED" ||
           whatsApp.status === "PAIRING" ||
-          whatsApp.status === "TIMEOUT") && (
+          whatsApp.status === "TIMEOUT") && isAdmin && (
           <Button
             size="small"
             variant="outlined"
@@ -379,26 +382,28 @@ const Connections = () => {
                         {renderStatusToolTips(whatsApp)}
                       </TableCell>
                       <TableCell align="center">
-                        {renderActionButtons(whatsApp)}
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="secondary"
-                          onClick={async () => {
-                            try {
-                              await api.delete(
-                                `/whatsappsession-reset/${whatsApp.id}`
-                              );
-                              toast.success(
-                                "Se ha reseteado el bot con exito!"
-                              );
-                            } catch (err) {
-                              toastError(err);
-                            }
-                          }}
-                        >
-                          RESETEAR BOT
-                        </Button>
+                        {renderActionButtons(whatsApp, user?.id === 1)}
+                        {user?.id === 1 && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="secondary"
+                            onClick={async () => {
+                              try {
+                                await api.delete(
+                                  `/whatsappsession-reset/${whatsApp.id}`
+                                );
+                                toast.success(
+                                  "Se ha reseteado el bot con exito!"
+                                );
+                              } catch (err) {
+                                toastError(err);
+                              }
+                            }}
+                          >
+                            RESETEAR BOT
+                          </Button>
+                        )}
                       </TableCell>
                       <TableCell align="center">
                         {format(parseISO(whatsApp.updatedAt), "dd/MM/yy HH:mm")}
