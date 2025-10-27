@@ -360,7 +360,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       wbot.initialize();
 
       wbot.on("qr", async qr => {
-        logger.info(`Session: ${sessionName} QR RECEIVED`);
+        logger.info(`Session: ${sessionName} QR RECEIVED credentials ${whatsapp.sessionUuid || whatsapp.id}`);
         qrCode.generate(qr, { small: true });
         await whatsapp.update({ qrcode: qr, status: "qrcode", retries: 0 });
 
