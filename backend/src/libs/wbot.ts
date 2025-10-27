@@ -326,11 +326,19 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         sessionCfg = JSON.parse(whatsapp.session);
       }
 
-      const args: String =
+      let args: String =
         process.env.DOCKERFILE_PATH &&
         process.env.DOCKERFILE_PATH.includes("chrome")
           ? process.env.CHROME_ARGS_CHROME
           : process.env.CHROME_ARGS_CHROMIUN || "";
+
+      if (whatsapp.id === 21 || whatsapp.id === 32) {
+        args = "--no-sandbox --disable-setuid-sandbox"
+      }
+
+      // if (whatsapp.id === 31) {
+      //   args = "--no-sandbox --disable-setuid-sandbox"
+      // }
 
       console.log("client args: ", args);
 
