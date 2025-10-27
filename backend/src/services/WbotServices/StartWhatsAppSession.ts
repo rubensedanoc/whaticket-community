@@ -36,28 +36,28 @@ export const StartWhatsAppSession = async (
       wbotMessageListener(wbot, whatsapp);
       wbotMonitor(wbot, whatsapp);
 
-      logger.info("--- search for SendMessageRequest failed's: ");
+      // logger.info("--- search for SendMessageRequest failed's: ");
 
-      const failedSendMessageRequest = await SendMessageRequest.findAll({
-        where: {
-          status: "failed",
-          timesAttempted: {
-            [Op.lte]: 3
-          }
-        }
-      });
+      // const failedSendMessageRequest = await SendMessageRequest.findAll({
+      //   where: {
+      //     status: "failed",
+      //     timesAttempted: {
+      //       [Op.lte]: 3
+      //     }
+      //   }
+      // });
 
-      for (const failedRequest of failedSendMessageRequest) {
-        try {
-          await SendExternalWhatsAppMessage({
-            fromNumber: failedRequest.fromNumber,
-            toNumber: failedRequest.toNumber,
-            message: failedRequest.message,
-            registerInDb: failedRequest
-          });
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        } catch (error) {}
-      }
+      // for (const failedRequest of failedSendMessageRequest) {
+      //   try {
+      //     await SendExternalWhatsAppMessage({
+      //       fromNumber: failedRequest.fromNumber,
+      //       toNumber: failedRequest.toNumber,
+      //       message: failedRequest.message,
+      //       registerInDb: failedRequest
+      //     });
+      //     await new Promise(resolve => setTimeout(resolve, 1500));
+      //   } catch (error) {}
+      // }
     }
   } catch (err) {
     logger.error(err);
