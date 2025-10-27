@@ -374,39 +374,39 @@ const verifyQueue = async (
       ticketId: ticket.id
     });
 
-    let body: string;
+    // let body: string;
 
-    if (queues[0].greetingMessage || queues[0].chatbotOptions?.length > 0) {
-      if (queues[0].chatbotOptions?.length > 0) {
-        let options = "";
+    // if (queues[0].greetingMessage || queues[0].chatbotOptions?.length > 0) {
+    //   if (queues[0].chatbotOptions?.length > 0) {
+    //     let options = "";
 
-        queues[0].chatbotOptions.forEach((chatbotOption, index) => {
-          options += `*${chatbotOption.id}* - ${chatbotOption.name}\n`;
-        });
+    //     queues[0].chatbotOptions.forEach((chatbotOption, index) => {
+    //       options += `*${chatbotOption.id}* - ${chatbotOption.name}\n`;
+    //     });
 
-        body = formatBody(
-          `\u200e${queues[0].greetingMessage}\n${options}`,
-          contact
-        );
-      } else {
-        body = formatBody(`\u200e${queues[0].greetingMessage}`, contact);
-      }
+    //     body = formatBody(
+    //       `\u200e${queues[0].greetingMessage}\n${options}`,
+    //       contact
+    //     );
+    //   } else {
+    //     body = formatBody(`\u200e${queues[0].greetingMessage}`, contact);
+    //   }
 
-      const debouncedSentMessage = debounce(
-        async () => {
-          const sentMessage = await wbot.sendMessage(
-            `${contact.number}@c.us`,
-            body
-          );
+    //   const debouncedSentMessage = debounce(
+    //     async () => {
+    //       const sentMessage = await wbot.sendMessage(
+    //         `${contact.number}@c.us`,
+    //         body
+    //       );
 
-          await verifyMessage({ msg: sentMessage, ticket, contact });
-        },
-        3000,
-        ticket.id
-      );
+    //       await verifyMessage({ msg: sentMessage, ticket, contact });
+    //     },
+    //     3000,
+    //     ticket.id
+    //   );
 
-      debouncedSentMessage();
-    }
+    //   debouncedSentMessage();
+    // }
 
     if (queues[0].automaticAssignment && queues[0].users.length > 0) {
       // console.log("se asigna automaticamente");
