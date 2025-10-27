@@ -192,7 +192,7 @@ export const updateOnWpp = async (
   const { messageId } = req.params;
   const { body } = req.body;
 
-  console.log("--- updateOnWpp", messageId, body);
+  // console.log("--- updateOnWpp", messageId, body);
 
   try {
     const message = await Message.findByPk(messageId, {

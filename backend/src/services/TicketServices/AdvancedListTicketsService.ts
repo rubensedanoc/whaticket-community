@@ -417,7 +417,7 @@ const AdvancedListTicketsService = async (
   request: Request
 ): Promise<Response> => {
 
-  console.log(" --- AdvancedListTicketsService --- ", request);
+  // console.log(" --- AdvancedListTicketsService --- ", request);
 
 
   const { pageNumber = "1" } = request;

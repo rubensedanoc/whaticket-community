@@ -41,7 +41,7 @@ const CreateMessageService = async ({
     // Crear el mensaje
     await Message.create(messageData);
   } catch (error) {
-    console.log("---- Error al crear el mensaje", error);
+    // console.log("---- Error al crear el mensaje", error);
 
     // Esperar 200 ms antes de reintentar
     await new Promise(resolve => setTimeout(resolve, 200));

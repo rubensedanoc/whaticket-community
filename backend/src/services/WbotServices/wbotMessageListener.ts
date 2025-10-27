@@ -1509,14 +1509,14 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     }
   })
   wbot.on("message_edit", async (msg, newBody, prevBody) => {
-    console.log(
-      "--- BOT wbotMessageListener message_edit - wbot.id: ",
-      wbot.id,
-      msg?.id.id,
-      prevBody,
-      newBody,
-      (Date.now() / 1000) | 0
-    );
+    // console.log(
+    //   "--- BOT wbotMessageListener message_edit - wbot.id: ",
+    //   wbot.id,
+    //   msg?.id.id,
+    //   prevBody,
+    //   newBody,
+    //   (Date.now() / 1000) | 0
+    // );
 
     try {
       let msgContact: WbotContact;

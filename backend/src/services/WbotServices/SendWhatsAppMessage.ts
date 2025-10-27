@@ -25,7 +25,7 @@ const SendWhatsAppMessage = async ({
 
     if (quotedMsg) {
       let originalQuotedMsg: Message | null = null;
-      console.log("--- quotedMsg: ", quotedMsg);
+      // console.log("--- quotedMsg: ", quotedMsg);
 
       if (quotedMsg.isDuplicated) {
         originalQuotedMsg = await Message.findOne({
