@@ -492,6 +492,7 @@ export const getWbot = (whatsappId: number): Session => {
   const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
 
   if (sessionIndex === -1) {
+    console.log("sessions not found for whatsappId", whatsappId, sessions);
     throw new AppError("ERR_WAPP_NOT_INITIALIZED");
   }
   return sessions[sessionIndex];
