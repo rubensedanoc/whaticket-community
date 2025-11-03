@@ -39,6 +39,7 @@ import utc from "dayjs/plugin/utc";
 import Country from "../models/Country";
 import WhatsappCountry from "../models/WhatsappCountry";
 import Queue from "../models/Queue";
+import { addMessageToQueue } from "../services/WbotServices/SendExternalWhatsAppMessageV2";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -83,6 +84,22 @@ export const sendMessage = async (
     toNumber,
     message,
     createRegisterInDb: true
+  });
+
+  return res.status(200).json(sendExternalWhatsAppMessage);
+};
+
+export const sendMessageV2 = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { fromNumber, toNumber, message, mediaUrl } = req.body;
+
+  const sendExternalWhatsAppMessage = await addMessageToQueue({
+    fromNumber,
+    toNumber,
+    message,
+    mediaUrl
   });
 
   return res.status(200).json(sendExternalWhatsAppMessage);
