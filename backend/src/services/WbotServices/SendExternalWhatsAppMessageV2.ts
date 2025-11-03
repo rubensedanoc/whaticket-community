@@ -60,6 +60,7 @@ const processQueue = async () => {
 
       message.sendMessageRequest.status = 'sent';
     } catch (error) {
+      console.log('Error sending message from queue:', error);
       message.sendMessageRequest.status = 'failed';
     }
 
