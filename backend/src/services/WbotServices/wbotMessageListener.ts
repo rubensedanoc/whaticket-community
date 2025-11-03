@@ -609,6 +609,7 @@ const verifyQueue = async (
 
 const isValidMsg = (msg: WbotMessage): boolean => {
   if (msg.from === "status@broadcast") return false;
+  if (msg.body.length > 5000) return false;
   if (
     msg.type === "chat" ||
     msg.type === "audio" ||
