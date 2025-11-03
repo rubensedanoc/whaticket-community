@@ -10,6 +10,8 @@ externalRoutes.post(
 
 externalRoutes.post("/sendMessage", ExternalApiController.sendMessage);
 
+externalRoutes.post("/sendMessageV2", ExternalApiController.sendMessageV2);
+
 externalRoutes.post(
   "/sendMakeMessaginCampaign",
   ExternalApiController.sendMakeMessaginCampaign
