@@ -384,12 +384,12 @@ const TicketsManager = () => {
   }, [searchParam]);
 
   useEffect(() => {
-      const notificationsInterval = setInterval(async () => {
-        const notificationsCount = await api.get("/notifications/getNotificationsCountForUser")
+      // const notificationsInterval = setInterval(async () => {
+      //   const notificationsCount = await api.get("/notifications/getNotificationsCountForUser")
 
-        setNotificationsCount(notificationsCount.data.count);
-      }, 10000);
-      return () => clearInterval(notificationsInterval);
+      //   setNotificationsCount(notificationsCount.data.count);
+      // }, 10000);
+      // return () => clearInterval(notificationsInterval);
     }, [whatsApps]);
 
   let searchTimeout;
@@ -827,7 +827,7 @@ const TicketsManager = () => {
                 justifyContent: "center",
               }}
             >
-              <TicketsCountChips
+              {/* <TicketsCountChips
                 status="open"
                 searchParam={searchParam}
                 selectedTypeIds={typeIdsForGroups}
@@ -927,7 +927,7 @@ const TicketsManager = () => {
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 clientelicenciaEtapaIds={altaChipValueId}
                 onClick={() => {onSelectTicketsCountChips(5)}}
-              />
+              /> */}
               {/* <TicketsCountChips
                 status="open"
                 searchParam={searchParam}
