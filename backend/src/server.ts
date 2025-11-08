@@ -28,61 +28,61 @@ StartAllWhatsAppsSessions();
 gracefulShutdown(server);
 
 // every hour/2 of the day
-cron.schedule("*/30 * * * *", async () => {
-  logger.info("--- searchForUnSaveMessages CRON: ");
+// cron.schedule("*/30 * * * *", async () => {
+//   logger.info("--- searchForUnSaveMessages CRON: ");
 
-  try {
-    let whatsapps = await ListWhatsAppsService();
+//   try {
+//     let whatsapps = await ListWhatsAppsService();
 
-    // whatsapps = whatsapps.filter(whatsapp => whatsapp.id === 24);
+//     // whatsapps = whatsapps.filter(whatsapp => whatsapp.id === 24);
 
-    whatsapps = whatsapps.filter(whatsapp => whatsapp.status === "CONNECTED");
+//     whatsapps = whatsapps.filter(whatsapp => whatsapp.status === "CONNECTED");
 
-    // console.log(
-    //   "whatsapps",
-    //   whatsapps.map(whatsapp => whatsapp.id)
-    // );
+//     // console.log(
+//     //   "whatsapps",
+//     //   whatsapps.map(whatsapp => whatsapp.id)
+//     // );
 
-    whatsapps.forEach(async whatsapp => {
-      const wbot = getWbot(whatsapp.id);
+//     whatsapps.forEach(async whatsapp => {
+//       const wbot = getWbot(whatsapp.id);
 
-      const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
-        wbot,
-        whatsapp,
-        timeIntervalInHours: 6
-      });
+//       const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+//         wbot,
+//         whatsapp,
+//         timeIntervalInHours: 6
+//       });
 
-      console.log(
-        "--- searchForUnSaveMessagesResult: ",
-        searchForUnSaveMessagesResult
-      );
+//       console.log(
+//         "--- searchForUnSaveMessagesResult: ",
+//         searchForUnSaveMessagesResult
+//       );
 
-      if (searchForUnSaveMessagesResult.messagesCount) {
-        // fetch(
-        //   "http://microservices.restaurant.pe/chat/public/rest/common/sendWhatAppMessage",
-        //   {
-        //     method: "POST",
-        //     headers: {
-        //       "Content-Type": "application/json"
-        //     },
-        //     body: JSON.stringify({
-        //       telefono: "51987918828",
-        //       texto: `--- searchForUnSaveMessagesResult: ${JSON.stringify(
-        //         searchForUnSaveMessagesResult,
-        //         null,
-        //         2
-        //       )}`,
-        //       type: "text"
-        //     })
-        //   }
-        // );
-      }
-    });
-  } catch (err) {
-    Sentry.captureException(err);
-    logger.error(err);
-  }
-});
+//       if (searchForUnSaveMessagesResult.messagesCount) {
+//         // fetch(
+//         //   "http://microservices.restaurant.pe/chat/public/rest/common/sendWhatAppMessage",
+//         //   {
+//         //     method: "POST",
+//         //     headers: {
+//         //       "Content-Type": "application/json"
+//         //     },
+//         //     body: JSON.stringify({
+//         //       telefono: "51987918828",
+//         //       texto: `--- searchForUnSaveMessagesResult: ${JSON.stringify(
+//         //         searchForUnSaveMessagesResult,
+//         //         null,
+//         //         2
+//         //       )}`,
+//         //       type: "text"
+//         //     })
+//         //   }
+//         // );
+//       }
+//     });
+//   } catch (err) {
+//     Sentry.captureException(err);
+//     logger.error(err);
+//   }
+// });
 
 // every 20 min of every hour of the day
 cron.schedule("*/20 * * * *", async () => {
