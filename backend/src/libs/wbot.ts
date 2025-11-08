@@ -6,7 +6,6 @@ import {
   LocalAuth,
   Message as WbotMessage
 } from "whatsapp-web.js";
-import AppError from "../errors/AppError";
 import Contact from "../models/Contact";
 import Message from "../models/Message";
 import Ticket from "../models/Ticket";
@@ -17,6 +16,7 @@ import {
 } from "../services/WbotServices/wbotMessageListener";
 import { logger } from "../utils/logger";
 import { emitEvent } from "./emitEvent";
+import AppError from "../errors/AppError";
 
 interface Session extends Client {
   id?: number;
@@ -447,38 +447,38 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
         wbot.sendPresenceAvailable();
 
-        const allWhatsappTickets = await Ticket.findAll({
-          attributes: ["id", "contactId"],
-          where: {
-            whatsappId: whatsapp.id
-          },
-          order: [["createdAt", "DESC"]],
-          include: [
-            {
-              model: Message,
-              as: "messages",
-              attributes: ["id", "body", "timestamp"],
-              order: [["timestamp", "DESC"]],
-              required: false,
-              limit: 1
-            }
-          ]
-        });
+        // const allWhatsappTickets = await Ticket.findAll({
+        //   attributes: ["id", "contactId"],
+        //   where: {
+        //     whatsappId: whatsapp.id
+        //   },
+        //   order: [["createdAt", "DESC"]],
+        //   include: [
+        //     {
+        //       model: Message,
+        //       as: "messages",
+        //       attributes: ["id", "body", "timestamp"],
+        //       order: [["timestamp", "DESC"]],
+        //       required: false,
+        //       limit: 1
+        //     }
+        //   ]
+        // });
 
-        try {
-          const syncUnreadMessagesResult = await syncUnreadMessages({
-            wbot,
-            allWhatsappTickets,
-            whatsapp
-          });
+        // try {
+        //   const syncUnreadMessagesResult = await syncUnreadMessages({
+        //     wbot,
+        //     allWhatsappTickets,
+        //     whatsapp
+        //   });
 
-          console.log(
-            "--- syncUnreadMessagesResult: ",
-            syncUnreadMessagesResult
-          );
-        } catch (error) {
-          console.log("--- error on syncUnreadMessages: ", error);
-        }
+        //   console.log(
+        //     "--- syncUnreadMessagesResult: ",
+        //     syncUnreadMessagesResult
+        //   );
+        // } catch (error) {
+        //   console.log("--- error on syncUnreadMessages: ", error);
+        // }
 
         resolve(wbot);
       });
