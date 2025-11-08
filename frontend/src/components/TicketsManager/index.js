@@ -1627,7 +1627,7 @@ const TicketsManager = () => {
                   justifyContent: "center",
                 }}
               >
-                <TicketsCountChips
+                {/* <TicketsCountChips
                   status="open"
                   searchParam={searchParam}
                   selectedTypeIds={typeIdsForGroups}
@@ -1730,7 +1730,7 @@ const TicketsManager = () => {
                   selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                   clientelicenciaEtapaIds={altaChipValueId}
                   onClick={() => {onSelectTicketsCountChips(5)}}
-                />
+                /> */}
                 {/* <TicketsCountChips
                   status="open"
                   searchParam={searchParam}
