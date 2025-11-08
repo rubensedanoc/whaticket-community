@@ -2096,7 +2096,7 @@ const TicketsManager = () => {
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
               /> */}
 
-              <TicketsList
+              {/* <TicketsList
                 status="closed"
                 searchParam={searchParam}
                 selectedTypeIds={typeIdsForAll}
@@ -2107,7 +2107,7 @@ const TicketsManager = () => {
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}
                 showOnlyMyGroups={false}
-              />
+              /> */}
 
             </div>
           </Paper>
