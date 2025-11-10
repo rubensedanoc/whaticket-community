@@ -448,6 +448,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         wbot.sendPresenceAvailable();
 
         try {
+
+          logger.info(`Session: ${sessionName} searchForUnSaveMessages`);
+
           const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
             wbot,
             whatsapp,
@@ -456,11 +459,11 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           });
 
           console.log(
-            "--- syncUnreadMessagesResult: ",
+            `Session: ${sessionName} syncUnreadMessagesResult: `,
             searchForUnSaveMessagesResult
           );
         } catch (error) {
-          console.log("--- error on syncUnreadMessages: ", error);
+          console.log(`Session: ${sessionName} error on syncUnreadMessages: `, error);
         }
 
         resolve(wbot);
