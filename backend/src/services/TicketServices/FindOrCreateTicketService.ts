@@ -388,9 +388,9 @@ const findTicket = async ({
           );
         }
       } else {
-        console.log(
-          "xxx Ticket antiguo no tiene chatbotMessageIdentifier o ya ha tenido usuario se va a usar el validTime de 2 horas"
-        );
+        // console.log(
+        //   "xxx Ticket antiguo no tiene chatbotMessageIdentifier o ya ha tenido usuario se va a usar el validTime de 2 horas"
+        // );
       }
 
       if (new Date(ticket.updatedAt) < validTime) {

@@ -28,61 +28,33 @@ StartAllWhatsAppsSessions();
 gracefulShutdown(server);
 
 // every hour/2 of the day
-// cron.schedule("*/30 * * * *", async () => {
-//   logger.info("--- searchForUnSaveMessages CRON: ");
+cron.schedule("*/30 * * * *", async () => {
+  logger.info("--- searchForUnSaveMessages CRON: ");
 
-//   try {
-//     let whatsapps = await ListWhatsAppsService();
+  try {
+    let whatsapps = await ListWhatsAppsService();
 
-//     // whatsapps = whatsapps.filter(whatsapp => whatsapp.id === 24);
+    whatsapps = whatsapps.filter(whatsapp => whatsapp.status === "CONNECTED");
 
-//     whatsapps = whatsapps.filter(whatsapp => whatsapp.status === "CONNECTED");
+    whatsapps.forEach(async whatsapp => {
+      const wbot = getWbot(whatsapp.id);
 
-//     // console.log(
-//     //   "whatsapps",
-//     //   whatsapps.map(whatsapp => whatsapp.id)
-//     // );
+      const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+        wbot,
+        whatsapp,
+        timeIntervalInHours: 3
+      });
 
-//     whatsapps.forEach(async whatsapp => {
-//       const wbot = getWbot(whatsapp.id);
-
-//       const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
-//         wbot,
-//         whatsapp,
-//         timeIntervalInHours: 6
-//       });
-
-//       console.log(
-//         "--- searchForUnSaveMessagesResult: ",
-//         searchForUnSaveMessagesResult
-//       );
-
-//       if (searchForUnSaveMessagesResult.messagesCount) {
-//         // fetch(
-//         //   "http://microservices.restaurant.pe/chat/public/rest/common/sendWhatAppMessage",
-//         //   {
-//         //     method: "POST",
-//         //     headers: {
-//         //       "Content-Type": "application/json"
-//         //     },
-//         //     body: JSON.stringify({
-//         //       telefono: "51987918828",
-//         //       texto: `--- searchForUnSaveMessagesResult: ${JSON.stringify(
-//         //         searchForUnSaveMessagesResult,
-//         //         null,
-//         //         2
-//         //       )}`,
-//         //       type: "text"
-//         //     })
-//         //   }
-//         // );
-//       }
-//     });
-//   } catch (err) {
-//     Sentry.captureException(err);
-//     logger.error(err);
-//   }
-// });
+      console.log(
+        "--- searchForUnSaveMessagesResult: ",
+        searchForUnSaveMessagesResult
+      );
+    });
+  } catch (err) {
+    Sentry.captureException(err);
+    logger.error(err);
+  }
+});
 
 // every 20 min of every hour of the day
 cron.schedule("*/20 * * * *", async () => {
@@ -221,12 +193,12 @@ cron.schedule("*/20 * * * *", async () => {
                   ticketId: ticket.id
                 });
 
-                console.log("categorizeTicketsWithAI", {
-                  ticketId: ticket.id,
-                  categoriaId: AICategory,
-                  mensajes: messagesToSend.join(" "),
-                  categories: categoriesForEvaluate.join(" ")
-                });
+                // console.log("categorizeTicketsWithAI", {
+                //   ticketId: ticket.id,
+                //   categoriaId: AICategory,
+                //   mensajes: messagesToSend.join(" "),
+                //   categories: categoriesForEvaluate.join(" ")
+                // });
 
                 // Sentry.captureMessage(
                 //   `ticketId: ${
@@ -366,8 +338,8 @@ cron.schedule('0 * * * *', async () => {
     });
 
 
-    console.log("------ searchForImplementationAreaGroupsTickets groups length: ", ticketsToReview.length);
-    console.log("------ searchForImplementationAreaGroupsTickets groups: ", ticketsToReview.map(ticket => ticket.id));
+    // console.log("------ searchForImplementationAreaGroupsTickets groups length: ", ticketsToReview.length);
+    // console.log("------ searchForImplementationAreaGroupsTickets groups: ", ticketsToReview.map(ticket => ticket.id));
 
     ticketsToReview = ticketsToReview.filter(ticket => {
       let shoudBeEvaluatedByAI = false;
@@ -405,8 +377,8 @@ cron.schedule('0 * * * *', async () => {
       return aLatestReview.getTime() - bLatestReview.getTime();
     });
 
-    console.log("------ searchForImplementationAreaGroupsTickets filter groups length: ", ticketsToReview.length);
-    console.log("------ searchForImplementationAreaGroupsTickets filter groups: ", ticketsToReview.map(ticket => ticket.id));
+    // console.log("------ searchForImplementationAreaGroupsTickets filter groups length: ", ticketsToReview.length);
+    // console.log("------ searchForImplementationAreaGroupsTickets filter groups: ", ticketsToReview.map(ticket => ticket.id));
 
     for (const ticket of ticketsToReview) {
 

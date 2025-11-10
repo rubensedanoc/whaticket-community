@@ -491,7 +491,7 @@ export const ShowParticipants = async (
 
   if (chatParticipantsThatAreNotContacts.length) {
     for (const participant of chatParticipantsThatAreNotContacts) {
-      console.log("participant", participant);
+      // console.log("participant", participant);
       const newContact = await wbot.getContactById(participant.id._serialized);
       await verifyContact(newContact);
     }

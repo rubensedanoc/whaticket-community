@@ -75,24 +75,24 @@ const buildSpecialWhereCondition = ({
   showAll
 }: Request): Filterable["where"] => {
 
-  console.log({
-    userId,
-    searchParam,
-    status,
-    date,
-    withUnreadMessages,
-    whatsappIds,
-    queueIds,
-    marketingCampaignIds,
-    typeIds,
-    showOnlyMyGroups,
-    categoryId,
-    userWhatsappsId,
-    showOnlyWaitingTickets,
-    clientelicenciaEtapaIds,
-    ticketGroupType,
-    showAll
-  });
+  // console.log({
+  //   userId,
+  //   searchParam,
+  //   status,
+  //   date,
+  //   withUnreadMessages,
+  //   whatsappIds,
+  //   queueIds,
+  //   marketingCampaignIds,
+  //   typeIds,
+  //   showOnlyMyGroups,
+  //   categoryId,
+  //   userWhatsappsId,
+  //   showOnlyWaitingTickets,
+  //   clientelicenciaEtapaIds,
+  //   ticketGroupType,
+  //   showAll
+  // });
 
   let finalCondition: Filterable["where"] = { [Op.and]: [] }; // Inicializamos con Op.and para combinar fácilmente
 
