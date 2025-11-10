@@ -49,7 +49,7 @@ const SearchTicketForAMessageService = async (props: {
         where: {
           isPrivate: false
         },
-        required: false
+        required: true
       }
     ]
   });

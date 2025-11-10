@@ -21,50 +21,47 @@ interface MessageData {
 }
 interface Request {
   messageData: MessageData;
+  ticket: Ticket;
 }
 
 const CreateMessageService = async ({
-  messageData
+  messageData,
+  ticket
 }: Request): Promise<Message> => {
   // Guardar una copia del ID original
   const originalId = messageData.id;
 
   try {
-    let messageAlreadyCreated = await Message.findByPk(originalId);
-
-    if (messageAlreadyCreated) {
-      // Generar un nuevo ID y marcar como duplicado si ya existe
-      messageData.id = uuidv4();
-      messageData.isDuplicated = true;
-    }
 
     // Crear el mensaje
     await Message.create(messageData);
+
   } catch (error) {
-    // console.log("---- Error al crear el mensaje", error);
 
-    // Esperar 200 ms antes de reintentar
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Si la creacion del mensaje falla, esperar y reintentar
+    // SOLO SI EL TICKET ES GRUPAL
+    if (ticket?.isGroup) {
 
-    console.log("---- Reintentando otra vez vez con el id original");
+      // Esperar 200 ms antes de reintentar
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Verificar nuevamente con el ID original
-    let messageAlreadyCreated2 = await Message.findByPk(originalId);
+      // Verificar nuevamente con el ID original
+      let messageAlreadyCreated2 = await Message.findByPk(originalId);
 
-    if (messageAlreadyCreated2) {
-      // Generar un nuevo ID y marcar como duplicado si ya existe
-      console.log(
-        "---- El mensaje ya existe, generando un nuevo ID y marcando como duplicado"
-      );
-      messageData.id = uuidv4();
-      messageData.isDuplicated = true;
+      if (messageAlreadyCreated2) {
+        // Generar un nuevo ID y marcar como duplicado si ya existe
+        messageData.id = uuidv4();
+        messageData.isDuplicated = true;
+      } else {
+      }
+
+      // Reintentar la creación del mensaje
+      await Message.create(messageData);
+
     } else {
-      console.log("---- El mensaje no existe");
+      throw new Error("ERR_CREATING_MESSAGE");
     }
 
-    // Reintentar la creación del mensaje
-    console.log("--- Reintentar Creando el mensaje");
-    await Message.create(messageData);
   }
 
   // Recuperar el mensaje creado

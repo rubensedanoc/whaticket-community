@@ -234,9 +234,11 @@ export const verifyMediaMessage = async (
     };
 
     if (updateTicketLastMessage) {
-      await ticket.update({ lastMessage: msg.body || media.filename });
+      if (ticket.lastMessageTimestamp < msg.timestamp) {
+        await ticket.update({ lastMessage: msg.body || media.filename });
+      }
     }
-    const newMessage = await CreateMessageService({ messageData });
+    const newMessage = await CreateMessageService({ messageData, ticket });
 
     return newMessage;
   } else {
@@ -256,10 +258,12 @@ export const verifyMediaMessage = async (
     };
 
     if (updateTicketLastMessage) {
-      await ticket.update({ lastMessage: messageData.body });
+      if (ticket.lastMessageTimestamp < msg.timestamp) {
+        await ticket.update({ lastMessage: messageData.body });
+      }
     }
 
-    const newMessage = await CreateMessageService({ messageData });
+    const newMessage = await CreateMessageService({ messageData, ticket });
 
     return newMessage;
   }
@@ -308,21 +312,21 @@ export const verifyMessage = async ({
     // temporaryly disable ts checks because of type definition bug for Location object
     // @ts-ignore
     await ticket.update({
-      lastMessage:
-        msg.type === "location"
-          ? // @ts-ignore
-            msg.location.description
-            ? // @ts-ignore
-              "Localization - " + msg.location.description.split("\\n")[0]
-            : "Localization"
-          : msg.body,
-      ...(msg.fromMe &&
-        !isPrivate &&
-        shouldUpdateUserHadContact && { userHadContact: true })
+      ...(ticket.lastMessageTimestamp < msg.timestamp && {
+          lastMessage:
+            msg.type === "location"
+              ? // @ts-ignore
+                msg.location.description
+                ? // @ts-ignore
+                  "Localization - " + msg.location.description.split("\\n")[0]
+                : "Localization"
+              : msg.body
+      }),
+      ...(msg.fromMe && !isPrivate && shouldUpdateUserHadContact && { userHadContact: true })
     });
   }
 
-  return await CreateMessageService({ messageData });
+  return await CreateMessageService({ messageData, ticket });
 };
 
 /**
@@ -629,14 +633,11 @@ const isValidMsg = (msg: WbotMessage): boolean => {
 const handleMessage = async ({
   msg,
   wbot,
-  syncUnreadMessagesProccess = false,
-  searchForUnSaveMessages = false
 }: {
   msg: WbotMessage;
   wbot: Session;
-  syncUnreadMessagesProccess?: boolean;
-  searchForUnSaveMessages?: boolean;
 }): Promise<void> => {
+
   if (!isValidMsg(msg)) {
     return;
   }
@@ -719,17 +720,17 @@ const handleMessage = async ({
 
     let ticket: Ticket | null;
 
-    if (searchForUnSaveMessages) {
-      ticket = await SearchTicketForAMessageService({
-        contactId: groupContact ? groupContact.id : contact.id,
-        whatsappId: whatsapp.id,
-        message: msg
-      });
-    }
+    // Validamos primero si el mensaje puede pertenecer a un ticket ya existente
+    // para no reabirlo ni nada de eso
+    ticket = await SearchTicketForAMessageService({
+      contactId: groupContact ? groupContact.id : contact.id,
+      whatsappId: whatsapp.id,
+      message: msg
+    });
 
+    // si no tenemos ticket, buscamos ahora lo manejamos tradicionalmente
+    // buscando el ultimo ticket abierto del contacto o grupoContacto
     if (!ticket) {
-      // find, create or update a ticket from the contact or groupContact and from whatsappId
-      // always update the ticket unreadMessages
       ticket = await FindOrCreateTicketService({
         contact,
         whatsappId: whatsapp.id,
@@ -752,13 +753,11 @@ const handleMessage = async ({
     // the message ticket has no queue or category,
     // has no user, and the conection has min 1 queues,
     // we considered it as a intro message from a contact, and whe send it a messages to choose a queue and a category
-
     if (
       !ticket.userHadContact &&
       !chat.isGroup &&
       !msg.fromMe &&
-      whatsapp.queues.length >= 1 &&
-      !syncUnreadMessagesProccess
+      whatsapp.queues.length >= 1
     ) {
       if (!ticket.queue) {
         await verifyQueue(wbot, msg, ticket, contact);
@@ -1119,9 +1118,6 @@ const handleMessage = async ({
             dataToSendToTrazabilidad.paisIsocode = "MU";
           }
 
-          console.log("---- handleMessage - dataToSendToTrazabilidad: ", dataToSendToTrazabilidad);
-
-
           const newTrazaLeadRequest = await fetch(
             "https://web.restaurant.pe/trazabilidad/public/rest/cliente/webHookQuiPuposWebLead",
             // "http://localhost/trazabilidadrestaurant/public/rest/cliente/webHookQuiPuposWebLead",
@@ -1477,11 +1473,11 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     }
   });
   wbot.on("group_join", async notification => {
-    console.log(
-      "--- BOT wbotMessageListener group_join - wbot.id: ",
-      wbot.id,
-      notification
-    );
+    // console.log(
+    //   "--- BOT wbotMessageListener group_join - wbot.id: ",
+    //   wbot.id,
+    //   notification
+    // );
 
     try {
       const wbotGroupContact = await wbot.getContactById(notification.chatId)
@@ -1563,10 +1559,10 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
         ]
       });
 
-      console.log("messages: ", JSON.stringify(messages));
+      // console.log("messages: ", JSON.stringify(messages));
 
       if (!messages.length) {
-        console.log("No message found with this ID. " + msg.id.id);
+        // console.log("No message found with this ID. " + msg.id.id);
         return;
       }
 

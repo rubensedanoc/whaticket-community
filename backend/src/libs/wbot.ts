@@ -1,5 +1,5 @@
 import qrCode from "qrcode-terminal";
-import { Op } from "sequelize";
+import { literal, Op } from "sequelize";
 import {
   Chat,
   Client,
@@ -50,130 +50,130 @@ const fetchWbotMessagesGraduallyUpToATimestamp = async ({
   return chatMessages.filter(msg => msg.timestamp > timestamp);
 };
 
-const syncUnreadMessages = async ({
-  wbot,
-  allWhatsappTickets,
-  whatsapp
-}: {
-  wbot: Session;
-  allWhatsappTickets: Ticket[];
-  whatsapp: Whatsapp;
-}) => {
-  const response: {
-    logs: any[];
-    error: any;
-  } = {
-    logs: [`START searchForUnSaveMessages - wpp: ${whatsapp.name}`],
-    error: null
-  };
+// const syncUnreadMessages = async ({
+//   wbot,
+//   allWhatsappTickets,
+//   whatsapp
+// }: {
+//   wbot: Session;
+//   allWhatsappTickets: Ticket[];
+//   whatsapp: Whatsapp;
+// }) => {
+//   const response: {
+//     logs: any[];
+//     error: any;
+//   } = {
+//     logs: [`START searchForUnSaveMessages - wpp: ${whatsapp.name}`],
+//     error: null
+//   };
 
-  try {
-    emitEvent({
-      event: {
-        name: "startSyncUnreadMessages",
-        data: { connectionName: whatsapp.name }
-      }
-    });
+//   try {
+//     emitEvent({
+//       event: {
+//         name: "startSyncUnreadMessages",
+//         data: { connectionName: whatsapp.name }
+//       }
+//     });
 
-    response.logs.push(`START - wbot.getChats ${Date.now()}`);
+//     response.logs.push(`START - wbot.getChats ${Date.now()}`);
 
-    let chats = await wbot.getChats();
+//     let chats = await wbot.getChats();
 
-    response.logs.push(`END - wbot.getChats ${Date.now()}`);
+//     response.logs.push(`END - wbot.getChats ${Date.now()}`);
 
-    // filter chats with last message in the last 72 hours
-    let last8HoursChats = chats.filter(chat =>
-      chat.lastMessage
-        ? chat.lastMessage.timestamp > Date.now() / 1000 - 60 * 60 * 72 // 72 hours in seconds
-        : false
-    );
+//     // filter chats with last message in the last 72 hours
+//     let last8HoursChats = chats.filter(chat =>
+//       chat.lastMessage
+//         ? chat.lastMessage.timestamp > Date.now() / 1000 - 60 * 60 * 72 // 72 hours in seconds
+//         : false
+//     );
 
-    response.logs.push(`last40HoursChats ...`);
-    response.logs.push(last8HoursChats.map(chat => chat.name));
+//     response.logs.push(`last40HoursChats ...`);
+//     response.logs.push(last8HoursChats.map(chat => chat.name));
 
-    response.logs.push(`START - evaluteChats ${Date.now()}`);
-    await Promise.all(
-      last8HoursChats.map(async chat => {
-        try {
-          const chatContact = await Contact.findOne({
-            where: {
-              number: chat.id.user
-            }
-          });
+//     response.logs.push(`START - evaluteChats ${Date.now()}`);
+//     await Promise.all(
+//       last8HoursChats.map(async chat => {
+//         try {
+//           const chatContact = await Contact.findOne({
+//             where: {
+//               number: chat.id.user
+//             }
+//           });
 
-          const lastTicketForThisChat = allWhatsappTickets.find(t => {
-            return t.contactId === chatContact?.id;
-          });
+//           const lastTicketForThisChat = allWhatsappTickets.find(t => {
+//             return t.contactId === chatContact?.id;
+//           });
 
-          let timestampUpToFetchMessages = Date.now() / 1000 - 60 * 60 * 72; // 72 hours in seconds
+//           let timestampUpToFetchMessages = Date.now() / 1000 - 60 * 60 * 72; // 72 hours in seconds
 
-          if (
-            lastTicketForThisChat &&
-            lastTicketForThisChat.messages.length > 0 &&
-            lastTicketForThisChat.messages[0].timestamp
-          ) {
-            timestampUpToFetchMessages =
-              lastTicketForThisChat.messages[0].timestamp;
-          }
+//           if (
+//             lastTicketForThisChat &&
+//             lastTicketForThisChat.messages.length > 0 &&
+//             lastTicketForThisChat.messages[0].timestamp
+//           ) {
+//             timestampUpToFetchMessages =
+//               lastTicketForThisChat.messages[0].timestamp;
+//           }
 
-          let wppMessagesAfterLastMessageTimestamp =
-            await fetchWbotMessagesGraduallyUpToATimestamp({
-              limit: 20,
-              timestamp: timestampUpToFetchMessages,
-              wbotChat: chat
-            });
+//           let wppMessagesAfterLastMessageTimestamp =
+//             await fetchWbotMessagesGraduallyUpToATimestamp({
+//               limit: 20,
+//               timestamp: timestampUpToFetchMessages,
+//               wbotChat: chat
+//             });
 
-          wppMessagesAfterLastMessageTimestamp =
-            wppMessagesAfterLastMessageTimestamp.filter(msg => isValidMsg(msg));
+//           wppMessagesAfterLastMessageTimestamp =
+//             wppMessagesAfterLastMessageTimestamp.filter(msg => isValidMsg(msg));
 
-          if (wppMessagesAfterLastMessageTimestamp.length > 0) {
-            for (const msg of wppMessagesAfterLastMessageTimestamp) {
-              // console.log("msg", msg);
-              await handleMessage({ msg, wbot });
-            }
-          }
+//           if (wppMessagesAfterLastMessageTimestamp.length > 0) {
+//             for (const msg of wppMessagesAfterLastMessageTimestamp) {
+//               // console.log("msg", msg);
+//               await handleMessage({ msg, wbot });
+//             }
+//           }
 
-          // @ts-ignore
-          chat.myProperty_FoundMessages =
-            wppMessagesAfterLastMessageTimestamp.length;
-        } catch (error) {
-          response.logs.push(`ERROR - evaluteChats ${Date.now()}`);
-          response.logs.push(error);
-          response.error = error;
-        }
-      })
-    );
-    response.logs.push(`END - evaluteChats ${Date.now()}`);
+//           // @ts-ignore
+//           chat.myProperty_FoundMessages =
+//             wppMessagesAfterLastMessageTimestamp.length;
+//         } catch (error) {
+//           response.logs.push(`ERROR - evaluteChats ${Date.now()}`);
+//           response.logs.push(error);
+//           response.error = error;
+//         }
+//       })
+//     );
+//     response.logs.push(`END - evaluteChats ${Date.now()}`);
 
-    const messagesCount = last8HoursChats.reduce(
-      // @ts-ignore
-      (acc, chat) => acc + (chat.myProperty_FoundMessages || 0),
-      0
-    );
+//     const messagesCount = last8HoursChats.reduce(
+//       // @ts-ignore
+//       (acc, chat) => acc + (chat.myProperty_FoundMessages || 0),
+//       0
+//     );
 
-    response.logs.push(`messagesCount: ${messagesCount}`);
+//     response.logs.push(`messagesCount: ${messagesCount}`);
 
-    emitEvent({
-      event: {
-        name: "endSyncUnreadMessages",
-        data: {
-          connectionName: whatsapp.name,
-          messagesCount: last8HoursChats.reduce(
-            // @ts-ignore
-            (acc, chat) => acc + (chat.myProperty_FoundMessages || 0),
-            0
-          )
-        }
-      }
-    });
-  } catch (error) {
-    response.logs.push(`ERROR - ${Date.now()}`);
-    response.logs.push(error);
-    response.error = error;
-  }
+//     emitEvent({
+//       event: {
+//         name: "endSyncUnreadMessages",
+//         data: {
+//           connectionName: whatsapp.name,
+//           messagesCount: last8HoursChats.reduce(
+//             // @ts-ignore
+//             (acc, chat) => acc + (chat.myProperty_FoundMessages || 0),
+//             0
+//           )
+//         }
+//       }
+//     });
+//   } catch (error) {
+//     response.logs.push(`ERROR - ${Date.now()}`);
+//     response.logs.push(error);
+//     response.error = error;
+//   }
 
-  return response;
-};
+//   return response;
+// };
 
 export const searchForUnSaveMessages = async ({
   wbot,
@@ -217,7 +217,7 @@ export const searchForUnSaveMessages = async ({
     );
 
     response.logs.push(`last${timeIntervalInHours}HoursChats ...`);
-    response.logs.push(last8HoursChats.map(chat => chat.name));
+    // response.logs.push(last8HoursChats.map(chat => chat.name));
 
     response.logs.push(`START - evaluteChats ${Date.now()}`);
     await Promise.all(
@@ -255,7 +255,7 @@ export const searchForUnSaveMessages = async ({
               );
 
             for (const msg of wppMessagesFoundInTimeInterval) {
-              await handleMessage({ msg, wbot, searchForUnSaveMessages: true });
+              await handleMessage({ msg, wbot });
             }
           }
 
@@ -282,14 +282,14 @@ export const searchForUnSaveMessages = async ({
       (acc, chat) => acc + (chat.myProperty_FoundMessagesLength || 0),
       0
     );
-    const messages = last8HoursChats.reduce(
-      // @ts-ignore
-      (acc, chat) => acc.concat(chat.myProperty_FoundMessages || []),
-      []
-    );
+    // const messages = last8HoursChats.reduce(
+    //   // @ts-ignore
+    //   (acc, chat) => acc.concat(chat.myProperty_FoundMessages || []),
+    //   []
+    // );
 
     response.logs.push(`messagesCount: ${messagesCount} ...`);
-    response.logs.push(`messages: ${messages}`);
+    // response.logs.push(`messages: ${messages}`);
     response.messagesCount = messagesCount;
 
     emitEvent({
@@ -447,38 +447,24 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
         wbot.sendPresenceAvailable();
 
-        // const allWhatsappTickets = await Ticket.findAll({
-        //   attributes: ["id", "contactId"],
-        //   where: {
-        //     whatsappId: whatsapp.id
-        //   },
-        //   order: [["createdAt", "DESC"]],
-        //   include: [
-        //     {
-        //       model: Message,
-        //       as: "messages",
-        //       attributes: ["id", "body", "timestamp"],
-        //       order: [["timestamp", "DESC"]],
-        //       required: false,
-        //       limit: 1
-        //     }
-        //   ]
-        // });
+        try {
 
-        // try {
-        //   const syncUnreadMessagesResult = await syncUnreadMessages({
-        //     wbot,
-        //     allWhatsappTickets,
-        //     whatsapp
-        //   });
+          logger.info(`Session: ${sessionName} searchForUnSaveMessages`);
 
-        //   console.log(
-        //     "--- syncUnreadMessagesResult: ",
-        //     syncUnreadMessagesResult
-        //   );
-        // } catch (error) {
-        //   console.log("--- error on syncUnreadMessages: ", error);
-        // }
+          const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+            wbot,
+            whatsapp,
+            // timeIntervalInHours: 72
+            timeIntervalInHours: 24
+          });
+
+          console.log(
+            `Session: ${sessionName} syncUnreadMessagesResult: `,
+            searchForUnSaveMessagesResult
+          );
+        } catch (error) {
+          console.log(`Session: ${sessionName} error on syncUnreadMessages: `, error);
+        }
 
         resolve(wbot);
       });
