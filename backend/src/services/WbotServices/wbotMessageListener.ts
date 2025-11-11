@@ -234,7 +234,7 @@ export const verifyMediaMessage = async (
     };
 
     if (updateTicketLastMessage) {
-      if (ticket.lastMessageTimestamp < msg.timestamp) {
+      if ((ticket.lastMessageTimestamp || 0) < msg.timestamp) {
         await ticket.update({ lastMessage: msg.body || media.filename });
       }
     }
@@ -258,7 +258,7 @@ export const verifyMediaMessage = async (
     };
 
     if (updateTicketLastMessage) {
-      if (ticket.lastMessageTimestamp < msg.timestamp) {
+      if ((ticket.lastMessageTimestamp || 0) < msg.timestamp) {
         await ticket.update({ lastMessage: messageData.body });
       }
     }
@@ -312,7 +312,7 @@ export const verifyMessage = async ({
     // temporaryly disable ts checks because of type definition bug for Location object
     // @ts-ignore
     await ticket.update({
-      ...(ticket.lastMessageTimestamp < msg.timestamp && {
+      ...((ticket.lastMessageTimestamp || 0) < msg.timestamp && {
           lastMessage:
             msg.type === "location"
               ? // @ts-ignore
