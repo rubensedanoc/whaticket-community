@@ -170,11 +170,11 @@ const MainListItems = (props) => {
               />
             )}
 
-            <ListItemLink
+            {/* <ListItemLink
               to="/reportsv2"
               primary={"Reportes"}
               icon={<BarChartIcon />}
-            />
+            /> */}
 
             <ListItemLink
               to="/api-chatbot"
