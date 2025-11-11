@@ -49,7 +49,7 @@ const AskForParticipationTicketModal = ({ modalOpen, onClose, ticket }) => {
       const fetchUsers = async () => {
         try {
           const { data } = await api.get("/users/", {
-            params: { searchParam },
+            params: { searchParam, withPagination: false },
           });
           setOptions(data.users);
           setLoading(false);
