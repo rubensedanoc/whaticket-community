@@ -524,12 +524,12 @@ const TicketsManager = () => {
           {/* - Notifications */}
 
           {/* closed */}
-          <Tab
+          {/* <Tab
             value={"closed"}
             icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
             label={i18n.t("tickets.tabs.closed.title")}
             classes={{ root: classes.tab }}
-          />
+          /> */}
           {/* - closed */}
 
           {/* search */}
@@ -1463,7 +1463,7 @@ const TicketsManager = () => {
       {/* - INBOX TAB CONTENT  */}
 
       {/* closed TAB CONTENT */}
-      <TabPanel
+      {/* <TabPanel
         value={tab}
         name="closed"
         className={classes.ticketsWrapper}
@@ -1474,7 +1474,6 @@ const TicketsManager = () => {
         <TicketsList
           status="closed"
           searchParam={searchParam}
-          // showAll={true}
           selectedTypeIds={typeIdsForAll}
           selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}
@@ -1482,7 +1481,7 @@ const TicketsManager = () => {
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
         />
-      </TabPanel>
+      </TabPanel> */}
       {/* - closed TAB CONTENT */}
 
       {/* notifications TAB CONTENT */}
