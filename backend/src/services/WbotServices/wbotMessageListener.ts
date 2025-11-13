@@ -1328,7 +1328,7 @@ const handleMessage = async ({
     } */
   } catch (err) {
     logger.error(`Error handling whatsapp message: Err: ${err}`);
-    console.log(err);
+    console.log(err, msg, wbot.id);
     Sentry.captureException(err);
   }
 };

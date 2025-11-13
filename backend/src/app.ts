@@ -37,7 +37,9 @@ app.use(Sentry.Handlers.errorHandler());
 
 app.use(async (err: Error, req: Request, res: Response, _: NextFunction) => {
   if (err instanceof AppError) {
-    logger.warn(err);
+    if (err.message !== "Invalid token. We'll try to assign a new one on next request") {
+      logger.warn(err);
+    }
     return res
       .status(err.statusCode)
       .json({ error: err.message, logs: req.myLogData });
