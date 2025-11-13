@@ -11,6 +11,7 @@ import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
 import User from "../../models/User";
 import { emitEvent } from "../../libs/emitEvent";
+import { logger } from "../../utils/logger";
 
 /**
  * search for a existing "open" or "pending" ticket from the contact or groupContact and whatsappId
@@ -37,6 +38,7 @@ const FindOrCreateTicketService = async (props: {
   msgFromMe?: boolean;
   userId?: number;
   categoriesIds?: number[];
+  body?: string;
 }): Promise<Ticket> => {
   const {
     contact,
@@ -51,14 +53,26 @@ const FindOrCreateTicketService = async (props: {
     marketingMessagingCampaignId,
     marketingCampaignId,
     userId,
-    categoriesIds
+    categoriesIds,
+    body
   } = props;
 
-  let ticket = await findTicket(props);
+  const fatherlogs = [];
+
+  fatherlogs.push(`--- FindOrCreateTicketService - start --- contactId: ${contact.id}, whatsappId: ${whatsappId}, groupContactId: ${
+    groupContact ? groupContact.id : "N/A"
+  }, body: ${body ? body.substring(0, 30) : "N/A"}`)
+
+  let {ticket, logs} = await findTicket(props);
+
+  fatherlogs.push(...logs);
 
   // if ticket not exists, create a ticket from the contact or groupContact, with status pending, isGroup prop,
   // unreadMessages and from the whatsappId
   if (!ticket) {
+
+    fatherlogs.push(`--- Ticket not found, creating a new one ---`);
+
     try {
       ticket = await Ticket.create({
         contactId: groupContact ? groupContact.id : contact.id,
@@ -103,8 +117,14 @@ const FindOrCreateTicketService = async (props: {
 
       // find the ticket from the service ShowTicketService and return it
       ticket = await ShowTicketService(ticket.id);
+
+      if (!ticket.isGroup) {
+        logger.info(`--- Ticket created with id: ${ticket.id} ---`);
+        console.log(JSON.stringify(fatherlogs, null, 2));
+      }
     } catch (error) {
       console.log("--- Error en FindOrCreateTicketService", error);
+      fatherlogs.push(`--- Error creating ticket: ${error.message} ---`);
 
       // Esperar 200 ms antes de reintentar
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -113,9 +133,10 @@ const FindOrCreateTicketService = async (props: {
 
       Sentry.captureException(error);
 
-      ticket = await findTicket(props);
+      let {ticket, logs} = await findTicket(props);
 
       if (!ticket) {
+        fatherlogs.push(`--- Second attempt: Ticket not found, creating a new one ---`);
         ticket = await Ticket.create({
           contactId: groupContact ? groupContact.id : contact.id,
           status:
@@ -155,6 +176,11 @@ const FindOrCreateTicketService = async (props: {
 
         if (categoriesIds) {
           await ticket.$set("categories", categoriesIds);
+        }
+
+        if (!ticket.isGroup) {
+          logger.info(`--- Ticket created with id: ${ticket.id} ---`);
+          console.log(JSON.stringify(fatherlogs, null, 2));
         }
       }
 
@@ -197,6 +223,8 @@ const findTicket = async ({
   userId?: number;
   categoriesIds?: number[];
 }) => {
+  const logs = [];
+
   // find a ticket with status open or pending, from the contact or groupContact and  from the whatsappId
   let ticket = await Ticket.findOne({
     where: {
@@ -239,6 +267,8 @@ const findTicket = async ({
       },
     ]
   });
+
+  logs.push(`--- Found ticket 1: ${ticket ? JSON.stringify(ticket) : "N/A"}`);
 
   // if ticket exists, update his unreadMessages
   if (ticket) {
@@ -310,6 +340,8 @@ const findTicket = async ({
     }
   }
 
+  logs.push(`--- Found ticket 2: ${ticket ? JSON.stringify(ticket) : "N/A"}`);
+
   // if ticket not exists and groupContact is falsy, find a ticket updated in the last 2 hours from the contact and from the whatsappId
   // if this time the ticket exists, update his status to pending and set his userId to null and update his unreadMessages
   if (!ticket && !groupContact && !chatbotMessageIdentifier) {
@@ -332,6 +364,8 @@ const findTicket = async ({
       order: [["updatedAt", "DESC"]]
     });
 
+    logs.push(`--- Found ticket 3: ${ticket ? JSON.stringify(ticket) : "N/A"}`);
+
     if (
       ticket &&
       (messagingCampaignShipmentId || marketingMessagingCampaignShipmentId) &&
@@ -339,6 +373,7 @@ const findTicket = async ({
       !ticket.marketingMessagingCampaignShipmentId
     ) {
       ticket = null;
+      logs.push(`--- Ignore ticket 1`);
     }
 
     if (
@@ -351,6 +386,7 @@ const findTicket = async ({
         marketingMessagingCampaignShipmentId
     ) {
       ticket = null;
+      logs.push(`--- Ignore ticket 2`);
     }
 
     if (
@@ -395,6 +431,9 @@ const findTicket = async ({
 
       if (new Date(ticket.updatedAt) < validTime) {
         ticket = null;
+
+        logs.push(`--- Ignore ticket 2 ${new Date(ticket.updatedAt).toISOString()} < ${validTime.toISOString()}`);
+
       }
     }
 
@@ -458,7 +497,7 @@ const findTicket = async ({
     }
   }
 
-  return ticket;
+  return {ticket, logs};
 };
 
 export default FindOrCreateTicketService;
