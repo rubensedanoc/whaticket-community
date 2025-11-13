@@ -120,7 +120,7 @@ const FindOrCreateTicketService = async (props: {
 
       if (!ticket.isGroup) {
         logger.info(`--- Ticket created with id: ${ticket.id} ---`);
-        console.log(JSON.stringify(fatherlogs, null, 2));
+        console.log(fatherlogs);
       }
     } catch (error) {
       console.log("--- Error en FindOrCreateTicketService", error);
@@ -180,7 +180,7 @@ const FindOrCreateTicketService = async (props: {
 
         if (!ticket.isGroup) {
           logger.info(`--- Ticket created with id: ${ticket.id} ---`);
-          console.log(JSON.stringify(fatherlogs, null, 2));
+          console.log(fatherlogs);
         }
       }
 
@@ -268,7 +268,7 @@ const findTicket = async ({
     ]
   });
 
-  logs.push(`--- Found ticket 1: ${ticket ? JSON.stringify(ticket) : "N/A"}`);
+  logs.push(`--- Found ticket 1: ${ticket ? ticket : "N/A"}`);
 
   // if ticket exists, update his unreadMessages
   if (ticket) {
@@ -340,7 +340,7 @@ const findTicket = async ({
     }
   }
 
-  logs.push(`--- Found ticket 2: ${ticket ? JSON.stringify(ticket) : "N/A"}`);
+  logs.push(`--- Found ticket 2: ${ticket ? ticket : "N/A"}`);
 
   // if ticket not exists and groupContact is falsy, find a ticket updated in the last 2 hours from the contact and from the whatsappId
   // if this time the ticket exists, update his status to pending and set his userId to null and update his unreadMessages
@@ -364,7 +364,7 @@ const findTicket = async ({
       order: [["updatedAt", "DESC"]]
     });
 
-    logs.push(`--- Found ticket 3: ${ticket ? JSON.stringify(ticket) : "N/A"}`);
+    logs.push(`--- Found ticket 3: ${ticket ? ticket : "N/A"}`);
 
     if (
       ticket &&
