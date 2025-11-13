@@ -429,11 +429,9 @@ const findTicket = async ({
         // );
       }
 
-      console.log(`--- Valid time: ${ticket.updatedAt}`);
-
       if (new Date(ticket.updatedAt) < validTime) {
-        ticket = null;
         logs.push(`--- Ignore ticket 2 ${new Date(ticket.updatedAt).toISOString()} < ${validTime.toISOString()}`);
+        ticket = null;
       }
     }
 
