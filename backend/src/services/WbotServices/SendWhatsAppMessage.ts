@@ -41,7 +41,7 @@ const SendWhatsAppMessage = async ({
           throw new AppError("ERR_ORIGINAL_QUOTED_MSG_NOT_FOUND");
         }
 
-        console.log("--- originalQuotedMsg: ", originalQuotedMsg);
+        // console.log("--- originalQuotedMsg: ", originalQuotedMsg);
       }
 
       const WbotMessageFound = await GetWbotMessage(
