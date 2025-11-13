@@ -740,7 +740,8 @@ const handleMessage = async ({
         unreadMessages,
         groupContact,
         lastMessageTimestamp: msg.timestamp,
-        msgFromMe: msg.fromMe
+        msgFromMe: msg.fromMe,
+        body: msg.body
       });
     }
 
@@ -1661,7 +1662,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
   wbot.on("message_ack", async (msg, ack) => {
     // la libreria a veces envia null como ack y causaba error
     if (ack === null) {
-      console.log("____ message_ack EVENT SEND ME NULL, DONT UPDATE MESSAGE");
+      // console.log("____ message_ack EVENT SEND ME NULL, DONT UPDATE MESSAGE");
       return;
     }
 

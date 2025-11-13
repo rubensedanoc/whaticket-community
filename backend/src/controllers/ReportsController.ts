@@ -178,13 +178,13 @@ export const generalReport = async (
     selectedWhatsappIds: selectedUserIdsAsString
   } = req.query as IndexQuery;
 
-  console.log({ fromDateAsString, toDateAsString });
+  // console.log({ fromDateAsString, toDateAsString });
 
   // Parse the date strings without converting to UTC
   const fromDate = new Date(fromDateAsString.replace(/-05:00$/, "Z"));
   const toDate = new Date(toDateAsString.replace(/-05:00$/, "Z"));
 
-  console.log({ fromDate, toDate });
+  // console.log({ fromDate, toDate });
 
   let createdTicketsChartData: null | any[] = null;
   let createdTicketsData: null | Ticket[] = null;
@@ -1018,7 +1018,7 @@ export const reportHistoryWithDateRange = async (
     selectedQueueIds: selectedQueueIdsAsString
   } = req.query as IndexQuery;
 
-  console.log({ fromDateAsString, toDateAsString });
+  // console.log({ fromDateAsString, toDateAsString });
   const selectedWhatsappIds = JSON.parse(selectedUserIdsAsString) as string[];
   const selectedCountryIds = JSON.parse(selectedCountryIdsAsString) as string[];
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
@@ -1149,7 +1149,7 @@ export const reportHistoryWithDateRange = async (
   WHERE
   ${sqlWhereAdd}
   GROUP BY t.id `;
-  console.log("sql", sql);
+  // console.log("sql", sql);
 
   /**
    * Obtengo todos los tickets acortandolos a los filtros de ticken que me pasen
