@@ -124,9 +124,9 @@ const TransferTicketModal = ({
         }
       }
 
-      if (selectedWhatsapp) {
-        data.whatsappId = selectedWhatsapp;
-      }
+      // if (selectedWhatsapp) {
+      //   data.whatsappId = selectedWhatsapp;
+      // }
 
       // clear the helpUsers on trasnfer
       data.helpUsersIds = [];
@@ -225,7 +225,7 @@ const TransferTicketModal = ({
               ))}
             </Select>
           </FormControl>
-          <Can
+          {/* <Can
             role={loggedInUser.profile}
             perform="ticket-options:transferWhatsapp"
             yes={() =>
@@ -254,7 +254,7 @@ const TransferTicketModal = ({
                 </FormControl>
               )
             }
-          />
+          /> */}
         </DialogContent>
         <DialogActions>
           <Button
