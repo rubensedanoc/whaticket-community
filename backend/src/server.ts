@@ -225,50 +225,51 @@ cron.schedule("*/30 * * * *", async () => {
 // });
 
 
+// CRON FOR SEARCH EXCLUSIVE NUMBERS ON CONTACTS
 // Every hour of the day
-// cron.schedule('0 * * * *', async () => {
-//   try {
-//     // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
-//     const response = await fetch(
-//       "https://microservices.restaurant.pe/backendrestaurantpe/public/rest/common/localbi/searchExclusivePhones",
-//       {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json"
-//         },
-//         body: JSON.stringify({})
-//       }
-//     );
+cron.schedule('0 * * * *', async () => {
+  try {
+    // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
+    const response = await fetch(
+      "https://microservices.restaurant.pe/backendrestaurantpe/public/rest/common/localbi/searchExclusivePhones",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      }
+    );
 
-//     if (!response.ok) {
-//       throw new Error(
-//         "searchForExclusiveNumbers was not ok " + response.statusText
-//       );
-//     }
+    if (!response.ok) {
+      throw new Error(
+        "searchForExclusiveNumbers was not ok " + response.statusText
+      );
+    }
 
-//     const data = await response.json();
+    const data = await response.json();
 
-//     if (typeof data.data === "object") {
+    if (typeof data.data === "object") {
 
-//       const exclusiveNumbers = Object.keys(data.data).map(number => number.replace(/\D/g, "")).filter(number => number.length > 6);
+      const exclusiveNumbers = Object.keys(data.data).map(number => number.replace(/\D/g, "")).filter(number => number.length > 6);
 
-//       Contact.update(
-//         { isExclusive: true },
-//         {
-//           where: {
-//             [Op.or]: exclusiveNumbers.map(number => ({
-//               number: { [Op.like]: `%${number}` }
-//             }))
-//           }
-//         }
-//       );
+      Contact.update(
+        { isExclusive: true },
+        {
+          where: {
+            [Op.or]: exclusiveNumbers.map(number => ({
+              number: { [Op.like]: `%${number}` }
+            }))
+          }
+        }
+      );
 
-//     }
-//   } catch (error) {
-//     console.log("--- Error in searchForExclusiveNumbers", error);
-//     Sentry.captureException(error);
-//   }
-// });
+    }
+  } catch (error) {
+    console.log("--- Error in searchForExclusiveNumbers", error);
+    Sentry.captureException(error);
+  }
+});
 
 
 // Every minute of every hour of the day
