@@ -21,10 +21,8 @@ interface Request {
   searchParam?: string;
   pageNumber?: string;
   status?: string;
-  date?: string;
   showAll?: string;
   userId: string;
-  withUnreadMessages?: string;
   whatsappIds: Array<number>;
   queueIds: Array<number>;
   ticketUsersIds: Array<number>;
@@ -58,8 +56,6 @@ const buildWhereCondition = ({
   showOnlyMyGroups,
   searchParam,
   status,
-  date,
-  withUnreadMessages,
   userWhatsappsId,
   showOnlyWaitingTickets,
   clientelicenciaEtapaIds
@@ -244,48 +240,6 @@ const buildWhereCondition = ({
     };
   }
 
-  // REINICIO DE LA CONDICIÓN BASE
-  // y valido solo el created at del ticket
-  if (date) {
-    baseCondition = {
-      createdAt: {
-        [Op.between]: [+startOfDay(parseISO(date)), +endOfDay(parseISO(date))]
-      }
-    };
-  }
-
-  // REINICIO DE LA CONDICIÓN BASE
-  // ya no me acuerdo el pq de estas condiciones xd
-  if (withUnreadMessages === "true") {
-    baseCondition = {
-      [Op.or]: [{ userId }, { status: "pending" }],
-      ...(typeIds?.length && {
-        isGroup: {
-          [Op.or]: typeIds?.map(typeId => (typeId === "group" ? true : false))
-        }
-      }),
-      ...(queueIds?.length && {
-        queueId: {
-          // @ts-ignore
-          [Op.or]: queueIds?.includes(null)
-            ? [queueIds.filter(id => id !== null), null]
-            : [queueIds]
-        }
-      }),
-      ...(whatsappIds?.length && {
-        whatsappId: {
-          [Op.or]: [whatsappIds]
-        }
-      }),
-      ...(ticketUsersIds?.length && {
-        userId: {
-          [Op.or]: [ticketUsersIds]
-        }
-      }),
-      unreadMessages: { [Op.gt]: 0 }
-    };
-  }
-
   return baseCondition;
 };
 
@@ -320,7 +274,6 @@ const buildIncludeCondition = ({
           required: false,
         }
       ],
-      // ...(searchParam && { required: true })
       required: true,
     },
     {
@@ -386,10 +339,79 @@ const buildIncludeCondition = ({
   return includeCondition;
 };
 
+const buildIncludeConditionForCount = ({
+  searchParam,
+  categoryId,
+  userId,
+  showOnlyMyGroups,
+  typeIds,
+  clientelicenciaEtapaIds,
+}: Request): Includeable[] => {
+  const includeCondition: Includeable[] = [];
+
+  // ---------------------------------------------------------------
+  // Contact (solo si searchParam existe o si clientelicenciaEtapaIds aplica)
+  // ---------------------------------------------------------------
+  const needsContact =
+    Boolean(searchParam) ||
+    (clientelicenciaEtapaIds && clientelicenciaEtapaIds.length > 0);
+
+  if (needsContact) {
+    includeCondition.push({
+      model: Contact,
+      as: "contact",
+      attributes: [],
+      required: true,
+      include: [
+        ...(clientelicenciaEtapaIds && clientelicenciaEtapaIds.length > 0
+          ? [
+              {
+                model: ContactClientelicencias,
+                as: "contactClientelicencias",
+                required: false,
+                attributes: []
+              }
+            ]
+          : [])
+      ]
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Category (solo si categoryId existe)
+  // ---------------------------------------------------------------
+  if (categoryId > 0) {
+    includeCondition.push({
+      model: Category,
+      as: "categories",
+      attributes: [],
+      where: { id: categoryId },
+      required: true
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // ParticipantUsers (solo si es para ver mis grupos)
+  // ---------------------------------------------------------------
+  if (showOnlyMyGroups && typeIds.length === 1 && typeIds.includes("group")) {
+    includeCondition.push({
+      model: User,
+      as: "participantUsers",
+      attributes: [],
+      where: {
+        id: +userId
+      },
+      required: true
+    })
+  }
+
+  return includeCondition;
+  // return [];
+};
+
 const ListTicketsService = async (request: Request): Promise<Response> => {
   const { pageNumber = "1", status } = request;
 
-  // console.log("--- ListTicketsService", request);
   const user = await User.findByPk(+request.userId, {
     attributes: ["id"],
     include: [
@@ -404,25 +426,30 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
 
   request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
 
-  // console.log("--- user", user.userWhatsapps);
 
   let whereCondition = buildWhereCondition(request);
   let includeCondition = buildIncludeCondition(request);
+  let includeConditionForCount = buildIncludeConditionForCount(request);
 
-  // console.log("--- whereCondition", whereCondition);
-
-  // const limit = 40;
   const limit = 20;
   const offset = limit * (+pageNumber - 1);
 
-  const { count, rows: tickets } = await Ticket.findAndCountAll({
+  const tickets = await Ticket.findAll({
     where: whereCondition,
     include: includeCondition,
-    distinct: true,
     limit,
     offset,
-    order: [["lastMessageTimestamp", "DESC"]]
-    // logging(sql, timing) {
+    order: [["lastMessageTimestamp", "DESC"]],
+    // logging(sql) {
+    //   console.log(sql);
+    // }
+  });
+
+  const count = await Ticket.count({
+    where: whereCondition,
+    include: includeConditionForCount,
+    distinct: true,
+    // logging(sql) {
     //   console.log(sql);
     // }
   });
@@ -432,9 +459,6 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   const filteredTickets = await filterWhenAksForClosedTickets(tickets, status);
 
   const ticketsToReturn = filteredTickets || tickets;
-
-  // const ticketsToReturnWithClientTimeWaiting =
-  //   await getClientTimeWaitingForTickets(ticketsToReturn);
 
   return {
     tickets: ticketsToReturn,

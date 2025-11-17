@@ -24,10 +24,8 @@ interface Request {
   searchParam?: string;
   pageNumber?: string;
   status?: string; // Incluido para coherencia, aunque la lógica del grupo maneja el estado
-  date?: string; // Incluido, con advertencia de sobrescritura
   showAll?: string; // Incluido por compatibilidad, aunque no se usa en la lógica de grupos
   userId: string;
-  withUnreadMessages?: string; // Incluido, con advertencia de sobrescritura
   whatsappIds: Array<number>;
   queueIds: Array<number>;
   marketingCampaignIds: Array<number>;
@@ -60,8 +58,6 @@ const buildSpecialWhereCondition = ({
   userId,
   searchParam,
   status,
-  date,
-  withUnreadMessages,
   whatsappIds,
   queueIds,
   marketingCampaignIds,
@@ -79,8 +75,6 @@ const buildSpecialWhereCondition = ({
   //   userId,
   //   searchParam,
   //   status,
-  //   date,
-  //   withUnreadMessages,
   //   whatsappIds,
   //   queueIds,
   //   marketingCampaignIds,
@@ -274,44 +268,6 @@ const buildSpecialWhereCondition = ({
     });
   }
 
-  // ATENCIÓN: Estos filtros DEBEN ser manejados con EXTREMA PRECAUCIÓN.
-  // Su lógica original podría sobrescribir otras partes de la condición.
-  // Se agregan al final para que cualquier filtro anterior tenga prioridad si hay conflicto.
-
-  if (date) {
-    console.warn("ADVERTENCIA: El filtro 'date' se aplicará como AND sobre otras condiciones. Confirme su comportamiento deseado.");
-    (finalCondition[Op.and] as any[]).push({
-      createdAt: {
-        [Op.between]: [+startOfDay(parseISO(date)), +endOfDay(parseISO(date))]
-      }
-    });
-  }
-
-  if (withUnreadMessages === "true") {
-    console.warn("ADVERTENCIA: El filtro 'withUnreadMessages' se aplicará como AND. Confirme su comportamiento deseado.");
-    (finalCondition[Op.and] as any[]).push({
-      [Op.or]: [{ userId }, { status: "pending" }], // Lógica específica de unreadMessages
-      unreadMessages: { [Op.gt]: 0 },
-      ...(typeIds?.length && {
-        isGroup: {
-          [Op.or]: typeIds?.map(typeId => (typeId === "group" ? true : false))
-        }
-      }),
-      ...(queueIds?.length && {
-        queueId: {
-          [Op.or]: queueIds?.includes(null)
-            ? [queueIds.filter(id => id !== null), null]
-            : [queueIds]
-        }
-      }),
-      ...(whatsappIds?.length && {
-        whatsappId: {
-          [Op.or]: [whatsappIds]
-        }
-      })
-    });
-  }
-
   // Si al final no hay ninguna condición significativa, devolvemos un objeto vacío para no filtrar por Op.and vacío.
   if ((finalCondition[Op.and] as any[]).length === 0) {
     return {};
@@ -413,6 +369,76 @@ const buildSpecialIncludeCondition = ({
   return includeCondition;
 };
 
+const buildIncludeConditionForCount = ({
+  searchParam,
+  categoryId,
+  userId,
+  showOnlyMyGroups,
+  typeIds,
+  clientelicenciaEtapaIds,
+}: Request): Includeable[] => {
+  const includeCondition: Includeable[] = [];
+
+  // ---------------------------------------------------------------
+  // Contact (solo si searchParam existe o si clientelicenciaEtapaIds aplica)
+  // ---------------------------------------------------------------
+  const needsContact =
+    Boolean(searchParam) ||
+    (clientelicenciaEtapaIds && clientelicenciaEtapaIds.length > 0);
+
+  if (needsContact) {
+    includeCondition.push({
+      model: Contact,
+      as: "contact",
+      attributes: [],
+      required: true,
+      include: [
+        ...(clientelicenciaEtapaIds && clientelicenciaEtapaIds.length > 0
+          ? [
+              {
+                model: ContactClientelicencias,
+                as: "contactClientelicencias",
+                required: false,
+                attributes: []
+              }
+            ]
+          : [])
+      ]
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Category (solo si categoryId existe)
+  // ---------------------------------------------------------------
+  if (categoryId > 0) {
+    includeCondition.push({
+      model: Category,
+      as: "categories",
+      attributes: [],
+      where: { id: categoryId },
+      required: true
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // ParticipantUsers (solo si es para ver mis grupos)
+  // ---------------------------------------------------------------
+  if (showOnlyMyGroups && typeIds.length === 1 && typeIds.includes("group")) {
+    includeCondition.push({
+      model: User,
+      as: "participantUsers",
+      attributes: [],
+      where: {
+        id: +userId
+      },
+      required: true
+    })
+  }
+
+  return includeCondition;
+  // return [];
+};
+
 const AdvancedListTicketsService = async (
   request: Request
 ): Promise<Response> => {
@@ -440,20 +466,23 @@ const AdvancedListTicketsService = async (
 
   let whereCondition = buildSpecialWhereCondition(request);
   let includeCondition = buildSpecialIncludeCondition(request);
+  let includeConditionForCount = buildIncludeConditionForCount(request);
 
-  const limit = 40;
+  const limit = 20;
   const offset = limit * (+pageNumber - 1);
 
-  const { count, rows: tickets } = await Ticket.findAndCountAll({
+  const tickets = await Ticket.findAll({
     where: whereCondition,
     include: includeCondition,
-    distinct: true,
     limit,
     offset,
     order: [["lastMessageTimestamp", "DESC"]],
-    // logging(sql, timing) {
-    //   console.log(`SQL: ${request.ticketGroupType} ${sql} - Timing: ${timing}ms`);
-    // },
+  });
+
+  const count = await Ticket.count({
+    where: whereCondition,
+    include: includeConditionForCount,
+    distinct: true,
   });
 
   const hasMore = count > offset + tickets.length;

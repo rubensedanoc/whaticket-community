@@ -52,15 +52,8 @@ const Dashboard = () => {
 		userQueueIds = user.queues.map(q => q.id);
 	}
 
-	const GetTickets = (status, showAll, withUnreadMessages) => {
-
-		const { count } = useTickets({
-			status: status,
-			showAll: showAll,
-			withUnreadMessages: withUnreadMessages,
-			queueIds: JSON.stringify(userQueueIds)
-		});
-		return count;
+	const GetTickets = () => {
+		return 0
 	}
 
 	return (

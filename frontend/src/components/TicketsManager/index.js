@@ -507,7 +507,7 @@ const TicketsManager = () => {
           {/* - open */}
 
           {/* Notifications */}
-          <Tab
+          {/* <Tab
             value={"notifications"}
             icon={
               <Badge
@@ -520,16 +520,16 @@ const TicketsManager = () => {
             }
             label={"Notificaciones"}
             classes={{ root: classes.tab }}
-          />
+          /> */}
           {/* - Notifications */}
 
           {/* closed */}
-          {/* <Tab
+          <Tab
             value={"closed"}
             icon={<CheckBoxIcon style={{ fontSize: 21 }} />}
             label={i18n.t("tickets.tabs.closed.title")}
             classes={{ root: classes.tab }}
-          /> */}
+          />
           {/* - closed */}
 
           {/* search */}
@@ -1463,7 +1463,7 @@ const TicketsManager = () => {
       {/* - INBOX TAB CONTENT  */}
 
       {/* closed TAB CONTENT */}
-      {/* <TabPanel
+      <TabPanel
         value={tab}
         name="closed"
         className={classes.ticketsWrapper}
@@ -1481,7 +1481,7 @@ const TicketsManager = () => {
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
         />
-      </TabPanel> */}
+      </TabPanel>
       {/* - closed TAB CONTENT */}
 
       {/* notifications TAB CONTENT */}
@@ -1574,6 +1574,7 @@ const TicketsManager = () => {
               overflow: "auto",
             }}
           >
+            {/* HEADER */}
             <div
               style={{
                 display: "flex",
@@ -2033,6 +2034,7 @@ const TicketsManager = () => {
               </div>
             </div>
 
+            {/* COLUMNS */}
             <div
               style={{
                 display: "flex",
@@ -2085,17 +2087,7 @@ const TicketsManager = () => {
                 showOnlyMyGroups={false}
               />
 
-              {/* <TicketsList
-                status="pending"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForAll}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                showOnlyWaitingTickets={showOnlyWaitingTickets}
-              /> */}
-
-              {/* <TicketsList
+              <TicketsList
                 status="closed"
                 searchParam={searchParam}
                 selectedTypeIds={typeIdsForAll}
@@ -2106,7 +2098,7 @@ const TicketsManager = () => {
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}
                 showOnlyMyGroups={false}
-              /> */}
+              />
 
             </div>
           </Paper>
