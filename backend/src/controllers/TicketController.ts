@@ -31,9 +31,7 @@ type IndexQuery = {
   searchParam: string;
   pageNumber: string;
   status: string;
-  date: string;
   showAll: string;
-  withUnreadMessages: string;
   queueIds: string;
   whatsappIds: string;
   marketingCampaignIds: string;
@@ -67,7 +65,6 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   const {
     pageNumber,
     status,
-    date,
     searchParam,
     showAll,
     whatsappIds: whatsappIdsStringified,
@@ -75,7 +72,6 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     marketingCampaignIds: marketingCampaignIdsStringified,
     typeIds: typeIdsStringified,
     ticketUsersIds: ticketUsersIdsStringified,
-    withUnreadMessages,
     showOnlyMyGroups: showOnlyMyGroupsStringified,
     categoryId: categoryIdStringified,
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
@@ -157,7 +153,6 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       searchParam,
       pageNumber,
       status,
-      date,
       showAll,
       userId,
       whatsappIds,
@@ -165,7 +160,6 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       ticketUsersIds,
       marketingCampaignIds,
       typeIds,
-      withUnreadMessages,
       showOnlyMyGroups,
       categoryId,
       showOnlyWaitingTickets,
@@ -231,14 +225,12 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
   const {
     pageNumber,
     status,
-    date,
     searchParam,
     showAll,
     whatsappIds: whatsappIdsStringified,
     queueIds: queueIdsStringified,
     marketingCampaignIds: marketingCampaignIdsStringified,
     typeIds: typeIdsStringified,
-    withUnreadMessages,
     showOnlyMyGroups: showOnlyMyGroupsStringified,
     categoryId: categoryIdStringified,
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
@@ -316,14 +308,12 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       searchParam,
       pageNumber,
       status,
-      date,
       showAll,
       userId,
       whatsappIds,
       queueIds,
       marketingCampaignIds,
       typeIds,
-      withUnreadMessages,
       showOnlyMyGroups,
       categoryId,
       showOnlyWaitingTickets,

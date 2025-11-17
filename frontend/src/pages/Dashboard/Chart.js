@@ -19,8 +19,7 @@ import useTickets from "../../hooks/useTickets";
 const Chart = () => {
 	const theme = useTheme();
 
-	const date = useRef(new Date().toISOString());
-	const { tickets } = useTickets({ date: date.current });
+	const [tickets] = useState([])
 
 	const [chartData, setChartData] = useState([
 		{ time: "08:00", amount: 0 },

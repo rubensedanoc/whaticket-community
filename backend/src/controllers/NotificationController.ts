@@ -11,9 +11,7 @@ type IndexQuery = {
   searchParam: string;
   pageNumber: string;
   seen: string;
-  date: string;
   showAll: string;
-  withUnreadMessages: string;
   queueIds: string;
   whatsappIds: string;
   marketingCampaignIds: string;
