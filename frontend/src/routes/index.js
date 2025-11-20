@@ -98,12 +98,12 @@ const Routes = () => {
                       component={Contacts}
                       isPrivate
                     />
-                    <Route
+                    {/* <Route
                       exact
                       path="/messages"
                       component={Messages}
                       isPrivate
-                    />
+                    /> */}
                     <Route
                       exact
                       path="/users"

@@ -9,7 +9,7 @@ const messageRoutes = Router();
 
 const upload = multer(uploadConfig);
 
-messageRoutes.get("/messages", isAuth, MessageController.search);
+// messageRoutes.get("/messages", isAuth, MessageController.search);
 
 messageRoutes.get("/messages/:ticketId", isAuth, MessageController.index);
 

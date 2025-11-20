@@ -107,11 +107,11 @@ const MainListItems = (props) => {
         icon={<WhatsAppIcon />}
       />
 
-      <ListItemLink
+      {/* <ListItemLink
         to="/messages"
         primary={"Mensajes"}
         icon={<MessageOutlinedIcon />}
-      />
+      /> */}
 
       <ListItemLink
         to="/contacts"
