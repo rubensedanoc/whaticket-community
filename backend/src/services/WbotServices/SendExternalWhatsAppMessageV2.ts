@@ -21,7 +21,7 @@ const queueState = {
   queue: [] as QueuedMessage[],
   processing: false,
   config: {
-    delayBetweenMessages: 3000,
+    delayBetweenMessages: 8000 // 8 segundos de retraso entre mensajes,
   } as QueueConfig
 };
 
