@@ -827,118 +827,59 @@ const TicketsManager = () => {
                 justifyContent: "center",
               }}
             >
-              {/* <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Sin Etapa"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={sinEtapaChipValueId}
-                onClick={() => {onSelectTicketsCountChips(null)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(null)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(null) ? "primary" : "default"}
+                label="Sin Etapa"
               />
-              <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Onboarding"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={onboardingChipValueId}
-                onClick={() => {onSelectTicketsCountChips(6)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(6)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(6) ? "primary" : "default"}
+                label="Onboarding"
               />
-              <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Insp. tecnica"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={inspTecnicaChipValueId}
-                onClick={() => {onSelectTicketsCountChips(1)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(1)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(1) ? "primary" : "default"}
+                label="Insp. técnica"
               />
-              <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Config. plataforma"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={configPlataformaChipValueId}
-                onClick={() => {onSelectTicketsCountChips(2)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(2)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(2) ? "primary" : "default"}
+                label="Config. plataforma"
               />
-              <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Config. equipos"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={configEquiposChipValueId}
-                onClick={() => {onSelectTicketsCountChips(3)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(3)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(3) ? "primary" : "default"}
+                label="Config. equipos"
               />
-              <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Cap. op y mantenimiento"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={capOpYMonitoreoChipValueId}
-                onClick={() => {onSelectTicketsCountChips(4)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(4)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(4) ? "primary" : "default"}
+                label="Cap. op y mantenimiento"
               />
-              <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Monitoreo"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={monitoreoChipValueId}
-                onClick={() => {onSelectTicketsCountChips(8)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(8)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(8) ? "primary" : "default"}
+                label="Monitoreo"
               />
-              <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Alta"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={altaChipValueId}
-                onClick={() => {onSelectTicketsCountChips(5)}}
-              /> */}
-              {/* <TicketsCountChips
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForGroups}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                chipLabel="Alta FE"
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                clientelicenciaEtapaIds={altaFeChipValueId}
-                onClick={() => {onSelectTicketsCountChips(7)}}
+              <Chip
+                onClick={() => onSelectTicketsCountChips(5)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(5) ? "primary" : "default"}
+                label="Alta"
+              />
+              {/* <Chip
+                onClick={() => onSelectTicketsCountChips(7)}
+                size="small"
+                color={selectedClientelicenciaEtapaIds?.includes(7) ? "primary" : "default"}
+                label="Alta FE"
               /> */}
             </div>
 
