@@ -464,10 +464,12 @@ const TicketsManager = () => {
 
   const onSelectTicketsCountChips = (selectedEtapa) => {
     setSelectedClientelicenciaEtapaIds(e => {
+      // Si el chip ya está seleccionado, lo deseleccionamos (array vacío)
       if (e.includes(selectedEtapa)) {
-        return e.filter(id => id !== selectedEtapa);
+        return [];
       }
-      return [...e, selectedEtapa];
+      // Si no está seleccionado, seleccionamos solo este (array con un solo elemento)
+      return [selectedEtapa];
     })
   }
 
