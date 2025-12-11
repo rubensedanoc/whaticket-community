@@ -155,6 +155,7 @@ const TicketListItem = ({
   messageToShow = null,
   notificacionUnseen = null,
   extraActionOnSelect = null,
+  viewSource = null,
 }) => { 
   const classes = useStyles();
   const history = useHistory();
@@ -193,6 +194,14 @@ const TicketListItem = ({
   };
 
   const handleSelectTicket = (id) => {
+    // Guardar viewSource en localStorage para que Ticket lo detecte
+    if (viewSource) {
+      console.log('🔵 TicketListItem: Guardando viewSource en localStorage:', viewSource);
+      localStorage.setItem('ticketViewSource', viewSource);
+    } else {
+      console.log('⚪ TicketListItem: NO hay viewSource, no se guarda nada');
+    }
+    
     if (openInANewWindowOnSelect) {
       window.open(`/tickets/${id}`, "_blank");
     } else {
@@ -380,6 +389,22 @@ const TicketListItem = ({
                   {/* - CONTACT NAME */}
 
                   <div style={{ display: "flex", gap: "4px" }}>
+                    {/* CONNECTION COUNT BADGE - ONLY FOR GROUPED VIEW */}
+                    {viewSource === "grouped" && ticket.isGroup && ticket.connectionCount > 1 && (
+                      <Tooltip
+                        title={`Este grupo tiene ${ticket.connectionCount} conexiones disponibles`}
+                        placement="top"
+                      >
+                        <Chip
+                          style={{ height: "16px", fontSize: "9px" }}
+                          color="secondary"
+                          size="small"
+                          label={`${ticket.connectionCount} conex`}
+                        />
+                      </Tooltip>
+                    )}
+                    {/* CONNECTION COUNT BADGE */}
+
                     {/* PARTICIPANTS BADGE */}
                     {ticket.participantUsers?.find(
                       (hu) => hu.id === user?.id

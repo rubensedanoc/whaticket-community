@@ -19,7 +19,8 @@ const useTickets = ({
   filterByUserQueue = false,
   clientelicenciaEtapaIds,
   advancedList = false,
-  ticketUsersIds
+  ticketUsersIds,
+  viewSource = null
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -51,7 +52,8 @@ const useTickets = ({
                 showOnlyWaitingTickets,
                 // filterByUserQueue,
                 clientelicenciaEtapaIds,
-                ticketGroupType: advancedList
+                ticketGroupType: advancedList,
+                viewSource
               },
             });
 
@@ -72,7 +74,8 @@ const useTickets = ({
                 categoryId,
                 showOnlyWaitingTickets,
                 filterByUserQueue,
-                clientelicenciaEtapaIds
+                clientelicenciaEtapaIds,
+                viewSource
               },
             });
 

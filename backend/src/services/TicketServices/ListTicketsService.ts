@@ -33,6 +33,7 @@ interface Request {
   userWhatsappsId?: number[];
   showOnlyWaitingTickets?: boolean;
   clientelicenciaEtapaIds?: number[];
+  viewSource?: string;
 }
 
 interface Response {
@@ -58,13 +59,42 @@ const buildWhereCondition = ({
   status,
   userWhatsappsId,
   showOnlyWaitingTickets,
-  clientelicenciaEtapaIds
+  clientelicenciaEtapaIds,
+  viewSource
 }: Request): Filterable["where"] => {
+  
+  // ============================================================
+  // BLOQUE PREPARADO PARA LÓGICA ESPECÍFICA SEGÚN VIEWSOURCE
+  // ============================================================
+  // Por ahora usa la misma lógica, pero puedes agregar
+  // condiciones específicas en el futuro
+  //
+  // Ejemplo:
+  // if (viewSource === "grouped") {
+  //   // Agregar filtros específicos para "Agrupados"
+  // }
+  // ============================================================
+  
   let baseCondition: Filterable["where"] = {};
 
   // si tengo status, entonces filtro por status
   if (status) {
     baseCondition = { ...baseCondition, status };
+    
+    // Si es status "closed", filtramos solo los tickets cerrados del mes actual
+    if (status === "closed") {
+      const now = new Date();
+      const firstDayOfMonth = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1));
+      const lastDayOfMonth = endOfDay(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+      
+      baseCondition = {
+        ...baseCondition,
+        updatedAt: {
+          [Op.gte]: firstDayOfMonth,
+          [Op.lte]: lastDayOfMonth
+        }
+      };
+    }
   }
 
   //  si tengo searchParam, entonces tmb busco por nombre o número

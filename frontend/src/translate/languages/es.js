@@ -239,6 +239,7 @@ const messages = {
         tabs: {
           open: { title: "Bandeja" },
           closed: { title: "Resueltos" },
+          grouped: { title: "Por Clientes" },
           search: { title: "Buscar" },
         },
         search: {

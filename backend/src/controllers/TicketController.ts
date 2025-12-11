@@ -43,6 +43,7 @@ type IndexQuery = {
   clientelicenciaEtapaIds: string;
   ticketGroupType: TicketGroupType;
   ticketUsersIds: string;
+  viewSource: string;
 };
 
 interface TicketData {
@@ -76,7 +77,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     categoryId: categoryIdStringified,
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
     filterByUserQueue: filterByUserQueueStringified,
-    clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified
+    clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
+    viewSource
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -163,7 +165,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       showOnlyMyGroups,
       categoryId,
       showOnlyWaitingTickets,
-      clientelicenciaEtapaIds
+      clientelicenciaEtapaIds,
+      viewSource
     });
 
   let ticketsToSend = tickets; // Inicializamos con la lista original
@@ -236,7 +239,8 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
     filterByUserQueue: filterByUserQueueStringified,
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
-    ticketGroupType
+    ticketGroupType,
+    viewSource
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -318,7 +322,8 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       categoryId,
       showOnlyWaitingTickets,
       clientelicenciaEtapaIds,
-      ticketGroupType
+      ticketGroupType,
+      viewSource
     });
 
   let ticketsToSend = tickets; // Inicializamos con la lista original

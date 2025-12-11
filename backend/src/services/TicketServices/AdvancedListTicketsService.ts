@@ -38,6 +38,9 @@ interface Request {
 
   // Nuevo parámetro para especificar el grupo de tickets deseado
   ticketGroupType?: TicketGroupType;
+  
+  // Parámetro para identificar la vista de origen (general, grouped, etc.)
+  viewSource?: string;
 }
 
 interface Response {
@@ -68,8 +71,24 @@ const buildSpecialWhereCondition = ({
   showOnlyWaitingTickets,
   clientelicenciaEtapaIds,
   ticketGroupType,
-  showAll
+  showAll,
+  viewSource
 }: Request): Filterable["where"] => {
+
+  // ============================================================
+  // BLOQUE PREPARADO PARA LÓGICA ESPECÍFICA SEGÚN VIEWSOURCE
+  // ============================================================
+  // Por ahora, todo usa la misma lógica, pero en el futuro
+  // puedes agregar condiciones específicas aquí
+  
+  // Ejemplo para el futuro:
+  // if (viewSource === "grouped") {
+  //   // Lógica específica para la vista "Agrupados"
+  //   // Por ejemplo: joins adicionales, cálculos especiales, etc.
+  // } else if (viewSource === "general") {
+  //   // Lógica específica para la vista "General"
+  // }
+  // ============================================================
 
   // console.log({
   //   userId,
@@ -85,7 +104,8 @@ const buildSpecialWhereCondition = ({
   //   showOnlyWaitingTickets,
   //   clientelicenciaEtapaIds,
   //   ticketGroupType,
-  //   showAll
+  //   showAll,
+  //   viewSource
   // });
 
   let finalCondition: Filterable["where"] = { [Op.and]: [] }; // Inicializamos con Op.and para combinar fácilmente
@@ -281,8 +301,22 @@ const buildSpecialIncludeCondition = ({
   categoryId,
   showOnlyMyGroups,
   typeIds,
-  userId // Aseguramos que userId esté disponible para participantUsers
+  userId, // Aseguramos que userId esté disponible para participantUsers
+  viewSource
 }: Request): Includeable[] => {
+  
+  // ============================================================
+  // BLOQUE PREPARADO PARA LÓGICA ESPECÍFICA SEGÚN VIEWSOURCE
+  // ============================================================
+  // Por ahora, los includes son los mismos para todas las vistas
+  // pero puedes agregar condiciones específicas aquí en el futuro
+  
+  // Ejemplo para el futuro:
+  // if (viewSource === "grouped") {
+  //   // Agregar includes adicionales específicos para "Agrupados"
+  // }
+  // ============================================================
+  
   const includeCondition: Includeable[] = [
     {
       model: Contact,
@@ -446,7 +480,7 @@ const AdvancedListTicketsService = async (
   // console.log(" --- AdvancedListTicketsService --- ", request);
 
 
-  const { pageNumber = "1" } = request;
+  const { pageNumber = "1", viewSource, typeIds } = request;
 
   // Llenar userWhatsappsId si no está presente
   if (!request.userWhatsappsId) {
@@ -471,19 +505,87 @@ const AdvancedListTicketsService = async (
   const limit = 20;
   const offset = limit * (+pageNumber - 1);
 
-  const tickets = await Ticket.findAll({
-    where: whereCondition,
-    include: includeCondition,
-    limit,
-    offset,
-    order: [["lastMessageTimestamp", "DESC"]],
-  });
+  // ============================================================
+  // LÓGICA ESPECIAL PARA AGRUPADOS: EVITAR DUPLICADOS EN GRUPOS
+  // ============================================================
+  // Cuando estamos en la vista "Agrupados" y filtrando por grupos,
+  // un mismo chat grupal puede tener múltiples tickets (uno por cada conexión).
+  // Para evitar duplicados, agrupamos por contactId y tomamos solo el más reciente.
+  const isGroupedViewWithGroups = viewSource === "grouped" && 
+                                   typeIds && 
+                                   typeIds.length > 0 && 
+                                   typeIds.includes("group");
 
-  const count = await Ticket.count({
-    where: whereCondition,
-    include: includeConditionForCount,
-    distinct: true,
-  });
+  let tickets: Ticket[];
+  
+  if (isGroupedViewWithGroups) {
+    // Para grupos en vista "Agrupados": obtenemos todos y luego deduplicamos
+    const allTickets = await Ticket.findAll({
+      where: whereCondition,
+      include: includeCondition,
+      order: [["lastMessageTimestamp", "DESC"]],
+      // No usamos limit/offset aquí porque primero necesitamos deduplicar
+    });
+
+    // Agrupar por contactId y mantener solo el ticket más reciente de cada grupo
+    const ticketsByContact = new Map<number, Ticket>();
+    allTickets.forEach(ticket => {
+      const contactId = ticket.contactId;
+      if (!ticketsByContact.has(contactId)) {
+        // Guardamos el primero (más reciente por el order)
+        ticketsByContact.set(contactId, ticket);
+      }
+    });
+
+    // Convertir de vuelta a array y agregar información de conexiones múltiples
+    const uniqueTickets = Array.from(ticketsByContact.values());
+    
+    // Agregar información de cuántas conexiones tiene cada grupo
+    const ticketsWithConnectionCount = uniqueTickets.map(ticket => {
+      const sameGroupTickets = allTickets.filter(t => t.contactId === ticket.contactId);
+      const ticketPlain = ticket.get({ plain: true }) as any;
+      return {
+        ...ticketPlain,
+        connectionCount: sameGroupTickets.length,
+        availableConnections: sameGroupTickets.map(t => ({
+          whatsappId: t.whatsappId,
+          whatsappName: t.whatsapp?.name || 'Sin nombre'
+        }))
+      };
+    });
+    
+    // Aplicar paginación manual
+    tickets = ticketsWithConnectionCount.slice(offset, offset + limit) as any;
+    
+  } else {
+    // Comportamiento normal para otras vistas
+    tickets = await Ticket.findAll({
+      where: whereCondition,
+      include: includeCondition,
+      limit,
+      offset,
+      order: [["lastMessageTimestamp", "DESC"]],
+    });
+  }
+
+  // Para el count, también necesitamos ajustar si es vista agrupada
+  let count: number;
+  if (isGroupedViewWithGroups) {
+    // Contar tickets distintos por contactId
+    const countResult = await Ticket.findAll({
+      where: whereCondition,
+      include: includeConditionForCount,
+      attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('Ticket.contactId')), 'contactId']],
+      raw: true
+    });
+    count = countResult.length;
+  } else {
+    count = await Ticket.count({
+      where: whereCondition,
+      include: includeConditionForCount,
+      distinct: true,
+    });
+  }
 
   const hasMore = count > offset + tickets.length;
 

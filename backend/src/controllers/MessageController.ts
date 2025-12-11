@@ -13,6 +13,7 @@ import Ticket from "../models/Ticket";
 import Whatsapp from "../models/Whatsapp";
 import ListMessagesService from "../services/MessageServices/ListMessagesService";
 import ListMessagesV2Service from "../services/MessageServices/ListMessagesV2Service";
+import ListConsolidatedMessagesService from "../services/MessageServices/ListConsolidatedMessagesService";
 import SearchMessagesService from "../services/MessageServices/SearchMessagesService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import DeleteWhatsAppMessage from "../services/WbotServices/DeleteWhatsAppMessage";
@@ -75,6 +76,31 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   }
 
   return res.json({ count, messages, ticket, hasMore });
+};
+
+/**
+ * Endpoint para obtener mensajes consolidados de múltiples tickets del mismo contacto.
+ * Se usa en la vista "Agrupados" cuando un grupo tiene múltiples conexiones.
+ */
+export const consolidatedIndex = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { contactId } = req.params;
+  const { pageNumber, setTicketMessagesAsRead } = req.query as unknown as IndexQuery;
+
+  const { count, messages, tickets, hasMore } = await ListConsolidatedMessagesService({
+    pageNumber,
+    contactId
+  });
+
+  // Marcar como leídos todos los tickets del grupo si se solicita
+  if (setTicketMessagesAsRead === "true" && tickets.length > 0) {
+    // Marcar el ticket más reciente (primero en el array)
+    SetTicketMessagesAsRead(tickets[0]);
+  }
+
+  return res.json({ count, messages, tickets, hasMore });
 };
 
 export const indexV2 = async (

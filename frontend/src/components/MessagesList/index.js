@@ -451,6 +451,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   const [ticketListModalTitle, setTicketListModalTitle] = useState("");
   const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
   const [selectedContactId, setSelectedContactId] = useState(null);
+  
+  // Detectar si viene de vista agrupada
+  const [viewSource, setViewSource] = useState(null);
+  const [contactId, setContactId] = useState(null);
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -463,7 +467,33 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     ]);
 
     currentTicketId.current = ticketId;
-  }, [ticketId]);
+    
+    // Detectar si viene de vista agrupada
+    const savedViewSource = localStorage.getItem('ticketViewSource');
+    console.log('🟡 MessagesList: savedViewSource:', savedViewSource, 'isGroup:', isGroup);
+    
+    // Solo procesar cuando isGroup ya esté definido (puede ser true o false, pero no undefined)
+    if (isGroup !== undefined) {
+      if (savedViewSource === 'grouped' && isGroup) {
+        console.log('🟢 MessagesList: Es vista agrupada! Obteniendo contactId...');
+        setViewSource(savedViewSource);
+        // Obtener contactId del ticket
+        api.get(`/tickets/${ticketId}`).then(({ data }) => {
+          console.log('🟢 MessagesList: contactId obtenido:', data.contactId);
+          setContactId(data.contactId);
+          // Limpiar localStorage
+          localStorage.removeItem('ticketViewSource');
+        });
+      } else {
+        console.log('⚪ MessagesList: NO es vista agrupada o no es grupo, usando flujo normal');
+        setViewSource(null);
+        setContactId(null);
+        localStorage.removeItem('ticketViewSource');
+      }
+    } else {
+      console.log('⏳ MessagesList: isGroup aún es undefined, esperando...');
+    }
+  }, [ticketId, isGroup]);
 
   const fetchMessages = async ({
     evenToDispatch = "LOAD_MESSAGES",
@@ -471,7 +501,33 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     ticketsQueue,
   }) => {
     try {
-      if (ticketsQueue) {
+      console.log('🔵 fetchMessages: viewSource:', viewSource, 'contactId:', contactId, 'isGroup:', isGroup);
+      // Si es vista agrupada y tenemos contactId, usar endpoint consolidado
+      if (viewSource === 'grouped' && contactId && isGroup) {
+        console.log('✅ fetchMessages: Usando endpoint CONSOLIDADO');
+        const pageNumber = ticketsQueue?.[0]?.pageNumber || 1;
+        const { data } = await api.get(`/consolidated-messages/${contactId}`, {
+          params: {
+            setTicketMessagesAsRead: !isAPreview,
+            pageNumber
+          },
+        });
+        console.log('✅ fetchMessages: Mensajes consolidados recibidos:', data.messages?.length);
+
+        if (currentTicketId.current === ticketId) {
+          dispatch({
+            type: evenToDispatch,
+            payload: data.messages,
+          });
+          setHasMore(data.hasMore);
+          setLoading(false);
+        }
+
+        if (ticketsQueue?.[0]?.isTheInitialFetch) {
+          scrollToBottom();
+        }
+      } else if (ticketsQueue) {
+        // Comportamiento normal
         console.log("________fetchMessages START ticketsQueue:", ticketsQueue);
 
         const { data } = await api.get("/messagesV2", {
@@ -557,6 +613,22 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
       // clearInterval(intervalFn);
     };
   }, [ticketId, ticketsQueue]);
+
+  // Volver a cargar mensajes cuando contactId esté disponible para vista consolidada
+  useEffect(() => {
+    if (viewSource === 'grouped' && contactId && isGroup) {
+      console.log('🔄 Re-cargando mensajes con contactId:', contactId);
+      setLoading(true);
+      fetchMessages({
+        ticketId,
+        ticketsQueue: [{
+          ticketId,
+          pageNumber: 1,
+          isTheInitialFetch: true,
+        }],
+      });
+    }
+  }, [contactId, viewSource, isGroup, ticketId]);
 
   useEffect(() => {
     const socket = openSocket();
@@ -1082,6 +1154,23 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
                       {" "}
                       +{message.contact?.number}
                     </div>
+                    {/* Indicador de conexión para vista consolidada */}
+                    {viewSource === 'grouped' && message.connectionInfo && (
+                      <div
+                        style={{
+                          fontSize: 9,
+                          color: "#ff9800",
+                          fontWeight: "bold",
+                          marginTop: 2,
+                          backgroundColor: "rgba(255, 152, 0, 0.1)",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          display: "inline-block"
+                        }}
+                      >
+                        📱 {message.connectionInfo.whatsappName}
+                      </div>
+                    )}
                   </div>
                 )}
                 {(message.mediaUrl ||

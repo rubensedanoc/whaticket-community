@@ -13,6 +13,7 @@ import { makeStyles, withStyles } from "@material-ui/core/styles";
 import CheckBoxIcon from "@material-ui/icons/CheckBox";
 import MoveToInboxIcon from "@material-ui/icons/MoveToInbox";
 import SearchIcon from "@material-ui/icons/Search";
+import GroupWorkIcon from "@material-ui/icons/GroupWork";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import "./styles.css";
 
@@ -533,6 +534,15 @@ const TicketsManager = () => {
             classes={{ root: classes.tab }}
           />
           {/* - closed */}
+
+          {/* grouped */}
+          <Tab
+            value={"grouped"}
+            icon={<GroupWorkIcon style={{ fontSize: 21 }} />}
+            label={i18n.t("tickets.tabs.grouped.title")}
+            classes={{ root: classes.tab }}
+          />
+          {/* - grouped */}
 
           {/* search */}
           {/* <Tab
@@ -1427,6 +1437,178 @@ const TicketsManager = () => {
       </TabPanel>
       {/* - closed TAB CONTENT */}
 
+      {/* grouped TAB CONTENT */}
+      <TabPanel value={tab} name="grouped" className={classes.ticketsWrapper}>
+        {/* MISMA ESTRUCTURA QUE GENERAL */}
+        <Paper
+          className={classes.ticketsWrapper}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: "16 0",
+            overflow: "auto",
+          }}
+        >
+          {/* HEADER */}
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px 0px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                padding: "0px 16px 0px",
+                fontSize: 12
+              }}
+            >
+              <FormControl
+                fullWidth
+                margin="dense"
+                variant="outlined"
+                style={{width: "10rem"}}
+              >
+                <InputLabel id="principalTicketTypeForGeneralView-label">
+                  Tipo de Ticket
+                </InputLabel>
+                <Select
+                  labelId="principalTicketTypeForGeneralView-label"
+                  value={principalTicketTypeForGeneralView}
+                  onChange={(e) => {
+                    setPrincipalTicketTypeForGeneralView(e.target.value);
+                  }}
+                  label="Tipo de Ticket"
+                >
+                  <MenuItem value="all">Todos</MenuItem>
+                  <MenuItem value="individuals">Individuales</MenuItem>
+                  <MenuItem value="groups">Grupales</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                marginLeft: "auto",
+                fontSize: 12
+              }}
+            >
+              <Divider
+                flexItem
+                orientation="vertical"
+                style={{ marginLeft: 20, marginRight: 20 }}
+              />
+
+              {/* FILTRO DE RESPUESTA */}
+              <FormControlLabel
+                id="showOnlyWaitingTicketsLabel"
+                style={{ marginRight: 7, color: "gray", marginLeft: 0 }}
+                label={"Solo sin respuesta"}
+                labelPlacement="start"
+                control={
+                  <Switch
+                    size="small"
+                    checked={showOnlyWaitingTickets}
+                    onChange={(e) => {
+                      setShowOnlyWaitingTickets(e.target.checked);
+                      localStorage.setItem(
+                        "TicketsManager-showOnlyWaitingTickets",
+                        JSON.stringify(e.target.checked)
+                      );
+                    }}
+                    name="showOnlyWaitingTickets"
+                    color="primary"
+                  />
+                }
+              />
+              {/* - FILTRO DE RESPUESTA */}
+            </div>
+          </div>
+
+          {/* 3 COLUMNAS IGUALES A GENERAL */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 12,
+              padding: "16px 16px 16px",
+              overflow: "auto",
+              flexGrow: 1,
+            }}
+          >
+            {/* COLUMNA 1: SIN RESPUESTA */}
+            <TicketsList
+              searchParam={searchParam}
+              selectedTypeIds={
+                principalTicketTypeForGeneralView === "all"
+                  ? typeIdsForAll
+                  : principalTicketTypeForGeneralView === "groups"
+                    ? typeIdsForGroups
+                    : typeIdsForIndividuals
+              }
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+              showOnlyWaitingTickets={showOnlyWaitingTickets}
+              ticketsType={"no-response"}
+              advancedList={"no-response"}
+              viewSource={"grouped"}
+              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+              showAll={true}
+              showOnlyMyGroups={false}
+            />
+
+            {/* COLUMNA 2: EN PROGRESO */}
+            <TicketsList
+              searchParam={searchParam}
+              selectedTypeIds={
+                principalTicketTypeForGeneralView === "all"
+                  ? typeIdsForAll
+                  : principalTicketTypeForGeneralView === "groups"
+                    ? typeIdsForGroups
+                    : typeIdsForIndividuals
+              }
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+              showOnlyWaitingTickets={showOnlyWaitingTickets}
+              ticketsType={"in-progress"}
+              advancedList={"in-progress"}
+              viewSource={"grouped"}
+              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+              showAll={true}
+              showOnlyMyGroups={false}
+            />
+
+            {/* COLUMNA 3: CERRADOS */}
+            <TicketsList
+              status="closed"
+              searchParam={searchParam}
+              selectedTypeIds={typeIdsForAll}
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+              viewSource={"grouped"}
+              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+              showAll={true}
+              showOnlyMyGroups={false}
+            />
+          </div>
+        </Paper>
+      </TabPanel>
+      {/* - grouped TAB CONTENT */}
+
       {/* notifications TAB CONTENT */}
       <TabPanel
         value={tab}
@@ -2004,6 +2186,7 @@ const TicketsManager = () => {
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
                 ticketsType={"no-response"}
                 advancedList={"no-response"}
+                viewSource={"general"}
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}
                 showOnlyMyGroups={false}
@@ -2025,6 +2208,7 @@ const TicketsManager = () => {
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
                 ticketsType={"in-progress"}
                 advancedList={"in-progress"}
+                viewSource={"general"}
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}
                 showOnlyMyGroups={false}
@@ -2038,6 +2222,7 @@ const TicketsManager = () => {
                 selectedQueueIds={selectedQueueIds}
                 selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                viewSource={"general"}
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}
                 showOnlyMyGroups={false}

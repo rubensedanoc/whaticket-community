@@ -216,7 +216,8 @@ const TicketsList = (props) => {
     showOnlyWaitingTickets,
     columnsWidth,
     selectedClientelicenciaEtapaIds,
-    advancedList
+    advancedList,
+    viewSource
   } = props;
 
   const classes = useStyles();
@@ -271,7 +272,8 @@ const TicketsList = (props) => {
     ...(category && { categoryId: category.id }),
     ...(ticketsType === "no-category" && { categoryId: 0 }),
     filterByUserQueue: true,
-    advancedList
+    advancedList,
+    viewSource
   });
 
   useEffect(() => {
@@ -895,7 +897,7 @@ const TicketsList = (props) => {
           ) : (
             <>
               {ticketsList.map((ticket) => (
-                <TicketListItem ticket={ticket} key={ticket.id} />
+                <TicketListItem ticket={ticket} key={ticket.id} viewSource={viewSource} />
               ))}
             </>
           )}
