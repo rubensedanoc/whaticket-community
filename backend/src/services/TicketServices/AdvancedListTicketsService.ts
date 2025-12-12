@@ -480,7 +480,7 @@ const AdvancedListTicketsService = async (
   // console.log(" --- AdvancedListTicketsService --- ", request);
 
 
-  const { pageNumber = "1", viewSource, typeIds } = request;
+  const { pageNumber = "1", viewSource, typeIds, ticketGroupType } = request;
 
   // Llenar userWhatsappsId si no está presente
   if (!request.userWhatsappsId) {
@@ -506,20 +506,31 @@ const AdvancedListTicketsService = async (
   const offset = limit * (+pageNumber - 1);
 
   // ============================================================
-  // LÓGICA ESPECIAL PARA AGRUPADOS: EVITAR DUPLICADOS EN GRUPOS
+  // LÓGICA ESPECIAL PARA "POR CLIENTES": EVITAR DUPLICADOS
   // ============================================================
-  // Cuando estamos en la vista "Agrupados" y filtrando por grupos,
-  // un mismo chat grupal puede tener múltiples tickets (uno por cada conexión).
-  // Para evitar duplicados, agrupamos por contactId y tomamos solo el más reciente.
+  // Cuando estamos en la vista "Por Clientes", tanto grupos como individuales
+  // pueden tener múltiples tickets (uno por cada conexión).
+  // Para evitar duplicados, agrupamos:
+  // - Grupos: por contactId
+  // - Individuales: por contact.number (el número del cliente que escribe)
+  
+  // DETECCIÓN: Vista "Por Clientes" con GRUPOS
   const isGroupedViewWithGroups = viewSource === "grouped" && 
                                    typeIds && 
                                    typeIds.length > 0 && 
                                    typeIds.includes("group");
 
+  // DETECCIÓN: Vista "Por Clientes" con INDIVIDUALES (en cualquier estado: no-response o in-progress)
+  const isGroupedViewWithIndividuals = viewSource === "grouped" && 
+                                        typeIds && 
+                                        typeIds.length > 0 && 
+                                        typeIds.includes("individual") &&
+                                        (ticketGroupType === "no-response" || ticketGroupType === "in-progress");
+
   let tickets: Ticket[];
   
   if (isGroupedViewWithGroups) {
-    // Para grupos en vista "Agrupados": obtenemos todos y luego deduplicamos
+    // Para grupos en vista "Por Clientes": obtenemos todos y luego deduplicamos por contactId
     const allTickets = await Ticket.findAll({
       where: whereCondition,
       include: includeCondition,
@@ -557,6 +568,46 @@ const AdvancedListTicketsService = async (
     // Aplicar paginación manual
     tickets = ticketsWithConnectionCount.slice(offset, offset + limit) as any;
     
+  } else if (isGroupedViewWithIndividuals) {
+    // Para individuales en vista "Por Clientes": obtenemos todos y luego deduplicamos por contact.number
+    const allTickets = await Ticket.findAll({
+      where: whereCondition,
+      include: includeCondition,
+      order: [["lastMessageTimestamp", "DESC"]],
+      // No usamos limit/offset aquí porque primero necesitamos deduplicar
+    });
+
+    // Agrupar por contact.number (el número del cliente que escribe)
+    const ticketsByClientNumber = new Map<string, Ticket>();
+    allTickets.forEach(ticket => {
+      const clientNumber = ticket.contact?.number;
+      if (clientNumber && !ticketsByClientNumber.has(clientNumber)) {
+        // Guardamos el primero (más reciente por el order)
+        ticketsByClientNumber.set(clientNumber, ticket);
+      }
+    });
+
+    // Convertir de vuelta a array y agregar información de conexiones múltiples
+    const uniqueTickets = Array.from(ticketsByClientNumber.values());
+    
+    // Agregar información de cuántas conexiones tiene cada cliente
+    const ticketsWithConnectionCount = uniqueTickets.map(ticket => {
+      const clientNumber = ticket.contact?.number;
+      const sameClientTickets = allTickets.filter(t => t.contact?.number === clientNumber);
+      const ticketPlain = ticket.get({ plain: true }) as any;
+      return {
+        ...ticketPlain,
+        connectionCount: sameClientTickets.length,
+        availableConnections: sameClientTickets.map(t => ({
+          whatsappId: t.whatsappId,
+          whatsappName: t.whatsapp?.name || 'Sin nombre'
+        }))
+      };
+    });
+    
+    // Aplicar paginación manual
+    tickets = ticketsWithConnectionCount.slice(offset, offset + limit) as any;
+    
   } else {
     // Comportamiento normal para otras vistas
     tickets = await Ticket.findAll({
@@ -568,10 +619,10 @@ const AdvancedListTicketsService = async (
     });
   }
 
-  // Para el count, también necesitamos ajustar si es vista agrupada
+  // Para el count, también necesitamos ajustar si es vista "Por Clientes"
   let count: number;
   if (isGroupedViewWithGroups) {
-    // Contar tickets distintos por contactId
+    // Contar tickets distintos por contactId (para grupos)
     const countResult = await Ticket.findAll({
       where: whereCondition,
       include: includeConditionForCount,
@@ -579,6 +630,25 @@ const AdvancedListTicketsService = async (
       raw: true
     });
     count = countResult.length;
+  } else if (isGroupedViewWithIndividuals) {
+    // Contar tickets distintos por contact.number (para individuales)
+    // Necesitamos hacer un query para obtener números únicos
+    const allTicketsForCount = await Ticket.findAll({
+      where: whereCondition,
+      include: includeConditionForCount,
+      attributes: ['id', 'contactId'],
+    });
+    
+    // Crear un Set con los números únicos de clientes
+    const uniqueClientNumbers = new Set<string>();
+    allTicketsForCount.forEach(ticket => {
+      const clientNumber = (ticket as any).contact?.number;
+      if (clientNumber) {
+        uniqueClientNumbers.add(clientNumber);
+      }
+    });
+    
+    count = uniqueClientNumbers.size;
   } else {
     count = await Ticket.count({
       where: whereCondition,

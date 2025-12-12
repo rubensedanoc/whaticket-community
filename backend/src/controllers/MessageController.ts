@@ -80,21 +80,23 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 /**
  * Endpoint para obtener mensajes consolidados de múltiples tickets del mismo contacto.
- * Se usa en la vista "Agrupados" cuando un grupo tiene múltiples conexiones.
+ * Funciona tanto para GRUPOS (por contactId) como para INDIVIDUALES (por clientNumber).
+ * Se usa en la vista "Por Clientes" cuando un cliente tiene múltiples conexiones.
  */
 export const consolidatedIndex = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
   const { contactId } = req.params;
-  const { pageNumber, setTicketMessagesAsRead } = req.query as unknown as IndexQuery;
+  const { pageNumber, setTicketMessagesAsRead, clientNumber } = req.query as unknown as IndexQuery & { clientNumber?: string };
 
   const { count, messages, tickets, hasMore } = await ListConsolidatedMessagesService({
     pageNumber,
-    contactId
+    contactId: contactId && contactId !== 'undefined' ? contactId : undefined,
+    clientNumber
   });
 
-  // Marcar como leídos todos los tickets del grupo si se solicita
+  // Marcar como leídos todos los tickets del cliente si se solicita
   if (setTicketMessagesAsRead === "true" && tickets.length > 0) {
     // Marcar el ticket más reciente (primero en el array)
     SetTicketMessagesAsRead(tickets[0]);

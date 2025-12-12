@@ -389,10 +389,10 @@ const TicketListItem = ({
                   {/* - CONTACT NAME */}
 
                   <div style={{ display: "flex", gap: "4px" }}>
-                    {/* CONNECTION COUNT BADGE - ONLY FOR GROUPED VIEW */}
-                    {viewSource === "grouped" && ticket.isGroup && ticket.connectionCount > 1 && (
+                    {/* CONNECTION COUNT BADGE - FOR GROUPED VIEW (GROUPS & INDIVIDUALS) */}
+                    {viewSource === "grouped" && ticket.connectionCount > 1 && (
                       <Tooltip
-                        title={`Este grupo tiene ${ticket.connectionCount} conexiones disponibles`}
+                        title={`Este ${ticket.isGroup ? 'grupo' : 'cliente'} tiene ${ticket.connectionCount} conexiones disponibles`}
                         placement="top"
                       >
                         <Chip

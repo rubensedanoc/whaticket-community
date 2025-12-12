@@ -3,9 +3,11 @@ import AppError from "../../errors/AppError";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
+import Contact from "../../models/Contact";
 
 interface Request {
-  contactId: string;
+  contactId?: string;
+  clientNumber?: string; // Nuevo: para buscar por número de cliente individual
   pageNumber?: string;
 }
 
@@ -17,32 +19,67 @@ interface Response {
 }
 
 /**
- * Servicio para obtener mensajes consolidados de múltiples tickets del mismo contacto (grupo).
- * Se usa en la vista "Agrupados" para mostrar todos los mensajes de un grupo
+ * Servicio para obtener mensajes consolidados de múltiples tickets del mismo contacto.
+ * Funciona tanto para GRUPOS (por contactId) como para INDIVIDUALES (por contact.number).
+ * Se usa en la vista "Por Clientes" para mostrar todos los mensajes de un cliente
  * independientemente de por cuál conexión de WhatsApp llegaron.
  */
 const ListConsolidatedMessagesService = async ({
   pageNumber = "1",
-  contactId
+  contactId,
+  clientNumber
 }: Request): Promise<Response> => {
-  // 1. Buscar todos los tickets del mismo contacto (grupo)
-  const tickets = await Ticket.findAll({
-    where: { 
-      contactId: +contactId,
-      isGroup: true 
-    },
-    include: [
-      {
-        model: Whatsapp,
-        as: "whatsapp",
-        attributes: ["id", "name"]
-      }
-    ]
-  });
+  
+  let tickets: Ticket[];
+
+  // 1. Buscar tickets según el tipo de búsqueda
+  if (contactId) {
+    // Búsqueda por contactId (GRUPOS)
+    tickets = await Ticket.findAll({
+      where: { 
+        contactId: +contactId,
+        isGroup: true 
+      },
+      include: [
+        {
+          model: Whatsapp,
+          as: "whatsapp",
+          attributes: ["id", "name"]
+        }
+      ]
+    });
+  } else if (clientNumber) {
+    // Búsqueda por contact.number (INDIVIDUALES)
+    tickets = await Ticket.findAll({
+      where: { 
+        isGroup: false 
+      },
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          where: {
+            number: clientNumber,
+            isGroup: false
+          },
+          attributes: ["id", "name", "number"]
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp",
+          attributes: ["id", "name"]
+        }
+      ]
+    });
+  } else {
+    throw new AppError("ERR_MISSING_PARAMETERS: contactId or clientNumber required", 400);
+  }
 
   if (!tickets || tickets.length === 0) {
     throw new AppError("ERR_NO_TICKETS_FOUND", 404);
   }
+
+  console.log(`[ConsolidatedMessages] Encontrados ${tickets.length} tickets para ${contactId ? 'grupo contactId=' + contactId : 'cliente number=' + clientNumber}`);
 
   const ticketIds = tickets.map(t => t.id);
 

@@ -5,6 +5,7 @@ import { emitEvent } from "../../libs/emitEvent";
 import Ticket from "../../models/Ticket";
 import TicketCategory from "../../models/TicketCategory";
 import ShowTicketService from "./ShowTicketService";
+import SyncClientTicketsService from "./SyncClientTicketsService";
 
 interface TicketData {
   status?: string;
@@ -234,6 +235,34 @@ const UpdateTicketService = async ({
       }
     }
   });
+
+  // ============================================================
+  // SINCRONIZACIÓN DE TICKETS DEL MISMO CLIENTE (SOLO INDIVIDUALES)
+  // ============================================================
+  // IMPORTANTE: Esto NO afecta la sincronización de categorías de grupos
+  // que ya existe arriba. Esta es una funcionalidad NUEVA solo para 
+  // clientes individuales con múltiples conexiones en vista "Por Clientes".
+  // 
+  // Solo sincronizar cuando:
+  // 1. El ticket es INDIVIDUAL (no grupo) - NO toca la lógica de grupos existente
+  // 2. Cambió el STATUS (no otras actualizaciones como notas, categorías, etc)
+  // 3. El nuevo status es 'open' o 'closed' (cambios de estado importantes)
+  const shouldSyncClientTickets = 
+    !ticket.isGroup &&              // Protección: NUNCA afecta grupos
+    status &&                       // Solo si se está actualizando status
+    oldStatus !== status &&         // Solo si el status realmente cambió
+    (status === 'open' || status === 'closed'); // Solo cambios de estado importantes
+
+  if (shouldSyncClientTickets) {
+    try {
+      await SyncClientTicketsService({
+        ticketId: ticket.id
+      });
+    } catch (error) {
+      console.error("[UpdateTicketService] Error sincronizando tickets del cliente:", error);
+      // No lanzamos el error para no bloquear la actualización principal
+    }
+  }
 
   return { ticket, oldStatus, oldUserId };
 };

@@ -452,9 +452,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   const [ticketListModalTickets, setTicketListModalTickets] = useState([]);
   const [selectedContactId, setSelectedContactId] = useState(null);
   
-  // Detectar si viene de vista agrupada
+  // Detectar si viene de vista "Por Clientes"
   const [viewSource, setViewSource] = useState(null);
-  const [contactId, setContactId] = useState(null);
+  const [contactId, setContactId] = useState(null); // Para grupos
+  const [clientNumber, setClientNumber] = useState(null); // Para individuales
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -468,26 +469,37 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
 
     currentTicketId.current = ticketId;
     
-    // Detectar si viene de vista agrupada
+    // Detectar si viene de vista "Por Clientes"
     const savedViewSource = localStorage.getItem('ticketViewSource');
     console.log('🟡 MessagesList: savedViewSource:', savedViewSource, 'isGroup:', isGroup);
     
     // Solo procesar cuando isGroup ya esté definido (puede ser true o false, pero no undefined)
     if (isGroup !== undefined) {
-      if (savedViewSource === 'grouped' && isGroup) {
-        console.log('🟢 MessagesList: Es vista agrupada! Obteniendo contactId...');
+      if (savedViewSource === 'grouped') {
+        console.log('🟢 MessagesList: Es vista "Por Clientes"! Verificando tipo...');
         setViewSource(savedViewSource);
-        // Obtener contactId del ticket
+        
+        // Obtener datos del ticket
         api.get(`/tickets/${ticketId}`).then(({ data }) => {
-          console.log('🟢 MessagesList: contactId obtenido:', data.contactId);
-          setContactId(data.contactId);
+          if (data.isGroup) {
+            // GRUPO: usar contactId
+            console.log('🟢 MessagesList: Es GRUPO, contactId:', data.contactId);
+            setContactId(data.contactId);
+            setClientNumber(null);
+          } else {
+            // INDIVIDUAL: usar contact.number
+            console.log('🟢 MessagesList: Es INDIVIDUAL, clientNumber:', data.contact?.number);
+            setContactId(null);
+            setClientNumber(data.contact?.number);
+          }
           // Limpiar localStorage
           localStorage.removeItem('ticketViewSource');
         });
       } else {
-        console.log('⚪ MessagesList: NO es vista agrupada o no es grupo, usando flujo normal');
+        console.log('⚪ MessagesList: NO es vista "Por Clientes", usando flujo normal');
         setViewSource(null);
         setContactId(null);
+        setClientNumber(null);
         localStorage.removeItem('ticketViewSource');
       }
     } else {
@@ -501,18 +513,29 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     ticketsQueue,
   }) => {
     try {
-      console.log('🔵 fetchMessages: viewSource:', viewSource, 'contactId:', contactId, 'isGroup:', isGroup);
-      // Si es vista agrupada y tenemos contactId, usar endpoint consolidado
-      if (viewSource === 'grouped' && contactId && isGroup) {
+      console.log('🔵 fetchMessages: viewSource:', viewSource, 'contactId:', contactId, 'clientNumber:', clientNumber, 'isGroup:', isGroup);
+      
+      // Si es vista "Por Clientes" y tenemos identificador (contactId para grupos, clientNumber para individuales)
+      if (viewSource === 'grouped' && (contactId || clientNumber)) {
         console.log('✅ fetchMessages: Usando endpoint CONSOLIDADO');
         const pageNumber = ticketsQueue?.[0]?.pageNumber || 1;
-        const { data } = await api.get(`/consolidated-messages/${contactId}`, {
-          params: {
-            setTicketMessagesAsRead: !isAPreview,
-            pageNumber
-          },
-        });
-        console.log('✅ fetchMessages: Mensajes consolidados recibidos:', data.messages?.length);
+        
+        // Construir params según el tipo
+        const params = {
+          setTicketMessagesAsRead: !isAPreview,
+          pageNumber
+        };
+        
+        if (clientNumber) {
+          params.clientNumber = clientNumber;
+        }
+        
+        // El endpoint usa contactId en la ruta, pero si no hay contactId (individuales), pasamos 'undefined'
+        const endpoint = contactId ? `/consolidated-messages/${contactId}` : `/consolidated-messages/undefined`;
+        
+        const { data } = await api.get(endpoint, { params });
+        
+        console.log('✅ fetchMessages: Mensajes consolidados recibidos:', data.messages?.length, 'tickets:', data.tickets?.length);
 
         if (currentTicketId.current === ticketId) {
           dispatch({
@@ -614,10 +637,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     };
   }, [ticketId, ticketsQueue]);
 
-  // Volver a cargar mensajes cuando contactId esté disponible para vista consolidada
+  // Volver a cargar mensajes cuando contactId o clientNumber esté disponible para vista consolidada
   useEffect(() => {
-    if (viewSource === 'grouped' && contactId && isGroup) {
-      console.log('🔄 Re-cargando mensajes con contactId:', contactId);
+    if (viewSource === 'grouped' && (contactId || clientNumber)) {
+      console.log('🔄 Re-cargando mensajes consolidados. contactId:', contactId, 'clientNumber:', clientNumber);
       setLoading(true);
       fetchMessages({
         ticketId,
@@ -628,7 +651,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
         }],
       });
     }
-  }, [contactId, viewSource, isGroup, ticketId]);
+  }, [contactId, clientNumber, viewSource, isGroup, ticketId]);
 
   useEffect(() => {
     const socket = openSocket();
