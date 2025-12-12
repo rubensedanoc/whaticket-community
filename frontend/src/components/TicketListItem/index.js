@@ -455,7 +455,21 @@ const TicketListItem = ({
                     )}
                     {/* TRANFER BADGE */}
 
-                    {/* CLOSED BADGE */}
+                    {/* STATUS BADGES */}
+                    {ticket.status === "pending" && (
+                      <Chip
+                        style={{ height: "16px", fontSize: "9px", backgroundColor: "#ff9800", color: "white" }}
+                        size="small"
+                        label="Pendiente"
+                      />
+                    )}
+                    {ticket.status === "open" && (
+                      <Chip
+                        style={{ height: "16px", fontSize: "9px", backgroundColor: "#4caf50", color: "white" }}
+                        size="small"
+                        label="En proceso"
+                      />
+                    )}
                     {ticket.status === "closed" && (
                       <Chip
                         style={{ height: "16px", fontSize: "9px" }}
@@ -464,7 +478,7 @@ const TicketListItem = ({
                         label="Cerrado"
                       />
                     )}
-                    {/* CLOSED BADGE */}
+                    {/* STATUS BADGES */}
 
                     {/* WAITING BADGE */}
                     {(() => {

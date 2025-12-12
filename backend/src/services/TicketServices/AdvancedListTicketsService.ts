@@ -574,14 +574,18 @@ const AdvancedListTicketsService = async (
       where: whereCondition,
       include: includeCondition,
       order: [["lastMessageTimestamp", "DESC"]],
+      subQuery: false, // Evita problemas con limit en queries con includes
       // No usamos limit/offset aquí porque primero necesitamos deduplicar
     });
 
+    // FILTRAR tickets que NO tienen contact (esto previene errores)
+    const validTickets = allTickets.filter(ticket => ticket.contact && ticket.contact.number);
+
     // Agrupar por contact.number (el número del cliente que escribe)
     const ticketsByClientNumber = new Map<string, Ticket>();
-    allTickets.forEach(ticket => {
-      const clientNumber = ticket.contact?.number;
-      if (clientNumber && !ticketsByClientNumber.has(clientNumber)) {
+    validTickets.forEach(ticket => {
+      const clientNumber = ticket.contact!.number; // Ya validamos que existe
+      if (!ticketsByClientNumber.has(clientNumber)) {
         // Guardamos el primero (más reciente por el order)
         ticketsByClientNumber.set(clientNumber, ticket);
       }
@@ -592,8 +596,8 @@ const AdvancedListTicketsService = async (
     
     // Agregar información de cuántas conexiones tiene cada cliente
     const ticketsWithConnectionCount = uniqueTickets.map(ticket => {
-      const clientNumber = ticket.contact?.number;
-      const sameClientTickets = allTickets.filter(t => t.contact?.number === clientNumber);
+      const clientNumber = ticket.contact!.number; // Ya validamos que existe
+      const sameClientTickets = validTickets.filter(t => t.contact!.number === clientNumber);
       const ticketPlain = ticket.get({ plain: true }) as any;
       return {
         ...ticketPlain,
@@ -632,17 +636,26 @@ const AdvancedListTicketsService = async (
     count = countResult.length;
   } else if (isGroupedViewWithIndividuals) {
     // Contar tickets distintos por contact.number (para individuales)
-    // Necesitamos hacer un query para obtener números únicos
+    // Necesitamos incluir Contact para acceder al número
     const allTicketsForCount = await Ticket.findAll({
       where: whereCondition,
-      include: includeConditionForCount,
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          attributes: ['number'],
+          required: true
+        },
+        ...includeConditionForCount.filter(inc => (inc as any).as !== 'contact')
+      ],
       attributes: ['id', 'contactId'],
+      subQuery: false, // Evita problemas con includes
     });
     
-    // Crear un Set con los números únicos de clientes
+    // Crear un Set con los números únicos de clientes (filtrando los que tienen contact válido)
     const uniqueClientNumbers = new Set<string>();
     allTicketsForCount.forEach(ticket => {
-      const clientNumber = (ticket as any).contact?.number;
+      const clientNumber = ticket.contact?.number;
       if (clientNumber) {
         uniqueClientNumbers.add(clientNumber);
       }

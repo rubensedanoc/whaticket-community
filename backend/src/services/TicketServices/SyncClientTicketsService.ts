@@ -107,26 +107,18 @@ const SyncClientTicketsService = async ({
     beenWaitingSinceTimestamp: updatedTicket.beenWaitingSinceTimestamp,
   };
 
-  // 6. Actualizar cada ticket y emitir evento socket
+  // 6. Actualizar cada ticket silenciosamente (SIN emitir eventos)
+  // IMPORTANTE: NO emitimos eventos socket aquí porque el ticket primario
+  // ya emitió su evento en UpdateTicketService. Emitir eventos aquí causa
+  // que el frontend cuente mal (decrementa 3 veces cuando debería ser 1).
   for (const ticket of allClientTickets) {
+    const oldStatus = ticket.status;
     await ticket.update(fieldsToSync);
 
-    // Emitir evento socket para actualizar la UI en tiempo real
-    emitEvent({
-      to: [ticket.status, "notification", ticket.id.toString()],
-      event: {
-        name: "ticket",
-        data: {
-          action: "update",
-          ticket
-        }
-      }
-    });
-
-    console.log(`[SyncClientTickets] Ticket ${ticket.id} sincronizado con estado: ${fieldsToSync.status}`);
+    console.log(`[SyncClientTickets] Ticket ${ticket.id} sincronizado silenciosamente: ${oldStatus} → ${fieldsToSync.status}`);
   }
 
-  console.log(`[SyncClientTickets] ✅ Sincronización completada para cliente ${clientNumber}`);
+  console.log(`[SyncClientTickets] ✅ Sincronización completada para cliente ${clientNumber} (${allClientTickets.length} tickets actualizados)`);
 };
 
 export default SyncClientTicketsService;
