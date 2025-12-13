@@ -65,7 +65,7 @@ const SendWhatsAppMedia = async ({
       body: hasBody || media.filename,
       fromMe: true,
       mediaType: newMedia.mimetype.split("/")[0], // image, video, audio, etc
-      mediaUrl: sentMessage.id.id, // será actualizado por el listener cuando procese la media
+      mediaUrl: media.filename, // ✅ Nombre del archivo guardado en /public
       read: true,
       quotedMsgId: null,
       ack: sentMessage.ack || 0,
