@@ -1590,7 +1590,30 @@ const TicketsManager = () => {
               showOnlyMyGroups={false}
             />
 
-            {/* COLUMNA 3: CERRADOS */}
+            {/* COLUMNA 3: MI DEPARTAMENTO */}
+            <TicketsList
+              searchParam={searchParam}
+              selectedTypeIds={
+                principalTicketTypeForGeneralView === "all"
+                  ? typeIdsForAll
+                  : principalTicketTypeForGeneralView === "groups"
+                    ? typeIdsForGroups
+                    : typeIdsForIndividuals
+              }
+              selectedWhatsappIds={selectedWhatsappIds}
+              selectedQueueIds={selectedQueueIds}
+              selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+              showOnlyWaitingTickets={showOnlyWaitingTickets}
+              ticketsType={"my-department"}
+              advancedList={"my-department"}
+              viewSource={"grouped"}
+              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+              showAll={true}
+              showOnlyMyGroups={false}
+            />
+
+            {/* COLUMNA 4: CERRADOS */}
             <TicketsList
               status="closed"
               searchParam={searchParam}

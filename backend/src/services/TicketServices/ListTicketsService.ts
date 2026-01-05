@@ -34,6 +34,8 @@ interface Request {
   showOnlyWaitingTickets?: boolean;
   clientelicenciaEtapaIds?: number[];
   viewSource?: string;
+  ticketsType?: string;
+  profile?: string;
 }
 
 interface Response {
@@ -45,7 +47,7 @@ interface Response {
 }
 
 // Función para construir la condición where principal
-const buildWhereCondition = ({
+const buildWhereCondition = async ({
   userId,
   typeIds,
   queueIds,
@@ -60,22 +62,64 @@ const buildWhereCondition = ({
   userWhatsappsId,
   showOnlyWaitingTickets,
   clientelicenciaEtapaIds,
-  viewSource
-}: Request): Filterable["where"] => {
+  viewSource,
+  ticketsType,
+  profile
+}: Request): Promise<Filterable["where"]> => {
   
   // ============================================================
   // BLOQUE PREPARADO PARA LÓGICA ESPECÍFICA SEGÚN VIEWSOURCE
   // ============================================================
-  // Por ahora usa la misma lógica, pero puedes agregar
-  // condiciones específicas en el futuro
-  //
-  // Ejemplo:
-  // if (viewSource === "grouped") {
-  //   // Agregar filtros específicos para "Agrupados"
-  // }
+  // FILTRADO POR DEPARTAMENTO EN VISTA "POR CLIENTES"
   // ============================================================
   
   let baseCondition: Filterable["where"] = {};
+
+  // Obtener IDs de departamentos del usuario UNA SOLA VEZ (evitar consultas duplicadas)
+  let userQueueIds: number[] = [];
+  if (viewSource === "grouped" && userId && profile !== "admin") {
+    const user = await User.findByPk(userId, {
+      include: [{
+        model: Queue,
+        as: "queues",
+        attributes: ["id"]
+      }]
+    });
+    
+    if (user && user.queues && user.queues.length > 0) {
+      userQueueIds = user.queues.map((q: any) => q.id);
+    }
+  }
+
+  // FILTRAR COLUMNA "MI DEPARTAMENTO" - Incluir solo mis departamentos
+  if (viewSource === "grouped" && ticketsType === "my-department" && userQueueIds.length > 0) {
+    baseCondition.whatsappId = {
+      [Op.in]: Sequelize.literal(
+        `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
+      )
+    };
+  }
+
+  // FILTRAR COLUMNA "EN PROCESO" - Excluir mis departamentos
+  if (viewSource === "grouped" && ticketsType === "in-progress" && userQueueIds.length > 0) {
+    baseCondition.whatsappId = {
+      [Op.notIn]: Sequelize.literal(
+        `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
+      )
+    };
+  }
+
+  // FILTRAR COLUMNA "CERRADOS" - Incluir solo mis departamentos
+  if (viewSource === "grouped" && status === "closed" && userQueueIds.length > 0) {
+    baseCondition.whatsappId = {
+      [Op.in]: Sequelize.literal(
+        `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
+      )
+    };
+  }
+
+  // Columnas "Sin respuesta" NO se filtran (acceso global)
+  // ============================================================
 
   // si tengo status, entonces filtro por status
   if (status) {
@@ -455,9 +499,10 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   });
 
   request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
+  request.profile = user.profile;
 
 
-  let whereCondition = buildWhereCondition(request);
+  let whereCondition = await buildWhereCondition(request);
   let includeCondition = buildIncludeCondition(request);
   let includeConditionForCount = buildIncludeConditionForCount(request);
 

@@ -1805,6 +1805,151 @@ export const reportToExcelForIA = async (
   });
 };
 
+export const reportOpenChats = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    selectedQueueIds: selectedQueueIdsAsString
+  } = req.query as IndexQuery;
+
+  const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
+
+  const logsTime = [];
+  
+  // Fecha de hace 7 días
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoFormatted = format(sevenDaysAgo, "yyyy-MM-dd HH:mm:ss");
+
+  let sqlWhereAdd = `t.status IN ('open', 'pending') AND t.isGroup = 0 AND t.updatedAt >= '${sevenDaysAgoFormatted}' `;
+
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
+  }
+
+  logsTime.push(`Whatasappnew-inicio: ${Date()}`);
+  let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
+    "SELECT * FROM Whatsapps WHERE number IS NOT NULL AND number != '' ",
+    { type: QueryTypes.SELECT }
+  );
+  logsTime.push(`Whatasappnew-fin: ${Date()}`);
+  whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+
+  const sql = `SELECT
+    t.id as tid,
+    t.isGroup as tisGroup,
+    t.createdAt as tcreatedAt,
+    t.updatedAt as tupdatedAt,
+    que.name as queuename,
+    t.status as tstatus,
+    m.id as mid,
+    m.timestamp as mtimestamp,
+    m.createdAt as mcreatedAt,
+    m.isPrivate as misPrivate,
+    m.fromMe as mfromMe,
+    m.body as mbody,
+    m.mediaType as mmediaType,
+    c.isCompanyMember as misCompanyMember,
+    c.number as cmnumber,
+    u.id as uid,
+    u.name as uname,
+    ct.id as ctid,
+    ct.name as ctname,
+    ct.number as ctnumber,
+    w.id as wid,
+    w.name as wname,
+    ctc.name as ctcname
+  FROM Tickets t
+  LEFT JOIN Users u ON t.userId = u.id
+  LEFT JOIN Whatsapps w ON t.whatsappId = w.id
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
+  LEFT JOIN Countries ctc ON ct.countryId = ctc.id
+  LEFT JOIN Messages m ON t.id = m.ticketId AND m.createdAt >= '${sevenDaysAgoFormatted}'
+  LEFT JOIN Contacts c ON m.contactId = c.id
+  LEFT JOIN Queues que ON t.queueId = que.id
+  WHERE
+  ${sqlWhereAdd}
+  ORDER BY t.id, m.timestamp`;
+  
+  console.log("sql", sql);
+  logsTime.push(`sql-inicio: ${Date()}`);
+  const ticketListFinal = [];
+
+  const ticketListFind = await Ticket.sequelize.query(sql, {
+    type: QueryTypes.SELECT
+  });
+  logsTime.push(`sql-fin: ${Date()}`);
+
+  // Agrupar por ticket
+  const ticketsGrouped: any = ticketListFind.reduce((result, currentValue: any) => {
+    if (!result[currentValue?.tid]) {
+      result[currentValue.tid] = [];
+    }
+    result[currentValue.tid].push(currentValue);
+    return result;
+  }, {});
+
+  // Procesar cada ticket
+  for (const ticketId in ticketsGrouped) {
+    const ticketMessages = ticketsGrouped[ticketId];
+    
+    // Filtrar mensajes de los últimos 7 días que no sean privados ni automáticos
+    const messagesLast7Days = ticketMessages
+      .filter((m: any) => 
+        m.mid !== null && 
+        m.misPrivate !== 1 &&
+        m.mbody &&
+        !m.mbody.includes("BEGIN:VCARD") &&
+        !/^[a-zA-Z0-9_-]+\.\w+$/.test(m.mbody)
+      )
+      .sort((a: any, b: any) => a.mtimestamp - b.mtimestamp);
+
+    // Concatenar todos los mensajes en una sola cadena
+    const allMessages = messagesLast7Days
+      .map((m: any) => {
+        const from = m.mfromMe ? "Empresa" : "Cliente";
+        return `[${from}]: ${m.mbody}`;
+      })
+      .join(" | ");
+
+    if (allMessages.length > 0) {
+      ticketListFinal.push({
+        tid: ticketMessages[0].tid,
+        uname: ticketMessages[0].uname,
+        ctname: ticketMessages[0].ctname,
+        ctnumber: ticketMessages[0].ctnumber,
+        wname: ticketMessages[0].wname,
+        tstatus: ticketMessages[0].tstatus,
+        tisGroup: ticketMessages[0].tisGroup,
+        ctcname: ticketMessages[0].ctcname,
+        queuename: ticketMessages[0].queuename,
+        tcreatedAt: ticketMessages[0].tcreatedAt,
+        tupdatedAt: ticketMessages[0].tupdatedAt,
+        messages: allMessages,
+        messageCount: messagesLast7Days.length
+      });
+    }
+  }
+
+  logsTime.push(`asignacion-fin: ${Date()}`);
+  return res.status(200).json({
+    ticketListFinal,
+    sql,
+    logsTime
+  });
+};
+
 export const reportToUsers = async (
   req: Request,
   res: Response

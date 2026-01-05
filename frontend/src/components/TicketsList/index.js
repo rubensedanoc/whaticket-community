@@ -830,6 +830,12 @@ const TicketsList = (props) => {
           </>
         )}
 
+        {ticketsType === "my-department" && (
+          <>
+            <div>MI DEPARTAMENTO</div>
+          </>
+        )}
+
         {ticketsType === "waiting-response" && (
           <>
             <div>Esperando Respuesta</div>

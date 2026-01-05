@@ -126,6 +126,7 @@ const Reports = () => {
   const [selectedQueueIds, setSelectedQueueIds] = useState([]);
   const [loadingReportToExcel, setLoadingReportToExcel] = useState(false);
   const [loadingReportToExcelIA, setLoadingReportToExcelIA] = useState(false);
+  const [loadingReportOpenChats, setLoadingReportOpenChats] = useState(false);
   const [
     ticketsIdsWithResposneThatAreGroups,
     setTicketsIdsWithResposneThatAreGroups,
@@ -419,6 +420,74 @@ const Reports = () => {
       setLoadingReportToExcelIA(false);
     } catch (error) {
       setLoadingReportToExcelIA(false);
+      console.log(error);
+      toastError(error);
+    }
+  };
+
+  const reportOpenChats = async ({ selectedQueueIds }) => {
+    try {
+      setLoadingReportOpenChats(true);
+      const { data: reportOpenChats } = await api.get("/reportOpenChats", {
+        params: {
+          selectedQueueIds: JSON.stringify(selectedQueueIds),
+        },
+      });
+
+      if (reportOpenChats) {
+        console.log("reportOpenChats: ", reportOpenChats.ticketListFinal);
+
+        let dataToExport = reportOpenChats.ticketListFinal.map((row) => {
+          return {
+            TICKET_ID: row.tid,
+            CONTACTO: row.ctname,
+            TELEFONO: row.ctnumber,
+            WHATSAPP: row.wname,
+            DEPARTAMENTO: row.queuename || "Sin departamento",
+            USUARIO: row.uname || "Sin asignar",
+            ESTADO: row.tstatus === "open" ? "Abierto" : "En proceso",
+            FECHA_CREACION: format(
+              new Date(row.tcreatedAt),
+              "dd/MM/yyyy HH:mm"
+            ),
+            ULTIMA_ACTIVIDAD: format(
+              new Date(row.tupdatedAt),
+              "dd/MM/yyyy HH:mm"
+            ),
+            CANT_MENSAJES: row.messageCount,
+            CONVERSACION: row.messages,
+          };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        
+        // Ajustar ancho de columnas
+        const columnWidths = [
+          { wch: 10 },  // TICKET_ID
+          { wch: 25 },  // CONTACTO
+          { wch: 15 },  // TELEFONO
+          { wch: 20 },  // WHATSAPP
+          { wch: 20 },  // DEPARTAMENTO
+          { wch: 20 },  // USUARIO
+          { wch: 12 },  // ESTADO
+          { wch: 18 },  // FECHA_CREACION
+          { wch: 18 },  // ULTIMA_ACTIVIDAD
+          { wch: 12 },  // CANT_MENSAJES
+          { wch: 100 }, // CONVERSACION (más ancho)
+        ];
+        worksheet["!cols"] = columnWidths;
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Chats Abiertos");
+        XLSX.writeFile(
+          workbook,
+          `WHATREST-chats-abiertos-${format(new Date(), "yyyy-MM-dd")}.xlsx`
+        );
+      }
+
+      setLoadingReportOpenChats(false);
+    } catch (error) {
+      setLoadingReportOpenChats(false);
       console.log(error);
       toastError(error);
     }
@@ -1277,6 +1346,18 @@ const Reports = () => {
                     loading={loadingReportToExcelIA}
                   >
                     IA Excel (by departamento)
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#ff9800" }}
+                    onClick={() =>
+                      reportOpenChats({
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportOpenChats}
+                  >
+                    Reporte de chats abiertos
                   </ButtonWithSpinner>
                   <ButtonWithSpinner
                     variant="contained"

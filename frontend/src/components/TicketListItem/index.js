@@ -463,13 +463,6 @@ const TicketListItem = ({
                         label="Pendiente"
                       />
                     )}
-                    {ticket.status === "open" && (
-                      <Chip
-                        style={{ height: "16px", fontSize: "9px", backgroundColor: "#4caf50", color: "white" }}
-                        size="small"
-                        label="En proceso"
-                      />
-                    )}
                     {ticket.status === "closed" && (
                       <Chip
                         style={{ height: "16px", fontSize: "9px" }}
