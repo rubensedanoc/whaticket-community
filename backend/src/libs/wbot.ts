@@ -59,12 +59,18 @@ export const searchForUnSaveMessages = async ({
   whatsapp: Whatsapp;
   timeIntervalInHours: number;
 }) => {
+  const startTime = Date.now();
+  const memUsage = process.memoryUsage();
+  
   const response: {
     logs: any[];
     error: any;
     messagesCount: number;
   } = {
-    logs: [`START searchForUnSaveMessages - wpp: ${whatsapp.name}`],
+    logs: [
+      `[${new Date().toISOString()}] START searchForUnSaveMessages - wpp: ${whatsapp.name} (ID: ${whatsapp.id})`,
+      `[MEMORY] heapUsed: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB, rss: ${Math.round(memUsage.rss / 1024 / 1024)}MB`
+    ],
     error: null,
     messagesCount: null
   };
@@ -91,13 +97,25 @@ export const searchForUnSaveMessages = async ({
         : false
     );
 
-    response.logs.push(`last${timeIntervalInHours}HoursChats ...`);
-    // response.logs.push(last8HoursChats.map(chat => chat.name));
+    response.logs.push(
+      `[${new Date().toISOString()}] Chats filtered: ${last8HoursChats.length} (from ${chats.length} total) - timeInterval: ${timeIntervalInHours}h`
+    );
 
-    response.logs.push(`START - evaluteChats ${Date.now()}`);
+    const evaluateStartTime = Date.now();
+    response.logs.push(`[${new Date().toISOString()}] START evaluteChats - processing ${last8HoursChats.length} chats`);
+    
+    let processedChats = 0;
+    let errorChats = 0;
+    
     await Promise.all(
-      last8HoursChats.map(async chat => {
+      last8HoursChats.map(async (chat, index) => {
+        const chatStartTime = Date.now();
         try {
+          // Log cada 10 chats procesados
+          if (index % 10 === 0) {
+            response.logs.push(`[${new Date().toISOString()}] Processing chat ${index + 1}/${last8HoursChats.length} - name: ${chat.name || 'N/A'}`);
+          }
+          
           let timestampUpToFetchMessages =
             Date.now() / 1000 - timeIntervalInHours * 3600; // convert x hours in seconds
 
@@ -142,29 +160,46 @@ export const searchForUnSaveMessages = async ({
           chat.myProperty_FoundMessages = wppMessagesFoundInTimeInterval.map(
             msg => msg.body
           );
+          
+          processedChats++;
+          const chatElapsed = Date.now() - chatStartTime;
+          
+          // Log si el chat toma mas de 10 segundos
+          if (chatElapsed > 10000) {
+            response.logs.push(
+              `[${new Date().toISOString()}] SLOW CHAT - name: ${chat.name || 'N/A'} - elapsed: ${chatElapsed}ms - messages: ${wppMessagesFoundInTimeInterval.length}`
+            );
+          }
         } catch (error) {
-          response.logs.push(`ERROR - evaluteChats ${Date.now()}`);
+          errorChats++;
+          const chatElapsed = Date.now() - chatStartTime;
+          response.logs.push(
+            `[${new Date().toISOString()}] ERROR evaluteChat #${index + 1} - name: ${chat.name || 'N/A'} - elapsed: ${chatElapsed}ms`
+          );
           response.logs.push(error);
           response.error = error;
         }
       })
     );
 
-    response.logs.push(`END - evaluteChats ${Date.now()}`);
+    const evaluateElapsed = Date.now() - evaluateStartTime;
+    response.logs.push(
+      `[${new Date().toISOString()}] END evaluteChats - elapsed: ${evaluateElapsed}ms - processed: ${processedChats}/${last8HoursChats.length} - errors: ${errorChats}`
+    );
 
     const messagesCount = last8HoursChats.reduce(
       // @ts-ignore
       (acc, chat) => acc + (chat.myProperty_FoundMessagesLength || 0),
       0
     );
-    // const messages = last8HoursChats.reduce(
-    //   // @ts-ignore
-    //   (acc, chat) => acc.concat(chat.myProperty_FoundMessages || []),
-    //   []
-    // );
+    
+    const totalElapsed = Date.now() - startTime;
+    const finalMemUsage = process.memoryUsage();
+    const memDiff = Math.round((finalMemUsage.heapUsed - memUsage.heapUsed) / 1024 / 1024);
 
-    response.logs.push(`messagesCount: ${messagesCount} ...`);
-    // response.logs.push(`messages: ${messages}`);
+    response.logs.push(
+      `[${new Date().toISOString()}] SUMMARY - messagesCount: ${messagesCount} - totalTime: ${totalElapsed}ms - memoryDiff: ${memDiff}MB`
+    );
     response.messagesCount = messagesCount;
 
     emitEvent({
@@ -177,7 +212,15 @@ export const searchForUnSaveMessages = async ({
       }
     });
   } catch (error) {
-    response.logs.push(`ERROR - ${Date.now()}`);
+    const totalElapsed = Date.now() - startTime;
+    const finalMemUsage = process.memoryUsage();
+    
+    response.logs.push(
+      `[${new Date().toISOString()}] CRITICAL ERROR - whatsapp: ${whatsapp.name} (ID: ${whatsapp.id}) - elapsed: ${totalElapsed}ms`
+    );
+    response.logs.push(
+      `[MEMORY] heapUsed: ${Math.round(finalMemUsage.heapUsed / 1024 / 1024)}MB, rss: ${Math.round(finalMemUsage.rss / 1024 / 1024)}MB`
+    );
     response.logs.push(error);
     response.error = error;
   }
@@ -228,9 +271,15 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           executablePath: process.env.CHROME_BIN || undefined,
           // @ts-ignore
           browserWSEndpoint: process.env.CHROME_WS || undefined,
-          args: args.split(" ")
+          args: args.split(" "),
+          // @ts-ignore - Agregar protocolTimeout para evitar timeouts de Puppeteer
+          protocolTimeout: 300000 // 5 minutos en milisegundos
         }
       });
+      
+      logger.info(
+        `[${new Date().toISOString()}] wbot Client created - id: ${whatsapp.id} - protocolTimeout: 300s`
+      );
 
       wbot.initialize();
 
@@ -260,7 +309,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
 
       wbot.on("authenticated", async session => {
-        logger.info(`Session: ${sessionName} AUTHENTICATED`);
+        logger.info(`[${new Date().toISOString()}] Session: ${sessionName} AUTHENTICATED - id: ${whatsapp.id}`);
       });
 
       wbot.on("auth_failure", async msg => {
@@ -292,7 +341,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
 
       wbot.on("ready", async () => {
-        logger.info(`Session: ${sessionName} READY`);
+        const memUsage = process.memoryUsage();
+        logger.info(
+          `[${new Date().toISOString()}] Session: ${sessionName} READY - id: ${whatsapp.id} - heap: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`
+        );
 
         await whatsapp.update({
           status: "CONNECTED",
@@ -322,9 +374,11 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
         wbot.sendPresenceAvailable();
 
+        const syncStartTime = Date.now();
         try {
-
-          logger.info(`Session: ${sessionName} searchForUnSaveMessages`);
+          logger.info(
+            `[${new Date().toISOString()}] Session: ${sessionName} START searchForUnSaveMessages - id: ${whatsapp.id}`
+          );
 
           const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
             wbot,
@@ -333,12 +387,35 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
             timeIntervalInHours: 24
           });
 
+          const syncElapsed = Date.now() - syncStartTime;
+          
+          // Si hubo error pero no critico, solo loguear (no tumbar la sesion)
+          if (searchForUnSaveMessagesResult.error) {
+            logger.error(
+              `[${new Date().toISOString()}] Session: ${sessionName} searchForUnSaveMessages error (non-critical) - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`,
+              searchForUnSaveMessagesResult.error
+            );
+          } else {
+            logger.info(
+              `[${new Date().toISOString()}] Session: ${sessionName} searchForUnSaveMessages SUCCESS - messages: ${searchForUnSaveMessagesResult.messagesCount} - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`
+            );
+          }
+
           console.log(
-            `Session: ${sessionName} syncUnreadMessagesResult: `,
+            `[${new Date().toISOString()}] Session: ${sessionName} syncUnreadMessagesResult: `,
             searchForUnSaveMessagesResult
           );
         } catch (error) {
-          console.log(`Session: ${sessionName} error on syncUnreadMessages: `, error);
+          const syncElapsed = Date.now() - syncStartTime;
+          // Si falla completamente, NO tumbar el proyecto, solo loguear
+          logger.error(
+            `[${new Date().toISOString()}] Session: ${sessionName} CRITICAL ERROR on syncUnreadMessages - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`,
+            error
+          );
+          console.log(
+            `[${new Date().toISOString()}] Session: ${sessionName} error on syncUnreadMessages: `,
+            error
+          );
         }
 
         resolve(wbot);

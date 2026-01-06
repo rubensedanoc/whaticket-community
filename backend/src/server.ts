@@ -20,39 +20,106 @@ import ContactClientelicencia from "./models/ContactClientelicencias";
 import AnalizeTicketToCreateAConversationIAEvaluationService from "./services/ConversationIAEvalutaion/AnalizeTicketToCreateAConversationIAEvaluationService";
 
 const server = app.listen(process.env.PORT, () => {
-  logger.info(`Server started on port: ${process.env.PORT}`);
+  const memUsage = process.memoryUsage();
+  logger.info(
+    `[${new Date().toISOString()}] Server started on port: ${process.env.PORT} - heap: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB - pid: ${process.pid}`
+  );
 });
 
+logger.info(`[${new Date().toISOString()}] Initializing Socket.IO`);
 initIO();
+
+logger.info(`[${new Date().toISOString()}] Starting all WhatsApp sessions`);
 StartAllWhatsAppsSessions();
+
+logger.info(`[${new Date().toISOString()}] Configuring graceful shutdown`);
 gracefulShutdown(server);
 
 // every hour/2 of the day
 cron.schedule("*/30 * * * *", async () => {
-  logger.info("--- searchForUnSaveMessages CRON: ");
+  const cronStartTime = Date.now();
+  const memBefore = process.memoryUsage();
+  
+  logger.info(
+    `[${new Date().toISOString()}] CRON START searchForUnSaveMessages - heap: ${Math.round(memBefore.heapUsed / 1024 / 1024)}MB`
+  );
 
   try {
     let whatsapps = await ListWhatsAppsService();
+    logger.info(
+      `[${new Date().toISOString()}] CRON - Total whatsapps: ${whatsapps.length}`
+    );
 
     whatsapps = whatsapps.filter(whatsapp => whatsapp.status === "CONNECTED");
+    logger.info(
+      `[${new Date().toISOString()}] CRON - Connected whatsapps: ${whatsapps.length} - IDs: [${whatsapps.map(w => w.id).join(', ')}]`
+    );
 
-    whatsapps.forEach(async whatsapp => {
-      const wbot = getWbot(whatsapp.id);
+    let processedCount = 0;
+    let errorCount = 0;
+    let totalMessages = 0;
 
-      const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
-        wbot,
-        whatsapp,
-        timeIntervalInHours: 3
-      });
+    for (const whatsapp of whatsapps) {
+      const whatsappStartTime = Date.now();
+      try {
+        logger.info(
+          `[${new Date().toISOString()}] CRON - Processing whatsapp ${processedCount + 1}/${whatsapps.length} - ID: ${whatsapp.id} - name: ${whatsapp.name}`
+        );
+        
+        const wbot = getWbot(whatsapp.id);
 
-      console.log(
-        "--- searchForUnSaveMessagesResult: ",
-        searchForUnSaveMessagesResult
-      );
-    });
+        const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+          wbot,
+          whatsapp,
+          timeIntervalInHours: 3
+        });
+
+        const whatsappElapsed = Date.now() - whatsappStartTime;
+        
+        if (searchForUnSaveMessagesResult.error) {
+          errorCount++;
+          logger.error(
+            `[${new Date().toISOString()}] CRON - Whatsapp ${whatsapp.id} finished with errors - elapsed: ${whatsappElapsed}ms`,
+            searchForUnSaveMessagesResult.error
+          );
+        } else {
+          totalMessages += searchForUnSaveMessagesResult.messagesCount || 0;
+          logger.info(
+            `[${new Date().toISOString()}] CRON - Whatsapp ${whatsapp.id} finished - messages: ${searchForUnSaveMessagesResult.messagesCount} - elapsed: ${whatsappElapsed}ms`
+          );
+        }
+
+        console.log(
+          `[${new Date().toISOString()}] searchForUnSaveMessagesResult (${whatsapp.name}): `,
+          searchForUnSaveMessagesResult
+        );
+        
+        processedCount++;
+      } catch (err) {
+        errorCount++;
+        const whatsappElapsed = Date.now() - whatsappStartTime;
+        logger.error(
+          `[${new Date().toISOString()}] CRON - Error processing whatsapp ${whatsapp.id} - elapsed: ${whatsappElapsed}ms`,
+          err
+        );
+        Sentry.captureException(err);
+      }
+    }
+    
+    const cronElapsed = Date.now() - cronStartTime;
+    const memAfter = process.memoryUsage();
+    const memDiff = Math.round((memAfter.heapUsed - memBefore.heapUsed) / 1024 / 1024);
+    
+    logger.info(
+      `[${new Date().toISOString()}] CRON END searchForUnSaveMessages - processed: ${processedCount}/${whatsapps.length} - errors: ${errorCount} - totalMessages: ${totalMessages} - elapsed: ${cronElapsed}ms - memDiff: ${memDiff}MB`
+    );
   } catch (err) {
+    const cronElapsed = Date.now() - cronStartTime;
+    logger.error(
+      `[${new Date().toISOString()}] CRON CRITICAL ERROR - elapsed: ${cronElapsed}ms`,
+      err
+    );
     Sentry.captureException(err);
-    logger.error(err);
   }
 });
 
@@ -228,6 +295,9 @@ cron.schedule("*/30 * * * *", async () => {
 // CRON FOR SEARCH EXCLUSIVE NUMBERS ON CONTACTS
 // Every hour of the day
 cron.schedule('0 * * * *', async () => {
+  const cronStartTime = Date.now();
+  logger.info(`[${new Date().toISOString()}] CRON START searchForExclusiveNumbers`);
+  
   try {
     // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
     const response = await fetch(
@@ -252,8 +322,12 @@ cron.schedule('0 * * * *', async () => {
     if (typeof data.data === "object") {
 
       const exclusiveNumbers = Object.keys(data.data).map(number => number.replace(/\D/g, "")).filter(number => number.length > 6);
+      
+      logger.info(
+        `[${new Date().toISOString()}] CRON searchForExclusiveNumbers - found ${exclusiveNumbers.length} exclusive numbers`
+      );
 
-      Contact.update(
+      await Contact.update(
         { isExclusive: true },
         {
           where: {
@@ -265,8 +339,17 @@ cron.schedule('0 * * * *', async () => {
       );
 
     }
+    
+    const cronElapsed = Date.now() - cronStartTime;
+    logger.info(
+      `[${new Date().toISOString()}] CRON END searchForExclusiveNumbers - elapsed: ${cronElapsed}ms`
+    );
   } catch (error) {
-    console.log("--- Error in searchForExclusiveNumbers", error);
+    const cronElapsed = Date.now() - cronStartTime;
+    logger.error(
+      `[${new Date().toISOString()}] CRON ERROR searchForExclusiveNumbers - elapsed: ${cronElapsed}ms`,
+      error
+    );
     Sentry.captureException(error);
   }
 });
