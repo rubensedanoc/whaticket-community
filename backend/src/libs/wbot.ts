@@ -312,9 +312,35 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         logger.info(`[${new Date().toISOString()}] Session: ${sessionName} AUTHENTICATED - id: ${whatsapp.id}`);
       });
 
+      wbot.on("disconnected", async (reason) => {
+        logger.error(
+          `[${new Date().toISOString()}] Session: ${sessionName} DISCONNECTED - id: ${whatsapp.id} - reason: ${reason}`
+        );
+        
+        await whatsapp.update({
+          status: "DISCONNECTED",
+          qrcode: ""
+        });
+
+        emitEvent({
+          event: {
+            name: "whatsappSession",
+            data: {
+              action: "update",
+              session: whatsapp
+            }
+          }
+        });
+
+        const sessionIndex = sessions.findIndex(s => s.id === whatsapp.id);
+        if (sessionIndex !== -1) {
+          sessions.splice(sessionIndex, 1);
+        }
+      });
+
       wbot.on("auth_failure", async msg => {
-        console.error(
-          `Session: ${sessionName} AUTHENTICATION FAILURE! Reason: ${msg}`
+        logger.error(
+          `[${new Date().toISOString()}] Session: ${sessionName} AUTHENTICATION FAILURE - id: ${whatsapp.id} - reason: ${msg}`
         );
 
         if (whatsapp.retries > 1) {

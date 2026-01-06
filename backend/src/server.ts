@@ -66,7 +66,18 @@ cron.schedule("*/30 * * * *", async () => {
           `[${new Date().toISOString()}] CRON - Processing whatsapp ${processedCount + 1}/${whatsapps.length} - ID: ${whatsapp.id} - name: ${whatsapp.name}`
         );
         
-        const wbot = getWbot(whatsapp.id);
+        // VALIDACIÓN CRÍTICA: Verificar que la sesión wbot exista antes de usarla
+        let wbot;
+        try {
+          wbot = getWbot(whatsapp.id);
+        } catch (error) {
+          // La sesión no existe aunque el WhatsApp esté marcado como CONNECTED
+          logger.warn(
+            `[${new Date().toISOString()}] CRON - Wbot session not found for whatsapp ${whatsapp.id} (${whatsapp.name}) - Skipping. Status in DB: ${whatsapp.status}`
+          );
+          errorCount++;
+          continue; // Salta al siguiente WhatsApp sin romper el proceso
+        }
 
         const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
           wbot,
