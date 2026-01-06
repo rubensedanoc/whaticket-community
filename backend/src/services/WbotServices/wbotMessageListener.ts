@@ -290,9 +290,6 @@ export const verifyMessage = async ({
   identifier?: string;
   shouldUpdateUserHadContact?: boolean;
 }) => {
-  console.log(`[VERIFY] 💾 Guardando mensaje en BD - Ticket: ${ticket.id} | Mensaje ID: ${msg.id.id}`);
-  console.log(`[VERIFY] 📝 Tipo: ${msg.type} | fromMe: ${msg.fromMe} | isPrivate: ${isPrivate}`);
-  
   if (msg.type === "location") msg = prepareLocation(msg);
 
   const quotedMsg = await verifyQuotedMessage(msg);
@@ -310,8 +307,6 @@ export const verifyMessage = async ({
     timestamp: msg.timestamp,
     ...(identifier && { identifier })
   };
-
-  console.log(`[VERIFY] 📊 messageData preparado:`, JSON.stringify(messageData, null, 2));
 
   if (updateTicketLastMessage) {
 
@@ -332,14 +327,9 @@ export const verifyMessage = async ({
       }),
       ...(msg.fromMe && !isPrivate && shouldUpdateUserHadContact && { userHadContact: true })
     });
-    console.log(`[VERIFY] ✅ Ticket actualizado con lastMessage`);
   }
 
-  console.log(`[VERIFY] 🔄 Llamando a CreateMessageService...`);
-  const createdMessage = await CreateMessageService({ messageData, ticket });
-  console.log(`[VERIFY] ✅ Mensaje guardado exitosamente en BD - ID: ${createdMessage.id}`);
-  
-  return createdMessage;
+  return await CreateMessageService({ messageData, ticket });
 };
 
 /**
@@ -651,15 +641,9 @@ const handleMessage = async ({
   wbot: Session;
 }): Promise<void> => {
 
-  console.log(`[HANDLE] 🔄 Procesando mensaje - ID: ${msg.id.id}`);
-  console.log(`[HANDLE] 📞 De: ${msg.from} | fromMe: ${msg.fromMe} | Tipo: ${msg.type}`);
-
   if (!isValidMsg(msg)) {
-    console.log(`[HANDLE] ❌ Mensaje NO válido, ignorando`);
     return;
   }
-
-  console.log(`[HANDLE] ✅ Mensaje VÁLIDO, continuando...`);
 
   try {
     let msgContact: WbotContact;
@@ -668,11 +652,10 @@ const handleMessage = async ({
     // if i sent the message, msgContact is the contact that received the message
     // if i received the message, msgContact is the contact that sent the message
     if (msg.fromMe) {
-      console.log(`[HANDLE] 📤 Mensaje enviado POR MÍ`);
       // messages sent automatically by wbot have a special character in front of it
       // if so, this message was already been stored in database;
       if (/\u200e/.test(msg.body[0]) || /\u200B/.test(msg.body[0])) {
-        console.log("[HANDLE] ⏭️ Ignorando mensaje de bot (carácter especial detectado)");
+        console.log("---- handleMessage - ignore bot message");
         return;
       }
 
@@ -684,24 +667,15 @@ const handleMessage = async ({
         msg.type !== "chat" &&
         msg.type !== "vcard"
         //&& msg.type !== "multi_vcard"
-      ) {
-        console.log(`[HANDLE] ⏭️ Ignorando mensaje enviado sin media (esperando media_uploaded)`);
-        console.log(`[HANDLE] 📋 hasMedia: ${msg.hasMedia} | type: ${msg.type}`);
+      )
         return;
-      }
 
-      console.log(`[HANDLE] 📞 Obteniendo contacto destinatario: ${msg.to}`);
       msgContact = await wbot.getContactById(msg.to);
     } else {
-      console.log(`[HANDLE] 📥 Mensaje RECIBIDO de cliente`);
       msgContact = await msg.getContact();
     }
 
-    console.log(`[HANDLE] 👤 Contacto obtenido: ${msgContact.pushname || msgContact.name || 'Sin nombre'}`);
-    console.log(`[HANDLE] 📱 Número: ${msgContact.number}`);
-
     const chat = await msg.getChat();
-    console.log(`[HANDLE] 💬 Chat obtenido - isGroup: ${chat.isGroup}`);
 
     // if the message is from a group,
     // and i sent the message, groupContact is the contact that received the message
@@ -1405,13 +1379,7 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 };
 
 const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
-  console.log(`[LISTENER] 🎧 Iniciando listener para WhatsApp: ${whatsapp.name} (ID: ${whatsapp.id})`);
-  
   wbot.on("message_create", async msg => {
-    console.log(`[LISTENER] 📨 MENSAJE RECIBIDO - WhatsApp: ${whatsapp.name}`);
-    console.log(`[LISTENER] 📋 De: ${msg.from} | Tipo: ${msg.type} | fromMe: ${msg.fromMe}`);
-    console.log(`[LISTENER] 💬 Cuerpo: ${msg.body?.substring(0, 50)}...`);
-    
     // logger.info(
     //   `BOT wbotMessageListener message_create - wpp id: ${whatsapp.id} - from: ${msg.from} - type ${msg.type}`
     // );
@@ -1421,16 +1389,13 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     try {
       // ignorar mensajes de grupos y de estados
       if (msg.id.remote.includes("@g") || msg.from === "status@broadcast") {
-        console.log(`[LISTENER] ⏭️ Ignorando mensaje de grupo o estado`);
         return false;
       }
       // solo aceptar mensajes de texto
       if (msg.type === "chat") {
-        console.log(`[LISTENER] ✅ Mensaje de tipo chat, procesando webhook...`);
         const freshWpp = await Whatsapp.findByPk(whatsapp.id);
 
         if (!freshWpp) {
-          console.log(`[LISTENER] ❌ WhatsApp no encontrado en BD`);
           throw new AppError("ERR_NO_WAPP_FOUND", 404);
         }
 
