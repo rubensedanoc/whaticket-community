@@ -83,11 +83,39 @@ export const searchForUnSaveMessages = async ({
       }
     });
 
-    response.logs.push(`START - wbot.getChats ${Date.now()}`);
+    const getChatsStartTime = Date.now();
+    response.logs.push(`[${new Date().toISOString()}] START wbot.getChats - timeout: 60s`);
 
-    let chats = await wbot.getChats();
-
-    response.logs.push(`END - wbot.getChats ${Date.now()}`);
+    // TIMEOUT DE 60 SEGUNDOS: Si getChats() tarda más, rechazar para no bloquear Node.js
+    // Sesiones normales tardan <1 segundo, sesiones con problemas pueden tardar minutos
+    const GET_CHATS_TIMEOUT = 60000; // 60 segundos
+    
+    let chats;
+    try {
+      chats = await Promise.race([
+        wbot.getChats(),
+        new Promise<Chat[]>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`getChats() timeout after ${GET_CHATS_TIMEOUT / 1000}s - Sesión posiblemente corrupta`)),
+            GET_CHATS_TIMEOUT
+          )
+        )
+      ]);
+      
+      const getChatsElapsed = Date.now() - getChatsStartTime;
+      response.logs.push(
+        `[${new Date().toISOString()}] END wbot.getChats - elapsed: ${getChatsElapsed}ms - chats found: ${chats.length}`
+      );
+    } catch (error) {
+      const getChatsElapsed = Date.now() - getChatsStartTime;
+      response.logs.push(
+        `[${new Date().toISOString()}] ERROR wbot.getChats - elapsed: ${getChatsElapsed}ms - ${error.message}`
+      );
+      response.logs.push(
+        `[${new Date().toISOString()}] RECOMENDACIÓN: Reiniciar sesión whatsappId: ${whatsapp.id} desde la UI`
+      );
+      throw error;
+    }
 
     // filter chats with last message in the last x hours
     let last8HoursChats = chats.filter(chat =>
@@ -403,7 +431,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         const syncStartTime = Date.now();
         try {
           logger.info(
-            `[${new Date().toISOString()}] Session: ${sessionName} START searchForUnSaveMessages - id: ${whatsapp.id}`
+            `[${new Date().toISOString()}] Session: ${sessionName} START searchForUnSaveMessages (ON READY) - id: ${whatsapp.id}`
           );
 
           const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
@@ -418,29 +446,29 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           // Si hubo error pero no critico, solo loguear (no tumbar la sesion)
           if (searchForUnSaveMessagesResult.error) {
             logger.error(
-              `[${new Date().toISOString()}] Session: ${sessionName} searchForUnSaveMessages error (non-critical) - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`,
+              `[${new Date().toISOString()}] Session: ${sessionName} searchForUnSaveMessages (ON READY) error (non-critical) - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`,
               searchForUnSaveMessagesResult.error
             );
           } else {
             logger.info(
-              `[${new Date().toISOString()}] Session: ${sessionName} searchForUnSaveMessages SUCCESS - messages: ${searchForUnSaveMessagesResult.messagesCount} - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`
+              `[${new Date().toISOString()}] Session: ${sessionName} searchForUnSaveMessages (ON READY) SUCCESS - messages: ${searchForUnSaveMessagesResult.messagesCount} - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`
             );
           }
 
           console.log(
-            `[${new Date().toISOString()}] Session: ${sessionName} syncUnreadMessagesResult: `,
+            `[${new Date().toISOString()}] Session: ${sessionName} syncUnreadMessagesResult (ON READY): `,
             searchForUnSaveMessagesResult
           );
-        } catch (error) {
+        } catch (criticalError) {
           const syncElapsed = Date.now() - syncStartTime;
-          // Si falla completamente, NO tumbar el proyecto, solo loguear
+          // CRITICAL ERROR (timeout, crash) - NO tumbar la sesión, solo loguear y continuar
           logger.error(
-            `[${new Date().toISOString()}] Session: ${sessionName} CRITICAL ERROR on syncUnreadMessages - elapsed: ${syncElapsed}ms - id: ${whatsapp.id}`,
-            error
+            `[${new Date().toISOString()}] Session: ${sessionName} CRITICAL ERROR on syncUnreadMessages (ON READY) - elapsed: ${syncElapsed}ms - id: ${whatsapp.id} - RECOMENDACIÓN: Reiniciar sesión desde UI`,
+            criticalError
           );
           console.log(
-            `[${new Date().toISOString()}] Session: ${sessionName} error on syncUnreadMessages: `,
-            error
+            `[${new Date().toISOString()}] Session: ${sessionName} error on syncUnreadMessages (ON READY): `,
+            criticalError
           );
         }
 

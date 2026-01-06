@@ -681,12 +681,11 @@ export const getNumberGroupsByContactId = async (
 
     await Promise.all(
       wbots.map(async wbot => {
-        try {
-          const wbotstate = await wbot.getState();
+        const wbotstate = await wbot.getState();
 
-          if (wbotstate === "CONNECTED") {
-            try {
-              const wbotChatsIds = await wbot.getCommonGroups(number + "@c.us");
+        if (wbotstate === "CONNECTED") {
+          try {
+            const wbotChatsIds = await wbot.getCommonGroups(number + "@c.us");
 
             // const wbotGroupChats = wbotChats.filter(chat => chat.isGroup);
 
@@ -775,12 +774,8 @@ export const getNumberGroupsByContactId = async (
               })
             );
           } catch (error) {
-            console.log("error getting common groups", error);
+            console.log("error", error);
           }
-        }
-        } catch (error) {
-          console.log("error getting wbot state (timeout or connection issue)", error);
-          // Si falla getState(), simplemente saltamos este wbot
         }
       })
     );

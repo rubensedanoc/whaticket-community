@@ -79,11 +79,23 @@ cron.schedule("*/30 * * * *", async () => {
           continue; // Salta al siguiente WhatsApp sin romper el proceso
         }
 
-        const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
-          wbot,
-          whatsapp,
-          timeIntervalInHours: 3
-        });
+        let searchForUnSaveMessagesResult;
+        try {
+          searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+            wbot,
+            whatsapp,
+            timeIntervalInHours: 3
+          });
+        } catch (criticalError) {
+          // Error crítico (timeout, crash, etc) - Registrar y continuar con siguiente sesión
+          errorCount++;
+          const whatsappElapsed = Date.now() - whatsappStartTime;
+          logger.error(
+            `[${new Date().toISOString()}] CRON - CRITICAL ERROR whatsapp ${whatsapp.id} (${whatsapp.name}) - elapsed: ${whatsappElapsed}ms`,
+            criticalError
+          );
+          continue; // Saltar al siguiente WhatsApp
+        }
 
         const whatsappElapsed = Date.now() - whatsappStartTime;
         
