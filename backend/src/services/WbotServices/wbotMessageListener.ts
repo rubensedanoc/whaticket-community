@@ -327,9 +327,14 @@ export const verifyMessage = async ({
       }),
       ...(msg.fromMe && !isPrivate && shouldUpdateUserHadContact && { userHadContact: true })
     });
+    console.log(`[VERIFY] ✅ Ticket actualizado con lastMessage`);
   }
 
-  return await CreateMessageService({ messageData, ticket });
+  console.log(`[VERIFY] 🔄 Llamando a CreateMessageService...`);
+  const createdMessage = await CreateMessageService({ messageData, ticket });
+  console.log(`[VERIFY] ✅ Mensaje guardado exitosamente en BD - ID: ${createdMessage.id}`);
+  
+  return createdMessage;
 };
 
 /**
