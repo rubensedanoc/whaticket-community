@@ -533,6 +533,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
         // El endpoint usa contactId en la ruta, pero si no hay contactId (individuales), pasamos 'undefined'
         const endpoint = contactId ? `/consolidated-messages/${contactId}` : `/consolidated-messages/undefined`;
         
+        console.log('🔄 fetchMessages: Llamando a endpoint:', endpoint, 'con params:', params);
         const { data } = await api.get(endpoint, { params });
         
         console.log('✅ fetchMessages: Mensajes consolidados recibidos:', data.messages?.length, 'tickets:', data.tickets?.length);
@@ -588,7 +589,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
         }
       }
     } catch (err) {
-      console.log("_____________err: ", err);
+      console.error("❌ ERROR en fetchMessages:", err);
+      console.error("❌ URL que falló:", err?.config?.url);
+      console.error("❌ Status:", err?.response?.status);
+      console.error("❌ Detalles:", err?.response?.data);
       setLoading(false);
       toastError(err);
     }
