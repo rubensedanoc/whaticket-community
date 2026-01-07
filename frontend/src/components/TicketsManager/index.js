@@ -1590,7 +1590,7 @@ const TicketsManager = () => {
               showOnlyMyGroups={false}
             />
 
-            {/* COLUMNA 3: MI DEPARTAMENTO */}
+            {/* COLUMNA 3: MI DEPARTAMENTO
             <TicketsList
               searchParam={searchParam}
               selectedTypeIds={
@@ -1611,7 +1611,7 @@ const TicketsManager = () => {
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
               showAll={true}
               showOnlyMyGroups={false}
-            />
+            /> */}
 
             {/* COLUMNA 4: CERRADOS */}
             <TicketsList
