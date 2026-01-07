@@ -89,42 +89,42 @@ const buildWhereCondition = async ({
   // Obtener IDs de departamentos del usuario UNA SOLA VEZ (evitar consultas duplicadas)
   let userQueueIds: number[] = [];
   
-  if (viewSource === "grouped" && userId && profile !== "admin") {
-    const startTime = Date.now();
-    console.log(`${logPrefix} 🔄 Obteniendo departamentos del usuario ${userId}...`);
+  // if (viewSource === "grouped" && userId && profile !== "admin") {
+  //   const startTime = Date.now();
+  //   console.log(`${logPrefix} 🔄 Obteniendo departamentos del usuario ${userId}...`);
     
-    const user = await User.findByPk(userId, {
-      include: [{
-        model: Queue,
-        as: "queues",
-        attributes: ["id"]
-      }]
-    });
+  //   const user = await User.findByPk(userId, {
+  //     include: [{
+  //       model: Queue,
+  //       as: "queues",
+  //       attributes: ["id"]
+  //     }]
+  //   });
     
-    if (user && user.queues && user.queues.length > 0) {
-      userQueueIds = user.queues.map((q: any) => q.id);
-    }
+  //   if (user && user.queues && user.queues.length > 0) {
+  //     userQueueIds = user.queues.map((q: any) => q.id);
+  //   }
     
-    const elapsed = Date.now() - startTime;
-    console.log(`${logPrefix} ✅ Departamentos obtenidos en ${elapsed}ms:`, userQueueIds);
-  }
+  //   const elapsed = Date.now() - startTime;
+  //   console.log(`${logPrefix} ✅ Departamentos obtenidos en ${elapsed}ms:`, userQueueIds);
+  // }
 
   // FILTRAR COLUMNA "MI DEPARTAMENTO" - Incluir solo tickets de mis departamentos
   // ✅ OPTIMIZACIÓN: Filtrar directamente por queueId del ticket
-  if (viewSource === "grouped" && ticketsType === "my-department" && userQueueIds.length > 0) {
-    console.log(`${logPrefix} 🎯 Aplicando filtro MI DEPARTAMENTO: tickets con queueId en`, userQueueIds);
-    baseCondition.queueId = {
-      [Op.in]: userQueueIds
-    };
+  // if (viewSource === "grouped" && ticketsType === "my-department" && userQueueIds.length > 0) {
+  //   console.log(`${logPrefix} 🎯 Aplicando filtro MI DEPARTAMENTO: tickets con queueId en`, userQueueIds);
+  //   baseCondition.queueId = {
+  //     [Op.in]: userQueueIds
+  //   };
     
-    // ✅ FIX: "Mi Departamento" solo debe mostrar tickets abiertos y pendientes, NO cerrados
-    if (!status) {
-      console.log(`${logPrefix} 🎯 MI DEPARTAMENTO: Filtrando solo open y pending (excluyendo closed)`);
-      baseCondition.status = {
-        [Op.in]: ["open", "pending"]
-      };
-    }
-  }
+  //   // ✅ FIX: "Mi Departamento" solo debe mostrar tickets abiertos y pendientes, NO cerrados
+  //   if (!status) {
+  //     console.log(`${logPrefix} 🎯 MI DEPARTAMENTO: Filtrando solo open y pending (excluyendo closed)`);
+  //     baseCondition.status = {
+  //       [Op.in]: ["open", "pending"]
+  //     };
+  //   }
+  // }
 
   // FILTRAR COLUMNA "EN PROCESO" - Excluir tickets de mis departamentos
   if (viewSource === "grouped" && ticketsType === "in-progress" && userQueueIds.length > 0) {
