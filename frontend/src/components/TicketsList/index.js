@@ -87,6 +87,50 @@ const useStyles = makeStyles((theme) => ({
     marginTop: -12,
     marginLeft: -12,
   },
+  paginationWrapper: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "12px 8px",
+    gap: "6px",
+    borderTop: "1px solid rgba(0, 0, 0, 0.12)",
+    backgroundColor: "white",
+    flexWrap: "wrap",
+  },
+  pageButton: {
+    minWidth: "32px",
+    height: "32px",
+    padding: "0 8px",
+    fontSize: "13px",
+    border: "1px solid #ddd",
+    borderRadius: "4px",
+    backgroundColor: "white",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    "&:hover": {
+      backgroundColor: "#f5f5f5",
+      borderColor: "#2576d2",
+    },
+    "&:disabled": {
+      cursor: "not-allowed",
+      opacity: 0.5,
+      backgroundColor: "#f5f5f5",
+    },
+  },
+  pageButtonActive: {
+    backgroundColor: "#2576d2",
+    color: "white",
+    borderColor: "#2576d2",
+    fontWeight: "600",
+    "&:hover": {
+      backgroundColor: "#1e5fa8",
+    },
+  },
+  pageInfo: {
+    fontSize: "13px",
+    color: "rgb(104, 121, 146)",
+    margin: "0 8px",
+  },
 }));
 
 const reducer = (state, action) => {
@@ -244,16 +288,17 @@ const TicketsList = (props) => {
   }, [
     status,
     searchParam,
-    dispatch,
+    // ⚠️ NO incluir 'dispatch' en dependencias (es estable de useReducer)
     showAll,
     showOnlyMyGroups,
-    selectedWhatsappIds,
-    selectedQueueIds,
-    selectedMarketingCampaignIds,
-    selectedTypeIds,
-    selectedTicketUsersIds,
+    // ✅ Convertir arrays a string para comparación estable
+    JSON.stringify(selectedWhatsappIds),
+    JSON.stringify(selectedQueueIds),
+    JSON.stringify(selectedMarketingCampaignIds),
+    JSON.stringify(selectedTypeIds),
+    JSON.stringify(selectedTicketUsersIds),
     showOnlyWaitingTickets,
-    selectedClientelicenciaEtapaIds
+    JSON.stringify(selectedClientelicenciaEtapaIds)
   ]);
 
   const { tickets, hasMore, loading, count, triggerReload } = useTickets({
@@ -582,20 +627,63 @@ const TicketsList = (props) => {
     selectedClientelicenciaEtapaIds
   ]);
 
-  const loadMore = () => {
-    setPageNumber((prevState) => prevState + 1);
+  // ✅ PAGINACIÓN TRADICIONAL - Reemplaza scroll infinito
+  const ITEMS_PER_PAGE = 20;
+  const totalPages = Math.ceil(count / ITEMS_PER_PAGE);
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages || newPage === pageNumber) return;
+    setPageNumber(newPage);
   };
 
-  const handleScroll = (e) => {
-    if (!hasMore || loading || microServiceLoading) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-
-    if (scrollHeight - (scrollTop + 100) < clientHeight) {
-      e.currentTarget.scrollTop = scrollTop - 100;
-      loadMore();
+  // Generar array de números de página a mostrar
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxButtons = 7; // Mostrar máximo 7 botones
+    
+    if (totalPages <= maxButtons) {
+      // Mostrar todos los botones si hay pocos
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Mostrar con ellipsis (...) si hay muchos
+      if (pageNumber <= 4) {
+        // Inicio: 1 2 3 4 5 ... último
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (pageNumber >= totalPages - 3) {
+        // Final: 1 ... n-4 n-3 n-2 n-1 n
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+      } else {
+        // Medio: 1 ... p-1 p p+1 ... último
+        pages.push(1);
+        pages.push('...');
+        pages.push(pageNumber - 1);
+        pages.push(pageNumber);
+        pages.push(pageNumber + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
     }
+    return pages;
   };
+
+  // ❌ SCROLL INFINITO DESHABILITADO - Ahora usa botones de paginación
+  // const loadMore = () => {
+  //   setPageNumber((prevState) => prevState + 1);
+  // };
+  // const handleScroll = (e) => {
+  //   if (!hasMore || loading || microServiceLoading) return;
+  //   const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+  //   if (scrollHeight - (scrollTop + 100) < clientHeight) {
+  //     e.currentTarget.scrollTop = scrollTop - 100;
+  //     loadMore();
+  //   }
+  // };
 
   return (
     <Paper
@@ -881,7 +969,7 @@ const TicketsList = (props) => {
         name="closed"
         elevation={0}
         className={classes.ticketsList}
-        onScroll={handleScroll}
+        style={{ overflowY: "auto" }}
       >
         <List
           style={{
@@ -915,6 +1003,54 @@ const TicketsList = (props) => {
           )}
         </List>
       </Paper>
+
+      {/* ✅ PAGINACIÓN CON BOTONES */}
+      {!loading && !microServiceLoading && totalPages > 1 && (
+        <div className={classes.paginationWrapper}>
+          {/* Botón Previous */}
+          <button
+            className={classes.pageButton}
+            onClick={() => handlePageChange(pageNumber - 1)}
+            disabled={pageNumber === 1}
+            title="Página anterior"
+          >
+            ‹
+          </button>
+
+          {/* Botones de números de página */}
+          {getPageNumbers().map((page, index) => (
+            page === '...' ? (
+              <span key={`ellipsis-${index}`} className={classes.pageInfo}>
+                ...
+              </span>
+            ) : (
+              <button
+                key={page}
+                className={`${classes.pageButton} ${page === pageNumber ? classes.pageButtonActive : ''}`}
+                onClick={() => handlePageChange(page)}
+                disabled={page === pageNumber}
+              >
+                {page}
+              </button>
+            )
+          ))}
+
+          {/* Botón Next */}
+          <button
+            className={classes.pageButton}
+            onClick={() => handlePageChange(pageNumber + 1)}
+            disabled={pageNumber === totalPages}
+            title="Página siguiente"
+          >
+            ›
+          </button>
+
+          {/* Info: Página X de Y */}
+          <span className={classes.pageInfo}>
+            {pageNumber} / {totalPages}
+          </span>
+        </div>
+      )}
     </Paper>
   );
 };

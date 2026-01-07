@@ -67,6 +67,17 @@ const buildWhereCondition = async ({
   profile
 }: Request): Promise<Filterable["where"]> => {
   
+  // 🔍 LOG: Inicio de buildWhereCondition
+  const logPrefix = `[ListTickets:buildWhere]`;
+  console.log(`${logPrefix} 🔍 buildWhereCondition iniciado`, {
+    userId,
+    viewSource,
+    ticketsType,
+    status,
+    profile,
+    timestamp: new Date().toISOString()
+  });
+  
   // ============================================================
   // BLOQUE PREPARADO PARA LÓGICA ESPECÍFICA SEGÚN VIEWSOURCE
   // ============================================================
@@ -78,6 +89,9 @@ const buildWhereCondition = async ({
   // Obtener IDs de departamentos del usuario UNA SOLA VEZ (evitar consultas duplicadas)
   let userQueueIds: number[] = [];
   if (viewSource === "grouped" && userId && profile !== "admin") {
+    const startTime = Date.now();
+    console.log(`${logPrefix} 🔄 Obteniendo departamentos del usuario ${userId}...`);
+    
     const user = await User.findByPk(userId, {
       include: [{
         model: Queue,
@@ -89,10 +103,14 @@ const buildWhereCondition = async ({
     if (user && user.queues && user.queues.length > 0) {
       userQueueIds = user.queues.map((q: any) => q.id);
     }
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`${logPrefix} ✅ Departamentos obtenidos en ${elapsed}ms:`, userQueueIds);
   }
 
   // FILTRAR COLUMNA "MI DEPARTAMENTO" - Incluir solo mis departamentos
   if (viewSource === "grouped" && ticketsType === "my-department" && userQueueIds.length > 0) {
+    console.log(`${logPrefix} 🎯 Aplicando filtro MI DEPARTAMENTO`, { userQueueIds });
     baseCondition.whatsappId = {
       [Op.in]: Sequelize.literal(
         `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
@@ -102,6 +120,7 @@ const buildWhereCondition = async ({
 
   // FILTRAR COLUMNA "EN PROCESO" - Excluir mis departamentos
   if (viewSource === "grouped" && ticketsType === "in-progress" && userQueueIds.length > 0) {
+    console.log(`${logPrefix} 🎯 Aplicando filtro EN PROCESO`, { userQueueIds });
     baseCondition.whatsappId = {
       [Op.notIn]: Sequelize.literal(
         `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
@@ -111,6 +130,7 @@ const buildWhereCondition = async ({
 
   // FILTRAR COLUMNA "CERRADOS" - Incluir solo mis departamentos
   if (viewSource === "grouped" && status === "closed" && userQueueIds.length > 0) {
+    console.log(`${logPrefix} 🎯 Aplicando filtro CERRADOS (mi departamento)`, { userQueueIds });
     baseCondition.whatsappId = {
       [Op.in]: Sequelize.literal(
         `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
@@ -484,7 +504,19 @@ const buildIncludeConditionForCount = ({
 };
 
 const ListTicketsService = async (request: Request): Promise<Response> => {
-  const { pageNumber = "1", status } = request;
+  const { pageNumber = "1", status, viewSource, ticketsType } = request;
+
+  // 🔍 LOG: Inicio del servicio
+  const logPrefix = `[ListTickets]`;
+  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  console.log(`${logPrefix} 🚀 INICIO REQUEST [${requestId}]`, {
+    pageNumber,
+    status,
+    viewSource,
+    ticketsType,
+    userId: request.userId,
+    timestamp: new Date().toISOString()
+  });
 
   const user = await User.findByPk(+request.userId, {
     attributes: ["id"],
@@ -501,14 +533,21 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
   request.profile = user.profile;
 
-
+  // 🔍 LOG: Construcción de WHERE
+  console.time(`${logPrefix} ⏱️ buildWhereCondition [${requestId}]`);
   let whereCondition = await buildWhereCondition(request);
+  console.timeEnd(`${logPrefix} ⏱️ buildWhereCondition [${requestId}]`);
+  
   let includeCondition = buildIncludeCondition(request);
   let includeConditionForCount = buildIncludeConditionForCount(request);
 
   const limit = 20;
   const offset = limit * (+pageNumber - 1);
 
+  // 🔍 LOG: Ejecución de query principal
+  console.time(`${logPrefix} ⏱️ Ticket.findAll [${requestId}]`);
+  console.log(`${logPrefix} 🔄 Ejecutando Ticket.findAll`, { limit, offset, pageNumber });
+  
   const tickets = await Ticket.findAll({
     where: whereCondition,
     include: includeCondition,
@@ -519,7 +558,13 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
     //   console.log(sql);
     // }
   });
+  
+  console.timeEnd(`${logPrefix} ⏱️ Ticket.findAll [${requestId}]`);
+  console.log(`${logPrefix} ✅ Tickets obtenidos: ${tickets.length}`);
 
+  // 🔍 LOG: Conteo
+  console.time(`${logPrefix} ⏱️ Ticket.count [${requestId}]`);
+  
   const count = await Ticket.count({
     where: whereCondition,
     include: includeConditionForCount,
@@ -528,12 +573,33 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
     //   console.log(sql);
     // }
   });
+  
+  console.timeEnd(`${logPrefix} ⏱️ Ticket.count [${requestId}]`);
 
   const hasMore = count > offset + tickets.length;
 
+  // 🔍 LOG: Filtrado de tickets cerrados
+  if (status === "closed") {
+    console.time(`${logPrefix} ⏱️ filterWhenAksForClosedTickets`);
+    console.log(`${logPrefix} 🔄 Filtrando tickets cerrados (antes: ${tickets.length})`);
+  }
+
   const filteredTickets = await filterWhenAksForClosedTickets(tickets, status);
 
+  if (status === "closed") {
+    console.timeEnd(`${logPrefix} ⏱️ filterWhenAksForClosedTickets`);
+    console.log(`${logPrefix} ✅ Filtrado completado (después: ${filteredTickets?.length || tickets.length})`);
+  }
+
   const ticketsToReturn = filteredTickets || tickets;
+
+  // 🔍 LOG: Fin del servicio
+  console.log(`${logPrefix} 🏁 FIN REQUEST`, {
+    ticketsDevueltos: ticketsToReturn.length,
+    totalCount: count,
+    hasMore,
+    timestamp: new Date().toISOString()
+  });
 
   return {
     tickets: ticketsToReturn,
@@ -553,22 +619,39 @@ const filterWhenAksForClosedTickets = async (
 ): Promise<Ticket[] | null> => {
   if (status !== "closed") return null;
 
-  return (
-    await Promise.all(
-      tickets.map(async ticket => {
-        const similarTicket = await Ticket.findOne({
-          attributes: ["id"],
-          where: {
-            whatsappId: ticket.whatsappId,
-            contactId: ticket.contactId,
-            status: ["pending", "open"]
-          }
-        });
+  // ✅ OPTIMIZACIÓN: En vez de hacer 1 query por ticket, hacemos UNA sola query
+  // para obtener todos los tickets conflictivos de una vez
+  if (tickets.length === 0) return [];
 
-        return !similarTicket ? ticket : null;
-      })
-    )
-  ).filter(ticket => ticket !== null) as Ticket[];
+  // Extraer pares únicos de whatsappId + contactId
+  const ticketPairs = tickets.map(t => ({
+    whatsappId: t.whatsappId,
+    contactId: t.contactId
+  }));
+
+  // Query única que busca todos los conflictos de una vez
+  const conflictingTickets = await Ticket.findAll({
+    attributes: ["whatsappId", "contactId"],
+    where: {
+      [Op.or]: ticketPairs.map(pair => ({
+        whatsappId: pair.whatsappId,
+        contactId: pair.contactId
+      })),
+      status: ["pending", "open"]
+    },
+    raw: true
+  });
+
+  // Crear Set para búsqueda rápida O(1)
+  const conflictSet = new Set(
+    conflictingTickets.map((t: any) => `${t.whatsappId}-${t.contactId}`)
+  );
+
+  // Filtrar tickets que NO tienen conflicto
+  return tickets.filter(ticket => {
+    const key = `${ticket.whatsappId}-${ticket.contactId}`;
+    return !conflictSet.has(key);
+  });
 };
 
 export default ListTicketsService;
