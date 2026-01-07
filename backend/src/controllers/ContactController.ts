@@ -22,6 +22,7 @@ import GetContactService from "../services/ContactServices/GetContactService";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
+// ⚠️ Import mantenido para evitar errores de TypeScript, pero función comentada en uso
 import { getClientTimeWaitingForTickets } from "./ReportsController";
 import GetContactByNumberService from "../services/ContactServices/GetContactByNumberService";
 import RemoveContactClientelicenciaService from "../services/ContactServices/RemoveContactClientelicenciaService";
