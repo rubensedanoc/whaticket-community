@@ -88,6 +88,7 @@ const buildWhereCondition = async ({
 
   // Obtener IDs de departamentos del usuario UNA SOLA VEZ (evitar consultas duplicadas)
   let userQueueIds: number[] = [];
+  
   if (viewSource === "grouped" && userId && profile !== "admin") {
     const startTime = Date.now();
     console.log(`${logPrefix} 🔄 Obteniendo departamentos del usuario ${userId}...`);
@@ -108,37 +109,40 @@ const buildWhereCondition = async ({
     console.log(`${logPrefix} ✅ Departamentos obtenidos en ${elapsed}ms:`, userQueueIds);
   }
 
-  // FILTRAR COLUMNA "MI DEPARTAMENTO" - Incluir solo mis departamentos
+  // FILTRAR COLUMNA "MI DEPARTAMENTO" - Incluir solo tickets de mis departamentos
+  // ✅ OPTIMIZACIÓN: Filtrar directamente por queueId del ticket
   if (viewSource === "grouped" && ticketsType === "my-department" && userQueueIds.length > 0) {
-    console.log(`${logPrefix} 🎯 Aplicando filtro MI DEPARTAMENTO`, { userQueueIds });
-    baseCondition.whatsappId = {
-      [Op.in]: Sequelize.literal(
-        `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
-      )
+    console.log(`${logPrefix} 🎯 Aplicando filtro MI DEPARTAMENTO: tickets con queueId en`, userQueueIds);
+    baseCondition.queueId = {
+      [Op.in]: userQueueIds
     };
+    
+    // ✅ FIX: "Mi Departamento" solo debe mostrar tickets abiertos y pendientes, NO cerrados
+    if (!status) {
+      console.log(`${logPrefix} 🎯 MI DEPARTAMENTO: Filtrando solo open y pending (excluyendo closed)`);
+      baseCondition.status = {
+        [Op.in]: ["open", "pending"]
+      };
+    }
   }
 
-  // FILTRAR COLUMNA "EN PROCESO" - Excluir mis departamentos
+  // FILTRAR COLUMNA "EN PROCESO" - Excluir tickets de mis departamentos
   if (viewSource === "grouped" && ticketsType === "in-progress" && userQueueIds.length > 0) {
-    console.log(`${logPrefix} 🎯 Aplicando filtro EN PROCESO`, { userQueueIds });
-    baseCondition.whatsappId = {
-      [Op.notIn]: Sequelize.literal(
-        `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
-      )
+    console.log(`${logPrefix} 🎯 Aplicando filtro EN PROCESO: excluyendo tickets con queueId en`, userQueueIds);
+    baseCondition.queueId = {
+      [Op.notIn]: userQueueIds
     };
   }
 
-  // FILTRAR COLUMNA "CERRADOS" - Incluir solo mis departamentos
+  // FILTRAR COLUMNA "CERRADOS" - Incluir solo tickets de mis departamentos
   if (viewSource === "grouped" && status === "closed" && userQueueIds.length > 0) {
-    console.log(`${logPrefix} 🎯 Aplicando filtro CERRADOS (mi departamento)`, { userQueueIds });
-    baseCondition.whatsappId = {
-      [Op.in]: Sequelize.literal(
-        `(SELECT DISTINCT whatsappId FROM WhatsappQueues WHERE queueId IN (${userQueueIds.map(() => '?').join(',')}))`
-      )
+    console.log(`${logPrefix} 🎯 Aplicando filtro CERRADOS: tickets con queueId en`, userQueueIds);
+    baseCondition.queueId = {
+      [Op.in]: userQueueIds
     };
   }
 
-  // Columnas "Sin respuesta" NO se filtran (acceso global)
+  // Columnas "Sin respuesta" NO se filtran por departamento (acceso global)
   // ============================================================
 
   // si tengo status, entonces filtro por status
