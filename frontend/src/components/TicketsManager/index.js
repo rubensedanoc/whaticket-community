@@ -47,6 +47,7 @@ import TicketsQueueSelect from "../TicketsQueueSelect";
 import NotificationsList from "../NotificationsList";
 import NotificationsIcon from '@material-ui/icons/Notifications';
 import UsersSelect from "../UsersSelect";
+import WaitingTimeSelect from "../WaitingTimeSelect";
 import HomeIcon from '@material-ui/icons/Home';
 import InputLabel from "@material-ui/core/InputLabel";
 
@@ -195,6 +196,7 @@ const TicketsManager = () => {
   const [currentUserId, _] = useState([user.id]);
   const [users, setUsers] = useState([]);
   const [selectedTicketUsersIds, setSelectedTicketUsersIds] = useState([]);
+  const [selectedWaitingTimeRanges, setSelectedWaitingTimeRanges] = useState([]);
   
   const [notificationsCount, setNotificationsCount] = useState(null);
 
@@ -279,6 +281,11 @@ const TicketsManager = () => {
     localStorage.getItem("TicketUsersIds") &&
       setSelectedTicketUsersIds(
         JSON.parse(localStorage.getItem("TicketUsersIds"))
+      );
+
+    localStorage.getItem("WaitingTimeRanges") &&
+      setSelectedWaitingTimeRanges(
+        JSON.parse(localStorage.getItem("WaitingTimeRanges"))
       );
   }, []);
 
@@ -488,6 +495,8 @@ const TicketsManager = () => {
           onChange={handleChangeTab}
           indicatorColor="primary"
           textColor="primary"
+          variant="scrollable"
+          scrollButtons="auto"
           aria-label="icon label tabs example"
         >
 
@@ -641,6 +650,16 @@ const TicketsManager = () => {
             />
           )}
           {/* - USER SELECT */}
+          {/* WAITING TIME SELECT */}
+          <WaitingTimeSelect
+            style={{ marginLeft: 6 }}
+            selectedRanges={selectedWaitingTimeRanges}
+            onChange={(values) => {
+              localStorage.setItem("WaitingTimeRanges", JSON.stringify(values));
+              setSelectedWaitingTimeRanges(values);
+            }}
+          />
+          {/* - WAITING TIME SELECT */}
           {/* MARKETING CAMPAIGN SELECT */}
           {getREACT_APP_PURPOSE() === "comercial" && (
             <MarketingCampaignSelect
@@ -1557,6 +1576,7 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
               ticketsType={"no-response"}
@@ -1567,7 +1587,7 @@ const TicketsManager = () => {
               showOnlyMyGroups={false}
             />
 
-            {/* COLUMNA 2: EN PROGRESO */}
+            {/* COLUMNA 2: OTROS */}
             <TicketsList
               searchParam={searchParam}
               selectedTypeIds={
@@ -1580,17 +1600,18 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
-              ticketsType={"in-progress"}
-              advancedList={"in-progress"}
+              ticketsType={"other-departments"}
+              advancedList={"other-departments"}
               viewSource={"grouped"}
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
               showAll={true}
               showOnlyMyGroups={false}
             />
 
-            {/* COLUMNA 3: MI DEPARTAMENTO
+            {/* COLUMNA 3: MI DEPARTAMENTO */}
             <TicketsList
               searchParam={searchParam}
               selectedTypeIds={
@@ -1603,25 +1624,11 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
               ticketsType={"my-department"}
               advancedList={"my-department"}
-              viewSource={"grouped"}
-              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-              showAll={true}
-              showOnlyMyGroups={false}
-            /> */}
-
-            {/* COLUMNA 4: CERRADOS */}
-            <TicketsList
-              status="closed"
-              searchParam={searchParam}
-              selectedTypeIds={typeIdsForAll}
-              selectedWhatsappIds={selectedWhatsappIds}
-              selectedQueueIds={selectedQueueIds}
-              selectedTicketUsersIds={selectedTicketUsersIds}
-              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               viewSource={"grouped"}
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
               showAll={true}

@@ -249,6 +249,7 @@ const TicketsList = (props) => {
     selectedMarketingCampaignIds,
     selectedTypeIds,
     selectedTicketUsersIds,
+    selectedWaitingTimeRanges,
     style,
     showOnlyMyGroups,
     setShowOnlyMyGroups,
@@ -355,6 +356,40 @@ const TicketsList = (props) => {
   useEffect(() => {
     const socket = openSocket();
 
+    // Helper: Verificar si ticket está en rango de tiempo seleccionado
+    const isTicketInWaitingTimeRange = (ticket, ranges) => {
+      if (!ranges || ranges.length === 0) return true;
+      if (!ticket.beenWaitingSinceTimestamp) return false;
+      
+      const nowInSeconds = Date.now() / 1000; // beenWaitingSinceTimestamp está en segundos
+      const waitingMinutes = Math.floor(
+        (nowInSeconds - ticket.beenWaitingSinceTimestamp) / 60
+      );
+      
+      console.log('🔍 Filtro Tiempo Debug:', {
+        ticketId: ticket.id,
+        contactName: ticket.contact?.name,
+        beenWaitingSinceTimestamp: ticket.beenWaitingSinceTimestamp,
+        waitingMinutes,
+        selectedRanges: ranges,
+      });
+      
+      const result = ranges.some((rangeId) => {
+        if (rangeId === "0-30") return waitingMinutes >= 0 && waitingMinutes < 30;
+        if (rangeId === "30-60") return waitingMinutes >= 30 && waitingMinutes < 60;
+        if (rangeId === "60-120") return waitingMinutes >= 60 && waitingMinutes < 120;
+        if (rangeId === "120-240") return waitingMinutes >= 120 && waitingMinutes < 240;
+        if (rangeId === "240-480") return waitingMinutes >= 240 && waitingMinutes < 480;
+        if (rangeId === "480-960") return waitingMinutes >= 480 && waitingMinutes < 960;
+        if (rangeId === "960+") return waitingMinutes >= 960;
+        return false;
+      });
+      
+      console.log('✅ Resultado del filtro:', result);
+      
+      return result;
+    };
+
     const shouldUpdateTicket = (ticket) => {
       const noSearchParamCondition = !searchParam;
 
@@ -435,6 +470,27 @@ const TicketsList = (props) => {
           (ticket.status === "open")
         ))
 
+      const myDepartmentColCondition =
+        advancedList !== "my-department" ||
+        (advancedList === "my-department" && (
+          ticket.userId === user?.id &&
+          user.queues?.some(q => q.id === ticket.queueId) &&
+          ticket.status === "open" &&
+          (ticket?.beenWaitingSinceTimestamp > getNMinutesAgo(15) || 
+          !ticket?.beenWaitingSinceTimestamp)
+        ));
+
+      const otherDepartmentsColCondition =
+        advancedList !== "other-departments" ||
+        (advancedList === "other-departments" && (
+          user.queues?.some(q => q.id === ticket.queueId) &&
+          ticket.userId !== user?.id &&
+          ticket.userId !== null &&
+          ticket.status === "open" &&
+          (ticket?.beenWaitingSinceTimestamp > getNMinutesAgo(15) || 
+          !ticket?.beenWaitingSinceTimestamp)
+        ));
+
       // if (status === "pending") {
       //   console.log("--- shouldUpdateTicket  ---" + status, {
       //     noSearchParamCondition,
@@ -453,10 +509,13 @@ const TicketsList = (props) => {
       //   }, ticket);
       // }
 
+      const waitingTimeCondition = isTicketInWaitingTimeRange(ticket, selectedWaitingTimeRanges);
+
       const isConditionMet =
         noSearchParamCondition &&
         TypeCondition &&
         userCondition &&
+        waitingTimeCondition &&
         (ignoreConditions ||
           (queueCondition &&
             whatsappCondition &&
@@ -465,7 +524,9 @@ const TicketsList = (props) => {
         clientelicenciaEtapaIdCondition &&
         (!advancedList || (
           (advancedList === "no-response" && noResponseColCondition) ||
-          (advancedList === "in-progress" && inProgressColCondition)
+          (advancedList === "in-progress" && inProgressColCondition) ||
+          (advancedList === "my-department" && myDepartmentColCondition) ||
+          (advancedList === "other-departments" && otherDepartmentsColCondition)
         ));
 
       return isConditionMet;
@@ -622,6 +683,7 @@ const TicketsList = (props) => {
     selectedTypeIds,
     selectedWhatsappIds,
     selectedTicketUsersIds,
+    selectedWaitingTimeRanges,
     showOnlyMyGroups,
     showOnlyWaitingTickets,
     selectedClientelicenciaEtapaIds
@@ -918,11 +980,17 @@ const TicketsList = (props) => {
           </>
         )}
 
-        {/* {ticketsType === "my-department" && (
+        {ticketsType === "my-department" && (
           <>
             <div>MI DEPARTAMENTO</div>
           </>
-        )} */}
+        )}
+
+        {ticketsType === "other-departments" && (
+          <>
+            <div>OTROS</div>
+          </>
+        )}
 
         {ticketsType === "waiting-response" && (
           <>

@@ -18,7 +18,7 @@ import Whatsapp from "../../models/Whatsapp";
 import ContactClientelicencias from "../../models/ContactClientelicencias";
 
 // Define los tipos de grupo de tickets que puedes solicitar
-export type TicketGroupType = "no-response" | "in-progress";
+export type TicketGroupType = "no-response" | "in-progress" | "my-department" | "other-departments";
 
 interface Request {
   searchParam?: string;
@@ -161,6 +161,34 @@ const buildSpecialWhereCondition = ({
           }
         }
       ]
+    });
+  } else if (ticketGroupType === "my-department") {
+    // Lógica para "Mi Departamento"
+    // Tickets asignados al usuario en sus departamentos
+    (finalCondition[Op.and] as any[]).push({
+      userId: userId,
+      status: { [Op.in]: ["open"] },
+      queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined,
+      beenWaitingSinceTimestamp: {
+        [Op.or]: [
+          { [Op.gt]: fifteenMinutesAgo },
+          { [Op.is]: null }
+        ]
+      }
+    });
+  } else if (ticketGroupType === "other-departments") {
+    // Lógica para "En Proceso - Otros"
+    // Tickets de los departamentos del usuario tomados por otros
+    (finalCondition[Op.and] as any[]).push({
+      queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined,
+      userId: { [Op.and]: [{ [Op.ne]: userId }, { [Op.ne]: null }] },
+      status: { [Op.in]: ["open"] },
+      beenWaitingSinceTimestamp: {
+        [Op.or]: [
+          { [Op.gt]: fifteenMinutesAgo },
+          { [Op.is]: null }
+        ]
+      }
     });
   }
 
