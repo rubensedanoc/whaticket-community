@@ -425,7 +425,9 @@ const TicketsList = (props) => {
 
       const whatsappCondition =
         selectedWhatsappIds?.indexOf(ticket.whatsappId) > -1 ||
-        selectedWhatsappIds?.length === 0;
+        selectedWhatsappIds?.length === 0 ||
+        // ✅ En vista "grouped" y "general", incluir tickets transferidos hacia mí desde otras conexiones
+        ((viewSource === "grouped" || viewSource === "general") && ticket.userId === user?.id);
 
       const ticketUserCondition = !selectedTicketUsersIds || selectedTicketUsersIds?.length === 0 || selectedTicketUsersIds.includes(ticket.userId);
 
@@ -458,7 +460,6 @@ const TicketsList = (props) => {
         advancedList !== "no-response" ||
         (advancedList === "no-response" && (
           ticket?.beenWaitingSinceTimestamp < getNMinutesAgo(15) && 
-          ( ticket.status === "pending" || (ticket?.beenWaitingSinceTimestamp && ticket.status === "open")) && 
           (ticket.status === "pending" || ticket.status === "open")
         ))
 
@@ -474,10 +475,12 @@ const TicketsList = (props) => {
         advancedList !== "my-department" ||
         (advancedList === "my-department" && (
           ticket.userId === user?.id &&
-          user.queues?.some(q => q.id === ticket.queueId) &&
           ticket.status === "open" &&
           (ticket?.beenWaitingSinceTimestamp > getNMinutesAgo(15) || 
-          !ticket?.beenWaitingSinceTimestamp)
+          !ticket?.beenWaitingSinceTimestamp) &&
+          // Mostrar si está en tus departamentos O si fue transferido hacia ti (en grouped/general)
+          (user.queues?.some(q => q.id === ticket.queueId) || 
+           (viewSource === "grouped" || viewSource === "general"))
         ));
 
       const otherDepartmentsColCondition =
