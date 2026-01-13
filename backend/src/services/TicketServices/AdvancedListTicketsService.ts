@@ -120,18 +120,21 @@ const buildSpecialWhereCondition = ({
         {
           isGroup: false,
           status: { [Op.in]: ["pending"] },
+          transferred: { [Op.or]: [false, null] } // ✅ EXCLUIR tickets transferidos
         },
         // Condición para chats individuales (abiertos) con >= 15 min sin respuesta
         {
           isGroup: false,
           status: { [Op.in]: ["open"] },
-          beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo }
+          beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
+          transferred: { [Op.or]: [false, null] } // ✅ EXCLUIR tickets transferidos
         },
         // Condición para chats grupales con >= 15 min sin respuesta
         {
           isGroup: true,
           status: { [Op.in]: ["open"] },
-          beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo }
+          beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
+          transferred: { [Op.or]: [false, null] } // ✅ EXCLUIR tickets transferidos
         }
       ]
     });
@@ -245,12 +248,23 @@ const buildSpecialWhereCondition = ({
   }
 
   // Filtrado por Whatsapp
-  if (whatsappIds?.length) {
-    (finalCondition[Op.and] as any[]).push({
-      whatsappId: {
-        [Op.or]: whatsappIds
-      }
-    });
+  // ⚠️ EXCEPCIÓN: Para "my-department" NO filtrar por conexión
+  // Usuario debe ver TODOS los tickets asignados a él (incluso de otras conexiones)
+  if (ticketGroupType !== "my-department") {
+    if (whatsappIds?.length) {
+      (finalCondition[Op.and] as any[]).push({
+        whatsappId: {
+          [Op.or]: whatsappIds
+        }
+      });
+    } else if (userWhatsappsId?.length) {
+      // ✅ Si no hay whatsappIds seleccionados, usar las conexiones del usuario automáticamente
+      (finalCondition[Op.and] as any[]).push({
+        whatsappId: {
+          [Op.in]: userWhatsappsId
+        }
+      });
+    }
   }
 
   // Filtrado por CategoryId

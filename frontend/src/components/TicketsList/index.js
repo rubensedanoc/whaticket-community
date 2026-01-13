@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useReducer, useState } from "react";
+import React, { useContext, useEffect, useReducer, useState, useMemo, useCallback } from "react";
 import openSocket from "../../services/socket-io";
 
 import List from "@material-ui/core/List";
@@ -353,42 +353,42 @@ const TicketsList = (props) => {
   //   }
   // }, [updatedCount]);
 
+  // Helper: Verificar si ticket está en rango de tiempo seleccionado
+  // useCallback para evitar recreación en cada render
+  const isTicketInWaitingTimeRange = useCallback((ticket, ranges) => {
+    if (!ranges || ranges.length === 0) return true;
+    if (!ticket.beenWaitingSinceTimestamp) return false;
+    
+    const nowInSeconds = Date.now() / 1000;
+    const waitingMinutes = Math.floor(
+      (nowInSeconds - ticket.beenWaitingSinceTimestamp) / 60
+    );
+    
+    return ranges.some((rangeId) => {
+      if (rangeId === "0-30") return waitingMinutes >= 0 && waitingMinutes < 30;
+      if (rangeId === "30-60") return waitingMinutes >= 30 && waitingMinutes < 60;
+      if (rangeId === "60-120") return waitingMinutes >= 60 && waitingMinutes < 120;
+      if (rangeId === "120-240") return waitingMinutes >= 120 && waitingMinutes < 240;
+      if (rangeId === "240-480") return waitingMinutes >= 240 && waitingMinutes < 480;
+      if (rangeId === "480-960") return waitingMinutes >= 480 && waitingMinutes < 960;
+      if (rangeId === "960+") return waitingMinutes >= 960;
+      return false;
+    });
+  }, []);
+
+  // Filtrar tickets por tiempo en render (useMemo para optimización)
+  const filteredTicketsList = useMemo(() => {
+    if (!selectedWaitingTimeRanges || selectedWaitingTimeRanges.length === 0) {
+      return ticketsList;
+    }
+
+    return ticketsList.filter(ticket => 
+      isTicketInWaitingTimeRange(ticket, selectedWaitingTimeRanges)
+    );
+  }, [ticketsList, selectedWaitingTimeRanges, isTicketInWaitingTimeRange]);
+
   useEffect(() => {
     const socket = openSocket();
-
-    // Helper: Verificar si ticket está en rango de tiempo seleccionado
-    const isTicketInWaitingTimeRange = (ticket, ranges) => {
-      if (!ranges || ranges.length === 0) return true;
-      if (!ticket.beenWaitingSinceTimestamp) return false;
-      
-      const nowInSeconds = Date.now() / 1000; // beenWaitingSinceTimestamp está en segundos
-      const waitingMinutes = Math.floor(
-        (nowInSeconds - ticket.beenWaitingSinceTimestamp) / 60
-      );
-      
-      console.log('🔍 Filtro Tiempo Debug:', {
-        ticketId: ticket.id,
-        contactName: ticket.contact?.name,
-        beenWaitingSinceTimestamp: ticket.beenWaitingSinceTimestamp,
-        waitingMinutes,
-        selectedRanges: ranges,
-      });
-      
-      const result = ranges.some((rangeId) => {
-        if (rangeId === "0-30") return waitingMinutes >= 0 && waitingMinutes < 30;
-        if (rangeId === "30-60") return waitingMinutes >= 30 && waitingMinutes < 60;
-        if (rangeId === "60-120") return waitingMinutes >= 60 && waitingMinutes < 120;
-        if (rangeId === "120-240") return waitingMinutes >= 120 && waitingMinutes < 240;
-        if (rangeId === "240-480") return waitingMinutes >= 240 && waitingMinutes < 480;
-        if (rangeId === "480-960") return waitingMinutes >= 480 && waitingMinutes < 960;
-        if (rangeId === "960+") return waitingMinutes >= 960;
-        return false;
-      });
-      
-      console.log('✅ Resultado del filtro:', result);
-      
-      return result;
-    };
 
     const shouldUpdateTicket = (ticket) => {
       const noSearchParamCondition = !searchParam;
@@ -1047,7 +1047,7 @@ const TicketsList = (props) => {
             position: "relative",
           }}
         >
-          {ticketsList.length === 0 && !loading && !microServiceLoading ? (
+          {filteredTicketsList.length === 0 && !loading && !microServiceLoading ? (
             <div className={classes.noTicketsDiv}>
               <span className={classes.noTicketsTitle}>
                 {i18n.t("ticketsList.noTicketsTitle")}
@@ -1058,15 +1058,15 @@ const TicketsList = (props) => {
             </div>
           ) : (
             <>
-              {ticketsList.map((ticket) => (
+              {filteredTicketsList.map((ticket) => (
                 <TicketListItem ticket={ticket} key={ticket.id} viewSource={viewSource} />
               ))}
             </>
           )}
-          {(loading || microServiceLoading) && ticketsList.length > 0 && (
+          {(loading || microServiceLoading) && filteredTicketsList.length > 0 && (
             <TicketsListSkeleton />
           )}
-          {(loading || microServiceLoading) && ticketsList.length === 0 && (
+          {(loading || microServiceLoading) && filteredTicketsList.length === 0 && (
             <CircularProgress size={44} className={classes.buttonProgress} />
           )}
         </List>
