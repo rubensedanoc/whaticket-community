@@ -398,16 +398,22 @@ const TicketsManager = () => {
     }
   }, [searchParam]);
 
-  // ✅ Auto-seleccionar conexión por defecto para usuarios NO-admin
+  // ✅ Auto-seleccionar conexión por defecto SOLO para vista "grouped" (usuarios NO-admin)
   useEffect(() => {
-    if (user.profile !== "admin" && whatsApps.length > 0 && selectedWhatsappIds.length === 0) {
+    // Solo aplicar en tab "grouped"
+    if (
+      tab === "grouped" && 
+      user.profile !== "admin" && 
+      whatsApps.length > 0 && 
+      selectedWhatsappIds.length === 0
+    ) {
       const defaultWhatsapp = whatsApps.find(wa => wa.isDefault === true);
       if (defaultWhatsapp) {
         setSelectedWhatsappIds([defaultWhatsapp.id]);
         localStorage.setItem("selectedWhatsappIds", JSON.stringify([defaultWhatsapp.id]));
       }
     }
-  }, [user.profile, whatsApps]); // ⚠️ NO incluir selectedWhatsappIds para evitar bucles
+  }, [user.profile, whatsApps, tab]); // ⚠️ Agregado 'tab' para detectar cambios de vista
 
   useEffect(() => {
       // const notificationsInterval = setInterval(async () => {
