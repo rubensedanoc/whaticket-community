@@ -219,6 +219,13 @@ const TicketsManager = () => {
         setSelectedWhatsappIds(
           JSON.parse(localStorage.getItem("selectedWhatsappIds"))
         );
+    } else {
+      // ✅ Para usuarios NO-admin, cargar conexiones guardadas (si existen)
+      const storedWhatsappIds = localStorage.getItem("selectedWhatsappIds");
+      if (storedWhatsappIds) {
+        setSelectedWhatsappIds(JSON.parse(storedWhatsappIds));
+      }
+      // Si no hay, el useEffect de whatsApps asignará la conexión por defecto
     }
 
     // para el caso de los departamentos, primero verificamos si los departamentos
@@ -390,6 +397,17 @@ const TicketsManager = () => {
       getNumberGroups();
     }
   }, [searchParam]);
+
+  // ✅ Auto-seleccionar conexión por defecto para usuarios NO-admin
+  useEffect(() => {
+    if (user.profile !== "admin" && whatsApps.length > 0 && selectedWhatsappIds.length === 0) {
+      const defaultWhatsapp = whatsApps.find(wa => wa.isDefault === true);
+      if (defaultWhatsapp) {
+        setSelectedWhatsappIds([defaultWhatsapp.id]);
+        localStorage.setItem("selectedWhatsappIds", JSON.stringify([defaultWhatsapp.id]));
+      }
+    }
+  }, [user.profile, whatsApps]); // ⚠️ NO incluir selectedWhatsappIds para evitar bucles
 
   useEffect(() => {
       // const notificationsInterval = setInterval(async () => {
@@ -1230,6 +1248,7 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               ticketsType={
                 principalTicketType === "groups" ? "individuals" : "groups"
@@ -1253,6 +1272,7 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               // selectedTicketUsersIds={selectedTic  ketUsersIds}
+              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
               columnsWidth={columnsWidth}
@@ -1304,6 +1324,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1337,6 +1358,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1372,6 +1394,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1405,6 +1428,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
                           }
@@ -1450,6 +1474,7 @@ const TicketsManager = () => {
           selectedWhatsappIds={selectedWhatsappIds}
           selectedQueueIds={selectedQueueIds}
           selectedTicketUsersIds={selectedTicketUsersIds}
+          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
         />
@@ -2212,6 +2237,7 @@ const TicketsManager = () => {
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
                 selectedTicketUsersIds={selectedTicketUsersIds}
+                selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
                 ticketsType={"no-response"}
@@ -2234,6 +2260,7 @@ const TicketsManager = () => {
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
                 selectedTicketUsersIds={selectedTicketUsersIds}
+                selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
                 ticketsType={"in-progress"}
@@ -2251,6 +2278,7 @@ const TicketsManager = () => {
                 selectedWhatsappIds={selectedWhatsappIds}
                 selectedQueueIds={selectedQueueIds}
                 selectedTicketUsersIds={selectedTicketUsersIds}
+                selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 viewSource={"general"}
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
