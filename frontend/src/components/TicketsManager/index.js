@@ -1248,8 +1248,8 @@ const TicketsManager = () => {
               columnsWidth={columnsWidth}
               selectedTypeIds={
                 principalTicketType === "groups"
-                  ? typeIdsForIndividuals
-                  : typeIdsForGroups
+                  ? typeIdsForGroups
+                  : typeIdsForIndividuals
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
