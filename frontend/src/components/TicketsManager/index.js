@@ -2265,7 +2265,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                      showOnlyWaitingTickets={showOnlyWaitingTickets}
+                      showOnlyWaitingTickets={true}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
@@ -2287,6 +2287,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                      showOnlyWaitingTickets={false}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
