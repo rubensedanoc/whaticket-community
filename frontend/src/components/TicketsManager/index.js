@@ -1488,7 +1488,7 @@ const TicketsManager = () => {
           status="closed"
           searchParam={searchParam}
           selectedTypeIds={typeIdsForAll}
-          selectedWhatsappIds={selectedWhatsappIds}
+          selectedWhatsappIds={user.profile === "admin" ? selectedWhatsappIds : []}
           selectedQueueIds={selectedQueueIds}
           selectedTicketUsersIds={selectedTicketUsersIds}
           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
@@ -2242,63 +2242,74 @@ const TicketsManager = () => {
                 flexGrow: 1,
               }}
             >
-              <TicketsList
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={
-                  principalTicketTypeForGeneralView === "all"
-                    ? typeIdsForAll
-                    : principalTicketTypeForGeneralView === "groups"
-                      ? typeIdsForGroups
-                      : typeIdsForIndividuals
-                }
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                showOnlyWaitingTickets={showOnlyWaitingTickets}
-                viewSource={"general"}
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                showAll={true}
-                showOnlyMyGroups={false}
-              />
+              {/* Filtrar nulls de selectedQueueIds antes de enviar */}
+              {(() => {
+                const cleanQueueIds = selectedQueueIds.filter(id => id !== null && id !== undefined);
+                // En vista GENERAL, no filtrar por whatsappIds específico para usuarios normales
+                const whatsappIdsForGeneral = user.profile === "admin" ? selectedWhatsappIds : [];
+                
+                return (
+                  <>
+                    <TicketsList
+                      status="open"
+                      searchParam={searchParam}
+                      selectedTypeIds={
+                        principalTicketTypeForGeneralView === "all"
+                          ? typeIdsForAll
+                          : principalTicketTypeForGeneralView === "groups"
+                            ? typeIdsForGroups
+                            : typeIdsForIndividuals
+                      }
+                      selectedWhatsappIds={whatsappIdsForGeneral}
+                      selectedQueueIds={cleanQueueIds}
+                      selectedTicketUsersIds={selectedTicketUsersIds}
+                      selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                      selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                      showOnlyWaitingTickets={showOnlyWaitingTickets}
+                      viewSource={"general"}
+                      selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                      showAll={true}
+                      showOnlyMyGroups={false}
+                    />
 
-              <TicketsList
-                status="open"
-                searchParam={searchParam}
-                selectedTypeIds={
-                  principalTicketTypeForGeneralView === "all"
-                    ? typeIdsForAll
-                    : principalTicketTypeForGeneralView === "groups"
-                      ? typeIdsForGroups
-                      : typeIdsForIndividuals
-                }
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                viewSource={"general"}
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                showAll={true}
-                showOnlyMyGroups={false}
-              />
+                    <TicketsList
+                      status="open"
+                      searchParam={searchParam}
+                      selectedTypeIds={
+                        principalTicketTypeForGeneralView === "all"
+                          ? typeIdsForAll
+                          : principalTicketTypeForGeneralView === "groups"
+                            ? typeIdsForGroups
+                            : typeIdsForIndividuals
+                      }
+                      selectedWhatsappIds={whatsappIdsForGeneral}
+                      selectedQueueIds={cleanQueueIds}
+                      selectedTicketUsersIds={selectedTicketUsersIds}
+                      selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                      selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                      viewSource={"general"}
+                      selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                      showAll={true}
+                      showOnlyMyGroups={false}
+                    />
 
-              <TicketsList
-                status="closed"
-                searchParam={searchParam}
-                selectedTypeIds={typeIdsForAll}
-                selectedWhatsappIds={selectedWhatsappIds}
-                selectedQueueIds={selectedQueueIds}
-                selectedTicketUsersIds={selectedTicketUsersIds}
-                selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-                selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                viewSource={"general"}
-                selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                showAll={true}
-                showOnlyMyGroups={false}
-              />
+                    <TicketsList
+                      status="closed"
+                      searchParam={searchParam}
+                      selectedTypeIds={typeIdsForAll}
+                      selectedWhatsappIds={whatsappIdsForGeneral}
+                      selectedQueueIds={cleanQueueIds}
+                      selectedTicketUsersIds={selectedTicketUsersIds}
+                      selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                      selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                      viewSource={"general"}
+                      selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                      showAll={true}
+                      showOnlyMyGroups={false}
+                    />
+                  </>
+                );
+              })()}
 
             </div>
           </Paper>
