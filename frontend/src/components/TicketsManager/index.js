@@ -415,6 +415,17 @@ const TicketsManager = () => {
     }
   }, [user.profile, whatsApps, tab]); // ⚠️ Agregado 'tab' para detectar cambios de vista
 
+  // ✅ Auto-seleccionar PRIMER DEPARTAMENTO solo para vista "grouped"
+  useEffect(() => {
+    if (tab === "grouped" && user?.queues && user.queues.length > 0) {
+      // Solo en grouped, auto-seleccionar primer departamento
+      setSelectedQueueIds([user.queues[0].id]);
+    } else if (tab !== "grouped") {
+      // En otras vistas, SIEMPRE restaurar TODOS los departamentos
+      setSelectedQueueIds(userQueueIds || []);
+    }
+  }, [tab, user]);
+
   useEffect(() => {
       // const notificationsInterval = setInterval(async () => {
       //   const notificationsCount = await api.get("/notifications/getNotificationsCountForUser")
@@ -2232,6 +2243,7 @@ const TicketsManager = () => {
               }}
             >
               <TicketsList
+                status="open"
                 searchParam={searchParam}
                 selectedTypeIds={
                   principalTicketTypeForGeneralView === "all"
@@ -2246,8 +2258,6 @@ const TicketsManager = () => {
                 selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                 showOnlyWaitingTickets={showOnlyWaitingTickets}
-                ticketsType={"no-response"}
-                advancedList={"no-response"}
                 viewSource={"general"}
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}
@@ -2255,6 +2265,7 @@ const TicketsManager = () => {
               />
 
               <TicketsList
+                status="open"
                 searchParam={searchParam}
                 selectedTypeIds={
                   principalTicketTypeForGeneralView === "all"
@@ -2268,9 +2279,6 @@ const TicketsManager = () => {
                 selectedTicketUsersIds={selectedTicketUsersIds}
                 selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                 selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                showOnlyWaitingTickets={showOnlyWaitingTickets}
-                ticketsType={"in-progress"}
-                advancedList={"in-progress"}
                 viewSource={"general"}
                 selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                 showAll={true}

@@ -28,7 +28,7 @@ const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeCol
     (async () => {
       try {
         const { data } = await api.get("/users/", {
-          params: { withPagination: false },
+          params: { withPagination: false, includeQueues: true },
         });
         setUsers(data.users);
         if (onLoadData) {
@@ -94,25 +94,31 @@ const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeCol
               )
             }
           >
-            {users.map((user) => (
-              <MenuItem key={user.id} value={user.id}>
-                {chips ? (
-                  user.name
-                ) : (
-                  <>
-                    <Checkbox
-                      style={{
-                        color: user.color || "black",
-                      }}
-                      size="small"
-                      color="primary"
-                      checked={selectedIds.indexOf(user.id) > -1}
-                    />
-                    <ListItemText primary={user.name} />
-                  </>
-                )}
-              </MenuItem>
-            ))}
+            {users.map((user) => {
+              const firstQueue = user.queues && user.queues.length > 0 ? user.queues[0] : null;
+              const queueAbbr = firstQueue ? firstQueue.name.substring(0, 4).toUpperCase() : null;
+              const displayName = queueAbbr ? `${user.name} (${queueAbbr})` : user.name;
+              
+              return (
+                <MenuItem key={user.id} value={user.id}>
+                  {chips ? (
+                    displayName
+                  ) : (
+                    <>
+                      <Checkbox
+                        style={{
+                          color: user.color || "black",
+                        }}
+                        size="small"
+                        color="primary"
+                        checked={selectedIds.indexOf(user.id) > -1}
+                      />
+                      <ListItemText primary={displayName} />
+                    </>
+                  )}
+                </MenuItem>
+              );
+            })}
           </Select>
         </FormControl>
       </div>

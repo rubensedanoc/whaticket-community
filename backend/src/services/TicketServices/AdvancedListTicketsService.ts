@@ -112,32 +112,74 @@ const buildSpecialWhereCondition = ({
 
   const fifteenMinutesAgo = getNMinutesAgo(15);
 
+  // ============================================================
+  // LÓGICA ESPECIAL PARA VISTA GROUPED CON USUARIO CON UNA CONEXIÓN ESPECÍFICA Y UN DEPARTAMENTO
+  // Un usuario solo tiene una conexión, una conexión solo pertenece a un departamento
+  // Solo aplica cuando: viewSource="grouped" + 1 conexión + 1 departamento
+  // ============================================================
+  const isGroupedView = viewSource === "grouped";
+  const userHasOneConnection = userWhatsappsId && userWhatsappsId.length === 1;
+  const userHasOneDepartment = queueIds && queueIds.length === 1;
+  const shouldUseSpecialLogic = isGroupedView && userHasOneConnection && userHasOneDepartment;
+  
   // Lógica principal basada en el tipo de grupo solicitado
   if (ticketGroupType === "no-response") {
-    (finalCondition[Op.and] as any[]).push({
-      [Op.or]: [
-        // Condición para chats individuales (pendientes)
-        {
-          isGroup: false,
-          status: { [Op.in]: ["pending"] },
-          transferred: { [Op.or]: [false, null] } // ✅ EXCLUIR tickets transferidos
-        },
-        // Condición para chats individuales (abiertos) con >= 15 min sin respuesta
-        {
-          isGroup: false,
-          status: { [Op.in]: ["open"] },
-          beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
-          transferred: { [Op.or]: [false, null] } // ✅ EXCLUIR tickets transferidos
-        },
-        // Condición para chats grupales con >= 15 min sin respuesta
-        {
-          isGroup: true,
-          status: { [Op.in]: ["open"] },
-          beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
-          transferred: { [Op.or]: [false, null] } // ✅ EXCLUIR tickets transferidos
-        }
-      ]
-    });
+    if (shouldUseSpecialLogic) {
+      // LÓGICA ESPECIAL PARA GROUPED: Solo tickets sin respuesta de SUS conexiones
+      (finalCondition[Op.and] as any[]).push({
+        [Op.or]: [
+          // Condición para chats individuales (pendientes) de sus conexiones
+          {
+            isGroup: false,
+            status: { [Op.in]: ["pending"] },
+            whatsappId: { [Op.in]: userWhatsappsId },
+            transferred: { [Op.or]: [false, null] }
+          },
+          // Condición para chats individuales (abiertos) con >= 15 min sin respuesta de sus conexiones
+          {
+            isGroup: false,
+            status: { [Op.in]: ["open"] },
+            beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
+            whatsappId: { [Op.in]: userWhatsappsId },
+            transferred: { [Op.or]: [false, null] }
+          },
+          // Condición para chats grupales con >= 15 min sin respuesta de sus conexiones
+          {
+            isGroup: true,
+            status: { [Op.in]: ["open"] },
+            beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
+            whatsappId: { [Op.in]: userWhatsappsId },
+            transferred: { [Op.or]: [false, null] }
+          }
+        ]
+      });
+    } else {
+      // LÓGICA ORIGINAL: tickets de todas las conexiones
+      (finalCondition[Op.and] as any[]).push({
+        [Op.or]: [
+          // Condición para chats individuales (pendientes)
+          {
+            isGroup: false,
+            status: { [Op.in]: ["pending"] },
+            transferred: { [Op.or]: [false, null] }
+          },
+          // Condición para chats individuales (abiertos) con >= 15 min sin respuesta
+          {
+            isGroup: false,
+            status: { [Op.in]: ["open"] },
+            beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
+            transferred: { [Op.or]: [false, null] }
+          },
+          // Condición para chats grupales con >= 15 min sin respuesta
+          {
+            isGroup: true,
+            status: { [Op.in]: ["open"] },
+            beenWaitingSinceTimestamp: { [Op.lte]: fifteenMinutesAgo },
+            transferred: { [Op.or]: [false, null] }
+          }
+        ]
+      });
+    }
   } else if (ticketGroupType === "in-progress") {
     (finalCondition[Op.and] as any[]).push({
       [Op.or]: [
@@ -166,33 +208,52 @@ const buildSpecialWhereCondition = ({
       ]
     });
   } else if (ticketGroupType === "my-department") {
-    // Lógica para "Mi Departamento"
-    // Tickets asignados al usuario en sus departamentos
-    (finalCondition[Op.and] as any[]).push({
-      userId: userId,
-      status: { [Op.in]: ["open"] },
-      queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined,
-      beenWaitingSinceTimestamp: {
-        [Op.or]: [
-          { [Op.gt]: fifteenMinutesAgo },
-          { [Op.is]: null }
-        ]
-      }
-    });
+    // === MI DEPARTAMENTO ===
+    if (shouldUseSpecialLogic) {
+      // LÓGICA ESPECIAL PARA GROUPED: Tickets del usuario (de su conexión o transferidos)
+      (finalCondition[Op.and] as any[]).push({
+        userId: userId,
+        status: { [Op.in]: ["open"] },
+        queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined
+      });
+    } else {
+      // LÓGICA ORIGINAL: Tickets del usuario con tiempo < 15 min
+      (finalCondition[Op.and] as any[]).push({
+        userId: userId,
+        status: { [Op.in]: ["open"] },
+        queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined,
+        beenWaitingSinceTimestamp: {
+          [Op.or]: [
+            { [Op.gt]: fifteenMinutesAgo },
+            { [Op.is]: null }
+          ]
+        }
+      });
+    }
   } else if (ticketGroupType === "other-departments") {
-    // Lógica para "En Proceso - Otros"
-    // Tickets de los departamentos del usuario tomados por otros
-    (finalCondition[Op.and] as any[]).push({
-      queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined,
-      userId: { [Op.and]: [{ [Op.ne]: userId }, { [Op.ne]: null }] },
-      status: { [Op.in]: ["open"] },
-      beenWaitingSinceTimestamp: {
-        [Op.or]: [
-          { [Op.gt]: fifteenMinutesAgo },
-          { [Op.is]: null }
-        ]
-      }
-    });
+    // === OTROS DEPARTAMENTOS ===
+    if (shouldUseSpecialLogic) {
+      // LÓGICA ESPECIAL PARA GROUPED: Tickets de SUS conexiones tomados por otros
+      (finalCondition[Op.and] as any[]).push({
+        queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined,
+        userId: { [Op.and]: [{ [Op.ne]: userId }, { [Op.ne]: null }] },
+        status: { [Op.in]: ["open"] },
+        whatsappId: { [Op.in]: userWhatsappsId }
+      });
+    } else {
+      // LÓGICA ORIGINAL: Tickets de los departamentos tomados por otros (tiempo < 15 min)
+      (finalCondition[Op.and] as any[]).push({
+        queueId: queueIds && queueIds.length > 0 ? { [Op.in]: queueIds } : undefined,
+        userId: { [Op.and]: [{ [Op.ne]: userId }, { [Op.ne]: null }] },
+        status: { [Op.in]: ["open"] },
+        beenWaitingSinceTimestamp: {
+          [Op.or]: [
+            { [Op.gt]: fifteenMinutesAgo },
+            { [Op.is]: null }
+          ]
+        }
+      });
+    }
   }
 
   // --- Filtros Generales que se combinan con la lógica de grupo (AND) ---

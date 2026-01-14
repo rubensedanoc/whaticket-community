@@ -477,16 +477,12 @@ const TicketsList = (props) => {
           ticket.userId === user?.id &&
           ticket.status === "open" &&
           (ticket?.beenWaitingSinceTimestamp > getNMinutesAgo(15) || 
-          !ticket?.beenWaitingSinceTimestamp) &&
-          // Mostrar si está en tus departamentos O si fue transferido hacia ti (en grouped/general)
-          (user.queues?.some(q => q.id === ticket.queueId) || 
-           (viewSource === "grouped" || viewSource === "general"))
+          !ticket?.beenWaitingSinceTimestamp)
         ));
 
       const otherDepartmentsColCondition =
         advancedList !== "other-departments" ||
         (advancedList === "other-departments" && (
-          user.queues?.some(q => q.id === ticket.queueId) &&
           ticket.userId !== user?.id &&
           ticket.userId !== null &&
           ticket.status === "open" &&
@@ -528,7 +524,9 @@ const TicketsList = (props) => {
         (!advancedList || (
           (advancedList === "no-response" && noResponseColCondition) ||
           (advancedList === "in-progress" && inProgressColCondition) ||
-          (advancedList === "my-department" && myDepartmentColCondition) ||
+          (advancedList === "my-department" && myDepartmentColCondition && 
+            // En vista grouped, MI DEPARTAMENTO NO filtra por queueCondition (muestra TODOS los tickets del usuario)
+            (viewSource !== "grouped" ? queueCondition : true)) ||
           (advancedList === "other-departments" && otherDepartmentsColCondition)
         ));
 
