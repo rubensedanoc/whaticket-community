@@ -229,6 +229,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           // @ts-ignore
           browserWSEndpoint: process.env.CHROME_WS || undefined,
           args: args.split(" ")
+        },
+        webVersionCache: {
+          type: 'remote',
+          remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/refs/heads/main/html/2.3000.1031490220-alpha.html'
         }
       });
 
