@@ -21,6 +21,13 @@ const SendWhatsAppMessage = async ({
   quotedMsg
 }: Request): Promise<WbotMessage> => {
   try {
+    console.log("[SendWhatsAppMessage] Iniciando envio");
+    console.log("[SendWhatsAppMessage] TicketId:", ticket.id);
+    console.log("[SendWhatsAppMessage] WhatsappId:", ticket.whatsappId);
+    console.log("[SendWhatsAppMessage] ContactNumber:", ticket.contact.number);
+    console.log("[SendWhatsAppMessage] IsGroup:", ticket.isGroup);
+    console.log("[SendWhatsAppMessage] Body length:", body.length);
+    
     let quotedMsgSerializedId: string | undefined;
 
     if (quotedMsg) {
@@ -58,7 +65,7 @@ const SendWhatsAppMessage = async ({
 
     const bodyFormated = formatBody(body, ticket.contact);
 
-    // console.log("--- sendWhatsAppMessage: ", bodyFormated);
+    console.log("[SendWhatsAppMessage] Body formateado OK");
 
     let mentionedNumbers: string[] | null = null;
 
@@ -66,11 +73,15 @@ const SendWhatsAppMessage = async ({
       mentionedNumbers = bodyFormated
         .match(/@(\d+)/g)
         ?.map(match => match.slice(1));
-      // console.log(bodyFormated.match(/@(\d+)/g)?.map(match => match.slice(1)));
+      console.log("[SendWhatsAppMessage] MentionedNumbers:", mentionedNumbers);
     }
 
+    const destinationNumber = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
+    console.log("[SendWhatsAppMessage] DestinationNumber:", destinationNumber);
+    console.log("[SendWhatsAppMessage] Enviando mensaje...");
+
     const sentMessage = await wbot.sendMessage(
-      `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`,
+      destinationNumber,
       bodyFormated,
       {
         quotedMessageId: quotedMsgSerializedId,
@@ -84,10 +95,18 @@ const SendWhatsAppMessage = async ({
       }
     );
 
+    console.log("[SendWhatsAppMessage] Mensaje enviado exitosamente");
+    console.log("[SendWhatsAppMessage] MessageId:", sentMessage.id._serialized);
+
     await ticket.update({ lastMessage: body });
     return sentMessage;
   } catch (err) {
-    console.log("Error en SendWhatsAppMessage", err);
+    console.log("[SendWhatsAppMessage] ERROR en envio");
+    console.log("[SendWhatsAppMessage] ERROR TicketId:", ticket.id);
+    console.log("[SendWhatsAppMessage] ERROR WhatsappId:", ticket.whatsappId);
+    console.log("[SendWhatsAppMessage] ERROR ContactNumber:", ticket.contact.number);
+    console.log("[SendWhatsAppMessage] ERROR Message:", err.message);
+    console.log("[SendWhatsAppMessage] ERROR Stack:", err.stack);
     Sentry.captureException(err);
 
     if (err && err?.message === "ERR_FETCH_WAPP_MSG") {
