@@ -18,7 +18,7 @@ import messagingCampaignRoutes from "./messagingCampaignRoutes";
 import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
 // ⚠️ REPORTES COMENTADOS - Alto consumo de CPU/DB
-// import reportsRoutes from "./reports";
+import reportsRoutes from "./reports";
 import settingRoutes from "./settingRoutes";
 import ticketRoutes from "./ticketRoutes";
 import userRoutes from "./userRoutes";
@@ -42,8 +42,7 @@ routes.use(queueRoutes);
 routes.use(quickAnswerRoutes);
 routes.use(categoryRoutes);
 routes.use(chatbotOptionRoutes);
-// ⚠️ REPORTES COMENTADOS - Alto consumo de CPU/DB
-// routes.use(reportsRoutes);
+routes.use(reportsRoutes);
 routes.use("/api/messages", apiRoutes);
 routes.use(contryRoutes);
 routes.use("/external", externalRoutes);

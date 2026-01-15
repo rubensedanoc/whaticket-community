@@ -41,6 +41,9 @@ interface Request {
   
   // Parámetro para identificar la vista de origen (general, grouped, etc.)
   viewSource?: string;
+  
+  // Flag para forzar filtrado por userId en impersonación
+  forceUserIdFilter?: boolean;
 }
 
 interface Response {
@@ -72,7 +75,8 @@ const buildSpecialWhereCondition = ({
   clientelicenciaEtapaIds,
   ticketGroupType,
   showAll,
-  viewSource
+  viewSource,
+  forceUserIdFilter
 }: Request): Filterable["where"] => {
 
   // ============================================================
@@ -367,7 +371,11 @@ const buildSpecialWhereCondition = ({
   }
 
   // Si showAll no es "true", y es individual y abierto, aplica filtro de usuario
-  if (showAll !== "true" && typeIds[0] === "individual" && status === "open") {
+  // TAMBIÉN aplica si forceUserIdFilter es true (para impersonación)
+  const shouldFilterByUserId = (showAll !== "true" && typeIds[0] === "individual" && status === "open") || 
+                                (forceUserIdFilter === true);
+  
+  if (shouldFilterByUserId) {
     (finalCondition[Op.and] as any[]).push({
       [Op.or]: [
         { userId },

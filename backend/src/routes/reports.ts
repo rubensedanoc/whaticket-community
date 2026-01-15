@@ -8,17 +8,17 @@ const reportsRoutes = Router();
 // ⚠️ REPORTES COMENTADOS - Alto consumo de CPU/DB
 // reportsRoutes.get("/generalReport", isAuth, ReportsController.generalReport);
 
-// reportsRoutes.get(
-//   "/getOpenOrPendingTicketsWithLastMessages",
-//   isAuth,
-//   ReportsController.getOpenOrPendingTicketsWithLastMessages
-// );
+reportsRoutes.get(
+  "/getOpenOrPendingTicketsWithLastMessages",
+  isAuth,
+  ReportsController.getOpenOrPendingTicketsWithLastMessages
+);
 
-// reportsRoutes.get(
-//   "/getATicketsList",
-//   isAuth,
-//   ReportsController.getATicketsList
-// );
+reportsRoutes.get(
+  "/getATicketsList",
+  isAuth,
+  ReportsController.getATicketsList
+);
 
 // reportsRoutes.get("/reportHistory", ReportsController.reportHistory);
 // reportsRoutes.get(

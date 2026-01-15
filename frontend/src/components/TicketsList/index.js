@@ -262,7 +262,8 @@ const TicketsList = (props) => {
     columnsWidth,
     selectedClientelicenciaEtapaIds,
     advancedList,
-    viewSource
+    viewSource,
+    impersonatedUserId
   } = props;
 
   const classes = useStyles();
@@ -299,7 +300,8 @@ const TicketsList = (props) => {
     JSON.stringify(selectedTypeIds),
     JSON.stringify(selectedTicketUsersIds),
     showOnlyWaitingTickets,
-    JSON.stringify(selectedClientelicenciaEtapaIds)
+    JSON.stringify(selectedClientelicenciaEtapaIds),
+    impersonatedUserId
   ]);
 
   const { tickets, hasMore, loading, count, triggerReload } = useTickets({
@@ -319,7 +321,8 @@ const TicketsList = (props) => {
     ...(ticketsType === "no-category" && { categoryId: 0 }),
     filterByUserQueue: true,
     advancedList,
-    viewSource
+    viewSource,
+    impersonatedUserId
   });
 
   useEffect(() => {
