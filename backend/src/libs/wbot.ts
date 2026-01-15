@@ -320,24 +320,54 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           sessions[sessionIndex] = wbot;
         }
 
-        // Patch sendSeen to use markSeen instead (fixes markedUnread error)
-        // This fixes: "Cannot read properties of undefined (reading 'getChat')" and sendSeen errors
+        // Patch crítico para WhatsApp Web - Corrige errores de getChat y sendSeen
+        // Debe ejecutarse ANTES de cualquier operación con el cliente
         try {
           await wbot.pupPage?.evaluate(`
+            // Patch 1: Corregir sendSeen
             window.WWebJS.sendSeen = async (chatId) => {
-              const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
-              if (chat) {
-                window.Store.WAWebStreamModel.Stream.markAvailable();
-                await window.Store.SendSeen.markSeen(chat);
-                window.Store.WAWebStreamModel.Stream.markUnavailable();
-                return true;
+              try {
+                const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
+                if (chat) {
+                  window.Store.WAWebStreamModel.Stream.markAvailable();
+                  await window.Store.SendSeen.markSeen(chat);
+                  window.Store.WAWebStreamModel.Stream.markUnavailable();
+                  return true;
+                }
+                return false;
+              } catch (e) {
+                console.error('Error in patched sendSeen:', e);
+                return false;
               }
-              return false;
+            };
+
+            // Patch 2: Asegurar que getChat siempre devuelva un objeto válido
+            const originalGetChat = window.WWebJS.getChat;
+            window.WWebJS.getChat = async function(chatId, options) {
+              try {
+                // Intentar obtener el chat de forma normal
+                const chat = await originalGetChat.call(this, chatId, options);
+                if (chat) return chat;
+                
+                // Si no se encuentra, intentar desde Store
+                const chatFromStore = window.Store.Chat.get(chatId);
+                if (chatFromStore) return chatFromStore;
+                
+                // Si aún no existe, buscarlo de forma más robusta
+                const allChats = window.Store.Chat.getModelsArray();
+                const foundChat = allChats.find(c => c.id && c.id._serialized === chatId);
+                if (foundChat) return foundChat;
+                
+                throw new Error('Chat not found: ' + chatId);
+              } catch (e) {
+                console.error('Error in patched getChat for chatId:', chatId, e);
+                throw e;
+              }
             };
           `);
-          logger.info(`Session: ${sessionName} - sendSeen patch applied successfully`);
+          logger.info(`Session: ${sessionName} - WhatsApp Web patches applied successfully (sendSeen + getChat)`);
         } catch (patchError) {
-          logger.warn(`Session: ${sessionName} - Failed to apply sendSeen patch:`, patchError);
+          logger.error(`Session: ${sessionName} - CRITICAL: Failed to apply WhatsApp Web patches:`, patchError);
         }
 
         wbot.sendPresenceAvailable();
