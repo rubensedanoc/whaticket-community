@@ -20,7 +20,8 @@ const useTickets = ({
   clientelicenciaEtapaIds,
   advancedList = false,
   ticketUsersIds,
-  viewSource = null
+  viewSource = null,
+  impersonatedUserId
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -93,7 +94,8 @@ const useTickets = ({
                 // filterByUserQueue,
                 clientelicenciaEtapaIds,
                 ticketGroupType: advancedList,
-                viewSource
+                viewSource,
+                impersonatedUserId
               },
               signal // ✅ Pasar signal para cancelación
             });
@@ -221,7 +223,8 @@ const useTickets = ({
     showOnlyMyGroups,
     showOnlyWaitingTickets,
     reload,
-    clientelicenciaEtapaIds
+    clientelicenciaEtapaIds,
+    impersonatedUserId
   ]);
 
   const triggerReload = () => {

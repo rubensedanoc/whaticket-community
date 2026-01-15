@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 
 import AppError from "../errors/AppError";
 import CheckSettingsHelper from "../helpers/CheckSettings";
+import { canUserImpersonate } from "../config/impersonation";
 
 import { emitEvent } from "../libs/emitEvent";
 import CreateUserService from "../services/UserServices/CreateUserService";
@@ -143,4 +144,16 @@ export const remove = async (
   // });
 
   return res.status(200).json({ message: "User deleted" });
+};
+
+export const checkImpersonationPermission = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const userId = parseInt(req.user.id);
+  
+  // ⚠️ CRÍTICO: Verificar que está en la lista de IDs autorizados
+  const canImpersonate = canUserImpersonate(userId);
+  
+  return res.json({ canImpersonate });
 };

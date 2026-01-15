@@ -35,6 +35,7 @@ import TicketsList from "../TicketsList";
 import TicketsCountChips from "../TicketsCountChips";
 
 import { Button, Divider, FormControlLabel, Switch, Chip } from "@material-ui/core";
+import Alert from "@material-ui/lab/Alert";
 import Menu from "@material-ui/core/Menu";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { toast } from "react-toastify";
@@ -201,7 +202,24 @@ const TicketsManager = () => {
   const [notificationsCount, setNotificationsCount] = useState(null);
 
   const [selectedClientelicenciaEtapaIds, setSelectedClientelicenciaEtapaIds] = useState([]);
+  const [canImpersonate, setCanImpersonate] = useState(false);
   
+  // Verificar permisos de impersonación al cargar
+  useEffect(() => {
+    const checkImpersonationPermission = async () => {
+      try {
+        console.log("[IMPERSONATION] Verificando permisos...");
+        const { data } = await api.get("/users/impersonation/check");
+        console.log("[IMPERSONATION] Respuesta:", data);
+        setCanImpersonate(data.canImpersonate);
+      } catch (err) {
+        console.error("[IMPERSONATION] Error checking permission:", err);
+        setCanImpersonate(false);
+      }
+    };
+    checkImpersonationPermission();
+  }, []);
+
   useEffect(() => {
     localStorage.getItem("principalTicketType") &&
       setPrincipalTicketType(
@@ -287,7 +305,7 @@ const TicketsManager = () => {
 
     localStorage.getItem("TicketUsersIds") &&
       setSelectedTicketUsersIds(
-        JSON.parse(localStorage.getItem("TicketUsersIds"))
+        JSON.parse(localStorage.getItem("TicketUsersIds")).filter(id => id !== null && id !== undefined)
       );
 
     localStorage.getItem("WaitingTimeRanges") &&
@@ -670,15 +688,16 @@ const TicketsManager = () => {
           />
           {/* - QUEUE SELECT */}
           {/* USER SELECT */}
-          {user.profile === "admin" && (
+          {user.profile === "admin" && tab !== "grouped" && (
             <UsersSelect
               selectedIds={selectedTicketUsersIds}
               onChange={(values) => {
+                const filteredValues = values.filter(id => id !== null && id !== undefined);
                 localStorage.setItem(
                   "TicketUsersIds",
-                  JSON.stringify(values)
+                  JSON.stringify(filteredValues)
                 );
-                setSelectedTicketUsersIds(values);
+                setSelectedTicketUsersIds(filteredValues);
               }}
               chips={false}
               badgeColor={"secondary"}
@@ -1280,6 +1299,7 @@ const TicketsManager = () => {
                   : { order: 2 }),
               }}
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+              impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
             <TicketsList
@@ -1301,6 +1321,7 @@ const TicketsManager = () => {
               style={{
                 ...(pendingColumnSide === "left" ? { order: 0 } : { order: 1 }),
               }}
+              impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
             {/* <Divider orientation="vertical" flexItem /> */}
@@ -1316,13 +1337,13 @@ const TicketsManager = () => {
                   <div
                     style={{
                       display: "grid",
-                      "grid-template-columns": `repeat(${Math.round(
+                      gridTemplateColumns: `repeat(${Math.round(
                         selectedCategoriesIds?.length / 2
                       )}, 1fr)`,
                       gap: "12px",
                       height: "100%",
-                      "grid-auto-flow": "column",
-                      "grid-template-rows": "repeat(2, auto)",
+                      gridAutoFlow: "column",
+                      gridTemplateRows: "repeat(2, auto)",
                     }}
                   >
                     {categories.map((category, categoryIndex) => {
@@ -1356,6 +1377,7 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       ) : (
                         <TicketsList
@@ -1387,6 +1409,7 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       );
                     })}
@@ -1426,6 +1449,7 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       ) : (
                         <TicketsList
@@ -1457,6 +1481,7 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       );
                     })}
@@ -1494,6 +1519,7 @@ const TicketsManager = () => {
           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
+          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
         />
       </TabPanel>
       {/* - closed TAB CONTENT */}
@@ -1518,6 +1544,7 @@ const TicketsManager = () => {
               alignItems: "center",
               justifyContent: "space-between",
               padding: "12px 16px 0px",
+              flexWrap: "wrap",
             }}
           >
             <div
@@ -1559,7 +1586,8 @@ const TicketsManager = () => {
                 gap: 6,
                 alignItems: "center",
                 marginLeft: "auto",
-                fontSize: 12
+                fontSize: 12,
+                flexWrap: "wrap",
               }}
             >
               <Divider
@@ -1591,10 +1619,42 @@ const TicketsManager = () => {
                 }
               />
               {/* - FILTRO DE RESPUESTA */}
+
+              {/* FILTRO DE USUARIOS (para impersonación) */}
+              {user.profile === "admin" && (
+                <>
+                  {console.log("[IMPERSONATION] Mostrando filtro de usuarios. canImpersonate:", canImpersonate, "selectedUsersIds:", selectedUsersIds)}
+                  <Divider
+                    flexItem
+                    orientation="vertical"
+                    style={{ marginLeft: 20, marginRight: 20 }}
+                  />
+                  <UsersSelect
+                    selectedIds={selectedUsersIds}
+                    onChange={(values) => {
+                      console.log("[IMPERSONATION] Usuarios seleccionados:", values);
+                      setSelectedUsersIds(values);
+                    }}
+                    onLoadData={(data) => {
+                      setUsers(data);
+                    }}
+                    chips={false}
+                    style={{ minWidth: 120 }}
+                  />
+                </>
+              )}
+              {/* - FILTRO DE USUARIOS */}
             </div>
           </div>
 
           {/* 3 COLUMNAS IGUALES A GENERAL */}
+          {/* Mensaje informativo de impersonación */}
+          {canImpersonate && selectedUsersIds.length === 1 && (
+            <Alert severity="info" style={{ margin: "16px 16px 8px" }}>
+              Modo impersonación activo: viendo tickets como el usuario seleccionado
+            </Alert>
+          )}
+
           <div
             style={{
               display: "flex",
@@ -1617,7 +1677,6 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
-              selectedTicketUsersIds={selectedTicketUsersIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1627,6 +1686,7 @@ const TicketsManager = () => {
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
               showAll={true}
               showOnlyMyGroups={false}
+              impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
             {/* COLUMNA 2: OTROS */}
@@ -1641,7 +1701,6 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
-              selectedTicketUsersIds={selectedTicketUsersIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1651,6 +1710,7 @@ const TicketsManager = () => {
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
               showAll={true}
               showOnlyMyGroups={false}
+              impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
             {/* COLUMNA 3: MI DEPARTAMENTO */}
@@ -1665,7 +1725,6 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
-              selectedTicketUsersIds={selectedTicketUsersIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1675,6 +1734,7 @@ const TicketsManager = () => {
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
               showAll={true}
               showOnlyMyGroups={false}
+              impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
           </div>
         </Paper>
@@ -2270,6 +2330,7 @@ const TicketsManager = () => {
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
                       showOnlyMyGroups={false}
+                      impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                     />
 
                     <TicketsList
@@ -2292,6 +2353,7 @@ const TicketsManager = () => {
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
                       showOnlyMyGroups={false}
+                      impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                     />
 
                     <TicketsList
@@ -2307,6 +2369,7 @@ const TicketsManager = () => {
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
                       showOnlyMyGroups={false}
+                      impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                     />
                   </>
                 );

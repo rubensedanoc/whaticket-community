@@ -26,6 +26,8 @@ import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService
 import Notification from "../models/Notification";
 import { NOTIFICATIONTYPES } from "../constants";
 import AdvancedListTicketsService, { TicketGroupType } from "../services/TicketServices/AdvancedListTicketsService";
+import { isValidImpersonationRequest } from "../config/impersonation";
+import { logImpersonation } from "../middleware/impersonation";
 
 type IndexQuery = {
   searchParam: string;
@@ -44,6 +46,7 @@ type IndexQuery = {
   ticketGroupType: TicketGroupType;
   ticketUsersIds: string;
   viewSource: string;
+  impersonatedUserId?: string; // NUEVO: ID del usuario a impersonar
 };
 
 interface TicketData {
@@ -108,6 +111,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   if (ticketUsersIdsStringified) {
     ticketUsersIds = JSON.parse(ticketUsersIdsStringified);
+    // Filtrar valores null para evitar SQL inválido
+    ticketUsersIds = ticketUsersIds.filter(id => id !== null && id !== undefined);
   }
 
   if (marketingCampaignIdsStringified) {
@@ -240,10 +245,54 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     filterByUserQueue: filterByUserQueueStringified,
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
     ticketGroupType,
-    viewSource
+    viewSource,
+    impersonatedUserId // NUEVO: ID del usuario a impersonar (opcional)
   } = req.query as IndexQuery;
 
-  const userId = req.user.id;
+  // ⚠️ CRÍTICO: Por defecto usar el userId real (funciona como siempre)
+  let effectiveUserId = req.user.id;
+  let isImpersonationActive = false; // Rastrea si la impersonación fue exitosa
+  
+  // Solo validar impersonación SI se envió impersonatedUserId
+  // Si NO se envía este parámetro, el filtro funciona EXACTAMENTE IGUAL que antes
+  if (impersonatedUserId) {
+    const requestingUserId = parseInt(req.user.id);
+    const targetUserId = parseInt(impersonatedUserId as string);
+    
+    // Validar si la impersonación es permitida (verifica que está en lista de IDs)
+    const validation = isValidImpersonationRequest(
+      requestingUserId,
+      targetUserId,
+      viewSource as string
+    );
+    
+    // ⚠️ CRÍTICO: Si NO está en el array, IGNORAR completamente la impersonación
+    // El filtro sigue funcionando NORMAL con el userId real
+    // NO se lanza error, NO se interrumpe el flujo, simplemente se ignora
+    if (!validation.valid) {
+      console.warn(`Impersonation attempt denied: ${validation.reason}`, {
+        requestingUserId,
+        targetUserId,
+      });
+      // effectiveUserId ya está establecido como req.user.id
+      // El servicio recibirá el userId real y TODO funciona NORMAL
+    } else {
+      // Log de auditoría solo si es exitoso
+      logImpersonation(requestingUserId, targetUserId, "START", viewSource as string);
+      
+      console.log(`[IMPERSONATION] ✅ Impersonación exitosa: Usuario ${requestingUserId} → Usuario ${targetUserId}`);
+      
+      // Usar el ID del usuario impersonado SOLO si la validación fue exitosa
+      effectiveUserId = targetUserId.toString();
+      isImpersonationActive = true; // Marcar que la impersonación está activa
+    }
+  }
+  // ⚠️ GARANTÍA: Si NO hay impersonatedUserId O si NO está autorizado,
+  // effectiveUserId = userId original → TODO funciona como SIEMPRE
+
+  const userId = effectiveUserId; // Usar el userId efectivo (real o impersonado)
+  
+  console.log(`[IMPERSONATION] UserId efectivo que se usará: ${userId} (original: ${req.user.id})`);
 
   let marketingCampaignIds: number[] = [];
   let queueIds: number[] = [];
@@ -323,7 +372,8 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       showOnlyWaitingTickets,
       clientelicenciaEtapaIds,
       ticketGroupType,
-      viewSource
+      viewSource,
+      forceUserIdFilter: isImpersonationActive // Solo forzar si impersonación fue exitosa
     });
 
   let ticketsToSend = tickets; // Inicializamos con la lista original

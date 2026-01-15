@@ -1,5 +1,6 @@
 import express from "express";
 import isAuth from "../middleware/isAuth";
+import { impersonationRateLimiter } from "../middleware/impersonation";
 
 import * as TicketController from "../controllers/TicketController";
 
@@ -7,7 +8,7 @@ const ticketRoutes = express.Router();
 
 ticketRoutes.get("/tickets", isAuth, TicketController.index);
 
-ticketRoutes.get("/tickets/advanced", isAuth, TicketController.advancedIndex);
+ticketRoutes.get("/tickets/advanced", isAuth, impersonationRateLimiter, TicketController.advancedIndex);
 
 ticketRoutes.get("/tickets/:ticketId", isAuth, TicketController.show);
 
