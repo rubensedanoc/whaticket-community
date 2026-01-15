@@ -21,12 +21,32 @@ const SetTicketMessagesAsRead = async (ticket: Ticket): Promise<void> => {
 
   try {
     const wbot = await GetTicketWbot(ticket);
-    await wbot.sendSeen(
-      `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`
-    );
+    
+    // Verificar que el wbot esté disponible antes de intentar sendSeen
+    if (!wbot) {
+      logger.warn(
+        `[SetTicketMessagesAsRead] No wbot available for ticketId ${ticket.id}, whatsappId ${ticket.whatsappId}`
+      );
+      return;
+    }
+    
+    try {
+      const chatId = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
+      await wbot.sendSeen(chatId);
+      
+      // Log exitoso solo si hay problemas recurrentes (comentado por defecto)
+      // logger.info(`[SetTicketMessagesAsRead] Messages marked as read for ticketId ${ticket.id}`);
+    } catch (sendSeenErr) {
+      // Con el parche aplicado en wbot.ts, este error debería ser menos frecuente
+      // Si aún ocurre, puede ser por desconexión temporal o problemas de red
+      logger.warn(
+        `[SetTicketMessagesAsRead] Could not mark messages as read for ticketId ${ticket.id}, whatsappId ${ticket.whatsappId}, contact ${ticket.contact.number}. Error: ${sendSeenErr.message || sendSeenErr}`
+      );
+    }
   } catch (err) {
+    // Error al obtener wbot - probablemente sesión no inicializada o desconectada
     logger.warn(
-      `Could not mark messages as read. Maybe whatsapp session disconnected? Err: ${err}`
+      `[SetTicketMessagesAsRead] Could not get wbot for ticketId ${ticket.id}, whatsappId ${ticket.whatsappId}. Session might be disconnected. Error: ${err.message || err}`
     );
   }
 
