@@ -229,11 +229,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           // @ts-ignore
           browserWSEndpoint: process.env.CHROME_WS || undefined,
           args: args.split(" ")
-        },
-        webVersionCache: {
-          type: 'remote',
-          remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/refs/heads/main/html/2.3000.1031490220-alpha.html'
-        }
+      }
       });
 
       wbot.initialize();
@@ -322,6 +318,26 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         } else {
           wbot.id = whatsapp.id;
           sessions[sessionIndex] = wbot;
+        }
+
+        // Patch sendSeen to use markSeen instead (fixes markedUnread error)
+        // This fixes: "Cannot read properties of undefined (reading 'getChat')" and sendSeen errors
+        try {
+          await wbot.pupPage?.evaluate(`
+            window.WWebJS.sendSeen = async (chatId) => {
+              const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
+              if (chat) {
+                window.Store.WAWebStreamModel.Stream.markAvailable();
+                await window.Store.SendSeen.markSeen(chat);
+                window.Store.WAWebStreamModel.Stream.markUnavailable();
+                return true;
+              }
+              return false;
+            };
+          `);
+          logger.info(`Session: ${sessionName} - sendSeen patch applied successfully`);
+        } catch (patchError) {
+          logger.warn(`Session: ${sessionName} - Failed to apply sendSeen patch:`, patchError);
         }
 
         wbot.sendPresenceAvailable();
