@@ -433,14 +433,31 @@ const TicketsManager = () => {
     }
   }, [user.profile, whatsApps, tab]); // ⚠️ Agregado 'tab' para detectar cambios de vista
 
-  // ✅ Auto-seleccionar PRIMER DEPARTAMENTO solo para vista "grouped"
+  // ✅ Auto-seleccionar PRIMER DEPARTAMENTO solo para vista "grouped" la primera vez
   useEffect(() => {
     if (tab === "grouped" && user?.queues && user.queues.length > 0) {
-      // Solo en grouped, auto-seleccionar primer departamento
+      // Intentar cargar desde localStorage
+      const savedQueueIds = localStorage.getItem("selectedQueueIdsForGrouped");
+      if (savedQueueIds) {
+        try {
+          const parsed = JSON.parse(savedQueueIds);
+          // Validar que los IDs guardados aún existen en los departamentos del usuario
+          const userQueueIdsArray = [...user.queues.map((q) => q.id), null];
+          const validIds = parsed.filter(id => userQueueIdsArray.includes(id));
+          if (validIds.length > 0) {
+            setSelectedQueueIds(validIds);
+            return;
+          }
+        } catch (e) {
+          console.error("Error parsing savedQueueIds:", e);
+        }
+      }
+      // Si no hay guardado o no es válido, seleccionar primer departamento
       setSelectedQueueIds([user.queues[0].id]);
     } else if (tab !== "grouped") {
       // En otras vistas, SIEMPRE restaurar TODOS los departamentos
-      setSelectedQueueIds(userQueueIds || []);
+      const userQueueIdsArray = [...user.queues.map((q) => q.id), null];
+      setSelectedQueueIds(userQueueIdsArray);
     }
   }, [tab, user]);
 
@@ -684,7 +701,13 @@ const TicketsManager = () => {
             style={{ marginLeft: 6 }}
             selectedQueueIds={selectedQueueIds}
             userQueues={user?.queues}
-            onChange={(values) => setSelectedQueueIds(values)}
+            onChange={(values) => {
+              setSelectedQueueIds(values);
+              // Guardar en localStorage si estamos en vista grouped
+              if (tab === "grouped") {
+                localStorage.setItem("selectedQueueIdsForGrouped", JSON.stringify(values));
+              }
+            }}
           />
           {/* - QUEUE SELECT */}
           {/* USER SELECT */}
@@ -1299,7 +1322,6 @@ const TicketsManager = () => {
                   : { order: 2 }),
               }}
               selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-              impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
             <TicketsList
@@ -1321,7 +1343,6 @@ const TicketsManager = () => {
               style={{
                 ...(pendingColumnSide === "left" ? { order: 0 } : { order: 1 }),
               }}
-              impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
             {/* <Divider orientation="vertical" flexItem /> */}
@@ -1377,7 +1398,6 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       ) : (
                         <TicketsList
@@ -1409,7 +1429,6 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       );
                     })}
@@ -1449,7 +1468,6 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       ) : (
                         <TicketsList
@@ -1481,7 +1499,6 @@ const TicketsManager = () => {
                           }}
                           selectedCategoriesIds={selectedCategoriesIds}
                           selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                         />
                       );
                     })}
@@ -1519,7 +1536,6 @@ const TicketsManager = () => {
           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
-          impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
         />
       </TabPanel>
       {/* - closed TAB CONTENT */}
@@ -2326,11 +2342,11 @@ const TicketsManager = () => {
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                       showOnlyWaitingTickets={true}
+                      ticketsType={"no-response"}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
                       showOnlyMyGroups={false}
-                      impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                     />
 
                     <TicketsList
@@ -2349,11 +2365,11 @@ const TicketsManager = () => {
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                       showOnlyWaitingTickets={false}
+                      ticketsType={"in-progress"}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
                       showOnlyMyGroups={false}
-                      impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                     />
 
                     <TicketsList
@@ -2365,11 +2381,11 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                      ticketsType={"closed"}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
                       showOnlyMyGroups={false}
-                      impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
                     />
                   </>
                 );

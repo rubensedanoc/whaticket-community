@@ -67,16 +67,8 @@ const buildWhereCondition = async ({
   profile
 }: Request): Promise<Filterable["where"]> => {
   
-  // 🔍 LOG: Inicio de buildWhereCondition
+  // Inicio de buildWhereCondition
   const logPrefix = `[ListTickets:buildWhere]`;
-  console.log(`${logPrefix} 🔍 buildWhereCondition iniciado`, {
-    userId,
-    viewSource,
-    ticketsType,
-    status,
-    profile,
-    timestamp: new Date().toISOString()
-  });
   
   // ============================================================
   // BLOQUE PREPARADO PARA LÓGICA ESPECÍFICA SEGÚN VIEWSOURCE
@@ -128,7 +120,6 @@ const buildWhereCondition = async ({
 
   // FILTRAR COLUMNA "EN PROCESO" - Excluir tickets de mis departamentos
   if (viewSource === "grouped" && ticketsType === "in-progress" && userQueueIds.length > 0) {
-    console.log(`${logPrefix} 🎯 Aplicando filtro EN PROCESO: excluyendo tickets con queueId en`, userQueueIds);
     baseCondition.queueId = {
       [Op.notIn]: userQueueIds
     };
@@ -136,7 +127,6 @@ const buildWhereCondition = async ({
 
   // FILTRAR COLUMNA "CERRADOS" - Incluir solo tickets de mis departamentos
   if (viewSource === "grouped" && status === "closed" && userQueueIds.length > 0) {
-    console.log(`${logPrefix} 🎯 Aplicando filtro CERRADOS: tickets con queueId en`, userQueueIds);
     baseCondition.queueId = {
       [Op.in]: userQueueIds
     };
@@ -196,12 +186,22 @@ const buildWhereCondition = async ({
     };
   }
 
+  // ✅ FIX: Evitar repetición de tickets entre "Sin respuesta" y "En proceso"
+  // - showOnlyWaitingTickets=true → Solo tickets SIN RESPUESTA (beenWaitingSinceTimestamp NOT NULL)
+  // - showOnlyWaitingTickets=false + status=open → Solo tickets EN PROCESO (beenWaitingSinceTimestamp IS NULL)
   if (showOnlyWaitingTickets) {
+    // Mostrar solo tickets "sin respuesta"
     baseCondition = {
       ...baseCondition,
       beenWaitingSinceTimestamp: {
         [Op.not]: null
       }
+    };
+  } else if (status === "open") {
+    // Mostrar solo tickets "en proceso" (excluir los "sin respuesta")
+    baseCondition = {
+      ...baseCondition,
+      beenWaitingSinceTimestamp: null
     };
   }
 
@@ -510,17 +510,8 @@ const buildIncludeConditionForCount = ({
 const ListTicketsService = async (request: Request): Promise<Response> => {
   const { pageNumber = "1", status, viewSource, ticketsType } = request;
 
-  // 🔍 LOG: Inicio del servicio
   const logPrefix = `[ListTickets]`;
   const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  console.log(`${logPrefix} 🚀 INICIO REQUEST [${requestId}]`, {
-    pageNumber,
-    status,
-    viewSource,
-    ticketsType,
-    userId: request.userId,
-    timestamp: new Date().toISOString()
-  });
 
   const user = await User.findByPk(+request.userId, {
     attributes: ["id"],
@@ -537,10 +528,8 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
   request.profile = user.profile;
 
-  // 🔍 LOG: Construcción de WHERE
-  console.time(`${logPrefix} ⏱️ buildWhereCondition [${requestId}]`);
+  // Construcción de WHERE
   let whereCondition = await buildWhereCondition(request);
-  console.timeEnd(`${logPrefix} ⏱️ buildWhereCondition [${requestId}]`);
   
   let includeCondition = buildIncludeCondition(request);
   let includeConditionForCount = buildIncludeConditionForCount(request);
@@ -548,10 +537,7 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   const limit = 20;
   const offset = limit * (+pageNumber - 1);
 
-  // 🔍 LOG: Ejecución de query principal
-  console.time(`${logPrefix} ⏱️ Ticket.findAll [${requestId}]`);
-  console.log(`${logPrefix} 🔄 Ejecutando Ticket.findAll`, { limit, offset, pageNumber });
-  
+  // Ejecutando Ticket.findAll
   const tickets = await Ticket.findAll({
     where: whereCondition,
     include: includeCondition,
@@ -559,51 +545,34 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
     offset,
     order: [["lastMessageTimestamp", "DESC"]],
     // logging(sql) {
-    //   console.log(sql);
+    //   console.log("🔍 SQL FINDALL:", sql);
     // }
   });
   
-  console.timeEnd(`${logPrefix} ⏱️ Ticket.findAll [${requestId}]`);
-  console.log(`${logPrefix} ✅ Tickets obtenidos: ${tickets.length}`);
-
-  // 🔍 LOG: Conteo
-  console.time(`${logPrefix} ⏱️ Ticket.count [${requestId}]`);
   
+
+  // Conteo
   const count = await Ticket.count({
     where: whereCondition,
     include: includeConditionForCount,
-    distinct: true,
-    // logging(sql) {
-    //   console.log(sql);
-    // }
+    distinct: true
   });
   
-  console.timeEnd(`${logPrefix} ⏱️ Ticket.count [${requestId}]`);
+  
 
   const hasMore = count > offset + tickets.length;
 
-  // 🔍 LOG: Filtrado de tickets cerrados
   if (status === "closed") {
-    console.time(`${logPrefix} ⏱️ filterWhenAksForClosedTickets`);
-    console.log(`${logPrefix} 🔄 Filtrando tickets cerrados (antes: ${tickets.length})`);
   }
 
   const filteredTickets = await filterWhenAksForClosedTickets(tickets, status);
 
   if (status === "closed") {
-    console.timeEnd(`${logPrefix} ⏱️ filterWhenAksForClosedTickets`);
-    console.log(`${logPrefix} ✅ Filtrado completado (después: ${filteredTickets?.length || tickets.length})`);
   }
 
   const ticketsToReturn = filteredTickets || tickets;
 
-  // 🔍 LOG: Fin del servicio
-  console.log(`${logPrefix} 🏁 FIN REQUEST`, {
-    ticketsDevueltos: ticketsToReturn.length,
-    totalCount: count,
-    hasMore,
-    timestamp: new Date().toISOString()
-  });
+  // Fin del servicio
 
   return {
     tickets: ticketsToReturn,
@@ -623,7 +592,7 @@ const filterWhenAksForClosedTickets = async (
 ): Promise<Ticket[] | null> => {
   if (status !== "closed") return null;
 
-  // ✅ OPTIMIZACIÓN: En vez de hacer 1 query por ticket, hacemos UNA sola query
+  // OPTIMIZACIÓN: En vez de hacer 1 query por ticket, hacemos UNA sola query
   // para obtener todos los tickets conflictivos de una vez
   if (tickets.length === 0) return [];
 

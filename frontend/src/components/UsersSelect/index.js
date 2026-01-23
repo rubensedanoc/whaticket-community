@@ -125,6 +125,8 @@ const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeCol
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
                 variant="outlined"
               />
             </Box>

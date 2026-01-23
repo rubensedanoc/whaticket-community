@@ -151,7 +151,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     });
 
     if (userWithQueues && userWithQueues.queues) {
-      queueIds = [...userWithQueues.queues.map(queue => queue.id), null];
+      queueIds = userWithQueues.queues.map(queue => queue.id);
     }
   }
 
@@ -309,15 +309,26 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
   }
 
   if (whatsappIdsStringified) {
-    whatsappIds = JSON.parse(whatsappIdsStringified);
+    whatsappIds = JSON.parse(whatsappIdsStringified).filter((id: number) => id !== null && id !== undefined);
+  }
+
+  // ✅ PARA USUARIOS NO-ADMIN: Usar su whatsappId asignado (ignorar whatsappIds del frontend)
+  const requestingUser = await User.findByPk(req.user.id, {
+    attributes: ["id", "profile", "whatsappId"]
+  });
+  
+  if (requestingUser && requestingUser.profile !== "admin" && requestingUser.whatsappId) {
+    // Sobrescribir whatsappIds con la conexión asignada al usuario
+    whatsappIds = [requestingUser.whatsappId];
+    console.log(`✅ Usuario NO-admin: usando whatsappId asignado [${requestingUser.whatsappId}]`);
   }
 
   if (queueIdsStringified) {
-    queueIds = JSON.parse(queueIdsStringified);
+    queueIds = JSON.parse(queueIdsStringified).filter((id: number) => id !== null && id !== undefined);
   }
 
   if (marketingCampaignIdsStringified) {
-    marketingCampaignIds = JSON.parse(marketingCampaignIdsStringified);
+    marketingCampaignIds = JSON.parse(marketingCampaignIdsStringified).filter((id: number) => id !== null && id !== undefined);
   }
 
   if (showOnlyMyGroupsStringified) {
@@ -337,7 +348,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
   }
 
   if (clientelicenciaEtapaIdsStringified) {
-    clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified);
+    clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified).filter((id: number) => id !== null && id !== undefined);
   }
 
   // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
@@ -352,7 +363,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     });
 
     if (userWithQueues && userWithQueues.queues) {
-      queueIds = [...userWithQueues.queues.map(queue => queue.id), null];
+      queueIds = userWithQueues.queues.map(queue => queue.id);
     }
   }
 

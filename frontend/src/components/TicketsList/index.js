@@ -996,6 +996,12 @@ const TicketsList = (props) => {
           </>
         )}
 
+        {ticketsType === "closed" && (
+          <>
+            <div>CERRADOS</div>
+          </>
+        )}
+
         {ticketsType === "waiting-response" && (
           <>
             <div>Esperando Respuesta</div>
@@ -1007,8 +1013,6 @@ const TicketsList = (props) => {
             <div>{category.name}</div>
           </>
         )}
-
-        {status === "closed" && <div>CERRADOS</div>}
 
         {onMoveToLeft && (
           <ArrowLeftIcon

@@ -8,6 +8,7 @@ import Ticket from "../../models/Ticket";
 
 import { Op } from "sequelize";
 import formatBody from "../../helpers/Mustache";
+import { applyPatchesToWbot } from "../../libs/wbot";
 
 interface Request {
   body: string;
@@ -80,6 +81,21 @@ const SendWhatsAppMessage = async ({
     const bodyFormated = formatBody(body, ticket.contact);
 
     console.log("[SendWhatsAppMessage] Body formateado OK");
+
+    // Intentar aplicar parches en la sesión si es posible (on-demand)
+    try {
+      if (wbot?.pupPage) {
+        const patched = await applyPatchesToWbot(wbot as any);
+        if (!patched) {
+          console.log("[SendWhatsAppMessage] WARNING: No se pudo aplicar el parche on-demand en esta sesión");
+          throw new Error("ERR_PATCH_NOT_APPLIED");
+        }
+        console.log("[SendWhatsAppMessage] Parche on-demand aplicado OK");
+      }
+    } catch (patchErr) {
+      console.log("[SendWhatsAppMessage] ERROR aplicando parche on-demand:", patchErr?.message || patchErr);
+      throw patchErr;
+    }
 
     let mentionedNumbers: string[] | null = null;
 
