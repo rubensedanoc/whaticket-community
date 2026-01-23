@@ -409,6 +409,76 @@ export const getWbot = (whatsappId: number): Session => {
   return sessions[sessionIndex];
 };
 
+// Aplica parches en la página Puppeteer de WhatsApp Web de forma on-demand.
+// Devuelve true si el parche quedó aplicado correctamente, false en caso contrario.
+export const applyPatchesToWbot = async (wbot: Session): Promise<boolean> => {
+  try {
+    if (!wbot?.pupPage) {
+      return false;
+    }
+
+    // Ejecutar la misma evaluación que en el "ready" para asegurar que
+    // `window.WWebJS.getChat` y `window.WWebJS.sendSeen` están parcheados.
+    await wbot.pupPage.evaluate(`
+      (function(){
+        try {
+          // Patch 1: Corregir sendSeen
+          window.WWebJS.sendSeen = async (chatId) => {
+            try {
+              const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
+              if (chat) {
+                window.Store.WAWebStreamModel.Stream.markAvailable();
+                await window.Store.SendSeen.markSeen(chat);
+                window.Store.WAWebStreamModel.Stream.markUnavailable();
+                return true;
+              }
+              return false;
+            } catch (e) {
+              console.error('Error in patched sendSeen:', e);
+              return false;
+            }
+          };
+
+          // Patch 2: Asegurar que getChat siempre devuelva un objeto válido
+          const originalGetChat = window.WWebJS.getChat;
+          window.WWebJS.getChat = async function(chatId, options) {
+            try {
+              const chat = await originalGetChat.call(this, chatId, options);
+              if (chat) return chat;
+              const chatFromStore = window.Store.Chat.get(chatId);
+              if (chatFromStore) return chatFromStore;
+              const allChats = window.Store.Chat.getModelsArray();
+              const foundChat = allChats.find(c => c.id && c.id._serialized === chatId);
+              if (foundChat) return foundChat;
+              throw new Error('Chat not found: ' + chatId);
+            } catch (e) {
+              console.error('Error in patched getChat for chatId:', chatId, e);
+              throw e;
+            }
+          };
+
+          // Señal de éxito del parche
+          window.__whaticket_patch_applied = true;
+        } catch (e) {
+          console.error('Error applying patches (inner):', e);
+          window.__whaticket_patch_applied = false;
+        }
+      })();
+    `);
+
+    // Verificar la bandera del cliente
+    const flag = await wbot.pupPage.evaluate(() => {
+      // @ts-ignore
+      return !!window.__whaticket_patch_applied;
+    });
+
+    return !!flag;
+  } catch (err) {
+    logger.error('applyPatchesToWbot error:', err);
+    return false;
+  }
+};
+
 export const getWbots = (): Session[] => {
   return sessions;
 };
