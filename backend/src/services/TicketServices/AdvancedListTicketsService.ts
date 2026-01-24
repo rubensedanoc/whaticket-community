@@ -129,59 +129,61 @@ const buildSpecialWhereCondition = ({
   // Lógica principal basada en el tipo de grupo solicitado
   if (ticketGroupType === "no-response") {
     if (shouldUseSpecialLogic) {
-      // LÓGICA ESPECIAL PARA GROUPED: Solo tickets sin respuesta de SUS conexiones
-      // ✅ Sin límite de tiempo: mostrar TODOS los tickets esperando respuesta inmediatamente
+      // LOGICA ESPECIAL PARA GROUPED: Solo tickets sin respuesta de SUS conexiones
+      // EXCLUYE tickets asignados al usuario (esos van en "Mi Departamento")
       (finalCondition[Op.and] as any[]).push({
         [Op.or]: [
-          // Condición para chats individuales (pendientes) de sus conexiones
+          // Condicion para chats individuales (pendientes) de sus conexiones - sin asignar
           {
             isGroup: false,
             status: { [Op.in]: ["pending"] },
             whatsappId: { [Op.in]: userWhatsappsId },
-            transferred: { [Op.or]: [false, null] }
+            transferred: { [Op.or]: [false, null] },
+            userId: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: userId }] } // Excluir mis tickets
           },
-          // Condición para chats individuales (abiertos) sin respuesta de sus conexiones
+          // Condicion para chats individuales (abiertos) sin respuesta - de otros usuarios
           {
             isGroup: false,
             status: { [Op.in]: ["open"] },
             beenWaitingSinceTimestamp: { [Op.not]: null },
             whatsappId: { [Op.in]: userWhatsappsId },
-            transferred: { [Op.or]: [false, null] }
+            userId: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: userId }] } // Excluir mis tickets
           },
-          // Condición para chats grupales sin respuesta de sus conexiones
+          // Condicion para chats grupales sin respuesta - donde no soy participante
           {
             isGroup: true,
             status: { [Op.in]: ["open"] },
             beenWaitingSinceTimestamp: { [Op.not]: null },
             whatsappId: { [Op.in]: userWhatsappsId },
-            transferred: { [Op.or]: [false, null] }
+            userId: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: userId }] } // Excluir mis tickets
           }
         ]
       });
     } else {
-      // LÓGICA ORIGINAL: tickets de todas las conexiones
-      // ✅ Sin límite de tiempo: mostrar TODOS los tickets esperando respuesta inmediatamente
+      // LOGICA ORIGINAL: tickets de todas las conexiones
+      // EXCLUYE tickets asignados al usuario (esos van en "Mi Departamento")
       (finalCondition[Op.and] as any[]).push({
         [Op.or]: [
-          // Condición para chats individuales (pendientes)
+          // Condicion para chats individuales (pendientes) - sin asignar
           {
             isGroup: false,
             status: { [Op.in]: ["pending"] },
-            transferred: { [Op.or]: [false, null] }
+            transferred: { [Op.or]: [false, null] },
+            userId: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: userId }] } // Excluir mis tickets
           },
-          // Condición para chats individuales (abiertos) sin respuesta
+          // Condicion para chats individuales (abiertos) sin respuesta - de otros usuarios
           {
             isGroup: false,
             status: { [Op.in]: ["open"] },
             beenWaitingSinceTimestamp: { [Op.not]: null },
-            transferred: { [Op.or]: [false, null] }
+            userId: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: userId }] } // Excluir mis tickets
           },
-          // Condición para chats grupales sin respuesta
+          // Condicion para chats grupales sin respuesta - donde no soy participante
           {
             isGroup: true,
             status: { [Op.in]: ["open"] },
             beenWaitingSinceTimestamp: { [Op.not]: null },
-            transferred: { [Op.or]: [false, null] }
+            userId: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: userId }] } // Excluir mis tickets
           }
         ]
       });
@@ -215,55 +217,28 @@ const buildSpecialWhereCondition = ({
     });
   } else if (ticketGroupType === "my-department") {
     // === MI DEPARTAMENTO ===
-    if (shouldUseSpecialLogic) {
-      // LÓGICA ESPECIAL PARA GROUPED: Tickets del usuario (de su conexión o transferidos)
-      // ✅ Excluye tickets esperando respuesta (evita duplicados con "Sin Respuesta")
-      // ✅ Para GRUPOS: incluye si está en TicketParticipantUsers
-      const condition: any = {
-        [Op.or]: [
-          // Tickets individuales asignados al usuario
-          { userId: userId },
-          // Tickets grupales donde el usuario está en TicketParticipantUsers
-          Sequelize.literal(
-            `EXISTS (
-              SELECT 1 FROM \`TicketParticipantUsers\` 
-              WHERE \`TicketParticipantUsers\`.\`ticketId\` = \`Ticket\`.\`id\` 
-              AND \`TicketParticipantUsers\`.\`userId\` = ${userId}
-            )`
-          )
-        ],
-        status: { [Op.in]: ["open"] },
-        beenWaitingSinceTimestamp: null // Solo tickets que NO están esperando respuesta
-      };
-      if (queueIds && queueIds.length > 0) {
-        condition.queueId = { [Op.in]: queueIds };
-      }
-      (finalCondition[Op.and] as any[]).push(condition);
-    } else {
-      // LÓGICA ORIGINAL: Tickets del usuario
-      // ✅ Excluye tickets esperando respuesta (evita duplicados con "Sin Respuesta")
-      // ✅ Para GRUPOS: incluye si está en TicketParticipantUsers
-      const condition: any = {
-        [Op.or]: [
-          // Tickets individuales asignados al usuario
-          { userId: userId },
-          // Tickets grupales donde el usuario está en TicketParticipantUsers
-          Sequelize.literal(
-            `EXISTS (
-              SELECT 1 FROM \`TicketParticipantUsers\` 
-              WHERE \`TicketParticipantUsers\`.\`ticketId\` = \`Ticket\`.\`id\` 
-              AND \`TicketParticipantUsers\`.\`userId\` = ${userId}
-            )`
-          )
-        ],
-        status: { [Op.in]: ["open"] },
-        beenWaitingSinceTimestamp: null // Solo tickets que NO están esperando respuesta
-      };
-      if (queueIds && queueIds.length > 0) {
-        condition.queueId = { [Op.in]: queueIds };
-      }
-      (finalCondition[Op.and] as any[]).push(condition);
+    // INCLUYE todos los tickets del usuario, incluyendo los que estan esperando respuesta
+    // Para GRUPOS: incluye si esta en TicketParticipantUsers
+    const condition: any = {
+      [Op.or]: [
+        // Tickets individuales asignados al usuario
+        { userId: userId },
+        // Tickets grupales donde el usuario esta en TicketParticipantUsers
+        Sequelize.literal(
+          `EXISTS (
+            SELECT 1 FROM \`TicketParticipantUsers\` 
+            WHERE \`TicketParticipantUsers\`.\`ticketId\` = \`Ticket\`.\`id\` 
+            AND \`TicketParticipantUsers\`.\`userId\` = ${userId}
+          )`
+        )
+      ],
+      status: { [Op.in]: ["open"] }
+      // REMOVIDO: beenWaitingSinceTimestamp: null - ahora incluye tickets esperando respuesta
+    };
+    if (queueIds && queueIds.length > 0) {
+      condition.queueId = { [Op.in]: queueIds };
     }
+    (finalCondition[Op.and] as any[]).push(condition);
   } else if (ticketGroupType === "other-departments") {
     // === OTROS DEPARTAMENTOS ===
     if (shouldUseSpecialLogic) {
@@ -373,8 +348,8 @@ const buildSpecialWhereCondition = ({
   }
 
   // Filtrado por Whatsapp
-  // ✅ Para "my-department": NO filtrar por conexión (ver tickets transferidos de otras conexiones)
-  // ✅ Para "no-response" y "other-departments": SÍ filtrar por conexión
+  // Para "my-department": NO filtrar por conexión (ver tickets transferidos de otras conexiones)
+  // Para "no-response" y "other-departments": SÍ filtrar por conexión
   if (ticketGroupType !== "my-department") {
     if (whatsappIds?.length) {
       (finalCondition[Op.and] as any[]).push({
@@ -383,7 +358,7 @@ const buildSpecialWhereCondition = ({
         }
       });
     } else if (userWhatsappsId?.length) {
-      // ✅ Si no hay whatsappIds seleccionados, usar las conexiones del usuario automáticamente
+      //ta Si no hay whatsappIds seleccionados, usar las conexiones del usuario automáticamente
       (finalCondition[Op.and] as any[]).push({
         whatsappId: {
           [Op.in]: userWhatsappsId
