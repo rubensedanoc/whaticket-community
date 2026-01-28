@@ -216,8 +216,8 @@ const buildWhereCondition = async ({
     };
   }
 
-  // si solo estoy viendo mis individuales abiertos, entonces muestro los tickets que tengan mi userId o en los que este ayudando
-  if (showAll !== "true" && typeIds[0] === "individual" && status === "open") {
+  // si solo estoy viendo mis individuales abiertos o pendientes, entonces muestro los tickets que tengan mi userId o en los que este ayudando
+  if (showAll !== "true" && typeIds[0] === "individual" && (status === "open" || status === "pending")) {
     baseCondition = {
       ...baseCondition,
       [Op.and]: [
@@ -232,6 +232,8 @@ const buildWhereCondition = async ({
                 )
               }
             },
+            // Para pending, tambien incluir tickets sin asignar (userId: null)
+            ...(status === "pending" ? [{ userId: null }] : []),
             ...(searchParam && userWhatsappsId.length > 0
               ? [
                   {
