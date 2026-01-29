@@ -121,7 +121,9 @@ const buildSpecialWhereCondition = ({
   // Un usuario solo tiene una conexión, una conexión solo pertenece a un departamento
   // Solo aplica cuando: viewSource="grouped" + 1 conexión + 1 departamento
   // ============================================================
-  const isGroupedView = viewSource === "grouped";
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+  // const isGroupedView = viewSource === "grouped";
+  const isGroupedView = false; // Vista grouped deshabilitada temporalmente
   const userHasOneConnection = userWhatsappsId && userWhatsappsId.length === 1;
   const userHasOneDepartment = queueIds && queueIds.length === 1;
   const shouldUseSpecialLogic = isGroupedView && userHasOneConnection && userHasOneDepartment;
@@ -680,17 +682,21 @@ const AdvancedListTicketsService = async (
   // - Individuales: por contact.number (el número del cliente que escribe)
   
   // DETECCIÓN: Vista "Por Clientes" con GRUPOS
-  const isGroupedViewWithGroups = viewSource === "grouped" && 
-                                   typeIds && 
-                                   typeIds.length > 0 && 
-                                   typeIds.includes("group");
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+  // const isGroupedViewWithGroups = viewSource === "grouped" && 
+  //                                  typeIds && 
+  //                                  typeIds.length > 0 && 
+  //                                  typeIds.includes("group");
+  const isGroupedViewWithGroups = false; // Vista grouped deshabilitada temporalmente
 
   // DETECCIÓN: Vista "Por Clientes" con INDIVIDUALES (en cualquier estado: no-response o in-progress)
-  const isGroupedViewWithIndividuals = viewSource === "grouped" && 
-                                        typeIds && 
-                                        typeIds.length > 0 && 
-                                        typeIds.includes("individual") &&
-                                        (ticketGroupType === "no-response" || ticketGroupType === "in-progress");
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+  // const isGroupedViewWithIndividuals = viewSource === "grouped" && 
+  //                                       typeIds && 
+  //                                       typeIds.length > 0 && 
+  //                                       typeIds.includes("individual") &&
+  //                                       (ticketGroupType === "no-response" || ticketGroupType === "in-progress");
+  const isGroupedViewWithIndividuals = false; // Vista grouped deshabilitada temporalmente
 
   let tickets: Ticket[];
   

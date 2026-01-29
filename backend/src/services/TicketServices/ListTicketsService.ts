@@ -119,18 +119,20 @@ const buildWhereCondition = async ({
   // }
 
   // FILTRAR COLUMNA "EN PROCESO" - Excluir tickets de mis departamentos
-  if (viewSource === "grouped" && ticketsType === "in-progress" && userQueueIds.length > 0) {
-    baseCondition.queueId = {
-      [Op.notIn]: userQueueIds
-    };
-  }
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+  // if (viewSource === "grouped" && ticketsType === "in-progress" && userQueueIds.length > 0) {
+  //   baseCondition.queueId = {
+  //     [Op.notIn]: userQueueIds
+  //   };
+  // }
 
   // FILTRAR COLUMNA "CERRADOS" - Incluir solo tickets de mis departamentos
-  if (viewSource === "grouped" && status === "closed" && userQueueIds.length > 0) {
-    baseCondition.queueId = {
-      [Op.in]: userQueueIds
-    };
-  }
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+  // if (viewSource === "grouped" && status === "closed" && userQueueIds.length > 0) {
+  //   baseCondition.queueId = {
+  //     [Op.in]: userQueueIds
+  //   };
+  // }
 
   // Columnas "Sin respuesta" NO se filtran por departamento (acceso global)
   // ============================================================

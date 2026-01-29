@@ -430,7 +430,8 @@ const TicketsList = (props) => {
         selectedWhatsappIds?.indexOf(ticket.whatsappId) > -1 ||
         selectedWhatsappIds?.length === 0 ||
         // ✅ En vista "grouped" y "general", incluir tickets transferidos hacia mí desde otras conexiones
-        ((viewSource === "grouped" || viewSource === "general") && ticket.userId === user?.id);
+        // NOTA: Vista "grouped" comentada temporalmente, pero esta lógica también aplica para "general"
+        ((/* viewSource === "grouped" || */ viewSource === "general") && ticket.userId === user?.id);
 
       const ticketUserCondition = !selectedTicketUsersIds || selectedTicketUsersIds?.length === 0 || selectedTicketUsersIds.includes(ticket.userId);
 
@@ -529,7 +530,9 @@ const TicketsList = (props) => {
           (advancedList === "in-progress" && inProgressColCondition) ||
           (advancedList === "my-department" && myDepartmentColCondition && 
             // En vista grouped, MI DEPARTAMENTO NO filtra por queueCondition (muestra TODOS los tickets del usuario)
-            (viewSource !== "grouped" ? queueCondition : true)) ||
+            // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+            // (viewSource !== "grouped" ? queueCondition : true)) ||
+            queueCondition) ||
           (advancedList === "other-departments" && otherDepartmentsColCondition)
         ));
 

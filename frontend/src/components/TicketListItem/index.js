@@ -390,6 +390,7 @@ const TicketListItem = ({
 
                   <div style={{ display: "flex", gap: "4px" }}>
                     {/* CONNECTION COUNT BADGE - FOR GROUPED VIEW (GROUPS & INDIVIDUALS) */}
+                    {/* COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
                     {viewSource === "grouped" && ticket.connectionCount > 1 && (
                       <Tooltip
                         title={`Este ${ticket.isGroup ? 'grupo' : 'cliente'} tiene ${ticket.connectionCount} conexiones disponibles`}
@@ -403,6 +404,7 @@ const TicketListItem = ({
                         />
                       </Tooltip>
                     )}
+                    */}
                     {/* CONNECTION COUNT BADGE */}
 
                     {/* PARTICIPANTS BADGE */}

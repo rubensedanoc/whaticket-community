@@ -380,7 +380,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
             wbot,
             whatsapp,
             // timeIntervalInHours: 72
-            timeIntervalInHours: 24
+            // timeIntervalInHours: 24
+            timeIntervalInHours: 168 // 7 días
           });
 
           console.log(
