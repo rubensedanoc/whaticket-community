@@ -417,21 +417,22 @@ const TicketsManager = () => {
   }, [searchParam]);
 
   // ✅ Auto-seleccionar conexión por defecto SOLO para vista "grouped" (usuarios NO-admin)
-  useEffect(() => {
-    // Solo aplicar en tab "grouped"
-    if (
-      tab === "grouped" && 
-      user.profile !== "admin" && 
-      whatsApps.length > 0 && 
-      selectedWhatsappIds.length === 0
-    ) {
-      const defaultWhatsapp = whatsApps.find(wa => wa.isDefault === true);
-      if (defaultWhatsapp) {
-        setSelectedWhatsappIds([defaultWhatsapp.id]);
-        localStorage.setItem("selectedWhatsappIds", JSON.stringify([defaultWhatsapp.id]));
-      }
-    }
-  }, [user.profile, whatsApps, tab]); // ⚠️ Agregado 'tab' para detectar cambios de vista
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+  // useEffect(() => {
+  //   // Solo aplicar en tab "grouped"
+  //   if (
+  //     tab === "grouped" && 
+  //     user.profile !== "admin" && 
+  //     whatsApps.length > 0 && 
+  //     selectedWhatsappIds.length === 0
+  //   ) {
+  //     const defaultWhatsapp = whatsApps.find(wa => wa.isDefault === true);
+  //     if (defaultWhatsapp) {
+  //       setSelectedWhatsappIds([defaultWhatsapp.id]);
+  //       localStorage.setItem("selectedWhatsappIds", JSON.stringify([defaultWhatsapp.id]));
+  //     }
+  //   }
+  // }, [user.profile, whatsApps, tab]); // ⚠️ Agregado 'tab' para detectar cambios de vista
 
 
   // ELIMINADO: useEffect que reseteaba departamentos al cambiar de vista
@@ -590,13 +591,13 @@ const TicketsManager = () => {
           />
           {/* - closed */}
 
-          {/* grouped */}
-          <Tab
+          {/* grouped - COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada */}
+          {/* <Tab
             value={"grouped"}
             icon={<GroupWorkIcon style={{ fontSize: 21 }} />}
             label={i18n.t("tickets.tabs.grouped.title")}
             classes={{ root: classes.tab }}
-          />
+          /> */}
           {/* - grouped */}
 
           {/* search */}
@@ -680,9 +681,10 @@ const TicketsManager = () => {
             onChange={(values) => {
               setSelectedQueueIds(values);
               // Guardar en localStorage si estamos en vista grouped
-              if (tab === "grouped") {
-                localStorage.setItem("selectedQueueIdsForGrouped", JSON.stringify(values));
-              }
+              // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+              // if (tab === "grouped") {
+              //   localStorage.setItem("selectedQueueIdsForGrouped", JSON.stringify(values));
+              // }
             }}
           />
           {/* - QUEUE SELECT */}
@@ -1516,9 +1518,8 @@ const TicketsManager = () => {
       </TabPanel>
       {/* - closed TAB CONTENT */}
 
-      {/* grouped TAB CONTENT */}
-      <TabPanel value={tab} name="grouped" className={classes.ticketsWrapper}>
-        {/* MISMA ESTRUCTURA QUE GENERAL */}
+      {/* grouped TAB CONTENT - COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada */}
+      {/* <TabPanel value={tab} name="grouped" className={classes.ticketsWrapper}>
         <Paper
           className={classes.ticketsWrapper}
           style={{
@@ -1528,7 +1529,6 @@ const TicketsManager = () => {
             overflow: "auto",
           }}
         >
-          {/* HEADER */}
           <div
             style={{
               display: "flex",
@@ -1588,7 +1588,6 @@ const TicketsManager = () => {
                 style={{ marginLeft: 20, marginRight: 20 }}
               />
 
-              {/* FILTRO DE RESPUESTA */}
               <FormControlLabel
                 id="showOnlyWaitingTicketsLabel"
                 style={{ marginRight: 7, color: "gray", marginLeft: 0 }}
@@ -1610,9 +1609,7 @@ const TicketsManager = () => {
                   />
                 }
               />
-              {/* - FILTRO DE RESPUESTA */}
 
-              {/* FILTRO DE USUARIOS (para impersonación) */}
               {user.profile === "admin" && (
                 <>
                   {console.log("[IMPERSONATION] Mostrando filtro de usuarios. canImpersonate:", canImpersonate, "selectedUsersIds:", selectedUsersIds)}
@@ -1635,12 +1632,9 @@ const TicketsManager = () => {
                   />
                 </>
               )}
-              {/* - FILTRO DE USUARIOS */}
             </div>
           </div>
 
-          {/* 3 COLUMNAS IGUALES A GENERAL */}
-          {/* Mensaje informativo de impersonación */}
           {canImpersonate && selectedUsersIds.length === 1 && (
             <Alert severity="info" style={{ margin: "16px 16px 8px" }}>
               Modo impersonación activo: viendo tickets como el usuario seleccionado
@@ -1657,7 +1651,6 @@ const TicketsManager = () => {
               flexGrow: 1,
             }}
           >
-            {/* COLUMNA 1: SIN RESPUESTA */}
             <TicketsList
               searchParam={searchParam}
               selectedTypeIds={
@@ -1681,7 +1674,6 @@ const TicketsManager = () => {
               impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
-            {/* COLUMNA 2: OTROS */}
             <TicketsList
               searchParam={searchParam}
               selectedTypeIds={
@@ -1705,7 +1697,6 @@ const TicketsManager = () => {
               impersonatedUserId={canImpersonate && selectedUsersIds.length === 1 ? selectedUsersIds[0] : undefined}
             />
 
-            {/* COLUMNA 3: MI DEPARTAMENTO */}
             <TicketsList
               searchParam={searchParam}
               selectedTypeIds={
@@ -1730,7 +1721,7 @@ const TicketsManager = () => {
             />
           </div>
         </Paper>
-      </TabPanel>
+      </TabPanel> */}
       {/* - grouped TAB CONTENT */}
 
       {/* notifications TAB CONTENT */}

@@ -14,7 +14,9 @@ export const IMPERSONATION_CONFIG = {
   enabled: true,
   maxRequestsPerMinute: 10, // Rate limiting
   logAllImpersonations: true, // Auditoría
-  allowedViews: ["grouped"], // Solo en vista grouped
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+  // allowedViews: ["grouped"], // Solo en vista grouped
+  allowedViews: [] as string[], // Vista grouped deshabilitada temporalmente
 };
 
 // Verificar si usuario puede impersonar (debe estar en la lista)

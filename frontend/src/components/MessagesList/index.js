@@ -475,7 +475,9 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     
     // Solo procesar cuando isGroup ya esté definido (puede ser true o false, pero no undefined)
     if (isGroup !== undefined) {
-      if (savedViewSource === 'grouped') {
+      // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+      // if (savedViewSource === 'grouped') {
+      if (false) { // Vista grouped deshabilitada temporalmente
         console.log('🟢 MessagesList: Es vista "Por Clientes"! Verificando tipo...');
         setViewSource(savedViewSource);
         
@@ -516,7 +518,9 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
       console.log('🔵 fetchMessages: viewSource:', viewSource, 'contactId:', contactId, 'clientNumber:', clientNumber, 'isGroup:', isGroup);
       
       // Si es vista "Por Clientes" y tenemos identificador (contactId para grupos, clientNumber para individuales)
-      if (viewSource === 'grouped' && (contactId || clientNumber)) {
+      // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
+      // if (viewSource === 'grouped' && (contactId || clientNumber)) {
+      if (false) { // Vista grouped deshabilitada temporalmente
         console.log('✅ fetchMessages: Usando endpoint CONSOLIDADO');
         const pageNumber = ticketsQueue?.[0]?.pageNumber || 1;
         
@@ -642,8 +646,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   }, [ticketId, ticketsQueue]);
 
   // Volver a cargar mensajes cuando contactId o clientNumber esté disponible para vista consolidada
+  // COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
   useEffect(() => {
-    if (viewSource === 'grouped' && (contactId || clientNumber)) {
+    // if (viewSource === 'grouped' && (contactId || clientNumber)) {
+    if (false) { // Vista grouped deshabilitada temporalmente
       console.log('🔄 Re-cargando mensajes consolidados. contactId:', contactId, 'clientNumber:', clientNumber);
       setLoading(true);
       fetchMessages({
@@ -1182,6 +1188,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
                       +{message.contact?.number}
                     </div>
                     {/* Indicador de conexión para vista consolidada */}
+                    {/* COMENTADO TEMPORALMENTE - Vista Por Clientes deshabilitada
                     {viewSource === 'grouped' && message.connectionInfo && (
                       <div
                         style={{
@@ -1198,6 +1205,7 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
                         📱 {message.connectionInfo.whatsappName}
                       </div>
                     )}
+                    */}
                   </div>
                 )}
                 {(message.mediaUrl ||
