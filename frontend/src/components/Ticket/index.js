@@ -30,6 +30,7 @@ import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import Typography from "@material-ui/core/Typography";
+import Chip from "@material-ui/core/Chip";
 import SaveIcon from '@material-ui/icons/Save';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
@@ -319,26 +320,31 @@ const Ticket = () => {
 
           <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
             {contact?.contactClientelicencias?.length ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                Licencias: 
-                <Typography color="primary">
-                  {
-                    contact.contactClientelicencias.map(
-                      (ccl) => {
-                        return (
-                          <div key={ccl.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div>
-                              {ccl.traza_clientelicencia_id}
-                            </div>
-                            <div style={{ cursor: "pointer", color: "red" }} onClick={() => removeClientelicencia(ccl.traza_clientelicencia_id)}>
-                              x
-                            </div>
-                          </div>
-                        );
-                      }
-                    )
-                  }
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 8, 
+                maxWidth: "400px",
+                overflowX: "auto",
+                overflowY: "hidden",
+                whiteSpace: "nowrap",
+                paddingBottom: "4px"
+              }}>
+                <Typography variant="body2" style={{ fontWeight: 500, flexShrink: 0 }}>
+                  Licencias:
                 </Typography>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {contact.contactClientelicencias.map((ccl) => (
+                    <Chip
+                      key={ccl.id}
+                      label={ccl.traza_clientelicencia_id}
+                      size="small"
+                      color="primary"
+                      onDelete={() => removeClientelicencia(ccl.traza_clientelicencia_id)}
+                      style={{ fontSize: "0.75rem" }}
+                    />
+                  ))}
+                </div>
               </div>
             ) : null}
 
