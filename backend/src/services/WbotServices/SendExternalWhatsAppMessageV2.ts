@@ -21,7 +21,7 @@ const queueState = {
   processing: false,
   lastSentTimestamp: 0,
   config: {
-    delayBetweenMessages: 20000 // 20 segundos entre cada mensaje
+    delayBetweenMessages: 30000 // 30 segundos entre cada mensaje
   } as QueueConfig
 };
 
