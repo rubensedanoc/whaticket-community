@@ -25,6 +25,19 @@ const queueState = {
   } as QueueConfig
 };
 
+// Estado de alternancia de números
+const alternationState = {
+  numbers: ['51985001690', '51985002996'], // <-- Configura aquí los números de WhatsApp conectados
+  currentIndex: 0
+};
+
+// Función para obtener el siguiente número en alternancia
+const getNextNumber = (): string => {
+  const number = alternationState.numbers[alternationState.currentIndex];
+  alternationState.currentIndex = (alternationState.currentIndex + 1) % alternationState.numbers.length;
+  return number;
+};
+
 const delay = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
@@ -125,8 +138,10 @@ export const addMessageToQueue = async ({
 
   if (!mensajes.length) {
     // Limpiar números
-    fromNumber = fromNumber.replace(/\D/g, '').trim();
     toNumber = toNumber.replace(/\D/g, '').trim();
+    
+    // Usar número alternado en vez del fromNumber que viene del PHP
+    fromNumber = getNextNumber();
 
     const sendMessageRequest = await SendMessageRequest.create({
       fromNumber,
