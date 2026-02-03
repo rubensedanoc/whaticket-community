@@ -136,6 +136,12 @@ const useStyles = makeStyles((theme) => ({
 const reducer = (state, action) => {
   // console.log("REDUCER: ", action.type, action.payload);
 
+  // ✅ REPLACE_TICKETS: Para paginación - REEMPLAZA la lista completa
+  if (action.type === "REPLACE_TICKETS") {
+    return action.payload; // Reemplaza completamente los tickets
+  }
+
+  // ✅ LOAD_TICKETS: Para actualizaciones de sockets - ACUMULA/ACTUALIZA
   if (action.type === "LOAD_TICKETS") {
     const newTickets = action.payload;
 
@@ -331,7 +337,7 @@ const TicketsList = (props) => {
 
     (async () => {
       dispatch({
-        type: "LOAD_TICKETS",
+        type: "REPLACE_TICKETS", // ✅ Cambiado a REPLACE para paginación tradicional
         payload: tickets,
       });
     })();
@@ -697,7 +703,7 @@ const TicketsList = (props) => {
   ]);
 
   // ✅ PAGINACIÓN TRADICIONAL - Reemplaza scroll infinito
-  const ITEMS_PER_PAGE = 20;
+  const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(count / ITEMS_PER_PAGE);
 
   const handlePageChange = (newPage) => {

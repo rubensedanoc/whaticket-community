@@ -2294,7 +2294,7 @@ const TicketsManager = () => {
                 return (
                   <>
                     <TicketsList
-                      status="open"
+                      status="pending" // ✅ CAMBIO: Sin Respuesta = pending
                       searchParam={searchParam}
                       selectedTypeIds={
                         principalTicketTypeForGeneralView === "all"
@@ -2308,7 +2308,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                      showOnlyWaitingTickets={true}
+                      showOnlyWaitingTickets={false} // ✅ YA NO SE USA
                       ticketsType={"no-response"}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -2317,7 +2317,7 @@ const TicketsManager = () => {
                     />
 
                     <TicketsList
-                      status="open"
+                      status="open" // ✅ CAMBIO: En Proceso = open
                       searchParam={searchParam}
                       selectedTypeIds={
                         principalTicketTypeForGeneralView === "all"
@@ -2331,7 +2331,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                      showOnlyWaitingTickets={false}
+                      showOnlyWaitingTickets={false} // ✅ YA NO SE USA
                       ticketsType={"in-progress"}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -2339,7 +2339,7 @@ const TicketsManager = () => {
                       showOnlyMyGroups={false}
                     />
 
-                    <TicketsList
+                    {/* <TicketsList
                       status="closed"
                       searchParam={searchParam}
                       selectedTypeIds={typeIdsForAll}
@@ -2353,7 +2353,7 @@ const TicketsManager = () => {
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
                       showAll={true}
                       showOnlyMyGroups={false}
-                    />
+                    /> */}
                   </>
                 );
               })()}

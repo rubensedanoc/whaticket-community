@@ -191,21 +191,21 @@ const buildWhereCondition = async ({
   // ✅ FIX: Evitar repetición de tickets entre "Sin respuesta" y "En proceso"
   // - showOnlyWaitingTickets=true → Solo tickets SIN RESPUESTA (beenWaitingSinceTimestamp NOT NULL)
   // - showOnlyWaitingTickets=false + status=open → Solo tickets EN PROCESO (beenWaitingSinceTimestamp IS NULL)
-  if (showOnlyWaitingTickets) {
-    // Mostrar solo tickets "sin respuesta"
-    baseCondition = {
-      ...baseCondition,
-      beenWaitingSinceTimestamp: {
-        [Op.not]: null
-      }
-    };
-  } else if (status === "open") {
-    // Mostrar solo tickets "en proceso" (excluir los "sin respuesta")
-    baseCondition = {
-      ...baseCondition,
-      beenWaitingSinceTimestamp: null
-    };
-  }
+  // if (showOnlyWaitingTickets) {
+  //   // Mostrar solo tickets "sin respuesta"
+  //   baseCondition = {
+  //     ...baseCondition,
+  //     beenWaitingSinceTimestamp: {
+  //       [Op.not]: null
+  //     }
+  //   };
+  // } else if (status === "open") {
+  //   // Mostrar solo tickets "en proceso" (excluir los "sin respuesta")
+  //   baseCondition = {
+  //     ...baseCondition,
+  //     beenWaitingSinceTimestamp: null
+  //   };
+  // }
 
   if (clientelicenciaEtapaIds.length) {
     baseCondition = {
@@ -218,8 +218,16 @@ const buildWhereCondition = async ({
     };
   }
 
+  // Forzar privacidad si es open/pending y no es admin
+  const forcePrivacy = (status === "open" || status === "pending") && profile !== "admin";
+
   // si solo estoy viendo mis individuales abiertos o pendientes, entonces muestro los tickets que tengan mi userId o en los que este ayudando
-  if (showAll !== "true" && typeIds[0] === "individual" && (status === "open" || status === "pending")) {
+  // si solo estoy viendo mis individuales abiertos o pendientes, o si SE FUERZA PRIVACIDAD
+  if (
+    (showAll !== "true" || forcePrivacy) &&
+    (typeIds[0] === "individual" || forcePrivacy) &&
+    (status === "open" || status === "pending")
+  ) {
     baseCondition = {
       ...baseCondition,
       [Op.and]: [
@@ -233,6 +241,20 @@ const buildWhereCondition = async ({
                   `(SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` = ${userId})`
                 )
               }
+            },
+            {
+              id: {
+                [Op.in]: Sequelize.literal(
+                  `(SELECT \`ticketId\` FROM \`TicketParticipantUsers\` WHERE \`userId\` = ${userId})`
+                )
+              }
+            },
+            // ✅ FIX: Mostrar GRUPOS de mis conexiones (aunque no participe)
+            {
+              [Op.and]: [
+                { isGroup: true },
+                { whatsappId: { [Op.in]: userWhatsappsId } }
+              ]
             },
             // Para pending, tambien incluir tickets sin asignar (userId: null)
             ...(status === "pending" ? [{ userId: null }] : []),
@@ -317,9 +339,15 @@ const buildWhereCondition = async ({
     if (whatsappIds?.length) {
       baseCondition = {
         ...baseCondition,
-        whatsappId: {
-          [Op.or]: whatsappIds
-        }
+        [Op.and]: [
+          ...(baseCondition[Op.and] || []),
+          {
+            [Op.or]: [
+              { whatsappId: { [Op.in]: whatsappIds } },
+              { userId } // ✅ FIX: Mostrar siempre tickets asignados al usuario actual
+            ]
+          }
+        ]
       };
     }
   }
@@ -520,7 +548,7 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const user = await User.findByPk(+request.userId, {
-    attributes: ["id"],
+    attributes: ["name", "id", "profile"],
     include: [
       {
         model: Whatsapp,
@@ -540,7 +568,7 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   let includeCondition = buildIncludeCondition(request);
   let includeConditionForCount = buildIncludeConditionForCount(request);
 
-  const limit = 20;
+  const limit = 10;
   const offset = limit * (+pageNumber - 1);
 
   // Ejecutando Ticket.findAll
