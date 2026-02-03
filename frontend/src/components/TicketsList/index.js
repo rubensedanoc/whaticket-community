@@ -983,7 +983,7 @@ const TicketsList = (props) => {
 
         {ticketsType === "no-response" && (
           <>
-            <div>SIN RESPUESTA</div>
+            <div>SIN ATENCIÓN</div>
           </>
         )}
 

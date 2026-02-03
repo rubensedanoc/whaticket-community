@@ -154,6 +154,7 @@ const TicketsManager = () => {
   const classes = useStyles();
 
   const [searchParam, setSearchParam] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // Estado temporal para el input
   const [tab, setTab] = useState("open");
   const [tabOpen, setTabOpen] = useState("open");
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
@@ -447,22 +448,21 @@ const TicketsManager = () => {
       // return () => clearInterval(notificationsInterval);
     }, [whatsApps]);
 
-  let searchTimeout;
-
   const handleSearch = (e) => {
-    const searchedTerm = e.target.value.toLowerCase();
+    // Solo actualiza el input temporal, NO ejecuta la búsqueda
+    setSearchInput(e.target.value);
+  };
 
-    clearTimeout(searchTimeout);
+  const executeSearch = () => {
+    // Ejecuta la búsqueda real
+    setSearchParam(searchInput.toLowerCase().trim());
+  };
 
-    // if (searchedTerm === "") {
-    //   // setSearchParam(searchedTerm);
-    //   // setTab("open");
-    //   return;
-    // }
-
-    searchTimeout = setTimeout(() => {
-      setSearchParam(searchedTerm);
-    }, 250);
+  const handleSearchKeyPress = (e) => {
+    // Ejecutar búsqueda al presionar Enter
+    if (e.key === 'Enter') {
+      executeSearch();
+    }
   };
 
   const handleChangeTab = (e, newValue) => {
@@ -621,8 +621,19 @@ const TicketsManager = () => {
                 inputRef={searchInputRef}
                 placeholder="Buscar tickets"
                 type="search"
+                value={searchInput}
                 onChange={handleSearch}
+                onKeyPress={handleSearchKeyPress}
               />
+              <Button
+                size="small"
+                color="primary"
+                variant="contained"
+                onClick={executeSearch}
+                style={{ marginLeft: 8, textTransform: 'none' }}
+              >
+                Buscar
+              </Button>
             </div>
             {/* - SEARCH INPUT */}
           </>
@@ -2308,7 +2319,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                      showOnlyWaitingTickets={false} // ✅ YA NO SE USA
+                      showOnlyWaitingTickets={showOnlyWaitingTickets}
                       ticketsType={"no-response"}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
@@ -2331,7 +2342,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-                      showOnlyWaitingTickets={false} // ✅ YA NO SE USA
+                      showOnlyWaitingTickets={showOnlyWaitingTickets}
                       ticketsType={"in-progress"}
                       viewSource={"general"}
                       selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}

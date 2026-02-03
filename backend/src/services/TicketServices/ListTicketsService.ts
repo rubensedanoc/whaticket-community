@@ -188,24 +188,18 @@ const buildWhereCondition = async ({
     };
   }
 
-  // ✅ FIX: Evitar repetición de tickets entre "Sin respuesta" y "En proceso"
-  // - showOnlyWaitingTickets=true → Solo tickets SIN RESPUESTA (beenWaitingSinceTimestamp NOT NULL)
-  // - showOnlyWaitingTickets=false + status=open → Solo tickets EN PROCESO (beenWaitingSinceTimestamp IS NULL)
-  // if (showOnlyWaitingTickets) {
-  //   // Mostrar solo tickets "sin respuesta"
-  //   baseCondition = {
-  //     ...baseCondition,
-  //     beenWaitingSinceTimestamp: {
-  //       [Op.not]: null
-  //     }
-  //   };
-  // } else if (status === "open") {
-  //   // Mostrar solo tickets "en proceso" (excluir los "sin respuesta")
-  //   baseCondition = {
-  //     ...baseCondition,
-  //     beenWaitingSinceTimestamp: null
-  //   };
-  // }
+  // ✅ Filtro "Solo sin respuesta" (manual, sin separación automática)
+  // Cuando el filtro está ACTIVADO: Solo muestra tickets donde el cliente escribió último
+  // Cuando el filtro está DESACTIVADO: Muestra todos los tickets (sin filtrar por tiempo de espera)
+  if (showOnlyWaitingTickets) {
+    baseCondition = {
+      ...baseCondition,
+      beenWaitingSinceTimestamp: {
+        [Op.not]: null
+      }
+    };
+  }
+  // NO filtrar automáticamente por beenWaitingSinceTimestamp cuando el filtro está desactivado
 
   if (clientelicenciaEtapaIds.length) {
     baseCondition = {
@@ -310,7 +304,8 @@ const buildWhereCondition = async ({
         ]
       };
     }
-    if (ticketUsersIds?.length) {
+    // ✅ Filtro de usuarios: Solo aplicar en tickets "en proceso" (open), NO en "sin respuesta" (pending)
+    if (ticketUsersIds?.length && status === "open") {
       baseCondition = {
         ...baseCondition,
         [Op.and]: [

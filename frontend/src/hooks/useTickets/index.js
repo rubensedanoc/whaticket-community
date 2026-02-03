@@ -60,14 +60,14 @@ const useTickets = ({
     const signal = abortControllerRef.current.signal;
 
     setLoading(true);
-    const delayDebounceFn = setTimeout(() => {
-      // ✅ Prevenir consultas simultáneas
-      if (isFetchingRef.current) {
-        console.log(`[useTickets] ⚠️ Consulta ya en progreso, ignorando nueva petición [${requestId}]`);
-        return;
-      }
+    
+    // ✅ Prevenir consultas simultáneas
+    if (isFetchingRef.current) {
+      console.log(`[useTickets] ⚠️ Consulta ya en progreso, ignorando nueva petición [${requestId}]`);
+      return;
+    }
 
-      const fetchTickets = async () => {
+    const fetchTickets = async () => {
         try {
           console.time(`[useTickets] ⏱️ fetchTickets [${requestId}]`);
           console.log(`[useTickets] 🔄 Iniciando fetchTickets [${requestId}]`);
@@ -201,10 +201,8 @@ const useTickets = ({
       };
 
       fetchTickets();
-    }, 500);
     
     return () => {
-      clearTimeout(delayDebounceFn);
       // ✅ Cancelar request si el componente se desmonta o cambian los params
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
