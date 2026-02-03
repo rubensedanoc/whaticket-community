@@ -52,4 +52,8 @@ contactRoutes.put("/contacts/removeClientelicencia/:contactId", isAuth, ContactC
 
 contactRoutes.delete("/contacts/:contactId", isAuth, ContactController.remove);
 
+contactRoutes.post("/contacts/sync-attention-types", isAuth, ContactController.syncAttentionTypes);
+
 export default contactRoutes;
+
+

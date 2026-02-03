@@ -41,7 +41,10 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
                         label={data.localbi_tipoatencion}
                         size="small"
                         style={{
-                          backgroundColor: data.localbi_tipoatencion === "HIGH TOUCH" ? "#4caf50" : "#2196f3",
+                          backgroundColor: 
+                            data.localbi_tipoatencion === "HIGH TOUCH" ? "#4caf50" :   // Verde
+                            data.localbi_tipoatencion === "LOW TOUCH" ? "#fdd835" :    // Amarillo
+                            "#64b5f6",  // Azul claro para TECH TOUCH
                           color: "white",
                           fontWeight: "bold",
                           fontSize: "0.7rem",
