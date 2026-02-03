@@ -475,6 +475,27 @@ const TicketListItem = ({
                     )}
                     {/* STATUS BADGES */}
 
+                    {/* ATTENTION TYPE CHIP */}
+                    {ticket.contact?.attentionType && (
+                      <Chip
+                        style={{
+                          height: "16px",
+                          fontSize: "9px",
+                          backgroundColor:
+                            ticket.contact.attentionType === "HIGH_TOUCH"
+                              ? "#4caf50"  // Verde para HIGH TOUCH
+                              : ticket.contact.attentionType === "LOW_TOUCH"
+                              ? "#fdd835"  // Amarillo para LOW TOUCH
+                              : "#64b5f6",  // Azul claro para TECH TOUCH
+                          color: "white",
+                          fontWeight: "bold",
+                        }}
+                        size="small"
+                        label={ticket.contact.attentionType.replace("_", " ")}
+                      />
+                    )}
+                    {/* ATTENTION TYPE CHIP */}
+
                     {/* WAITING BADGE */}
                     {(() => {
                       if (!ticket.beenWaitingSinceTimestamp) {

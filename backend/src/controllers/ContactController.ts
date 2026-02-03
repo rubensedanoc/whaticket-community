@@ -26,6 +26,7 @@ import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import { getClientTimeWaitingForTickets } from "./ReportsController";
 import GetContactByNumberService from "../services/ContactServices/GetContactByNumberService";
 import RemoveContactClientelicenciaService from "../services/ContactServices/RemoveContactClientelicenciaService";
+import SyncAttentionTypesService from "../services/ContactServices/SyncAttentionTypesService";
 
 type IndexQuery = {
   searchParam: string;
@@ -783,4 +784,31 @@ export const getNumberGroupsByContactId = async (
   }
 
   return res.status(200).json({ registerGroups, notRegisterGroups });
+};
+
+export const syncAttentionTypes = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { mode, limit, batchSize } = req.body;
+
+    const result = await SyncAttentionTypesService({
+      mode: mode || "missing",
+      limit: limit || 2500,
+      batchSize: batchSize || 100,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Sincronización completada",
+      result,
+    });
+  } catch (error: any) {
+    console.error("Error en sincronización:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Error desconocido",
+    });
+  }
 };

@@ -353,6 +353,7 @@ const ContactDrawer = ({
                   const microserviceItems = [
                     "fecha_alta",
                     "tipo_cliente",
+                    "localbi_tipoatencion",
                     "localbi_kam",
                     "plan",
                     "mensualidad",

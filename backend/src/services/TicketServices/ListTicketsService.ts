@@ -367,8 +367,10 @@ const buildIncludeCondition = ({
         "isCompanyMember",
         "isExclusive",
         "traza_clientelicencia_id",
-        "traza_clientelicencia_currentetapaid"
+        "traza_clientelicencia_currentetapaid",
+        "attentionType"
       ],
+
       include: [
         {
           model: ContactClientelicencias,
