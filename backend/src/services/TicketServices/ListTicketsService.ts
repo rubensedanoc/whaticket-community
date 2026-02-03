@@ -285,13 +285,29 @@ const buildWhereCondition = async ({
     )
   ) {
     if (queueIds?.length) {
+      const queueFilter = queueIds.includes(null)
+        ? { [Op.or]: [queueIds.filter(id => id !== null), null] }
+        : { [Op.in]: queueIds };
+
       baseCondition = {
         ...baseCondition,
-        queueId: {
-          [Op.or]: queueIds.includes(null)
-            ? [queueIds.filter(id => id !== null), null]
-            : [queueIds]
-        }
+        [Op.and]: [
+          ...(baseCondition[Op.and] || []),
+          {
+            [Op.or]: [
+              { queueId: queueFilter },
+              // ✅ FIX: Permitir ver tickets asignados a mí (aunque no esté en la cola)
+              { userId },
+              // ✅ FIX: Permitir ver GRUPOS de mis conexiones (aunque no esté en la cola)
+              {
+                [Op.and]: [
+                  { isGroup: true },
+                  { whatsappId: { [Op.in]: userWhatsappsId } }
+                ]
+              }
+            ]
+          }
+        ]
       };
     }
     if (ticketUsersIds?.length) {
@@ -320,7 +336,14 @@ const buildWhereCondition = async ({
                   WHERE \`TicketParticipantUsers\`.\`ticketId\`  = \`Ticket\`.\`id\`
                   AND \`TicketParticipantUsers\`.\`userId\` IN (${ticketUsersIds.join(",")})
                 )`
-              )
+              ),
+              // ✅ FIX: Permitir ver tickets GRUPALES de mis conexiones (bypaseando filtro de usuario)
+              {
+                [Op.and]: [
+                  { isGroup: true },
+                  { whatsappId: { [Op.in]: userWhatsappsId } }
+                ]
+              }
             ]
           }
         ]
@@ -548,7 +571,7 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const user = await User.findByPk(+request.userId, {
-    attributes: ["name", "id", "profile"],
+    attributes: ["name", "id", "profile", "whatsappId"],
     include: [
       {
         model: Whatsapp,
@@ -560,6 +583,13 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   });
 
   request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
+  
+  // ✅ FIX: Fallback a columna legado whatsappId si existe
+  if (user.whatsappId && !request.userWhatsappsId.includes(user.whatsappId)) {
+    request.userWhatsappsId.push(user.whatsappId);
+  }
+
+  console.log(`${logPrefix} TicketUser Debug:`, { reqUserId: request.userId, legacyWhatsappId: user.whatsappId });
   request.profile = user.profile;
 
   // Construcción de WHERE
