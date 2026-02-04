@@ -60,21 +60,32 @@ const processQueue = async () => {
     if (!message) continue;
 
     try {
-      // Buscar conexión activa
+      console.log(`[wbot-queue] 🔍 Buscando conexión para número: ${message.fromNumber}`);
+      
+      // Buscar conexión activa (CONNECTED o PAIRING)
       const fromWpp = await Whatsapp.findOne({
         where: {
           number: message.fromNumber,
-          status: "CONNECTED"
+          status: ["CONNECTED", "PAIRING"]
         },
         order: [['id', 'DESC']]
       });
 
       if (!fromWpp) {
-        console.error('[wbot-queue] No se encontró conexión activa para:', message.fromNumber);
+        console.error(`[wbot-queue] ❌ No se encontró conexión activa para: ${message.fromNumber}`);
+        
+        // Debug: mostrar todas las conexiones disponibles
+        const allConnections = await Whatsapp.findAll({
+          attributes: ['id', 'name', 'number', 'status']
+        });
+        console.error('[wbot-queue] 📋 Conexiones disponibles en DB:', JSON.stringify(allConnections, null, 2));
+        
         message.sendMessageRequest.status = 'failed';
         await message.sendMessageRequest.save();
         continue;
       }
+      
+      console.log(`[wbot-queue] ✅ Conexión encontrada - ID: ${fromWpp.id}, Nombre: ${fromWpp.name}, Estado: ${fromWpp.status}`);
 
       const wbot = getWbot(fromWpp.id);
 
@@ -141,7 +152,10 @@ export const addMessageToQueue = async ({
     toNumber = toNumber.replace(/\D/g, '').trim();
     
     // Usar número alternado en vez del fromNumber que viene del PHP
+    const originalFromNumber = fromNumber;
     fromNumber = getNextNumber();
+    
+    console.log(`[wbot-queue] 🔄 Alternancia: ${originalFromNumber} → ${fromNumber} (índice actual: ${alternationState.currentIndex})`);
 
     const sendMessageRequest = await SendMessageRequest.create({
       fromNumber,
@@ -150,6 +164,7 @@ export const addMessageToQueue = async ({
     });
 
     queueState.queue.push({ fromNumber, toNumber, message, mediaUrl, sendMessageRequest });
+    console.log(`[wbot-queue] 📨 Mensaje agregado a la cola. Total en cola: ${queueState.queue.length}`);
 
     if (!queueState.processing) {
       processQueue();
