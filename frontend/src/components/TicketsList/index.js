@@ -305,6 +305,7 @@ const TicketsList = (props) => {
     JSON.stringify(selectedMarketingCampaignIds),
     JSON.stringify(selectedTypeIds),
     JSON.stringify(selectedTicketUsersIds),
+    // ❌ NO incluir selectedWaitingTimeRanges - el filtrado se hace en frontend con useMemo
     showOnlyWaitingTickets,
     JSON.stringify(selectedClientelicenciaEtapaIds),
     impersonatedUserId
@@ -362,6 +363,7 @@ const TicketsList = (props) => {
   //   }
   // }, [updatedCount]);
 
+
   // Helper: Verificar si ticket está en rango de tiempo seleccionado
   // useCallback para evitar recreación en cada render
   const isTicketInWaitingTimeRange = useCallback((ticket, ranges) => {
@@ -380,7 +382,10 @@ const TicketsList = (props) => {
       if (rangeId === "120-240") return waitingMinutes >= 120 && waitingMinutes < 240;
       if (rangeId === "240-480") return waitingMinutes >= 240 && waitingMinutes < 480;
       if (rangeId === "480-960") return waitingMinutes >= 480 && waitingMinutes < 960;
-      if (rangeId === "960+") return waitingMinutes >= 960;
+      if (rangeId === "960-1440") return waitingMinutes >= 960 && waitingMinutes < 1440;
+      if (rangeId === "1440-2880") return waitingMinutes >= 1440 && waitingMinutes < 2880;
+      if (rangeId === "2880-4320") return waitingMinutes >= 2880 && waitingMinutes < 4320;
+      if (rangeId === "4320+") return waitingMinutes >= 4320;
       return false;
     });
   }, []);

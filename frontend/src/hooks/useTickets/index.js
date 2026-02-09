@@ -60,12 +60,6 @@ const useTickets = ({
     const signal = abortControllerRef.current.signal;
 
     setLoading(true);
-    
-    // ✅ Prevenir consultas simultáneas
-    if (isFetchingRef.current) {
-      console.log(`[useTickets] ⚠️ Consulta ya en progreso, ignorando nueva petición [${requestId}]`);
-      return;
-    }
 
     const fetchTickets = async () => {
         try {

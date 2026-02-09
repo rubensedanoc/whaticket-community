@@ -188,6 +188,46 @@ const buildWhereCondition = async ({
     };
   }
 
+  // ============================================================
+  // LÓGICA ESPECIAL PARA GRUPOS EN VISTA GENERAL
+  // ============================================================
+  // Para grupos, la distribución entre columnas se basa en PARTICIPACIÓN:
+  // - "Sin Atención" (pending) = Grupos OPEN donde el usuario NO participa
+  // - "En Proceso" (open) = Grupos OPEN donde el usuario SÍ participa
+  // ============================================================
+  const isOnlyGroups = typeIds?.length === 1 && typeIds[0] === "group";
+  
+  if (isOnlyGroups && (status === "pending" || status === "open")) {
+    // Para grupos, siempre buscamos status "open" (los grupos casi nunca están en pending)
+    baseCondition = { ...baseCondition, status: "open" };
+    
+    if (status === "pending") {
+      // "Sin Atención": Grupos donde el usuario NO participa
+      (baseCondition as any)[Op.and] = [
+        ...((baseCondition as any)[Op.and] || []),
+        Sequelize.literal(
+          `NOT EXISTS (
+            SELECT 1 FROM \`TicketParticipantUsers\` 
+            WHERE \`TicketParticipantUsers\`.\`ticketId\` = \`Ticket\`.\`id\` 
+            AND \`TicketParticipantUsers\`.\`userId\` = ${userId}
+          )`
+        )
+      ];
+    } else if (status === "open") {
+      // "En Proceso": Grupos donde el usuario SÍ participa
+      (baseCondition as any)[Op.and] = [
+        ...((baseCondition as any)[Op.and] || []),
+        Sequelize.literal(
+          `EXISTS (
+            SELECT 1 FROM \`TicketParticipantUsers\` 
+            WHERE \`TicketParticipantUsers\`.\`ticketId\` = \`Ticket\`.\`id\` 
+            AND \`TicketParticipantUsers\`.\`userId\` = ${userId}
+          )`
+        )
+      ];
+    }
+  }
+
   // ✅ Filtro "Solo sin respuesta" (manual, sin separación automática)
   // Cuando el filtro está ACTIVADO: Solo muestra tickets donde el cliente escribió último
   // Cuando el filtro está DESACTIVADO: Muestra todos los tickets (sin filtrar por tiempo de espera)
@@ -584,7 +624,7 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
     request.userWhatsappsId.push(user.whatsappId);
   }
 
-  console.log(`${logPrefix} TicketUser Debug:`, { reqUserId: request.userId, legacyWhatsappId: user.whatsappId });
+
   request.profile = user.profile;
 
   // Construcción de WHERE
