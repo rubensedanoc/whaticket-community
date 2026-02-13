@@ -97,7 +97,7 @@ const SendWhatsAppMedia = async ({
       console.log(`[SendWhatsAppMedia] Mensaje ${sentMessage.id.id} ya existe en BD, ignorando duplicado`);
     }
 
-    fs.unlinkSync(media.path);
+    // fs.unlinkSync(media.path);
 
     return sentMessage;
   } catch (err) {
