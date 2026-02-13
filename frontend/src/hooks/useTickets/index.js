@@ -21,7 +21,8 @@ const useTickets = ({
   advancedList = false,
   ticketUsersIds,
   viewSource = null,
-  impersonatedUserId
+  impersonatedUserId,
+  waitingTimeRanges // ✅ Nuevo parámetro
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -117,7 +118,10 @@ const useTickets = ({
                 showOnlyWaitingTickets,
                 filterByUserQueue,
                 clientelicenciaEtapaIds,
-                viewSource
+                filterByUserQueue,
+                clientelicenciaEtapaIds,
+                viewSource,
+                waitingTimeRanges: JSON.stringify(waitingTimeRanges) // ✅ Nuevo param para backend
               },
               signal // ✅ Pasar signal para cancelación
             });
@@ -216,7 +220,8 @@ const useTickets = ({
     showOnlyWaitingTickets,
     reload,
     clientelicenciaEtapaIds,
-    impersonatedUserId
+    impersonatedUserId,
+    JSON.stringify(waitingTimeRanges) // ✅ Dependencia para recargar si cambia el filtro
   ]);
 
   const triggerReload = () => {
