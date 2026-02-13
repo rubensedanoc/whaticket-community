@@ -305,7 +305,8 @@ const TicketsList = (props) => {
     JSON.stringify(selectedMarketingCampaignIds),
     JSON.stringify(selectedTypeIds),
     JSON.stringify(selectedTicketUsersIds),
-    // ❌ NO incluir selectedWaitingTimeRanges - el filtrado se hace en frontend con useMemo
+    // ✅ AHORA SÍ incluir selectedWaitingTimeRanges porque afecta la query al backend
+    JSON.stringify(selectedWaitingTimeRanges),
     showOnlyWaitingTickets,
     JSON.stringify(selectedClientelicenciaEtapaIds),
     impersonatedUserId
@@ -329,7 +330,8 @@ const TicketsList = (props) => {
     filterByUserQueue: true,
     advancedList,
     viewSource,
-    impersonatedUserId
+    impersonatedUserId,
+    waitingTimeRanges: selectedWaitingTimeRanges // ✅ Pasar filtro al backend
   });
 
   useEffect(() => {
@@ -390,16 +392,10 @@ const TicketsList = (props) => {
     });
   }, []);
 
-  // Filtrar tickets por tiempo en render (useMemo para optimización)
-  const filteredTicketsList = useMemo(() => {
-    if (!selectedWaitingTimeRanges || selectedWaitingTimeRanges.length === 0) {
-      return ticketsList;
-    }
+  // ❌ Lógica de filtrado en cliente REMOVIDA
+  // Ahora el backend se encarga de filtrar, así que usamos ticketsList directamente
+  const filteredTicketsList = ticketsList; 
 
-    return ticketsList.filter(ticket => 
-      isTicketInWaitingTimeRange(ticket, selectedWaitingTimeRanges)
-    );
-  }, [ticketsList, selectedWaitingTimeRanges, isTicketInWaitingTimeRange]);
 
   useEffect(() => {
     const socket = openSocket();
@@ -523,13 +519,14 @@ const TicketsList = (props) => {
       //   }, ticket);
       // }
 
+      // ✅ Ahora verificamos si el ticket cumple con el rango de tiempo seleccionado
       const waitingTimeCondition = isTicketInWaitingTimeRange(ticket, selectedWaitingTimeRanges);
 
       const isConditionMet =
         noSearchParamCondition &&
         TypeCondition &&
         userCondition &&
-        waitingTimeCondition &&
+        waitingTimeCondition && // ✅ Agregar condición de tiempo
         (ignoreConditions ||
           (queueCondition &&
             whatsappCondition &&
