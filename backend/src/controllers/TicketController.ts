@@ -47,6 +47,7 @@ type IndexQuery = {
   ticketUsersIds: string;
   viewSource: string;
   impersonatedUserId?: string; // NUEVO: ID del usuario a impersonar
+  waitingTimeRanges: string; // ✅ Nuevo
 };
 
 interface TicketData {
@@ -81,7 +82,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
     filterByUserQueue: filterByUserQueueStringified,
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
-    viewSource
+    viewSource,
+    waitingTimeRanges: waitingTimeRangesStringified // ✅ Nuevo
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -96,6 +98,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let showOnlyWaitingTickets: boolean = false;
   let filterByUserQueue: boolean = false;
   let clientelicenciaEtapaIds: number[] = [];
+  let waitingTimeRanges: string[] = []; // ✅ Nuevo
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -139,6 +142,11 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified);
   }
 
+  // ✅ Parsear waitingTimeRanges
+  if (waitingTimeRangesStringified) {
+    waitingTimeRanges = JSON.parse(waitingTimeRangesStringified);
+  }
+
   // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
   if (filterByUserQueue && queueIds.length === 0) {
     const userWithQueues = await User.findByPk(req.user.id, {
@@ -171,7 +179,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       categoryId,
       showOnlyWaitingTickets,
       clientelicenciaEtapaIds,
-      viewSource
+      viewSource,
+      waitingTimeRanges // ✅ Pasar al servicio
     });
 
   let ticketsToSend = tickets; // Inicializamos con la lista original
@@ -246,7 +255,8 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
     ticketGroupType,
     viewSource,
-    impersonatedUserId // NUEVO: ID del usuario a impersonar (opcional)
+    impersonatedUserId, // NUEVO: ID del usuario a impersonar (opcional)
+    waitingTimeRanges: waitingTimeRangesStringified // ✅ Nuevo
   } = req.query as IndexQuery;
 
   // ⚠️ CRÍTICO: Por defecto usar el userId real (funciona como siempre)
@@ -303,6 +313,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
   let showOnlyWaitingTickets: boolean = false;
   let filterByUserQueue: boolean = false;
   let clientelicenciaEtapaIds: number[] = [];
+  let waitingTimeRanges: string[] = []; // ✅ Nuevo
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -351,6 +362,11 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified).filter((id: number) => id !== null && id !== undefined);
   }
 
+  // ✅ Parsear waitingTimeRanges
+  if (waitingTimeRangesStringified) {
+    waitingTimeRanges = JSON.parse(waitingTimeRangesStringified);
+  }
+
   // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
   if (filterByUserQueue && queueIds.length === 0) {
     const userWithQueues = await User.findByPk(req.user.id, {
@@ -384,7 +400,8 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       clientelicenciaEtapaIds,
       ticketGroupType,
       viewSource,
-      forceUserIdFilter: isImpersonationActive // Solo forzar si impersonación fue exitosa
+      forceUserIdFilter: isImpersonationActive, // Solo forzar si impersonación fue exitosa
+      waitingTimeRanges // ✅ Pasar al servicio
     });
 
   let ticketsToSend = tickets; // Inicializamos con la lista original

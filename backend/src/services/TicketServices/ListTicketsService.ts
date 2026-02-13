@@ -36,6 +36,7 @@ interface Request {
   viewSource?: string;
   ticketsType?: string;
   profile?: string;
+  waitingTimeRanges?: string[]; // ✅ Nuevo parámetro
 }
 
 interface Response {
@@ -64,7 +65,8 @@ const buildWhereCondition = async ({
   clientelicenciaEtapaIds,
   viewSource,
   ticketsType,
-  profile
+  profile,
+  waitingTimeRanges
 }: Request): Promise<Filterable["where"]> => {
   
   // Inicio de buildWhereCondition
@@ -225,6 +227,59 @@ const buildWhereCondition = async ({
           )`
         )
       ];
+    }
+  }
+
+  // ✅ Filtro por rango de tiempo de espera (Backend)
+  if (waitingTimeRanges && waitingTimeRanges.length > 0) {
+    const timeConditions: any[] = [];
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+
+    waitingTimeRanges.forEach((range) => {
+      // Formato esperado: "0-30", "30-60", "4320+"
+      if (range.includes("+")) {
+        // Caso "mayor que" (ej: 4320+)
+        const minMinutes = parseInt(range.replace("+", ""), 10);
+        if (!isNaN(minMinutes)) {
+          // Si lleva esperando X minutos, su timestamp es MENOR que (ahora - X)
+          const maxTimestamp = nowInSeconds - (minMinutes * 60);
+          timeConditions.push({
+            beenWaitingSinceTimestamp: {
+              [Op.lte]: maxTimestamp,
+              [Op.not]: null
+            }
+          });
+        }
+      } else {
+        // Caso rango (ej: 0-30)
+        const parts = range.split("-");
+        if (parts.length === 2) {
+          const minMinutes = parseInt(parts[0], 10);
+          const maxMinutes = parseInt(parts[1], 10);
+          
+          if (!isNaN(minMinutes) && !isNaN(maxMinutes)) {
+            // Rango de tiempo de espera: [min, max)
+            // Timestamp debe estar entre (ahora - max) y (ahora - min)
+            const minTimestamp = nowInSeconds - (maxMinutes * 60); // Límite inferior de timestamp (más antiguo)
+            const maxTimestamp = nowInSeconds - (minMinutes * 60); // Límite superior de timestamp (más reciente)
+            
+            timeConditions.push({
+              beenWaitingSinceTimestamp: {
+                [Op.gte]: minTimestamp,
+                [Op.lt]: maxTimestamp,
+                [Op.not]: null
+              }
+            });
+          }
+        }
+      }
+    });
+
+    if (timeConditions.length > 0) {
+      baseCondition = {
+        ...baseCondition,
+        [Op.or]: timeConditions
+      };
     }
   }
 
