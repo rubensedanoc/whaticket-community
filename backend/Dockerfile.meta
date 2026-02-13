@@ -1,0 +1,37 @@
+# ============================================
+# Dockerfile para desarrollo con Meta WhatsApp API
+# Optimizado para Mac M2 - Sin dependencias de Chrome/Puppeteer
+# ============================================
+
+FROM node:20-slim
+
+# Instalar solo dependencias básicas necesarias
+RUN apt-get update && apt-get install -y \
+    wget \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar dumb-init para manejo correcto de señales
+RUN wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_aarch64 \
+    && chmod +x /usr/local/bin/dumb-init
+
+WORKDIR /usr/src/app
+
+# Copiar package files e instalar dependencias
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Copiar código fuente y compilar
+COPY . .
+RUN npm run build --legacy-peer-deps
+
+# Variables de entorno
+ENV NODE_ENV=production
+ENV PORT=3000
+
+EXPOSE 3000
+
+# Iniciar aplicación (espera 10 segundos para que MySQL esté listo)
+ENTRYPOINT ["dumb-init", "--"]
+CMD sleep 10 && npx sequelize db:migrate && node dist/server.js

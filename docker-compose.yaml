@@ -5,10 +5,10 @@ networks:
 
 services:
   backend:
-    deploy:
-      resources:
-        limits:
-          cpus: "48"
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "4"
     build:
       context: ./backend
       dockerfile: ${DOCKERFILE_PATH:-./Dockerfile}
@@ -25,48 +25,53 @@ services:
       - PROXY_PORT=${PROXY_PORT:-8080}
       - SENTRY_DSN=${SENTRY_DSN:-http://dns.sentry.org}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-
-      # ARGS (CHROMIUN)
-      - CHROME_ARGS_CHROMIUN=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --single-process --disable-gpu
-
-      # ARGS (CHROME)
-      - CHROME_ARGS_CHROME=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --disable-gpu
-
-      - DOCKERFILE_PATH=${DOCKERFILE_PATH:-./Dockerfile}
+      
+      # Meta WhatsApp API Configuration (para uso con API oficial)
+      - META_API_TOKEN=${META_API_TOKEN}
+      - META_PHONE_NUMBER_ID=${META_PHONE_NUMBER_ID}
+      - META_BUSINESS_ACCOUNT_ID=${META_BUSINESS_ACCOUNT_ID}
+      - META_WEBHOOK_VERIFY_TOKEN=${META_WEBHOOK_VERIFY_TOKEN}
+      
+      # [WHATSAPP-WEB.JS] Descomentar para usar whatsapp-web.js con Chrome
+      # - CHROME_ARGS_CHROMIUN=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --single-process --disable-gpu
+      # - CHROME_ARGS_CHROME=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --disable-gpu
+      
       - APP_PURPOSE=${REACT_APP_PURPOSE}
     ports:
       - ${BACKEND_PORT:-8080}:3000
     volumes:
       - ./backend/public/:/usr/src/app/public/
-      - ./backend/.wwebjs_auth/:/usr/src/app/.wwebjs_auth/
+      # [WHATSAPP-WEB.JS] Descomentar para persistir sesiones de whatsapp-web.js
+      # - ./backend/.wwebjs_auth/:/usr/src/app/.wwebjs_auth/
     restart: always
     networks:
       - whaticket
 
-  frontend:
-    ports:
-      - ${FRONTEND_PORT:-3000}:80
-      - ${FRONTEND_SSL_PORT:-3001}:443
-    build:
-      context: ./frontend
-      dockerfile: ./Dockerfile
-    environment:
-      - URL_BACKEND=backend:3000
-      - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8080}/
-      - REACT_APP_NODE_URL=${NODE_URL:-http://localhost}:${PROXY_PORT_NODE:-8081}/
-      - FRONTEND_SERVER_NAME=${FRONTEND_SERVER_NAME}
-      - BACKEND_SERVER_NAME=${BACKEND_SERVER_NAME}
-      - REACT_APP_PURPOSE=${REACT_APP_PURPOSE}
-    volumes:
-      - ./ssl/certs/:/etc/nginx/ssl/
-      - ./ssl/www/:/var/www/letsencrypt/
-    restart: always
-    networks:
-      - whaticket
+#  frontend:
+#    ports:
+#      - ${FRONTEND_PORT:-3000}:80
+#      - ${FRONTEND_SSL_PORT:-3001}:443
+#    build:
+#      context: ./frontend
+#      dockerfile: ./Dockerfile
+#    environment:
+#      - URL_BACKEND=backend:3000
+#      - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8080}/
+#      - REACT_APP_NODE_URL=${NODE_URL:-http://localhost}:${PROXY_PORT_NODE:-8081}/
+#      - FRONTEND_SERVER_NAME=${FRONTEND_SERVER_NAME}
+#      - BACKEND_SERVER_NAME=${BACKEND_SERVER_NAME}
+#      - REACT_APP_PURPOSE=${REACT_APP_PURPOSE}
+#    volumes:
+#      - ./ssl/certs/:/etc/nginx/ssl/
+#      - ./ssl/www/:/var/www/letsencrypt/
+#    restart: always
+#    networks:
+#      - whaticket
 
   mysql:
+    platform: linux/arm64
     image: ${MYSQL_ENGINE:-mariadb}:${MYSQL_VERSION:-10.6}
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --innodb-file-per-table=1 --innodb-flush-method=fsync --default-authentication-plugin=mysql_native_password
     volumes:
       - ./.docker/data/:/var/lib/mysql
     environment:
@@ -80,7 +85,7 @@ services:
       - whaticket
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+    image: arm64v8/phpmyadmin
     environment:
       - PMA_HOSTS=mysql
     ports:
