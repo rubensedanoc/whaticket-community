@@ -10,20 +10,27 @@ export const StartAllWhatsAppsSessions = async (): Promise<void> => {
   if (whatsapps.length > 0) {
     console.log(`[StartAllSessions] Found ${whatsapps.length} WhatsApps to initialize`);
     
-    // Inicializar sesiones con delay progresivo para evitar sobrecarga
+    // Inicializar sesiones SECUENCIALMENTE con delay para evitar conflictos de perfil de Chrome
     for (let i = 0; i < whatsapps.length; i++) {
       const whatsapp = whatsapps[i];
       
       console.log(`[StartAllSessions] Initializing ${i + 1}/${whatsapps.length}: ${whatsapp.name} (ID: ${whatsapp.id})`);
       
-      // Delay de 10 segundos entre cada sesión para reducir carga
+      // Delay de 15 segundos entre cada sesión
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        await new Promise(resolve => setTimeout(resolve, 15000));
       }
       
-      StartWhatsAppSession(whatsapp);
+      // IMPORTANTE: Esperar a que la sesión se inicialice completamente antes de continuar
+      // Esto evita que múltiples Chrome intenten crear perfiles simultáneamente
+      try {
+        await StartWhatsAppSession(whatsapp);
+        console.log(`[StartAllSessions] ✓ Session ${whatsapp.name} initialized successfully`);
+      } catch (error) {
+        console.error(`[StartAllSessions] ✗ Session ${whatsapp.name} failed:`, error?.message || error);
+      }
     }
     
-    console.log(`[StartAllSessions] All ${whatsapps.length} sessions initialization started`);
+    console.log(`[StartAllSessions] All ${whatsapps.length} sessions initialization completed`);
   }
 };
