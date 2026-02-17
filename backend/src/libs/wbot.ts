@@ -17,6 +17,8 @@ import {
 import { logger } from "../utils/logger";
 import { emitEvent } from "./emitEvent";
 import AppError from "../errors/AppError";
+import fs from "fs";
+import path from "path";
 
 interface Session extends Client {
   id?: number;
@@ -207,6 +209,21 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         }
         // Esperar un momento para que Chrome libere los recursos
         await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // Limpiar archivos de bloqueo de Chrome si existen
+      const clientId = `bd_${whatsapp.sessionUuid || whatsapp.id}`;
+      const sessionDir = path.join(process.cwd(), '.wwebjs_auth', `session-${clientId}`);
+      const lockFile = path.join(sessionDir, 'SingletonLock');
+      
+      try {
+        if (fs.existsSync(lockFile)) {
+          logger.info(`[INIT] ${sessionName} - Removing Chrome lock file: ${lockFile}`);
+          fs.unlinkSync(lockFile);
+          logger.info(`[INIT] ${sessionName} - Lock file removed successfully`);
+        }
+      } catch (err) {
+        logger.warn(`[INIT] ${sessionName} - Error removing lock file:`, err?.message);
       }
 
       if (whatsapp && whatsapp.session) {
