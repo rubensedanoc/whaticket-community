@@ -280,7 +280,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
 
       wbot.on("qr", async qr => {
-        logger.info(`Session: ${sessionName} - QR RECEIVED`);
+        logger.info(`Session: ${sessionName} - QR RECEIVED - Waiting for scan...`);
         qrCode.generate(qr, { small: true });
         await whatsapp.update({ qrcode: qr, status: "qrcode", retries: 0 });
 
@@ -302,6 +302,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
             }
           }
         });
+        
+        logger.info(`Session: ${sessionName} - QR event completed, waiting for authentication...`);
       });
 
       wbot.on("loading_screen", (percent, message) => {
@@ -376,6 +378,19 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         } else {
           wbot.id = whatsapp.id;
           sessions[sessionIndex] = wbot;
+        }
+
+        wbot.sendPresenceAvailable();
+
+        try {
+          const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+            wbot,
+            whatsapp,
+            timeIntervalInHours: 168
+          });
+          logger.info(`Session: ${sessionName} - Messages synced: ${searchForUnSaveMessagesResult.messagesCount}`);
+        } catch (error) {
+          logger.error(`Session: ${sessionName} - Message sync error: ${error}`);
         }
 
         resolve(wbot);
