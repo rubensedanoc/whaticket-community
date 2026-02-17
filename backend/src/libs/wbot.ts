@@ -218,7 +218,6 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       console.log("client args: ", args);
 
       const wbot: Session = new Client({
-        session: sessionCfg,
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
         }),
