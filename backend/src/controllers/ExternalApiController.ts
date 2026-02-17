@@ -20,6 +20,8 @@ import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import SendApiChatbotMessage from "../services/WbotServices/SendApiChatbotMessage";
 import SendExternalWhatsAppImageMessage from "../services/WbotServices/SendExternalWhatsAppImageMessage";
 import SendExternalWhatsAppMessage from "../services/WbotServices/SendExternalWhatsAppMessage";
+import FindGroupByNameService from "../services/WbotServices/FindGroupByNameService";
+import SendMessageToTicketService from "../services/WbotServices/SendMessageToTicketService";
 import {
   verifyContact,
   verifyMessage
@@ -320,20 +322,31 @@ export const sendMarketingCampaignIntro = async (
   }
 
   contacto_numero = contacto_numero.replace(/\D/g, "");
+  req.myLog(`Número limpio: ${contacto_numero}`);
 
   const countryId = await getCountryIdOfNumber(contacto_numero);
+  req.myLog(`Country ID detectado: ${countryId}`);
 
   let whatsapp = null;
 
   if (whatsapp_number) {
+    // Normalizar el número de WhatsApp (eliminar + y otros caracteres)
+    const normalizedWhatsappNumber = whatsapp_number.replace(/\D/g, "");
+    req.myLog(`Buscando WhatsApp por número: ${whatsapp_number} (normalizado: ${normalizedWhatsappNumber})`);
     whatsapp = await Whatsapp.findOne({
       where: {
-        number: whatsapp_number
+        number: normalizedWhatsappNumber
       }
     });
+    if (whatsapp) {
+      req.myLog(`WhatsApp encontrado por número: ID ${whatsapp.id}, Nombre: ${whatsapp.name}`);
+    } else {
+      req.myLog(`No se encontró WhatsApp con número: ${whatsapp_number}`);
+    }
   }
 
   if (!whatsapp) {
+    req.myLog(`Buscando WhatsApp por país (countryId: ${countryId})`);
     whatsapp = await Whatsapp.findOne({
       include: [
         {
@@ -347,7 +360,14 @@ export const sendMarketingCampaignIntro = async (
       ]
     });
 
+    if (whatsapp) {
+      req.myLog(`WhatsApp encontrado por país: ID ${whatsapp.id}, Nombre: ${whatsapp.name}`);
+    } else {
+      req.myLog(`No se encontró WhatsApp para countryId: ${countryId}`);
+    }
+
     if (!whatsapp) {
+      req.myLog(`Usando WhatsApp por defecto (isDefault: true)`);
       whatsapp = await Whatsapp.findOne({
         where: {
           isDefault: true
@@ -358,6 +378,8 @@ export const sendMarketingCampaignIntro = async (
           "No se encontró un Whatsapp para el pais de este lead ni uno por defecto",
           400
         );
+      } else {
+        req.myLog(`WhatsApp por defecto encontrado: ID ${whatsapp.id}, Nombre: ${whatsapp.name}`);
       }
     }
   }
@@ -1325,3 +1347,150 @@ export const getUpdatedTickets = async (
     data
   });
 };
+
+export const findGroupByName = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  console.log("=".repeat(80));
+  console.log("[ExternalApiController] 📞 CALL FOR findGroupByName");
+  console.log("[ExternalApiController] Body:", JSON.stringify(req.body, null, 2));
+  console.log("=".repeat(80));
+
+  const { groupName, whatsappId } = req.body;
+
+  // Validaciones
+  if (!groupName || groupName.trim().length === 0) {
+    console.log("[ExternalApiController] ❌ groupName vacío");
+    return res.status(400).json({
+      success: false,
+      error: "MISSING_GROUP_NAME",
+      message: "El campo 'groupName' es requerido y no puede estar vacío"
+    });
+  }
+
+  if (!whatsappId || typeof whatsappId !== "number") {
+    console.log("[ExternalApiController] ❌ whatsappId inválido:", whatsappId);
+    return res.status(400).json({
+      success: false,
+      error: "INVALID_WHATSAPP_ID",
+      message: "El campo 'whatsappId' es requerido y debe ser un número"
+    });
+  }
+
+  console.log("[ExternalApiController] ✅ Validaciones pasadas, llamando al servicio...");
+
+  try {
+    const result = await FindGroupByNameService({
+      groupName,
+      whatsappId
+    });
+
+    console.log("[ExternalApiController] 📊 Resultado del servicio:", result.success ? "SUCCESS" : "FAILED");
+
+    if (!result.success) {
+      let statusCode = 500;
+      
+      if (result.error === "WHATSAPP_NOT_FOUND") {
+        statusCode = 404;
+      } else if (result.error === "WHATSAPP_DISCONNECTED") {
+        statusCode = 503;
+      } else if (result.error === "GROUP_NOT_FOUND") {
+        statusCode = 404;
+      }
+
+      console.log("[ExternalApiController] ⚠️ Retornando error con código:", statusCode);
+      return res.status(statusCode).json(result);
+    }
+
+    console.log("[ExternalApiController] ✅ Retornando respuesta exitosa");
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.log("[ExternalApiController] ❌ ERROR CAPTURADO:");
+    console.log("[ExternalApiController] Error:", error.message);
+    console.log("[ExternalApiController] Stack:", error.stack);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_ERROR",
+      message: `Error interno del servidor: ${error.message}`
+    });
+  }
+};
+
+export const sendMessageToTicket = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  console.log("=".repeat(80));
+  console.log("[ExternalApiController] 📞 CALL FOR sendMessageToTicket");
+  console.log("[ExternalApiController] Body:", JSON.stringify(req.body, null, 2));
+  console.log("=".repeat(80));
+
+  const { ticketId, message, calendarEvent, calendarEvents } = req.body;
+
+  // Normalizar calendarEvent: si viene como array (calendarEvents), tomar el primero
+  let normalizedCalendarEvent = calendarEvent;
+  if (!normalizedCalendarEvent && calendarEvents && Array.isArray(calendarEvents) && calendarEvents.length > 0) {
+    normalizedCalendarEvent = calendarEvents[0];
+    console.log("[ExternalApiController] 📋 calendarEvents detectado como array, usando el primer evento");
+  }
+
+  // Validaciones
+  if (!ticketId || typeof ticketId !== "number") {
+    console.log("[ExternalApiController] ❌ ticketId inválido:", ticketId);
+    return res.status(400).json({
+      success: false,
+      error: "INVALID_TICKET_ID",
+      message: "El campo 'ticketId' es requerido y debe ser un número"
+    });
+  }
+
+  if (!message || message.trim().length === 0) {
+    console.log("[ExternalApiController] ❌ message vacío");
+    return res.status(400).json({
+      success: false,
+      error: "MISSING_MESSAGE",
+      message: "El campo 'message' es requerido y no puede estar vacío"
+    });
+  }
+
+  console.log("[ExternalApiController] ✅ Validaciones pasadas, llamando al servicio...");
+
+  try {
+    const result = await SendMessageToTicketService({
+      ticketId,
+      message,
+      calendarEvent: normalizedCalendarEvent
+    });
+
+    console.log("[ExternalApiController] 📊 Resultado del servicio:", result.success ? "SUCCESS" : "FAILED");
+
+    if (!result.success) {
+      let statusCode = 500;
+      
+      if (result.error === "TICKET_NOT_FOUND") {
+        statusCode = 404;
+      }
+
+      console.log("[ExternalApiController] ⚠️ Retornando error con código:", statusCode);
+      return res.status(statusCode).json(result);
+    }
+
+    console.log("[ExternalApiController] ✅ Retornando respuesta exitosa");
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.log("[ExternalApiController] ❌ ERROR CAPTURADO:");
+    console.log("[ExternalApiController] Error:", error.message);
+    console.log("[ExternalApiController] Stack:", error.stack);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_ERROR",
+      message: `Error interno del servidor: ${error.message}`
+    });
+  }
+};
+
