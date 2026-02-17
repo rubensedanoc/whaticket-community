@@ -52,4 +52,14 @@ externalRoutes.post(
   ExternalApiController.getUpdatedTickets
 );
 
+externalRoutes.post(
+  "/findGroupByName",
+  ExternalApiController.findGroupByName
+);
+
+externalRoutes.post(
+  "/sendMessageToTicket",
+  ExternalApiController.sendMessageToTicket
+);
+
 export default externalRoutes;
