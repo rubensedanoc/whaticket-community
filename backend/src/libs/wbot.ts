@@ -218,8 +218,6 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       console.log("client args: ", args);
 
       const wbot: Session = new Client({
-        // @ts-ignore - session property exists in runtime but not in type definitions
-        session: sessionCfg,
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
         }),
@@ -380,25 +378,22 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
         wbot.sendPresenceAvailable();
 
-        try {
-
-          logger.info(`Session: ${sessionName} searchForUnSaveMessages`);
-
-          const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
-            wbot,
-            whatsapp,
-            // timeIntervalInHours: 72
-            // timeIntervalInHours: 24
-            timeIntervalInHours: 168 // 7 días
-          });
-
-          console.log(
-            `Session: ${sessionName} syncUnreadMessagesResult: `,
-            searchForUnSaveMessagesResult
-          );
-        } catch (error) {
-          console.log(`Session: ${sessionName} error on syncUnreadMessages: `, error);
-        }
+        // COMENTADO: No ejecutar automáticamente al iniciar sesión para evitar sobrecarga
+        // Usar ImportConnectionMessagesService o CRON job en su lugar
+        // try {
+        //   logger.info(`Session: ${sessionName} searchForUnSaveMessages`);
+        //   const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+        //     wbot,
+        //     whatsapp,
+        //     timeIntervalInHours: 168 // 7 días
+        //   });
+        //   console.log(
+        //     `Session: ${sessionName} syncUnreadMessagesResult: `,
+        //     searchForUnSaveMessagesResult
+        //   );
+        // } catch (error) {
+        //   console.log(`Session: ${sessionName} error on syncUnreadMessages: `, error);
+        // }
 
         resolve(wbot);
       });
