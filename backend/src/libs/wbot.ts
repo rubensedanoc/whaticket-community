@@ -218,23 +218,37 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       console.log("client args: ", args);
 
       logger.info(`[INIT] ${sessionName} - Step 1: Creating Client instance`);
+      
+      const puppeteerConfig = {
+        headless: true,
+        ignoreHTTPSErrors: true,
+        executablePath: process.env.CHROME_BIN || undefined,
+        browserWSEndpoint: process.env.CHROME_WS || undefined,
+        args: args.split(" ")
+      };
+      
+      logger.info(`[INIT] ${sessionName} - Puppeteer config:`, {
+        executablePath: puppeteerConfig.executablePath || 'default',
+        browserWSEndpoint: puppeteerConfig.browserWSEndpoint || 'none',
+        argsCount: puppeteerConfig.args.length
+      });
 
       const wbot: Session = new Client({
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
         }),
-        puppeteer: {
-          headless: true,
-          ignoreHTTPSErrors: true,
-          executablePath: process.env.CHROME_BIN || undefined,
-          // @ts-ignore
-          browserWSEndpoint: process.env.CHROME_WS || undefined,
-          args: args.split(" ")
-      }
+        puppeteer: puppeteerConfig
       });
 
       logger.info(`[INIT] ${sessionName} - Step 2: Client created, calling initialize()`);
-      wbot.initialize();
+      
+      // Capturar errores de inicialización de Puppeteer
+      wbot.initialize().catch(err => {
+        logger.error(`[INIT] ${sessionName} - initialize() failed:`, err);
+        clearTimeout(initTimeout);
+        reject(err);
+      });
+      
       logger.info(`[INIT] ${sessionName} - Step 3: initialize() called, waiting for events...`);
 
       wbot.on("qr", async qr => {

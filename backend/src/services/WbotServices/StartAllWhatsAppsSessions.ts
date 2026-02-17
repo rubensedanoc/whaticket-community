@@ -8,16 +8,22 @@ export const StartAllWhatsAppsSessions = async (): Promise<void> => {
 
   const whatsapps = await ListWhatsAppsService({ showAll: false });
   if (whatsapps.length > 0) {
+    console.log(`[StartAllSessions] Found ${whatsapps.length} WhatsApps to initialize`);
+    
     // Inicializar sesiones con delay progresivo para evitar sobrecarga
     for (let i = 0; i < whatsapps.length; i++) {
       const whatsapp = whatsapps[i];
       
-      // Delay de 3 segundos entre cada sesión
+      console.log(`[StartAllSessions] Initializing ${i + 1}/${whatsapps.length}: ${whatsapp.name} (ID: ${whatsapp.id})`);
+      
+      // Delay de 10 segundos entre cada sesión para reducir carga
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 10000));
       }
       
       StartWhatsAppSession(whatsapp);
     }
+    
+    console.log(`[StartAllSessions] All ${whatsapps.length} sessions initialization started`);
   }
 };

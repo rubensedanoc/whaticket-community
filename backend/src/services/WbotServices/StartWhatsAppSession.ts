@@ -35,31 +35,23 @@ export const StartWhatsAppSession = async (
     if (!whatsapp.wasDeleted) {
       wbotMessageListener(wbot, whatsapp);
       wbotMonitor(wbot, whatsapp);
-
-      // logger.info("--- search for SendMessageRequest failed's: ");
-
-      // const failedSendMessageRequest = await SendMessageRequest.findAll({
-      //   where: {
-      //     status: "failed",
-      //     timesAttempted: {
-      //       [Op.lte]: 3
-      //     }
-      //   }
-      // });
-
-      // for (const failedRequest of failedSendMessageRequest) {
-      //   try {
-      //     await SendExternalWhatsAppMessage({
-      //       fromNumber: failedRequest.fromNumber,
-      //       toNumber: failedRequest.toNumber,
-      //       message: failedRequest.message,
-      //       registerInDb: failedRequest
-      //     });
-      //     await new Promise(resolve => setTimeout(resolve, 1500));
-      //   } catch (error) {}
-      // }
     }
   } catch (err) {
-    logger.error(err);
+    logger.error(`[StartWhatsAppSession] Error initializing whatsapp ${whatsapp.id}: ${err.message}`);
+    
+    await whatsapp.update({ 
+      status: "DISCONNECTED",
+      qrcode: ""
+    });
+
+    emitEvent({
+      event: {
+        name: "whatsappSession",
+        data: {
+          action: "update",
+          session: whatsapp
+        }
+      }
+    });
   }
 };
