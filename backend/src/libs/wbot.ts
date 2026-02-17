@@ -238,25 +238,37 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       // Filtrar --user-data-dir de los args porque LocalAuth lo maneja automáticamente
       const argsArray = args.split(" ").filter(arg => !arg.includes('--user-data-dir'));
       
-      const puppeteerConfig = {
+      const puppeteerConfig: any = {
         headless: true,
         ignoreHTTPSErrors: true,
-        executablePath: process.env.CHROME_BIN || undefined,
-        browserWSEndpoint: process.env.CHROME_WS || undefined,
         args: argsArray
       };
       
+      // Solo agregar executablePath si está definido
+      if (process.env.CHROME_BIN) {
+        puppeteerConfig.executablePath = process.env.CHROME_BIN;
+      }
+      
+      // Solo agregar browserWSEndpoint si está definido
+      if (process.env.CHROME_WS) {
+        puppeteerConfig.browserWSEndpoint = process.env.CHROME_WS;
+      }
+      
       logger.info(`[INIT] ${sessionName} - Puppeteer config:`, {
-        executablePath: puppeteerConfig.executablePath || 'default',
-        browserWSEndpoint: puppeteerConfig.browserWSEndpoint || 'none',
-        argsCount: puppeteerConfig.args.length
+        executablePath: puppeteerConfig.executablePath || 'default (will search in PATH)',
+        browserWSEndpoint: puppeteerConfig.browserWSEndpoint || 'none (will launch new Chrome)',
+        argsCount: puppeteerConfig.args.length,
+        headless: puppeteerConfig.headless
       });
+      
+      console.log(`[INIT] ${sessionName} - Full Puppeteer config:`, JSON.stringify(puppeteerConfig, null, 2));
 
       const wbot: Session = new Client({
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
         }),
-        puppeteer: puppeteerConfig
+        puppeteer: puppeteerConfig,
+        authTimeoutMs: 300000 // 5 minutos en lugar de 30 segundos por defecto
       });
 
       logger.info(`[INIT] ${sessionName} - Step 2: Client created, calling initialize()`);
