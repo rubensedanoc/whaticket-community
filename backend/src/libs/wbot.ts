@@ -292,9 +292,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       // Timeout handler para evitar promesas sin resolver
       const initTimeout = setTimeout(() => {
-        logger.warn(`Session: ${sessionName} - Initialization timeout after 60s`);
+        logger.warn(`Session: ${sessionName} - Initialization timeout after 5 minutes`);
         reject(new Error("auth timeout"));
-      }, 60000);
+      }, 300000);
 
       wbot.on("ready", async () => {
         clearTimeout(initTimeout);
