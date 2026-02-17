@@ -29,8 +29,13 @@ const server = app.listen(process.env.PORT, () => {
 logger.info(`[${new Date().toISOString()}] Initializing Socket.IO`);
 initIO();
 
-logger.info(`[${new Date().toISOString()}] Starting all WhatsApp sessions`);
-StartAllWhatsAppsSessions();
+// Feature flag para skip WhatsApp initialization (útil para desarrollo sin Puppeteer)
+if (process.env.SKIP_WHATSAPP_INIT !== "true") {
+  logger.info(`[${new Date().toISOString()}] Starting all WhatsApp sessions`);
+  StartAllWhatsAppsSessions();
+} else {
+  logger.warn(`[${new Date().toISOString()}] SKIP_WHATSAPP_INIT=true - WhatsApp sessions NOT started`);
+}
 
 logger.info(`[${new Date().toISOString()}] Configuring graceful shutdown`);
 gracefulShutdown(server);
@@ -53,6 +58,12 @@ cron.schedule("*/30 * * * *", async () => {
     whatsapps = whatsapps.filter(whatsapp => whatsapp.status === "CONNECTED");
     logger.info(
       `[${new Date().toISOString()}] CRON - Connected whatsapps: ${whatsapps.length} - IDs: [${whatsapps.map(w => w.id).join(', ')}]`
+    );
+
+    // Filtrar solo WhatsApps tipo Puppeteer (Meta API no necesita este CRON)
+    whatsapps = whatsapps.filter(whatsapp => !whatsapp.apiType || whatsapp.apiType === "whatsapp-web.js");
+    logger.info(
+      `[${new Date().toISOString()}] CRON - Puppeteer whatsapps to process: ${whatsapps.length}`
     );
 
     let processedCount = 0;
