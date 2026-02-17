@@ -28,6 +28,7 @@ import notificationRoutes from "./notificationRoutes";
 import conversationIAQuestionsRoutes from "./conversationIAQuestionsRoutes";
 import conversationIAEvalutaionsRoutes from "./conversationIAEvalutaionsRoutes";
 import metaWebhookRoutes from "./metaWebhookRoutes";
+import metaTestRoutes from "./metaTestRoutes";
 
 const routes = Router();
 
@@ -58,5 +59,6 @@ routes.use(notificationRoutes);
 routes.use(conversationIAQuestionsRoutes);
 routes.use(conversationIAEvalutaionsRoutes);
 routes.use(metaWebhookRoutes);
+routes.use("/meta-test", metaTestRoutes);
 
 export default routes;
