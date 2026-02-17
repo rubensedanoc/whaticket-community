@@ -186,26 +186,42 @@ export const searchForUnSaveMessages = async ({
 };
 
 export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      // const io = getIO();
       const sessionName = whatsapp.name;
-
-      logger.info(
-        ` --- wbot initWbot --- id: ${whatsapp.id}  name: ${sessionName} sessionUuid: ${whatsapp.sessionUuid}`
-      );
-
       let sessionCfg;
+
+      logger.info(` --- wbot initWbot --- id: ${whatsapp.id}  name: ${sessionName} sessionUuid: ${whatsapp.sessionUuid}`);
+
+      // Limpiar sesión existente si hay una corriendo
+      const existingSessionIndex = sessions.findIndex(s => s.id === whatsapp.id);
+      if (existingSessionIndex !== -1) {
+        logger.info(`[INIT] ${sessionName} - Found existing session, closing it first`);
+        try {
+          const existingSession = sessions[existingSessionIndex];
+          await existingSession.destroy();
+          sessions.splice(existingSessionIndex, 1);
+          logger.info(`[INIT] ${sessionName} - Existing session closed successfully`);
+        } catch (err) {
+          logger.warn(`[INIT] ${sessionName} - Error closing existing session:`, err?.message);
+        }
+        // Esperar un momento para que Chrome libere los recursos
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
 
       if (whatsapp && whatsapp.session) {
         sessionCfg = JSON.parse(whatsapp.session);
       }
 
-      let args: String =
+      let args = process.env.CHROME_ARGS || "";
+      if (
         process.env.DOCKERFILE_PATH &&
         process.env.DOCKERFILE_PATH.includes("chrome")
-          ? process.env.CHROME_ARGS_CHROME
-          : process.env.CHROME_ARGS_CHROMIUN || "";
+      ) {
+        args = process.env.CHROME_ARGS_CHROME;
+      } else {
+        args = process.env.CHROME_ARGS_CHROMIUN || "";
+      }
 
       if (whatsapp.id === 21 || whatsapp.id === 32) {
         args = "--no-sandbox --disable-setuid-sandbox"
