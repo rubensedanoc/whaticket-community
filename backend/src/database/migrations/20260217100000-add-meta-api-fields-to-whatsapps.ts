@@ -46,6 +46,13 @@ module.exports = {
         allowNull: true
       });
     }
+
+    if (!(await columnExists(queryInterface, "Whatsapps", "lastWebhookReceivedAt"))) {
+      await queryInterface.addColumn("Whatsapps", "lastWebhookReceivedAt", {
+        type: DataTypes.DATE,
+        allowNull: true
+      });
+    }
   },
 
   down: async (queryInterface: QueryInterface) => {
@@ -63,6 +70,9 @@ module.exports = {
     }
     if (await columnExists(queryInterface, "Whatsapps", "webhookVerifyToken")) {
       await queryInterface.removeColumn("Whatsapps", "webhookVerifyToken");
+    }
+    if (await columnExists(queryInterface, "Whatsapps", "lastWebhookReceivedAt")) {
+      await queryInterface.removeColumn("Whatsapps", "lastWebhookReceivedAt");
     }
   }
 };
