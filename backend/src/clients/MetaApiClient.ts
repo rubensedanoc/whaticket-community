@@ -14,9 +14,14 @@ import {
   MetaApiSuccessResponse,
   MetaApiErrorResponse,
   MetaApiError,
+  MetaMediaUploadResponse,
+  MetaMediaUrlResponse,
   isMetaApiError,
   getErrorMessage
 } from "../types/meta/MetaApiTypes";
+import * as fs from "fs";
+import * as path from "path";
+import FormData from "form-data";
 
 interface MetaApiClientConfig {
   phoneNumberId: string;
@@ -51,13 +56,7 @@ export class MetaApiClient {
       );
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<MetaApiErrorResponse>;
-        if (axiosError.response?.data && isMetaApiError(axiosError.response.data)) {
-          const metaError = axiosError.response.data.error;
-          throw new MetaApiException(metaError);
-        }
-      }
+      this.handleError(error);
       throw error;
     }
   }
@@ -89,6 +88,73 @@ export class MetaApiClient {
     }
     const payload = buildDocumentPayload(params);
     return this.sendMessage(payload);
+  }
+
+  // ========== MEDIA ==========
+
+  async uploadMedia(filePath: string, mimeType: string): Promise<MetaMediaUploadResponse> {
+    const form = new FormData();
+    form.append("messaging_product", "whatsapp");
+    form.append("file", fs.createReadStream(filePath), {
+      filename: path.basename(filePath),
+      contentType: mimeType
+    });
+    form.append("type", mimeType);
+
+    try {
+      const response = await this.client.post<MetaMediaUploadResponse>(
+        `/${this.phoneNumberId}/media`,
+        form,
+        { headers: form.getHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  async getMediaUrl(mediaId: string): Promise<MetaMediaUrlResponse> {
+    try {
+      const response = await this.client.get<MetaMediaUrlResponse>(`/${mediaId}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  async downloadMedia(mediaUrl: string): Promise<Buffer> {
+    try {
+      const response = await axios.get(mediaUrl, {
+        headers: { Authorization: this.client.defaults.headers.Authorization },
+        responseType: "arraybuffer"
+      });
+      return Buffer.from(response.data);
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  async deleteMedia(mediaId: string): Promise<{ success: boolean }> {
+    try {
+      const response = await this.client.delete<{ success: boolean }>(`/${mediaId}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  private handleError(error: unknown): never {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError<MetaApiErrorResponse>;
+      if (axiosError.response?.data && isMetaApiError(axiosError.response.data)) {
+        throw new MetaApiException(axiosError.response.data.error);
+      }
+    }
+    throw error;
   }
 }
 
