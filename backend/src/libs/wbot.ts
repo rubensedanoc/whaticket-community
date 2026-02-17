@@ -82,7 +82,6 @@ export const searchForUnSaveMessages = async ({
     let chats = await wbot.getChats();
 
     response.logs.push(`END - wbot.getChats ${Date.now()}`);
-    response.logs.push(`Total chats found: ${chats?.length || 0}`);
 
     // filter chats with last message in the last x hours
     let last8HoursChats = chats.filter(chat =>
@@ -131,14 +130,7 @@ export const searchForUnSaveMessages = async ({
               );
 
             for (const msg of wppMessagesFoundInTimeInterval) {
-              // Double-check: verificar nuevamente si el mensaje ya existe antes de procesar
-              // Esto previene duplicados por race conditions en grupos
-              const existsNow = await Message.findByPk(msg.id.id);
-              if (!existsNow) {
-                await handleMessage({ msg, wbot });
-              } else {
-                response.logs.push(`Message ${msg.id.id} already exists, skipping`);
-              }
+              await handleMessage({ msg, wbot });
             }
           }
 
@@ -186,11 +178,7 @@ export const searchForUnSaveMessages = async ({
     });
   } catch (error) {
     response.logs.push(`ERROR - ${Date.now()}`);
-    response.logs.push({
-      name: error?.name || 'Unknown',
-      message: error?.message || 'No message',
-      stack: error?.stack?.split('\n').slice(0, 3) || []
-    });
+    response.logs.push(error);
     response.error = error;
   }
 
@@ -230,6 +218,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       console.log("client args: ", args);
 
       const wbot: Session = new Client({
+        session: sessionCfg,
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
         }),
@@ -239,9 +228,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           executablePath: process.env.CHROME_BIN || undefined,
           // @ts-ignore
           browserWSEndpoint: process.env.CHROME_WS || undefined,
-          args: args.split(" "),
-          // @ts-ignore - protocolTimeout exists in whatsapp-web.js but TS definitions are outdated
-          protocolTimeout: 300000 // 5 minutos para operaciones pesadas como getChats()
+          args: args.split(" ")
       }
       });
 
