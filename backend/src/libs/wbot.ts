@@ -216,24 +216,13 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       const sessionDir = path.join(process.cwd(), '.wwebjs_auth', `session-${clientId}`);
       const lockFile = path.join(sessionDir, 'SingletonLock');
       
-      logger.info(`[INIT] ${sessionName} - Checking for lock file at: ${lockFile}`);
-      
       try {
-        if (fs.existsSync(sessionDir)) {
-          logger.info(`[INIT] ${sessionName} - Session directory exists`);
-          
-          if (fs.existsSync(lockFile)) {
-            logger.info(`[INIT] ${sessionName} - Lock file found, removing: ${lockFile}`);
-            fs.unlinkSync(lockFile);
-            logger.info(`[INIT] ${sessionName} - Lock file removed successfully`);
-          } else {
-            logger.info(`[INIT] ${sessionName} - No lock file found (this is OK)`);
-          }
-        } else {
-          logger.info(`[INIT] ${sessionName} - Session directory does not exist yet (first time init)`);
+        if (fs.existsSync(lockFile)) {
+          fs.unlinkSync(lockFile);
+          logger.info(`Session: ${sessionName} - Chrome lock file removed`);
         }
       } catch (err) {
-        logger.error(`[INIT] ${sessionName} - Error during lock file cleanup:`, err?.message);
+        logger.warn(`Session: ${sessionName} - Error removing lock file: ${err?.message}`);
       }
 
       if (whatsapp && whatsapp.session) {
@@ -258,10 +247,6 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       //   args = "--no-sandbox --disable-setuid-sandbox"
       // }
 
-      console.log("client args: ", args);
-
-      logger.info(`[INIT] ${sessionName} - Step 1: Creating Client instance`);
-      
       // Filtrar --user-data-dir de los args porque LocalAuth lo maneja automáticamente
       const argsArray = args.split(" ").filter(arg => !arg.includes('--user-data-dir'));
       
@@ -271,26 +256,16 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         args: argsArray
       };
       
-      // Solo agregar executablePath si está definido
       if (process.env.CHROME_BIN) {
         puppeteerConfig.executablePath = process.env.CHROME_BIN;
       }
       
-      // Solo agregar browserWSEndpoint si está definido
       if (process.env.CHROME_WS) {
         puppeteerConfig.browserWSEndpoint = process.env.CHROME_WS;
       }
-      
-      logger.info(`[INIT] ${sessionName} - Puppeteer config:`, {
-        executablePath: puppeteerConfig.executablePath || 'default (will search in PATH)',
-        browserWSEndpoint: puppeteerConfig.browserWSEndpoint || 'none (will launch new Chrome)',
-        argsCount: puppeteerConfig.args.length,
-        headless: puppeteerConfig.headless
-      });
-      
-      console.log(`[INIT] ${sessionName} - Full Puppeteer config:`, JSON.stringify(puppeteerConfig, null, 2));
 
       const wbot: Session = new Client({
+        session: sessionCfg,
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
         }),
@@ -298,25 +273,14 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         authTimeoutMs: 300000 // 5 minutos en lugar de 30 segundos por defecto
       });
 
-      logger.info(`[INIT] ${sessionName} - Step 2: Client created, calling initialize()`);
-      
-      // Capturar errores de inicialización de Puppeteer
       wbot.initialize().catch(err => {
-        console.error(`[INIT] ${sessionName} - initialize() FAILED. Error type:`, typeof err);
-        console.error(`[INIT] ${sessionName} - Error message:`, err?.message);
-        console.error(`[INIT] ${sessionName} - Error name:`, err?.name);
-        console.error(`[INIT] ${sessionName} - Error stack:`, err?.stack);
-        console.error(`[INIT] ${sessionName} - Full error object:`, JSON.stringify(err, null, 2));
-        console.error(`[INIT] ${sessionName} - Error toString:`, err?.toString());
-        logger.error(`[INIT] ${sessionName} - initialize() failed`);
+        logger.error(`Session: ${sessionName} - Initialize failed: ${err?.message || err}`);
         clearTimeout(initTimeout);
         reject(err);
       });
-      
-      logger.info(`[INIT] ${sessionName} - Step 3: initialize() called, waiting for events...`);
 
       wbot.on("qr", async qr => {
-        logger.info(`[EVENT] ${sessionName} - QR RECEIVED`);
+        logger.info(`Session: ${sessionName} - QR RECEIVED`);
         qrCode.generate(qr, { small: true });
         await whatsapp.update({ qrcode: qr, status: "qrcode", retries: 0 });
 
@@ -338,19 +302,18 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
             }
           }
         });
-        logger.info(`[EVENT] ${sessionName} - QR event handled successfully`);
       });
 
       wbot.on("loading_screen", (percent, message) => {
-        logger.info(`[EVENT] ${sessionName} - LOADING: ${percent}% - ${message}`);
+        logger.info(`Session: ${sessionName} - Loading: ${percent}%`);
       });
 
       wbot.on("authenticated", async session => {
-        logger.info(`[EVENT] ${sessionName} - AUTHENTICATED`);
+        logger.info(`Session: ${sessionName} - Authenticated`);
       });
 
       wbot.on("auth_failure", async msg => {
-        logger.error(`[EVENT] ${sessionName} - AUTH_FAILURE: ${msg}`);
+        logger.error(`Session: ${sessionName} - Auth failure: ${msg}`);
 
         if (whatsapp.retries > 1) {
           await whatsapp.update({ session: "", retries: 0 });
@@ -377,18 +340,17 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
 
       wbot.on("disconnected", (reason) => {
-        logger.warn(`[EVENT] ${sessionName} - DISCONNECTED: ${reason}`);
+        logger.warn(`Session: ${sessionName} - Disconnected: ${reason}`);
       });
 
-      // Timeout handler para evitar promesas sin resolver
       const initTimeout = setTimeout(() => {
-        logger.error(`[TIMEOUT] ${sessionName} - NO READY EVENT after 5 minutes. Last known state: ${whatsapp.status}`);
+        logger.error(`Session: ${sessionName} - Auth timeout after 5 minutes`);
         reject(new Error("auth timeout"));
       }, 300000);
 
       wbot.on("ready", async () => {
         clearTimeout(initTimeout);
-        logger.info(`[EVENT] ${sessionName} - READY - Starting final setup`);
+        logger.info(`Session: ${sessionName} - Ready`);
 
         await whatsapp.update({
           status: "CONNECTED",
@@ -407,85 +369,15 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           }
         });
 
-        logger.info(`[EVENT] ${sessionName} - READY - Adding to sessions array`);
         const sessionIndex = sessions.findIndex(s => s.id === whatsapp.id);
         if (sessionIndex === -1) {
           wbot.id = whatsapp.id;
           sessions.push(wbot);
-          logger.info(`[EVENT] ${sessionName} - Added to sessions array at new index`);
         } else {
           wbot.id = whatsapp.id;
           sessions[sessionIndex] = wbot;
-          logger.info(`[EVENT] ${sessionName} - Updated existing session at index ${sessionIndex}`);
         }
 
-        logger.info(`[EVENT] ${sessionName} - Applying WhatsApp Web patches`);
-        // Patch crítico para WhatsApp Web - Corrige errores de getChat y sendSeen
-        // Debe ejecutarse ANTES de cualquier operación con el cliente
-        try {
-          await wbot.pupPage?.evaluate(`
-            // Patch 1: Corregir sendSeen
-            window.WWebJS.sendSeen = async (chatId) => {
-              try {
-                const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
-                if (chat) {
-                  window.Store.WAWebStreamModel.Stream.markAvailable();
-                  await window.Store.SendSeen.markSeen(chat);
-                  window.Store.WAWebStreamModel.Stream.markUnavailable();
-                  return true;
-                }
-                return false;
-              } catch (e) {
-                console.error('Error in patched sendSeen:', e);
-                return false;
-              }
-            };
-
-            // Patch 2: Asegurar que getChat siempre devuelva un objeto válido
-            const originalGetChat = window.WWebJS.getChat;
-            window.WWebJS.getChat = async function(chatId, options) {
-              try {
-                // Intentar obtener el chat de forma normal
-                const chat = await originalGetChat.call(this, chatId, options);
-                if (chat) return chat;
-                
-                // Si no se encuentra, intentar desde Store
-                const chatFromStore = window.Store.Chat.get(chatId);
-                if (chatFromStore) return chatFromStore;
-                
-                // Si aún no existe, buscarlo de forma más robusta
-                const allChats = window.Store.Chat.getModelsArray();
-                const foundChat = allChats.find(c => c.id && c.id._serialized === chatId);
-                if (foundChat) return foundChat;
-                
-                throw new Error('Chat not found: ' + chatId);
-              } catch (e) {
-                console.error('Error in patched getChat for chatId:', chatId, e);
-                throw e;
-              }
-            };
-          `);
-          logger.info(`[EVENT] ${sessionName} - WhatsApp Web patches applied successfully`);
-        } catch (patchError) {
-          logger.error(`[EVENT] ${sessionName} - CRITICAL: Failed to apply WhatsApp Web patches:`, patchError);
-        }
-
-        logger.info(`[EVENT] ${sessionName} - Sending presence available`);
-        wbot.sendPresenceAvailable();
-
-        logger.info(`[EVENT] ${sessionName} - Starting searchForUnSaveMessages (7 days)`);
-        try {
-          const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
-            wbot,
-            whatsapp,
-            timeIntervalInHours: 168 // 7 días
-          });
-          logger.info(`[EVENT] ${sessionName} - searchForUnSaveMessages completed. Messages: ${searchForUnSaveMessagesResult.messagesCount}`);
-        } catch (error) {
-          logger.error(`[EVENT] ${sessionName} - searchForUnSaveMessages error:`, error);
-        }
-
-        logger.info(`[EVENT] ${sessionName} - Resolving promise - Session fully initialized`);
         resolve(wbot);
       });
     } catch (err) {
@@ -498,7 +390,6 @@ export const getWbot = (whatsappId: number): Session => {
   const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
 
   if (sessionIndex === -1) {
-    console.log("sessions not found for whatsappId", whatsappId, sessions);
     throw new AppError("ERR_WAPP_NOT_INITIALIZED");
   }
   return sessions[sessionIndex];
