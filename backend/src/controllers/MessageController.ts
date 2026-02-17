@@ -19,6 +19,7 @@ import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import DeleteWhatsAppMessage from "../services/WbotServices/DeleteWhatsAppMessage";
 import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import { verifyMessage } from "../services/WbotServices/wbotMessageListener";
 import verifyPrivateMessage from "../utils/verifyPrivateMessage";
 
 type searchQuery = {
@@ -169,7 +170,18 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       })
     );
   } else {
-    await SendWhatsAppMessage({ body, ticket, quotedMsg });
+    const sentMessage = await SendWhatsAppMessage({ body, ticket, quotedMsg });
+    
+    // Guardar el mensaje en la base de datos y emitir eventos al frontend
+    // Esto soluciona el problema de que los mensajes no aparecen en la vista
+    // cuando el listener message_create no se dispara correctamente
+    await verifyMessage({
+      msg: sentMessage,
+      ticket: ticket,
+      contact: ticket.contact
+    });
+    
+    console.log("[MessageController] ✅ Mensaje guardado en BD y emitido al frontend");
   }
 
   ticket.update({ userHadContact: true });

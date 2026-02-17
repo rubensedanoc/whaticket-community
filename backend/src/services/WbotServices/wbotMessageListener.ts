@@ -308,6 +308,28 @@ export const verifyMessage = async ({
     ...(identifier && { identifier })
   };
 
+  // Verificar si el mensaje ya existe en la base de datos para evitar duplicados
+  // Primero verificar por ID exacto
+  let existingMessage = await Message.findByPk(msg.id.id);
+  
+  // Si no existe por ID, verificar por criterios alternativos (mismo ticket, timestamp y body)
+  // Esto maneja el caso donde WhatsApp genera IDs diferentes para el mismo mensaje
+  if (!existingMessage) {
+    existingMessage = await Message.findOne({
+      where: {
+        ticketId: ticket.id,
+        timestamp: msg.timestamp,
+        body: msg.body,
+        fromMe: msg.fromMe
+      }
+    });
+  }
+  
+  if (existingMessage) {
+    console.log(`[VERIFY] ⚠️ Mensaje ya existe en BD - ID: ${existingMessage.id}, retornando mensaje existente`);
+    return existingMessage;
+  }
+
   if (updateTicketLastMessage) {
 
     // console.log(`--- verifyMessage - updateTicketLastMessage --- ${ticket.id} - ${msg.id.id} - ${ticket.lastMessageTimestamp} < ${msg.timestamp} - ${msg.body} `);

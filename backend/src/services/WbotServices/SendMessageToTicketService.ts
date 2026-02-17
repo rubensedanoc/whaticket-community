@@ -1,6 +1,7 @@
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
 import SendWhatsAppMessage from "./SendWhatsAppMessage";
+import { verifyMessage } from "./wbotMessageListener";
 
 interface CalendarEvent {
   id?: string;
@@ -86,6 +87,15 @@ const SendMessageToTicketService = async ({
       body: finalMessage,
       ticket: ticket
     });
+
+    // Guardar el mensaje en la base de datos y emitir eventos al frontend
+    await verifyMessage({
+      msg: sentMessage,
+      ticket: ticket,
+      contact: ticket.contact
+    });
+
+    console.log("[SendMessageToTicketService] ✅ Mensaje guardado en BD y emitido al frontend");
 
     return {
       success: true,
