@@ -217,6 +217,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       console.log("client args: ", args);
 
+      logger.info(`[INIT] ${sessionName} - Step 1: Creating Client instance`);
+
       const wbot: Session = new Client({
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
@@ -231,10 +233,12 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       }
       });
 
+      logger.info(`[INIT] ${sessionName} - Step 2: Client created, calling initialize()`);
       wbot.initialize();
+      logger.info(`[INIT] ${sessionName} - Step 3: initialize() called, waiting for events...`);
 
       wbot.on("qr", async qr => {
-        logger.info(`Session: ${sessionName} QR RECEIVED credentials ${whatsapp.sessionUuid || whatsapp.id}`);
+        logger.info(`[EVENT] ${sessionName} - QR RECEIVED`);
         qrCode.generate(qr, { small: true });
         await whatsapp.update({ qrcode: qr, status: "qrcode", retries: 0 });
 
@@ -256,16 +260,19 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
             }
           }
         });
+        logger.info(`[EVENT] ${sessionName} - QR event handled successfully`);
+      });
+
+      wbot.on("loading_screen", (percent, message) => {
+        logger.info(`[EVENT] ${sessionName} - LOADING: ${percent}% - ${message}`);
       });
 
       wbot.on("authenticated", async session => {
-        logger.info(`Session: ${sessionName} AUTHENTICATED`);
+        logger.info(`[EVENT] ${sessionName} - AUTHENTICATED`);
       });
 
       wbot.on("auth_failure", async msg => {
-        console.error(
-          `Session: ${sessionName} AUTHENTICATION FAILURE! Reason: ${msg}`
-        );
+        logger.error(`[EVENT] ${sessionName} - AUTH_FAILURE: ${msg}`);
 
         if (whatsapp.retries > 1) {
           await whatsapp.update({ session: "", retries: 0 });
@@ -287,18 +294,23 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           }
         });
 
+        clearTimeout(initTimeout);
         reject(new Error("Error starting whatsapp session."));
+      });
+
+      wbot.on("disconnected", (reason) => {
+        logger.warn(`[EVENT] ${sessionName} - DISCONNECTED: ${reason}`);
       });
 
       // Timeout handler para evitar promesas sin resolver
       const initTimeout = setTimeout(() => {
-        logger.warn(`Session: ${sessionName} - Initialization timeout after 5 minutes`);
+        logger.error(`[TIMEOUT] ${sessionName} - NO READY EVENT after 5 minutes. Last known state: ${whatsapp.status}`);
         reject(new Error("auth timeout"));
       }, 300000);
 
       wbot.on("ready", async () => {
         clearTimeout(initTimeout);
-        logger.info(`Session: ${sessionName} READY`);
+        logger.info(`[EVENT] ${sessionName} - READY - Starting final setup`);
 
         await whatsapp.update({
           status: "CONNECTED",
@@ -317,15 +329,19 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           }
         });
 
+        logger.info(`[EVENT] ${sessionName} - READY - Adding to sessions array`);
         const sessionIndex = sessions.findIndex(s => s.id === whatsapp.id);
         if (sessionIndex === -1) {
           wbot.id = whatsapp.id;
           sessions.push(wbot);
+          logger.info(`[EVENT] ${sessionName} - Added to sessions array at new index`);
         } else {
           wbot.id = whatsapp.id;
           sessions[sessionIndex] = wbot;
+          logger.info(`[EVENT] ${sessionName} - Updated existing session at index ${sessionIndex}`);
         }
 
+        logger.info(`[EVENT] ${sessionName} - Applying WhatsApp Web patches`);
         // Patch crítico para WhatsApp Web - Corrige errores de getChat y sendSeen
         // Debe ejecutarse ANTES de cualquier operación con el cliente
         try {
@@ -371,30 +387,27 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
               }
             };
           `);
-          logger.info(`Session: ${sessionName} - WhatsApp Web patches applied successfully (sendSeen + getChat)`);
+          logger.info(`[EVENT] ${sessionName} - WhatsApp Web patches applied successfully`);
         } catch (patchError) {
-          logger.error(`Session: ${sessionName} - CRITICAL: Failed to apply WhatsApp Web patches:`, patchError);
+          logger.error(`[EVENT] ${sessionName} - CRITICAL: Failed to apply WhatsApp Web patches:`, patchError);
         }
 
+        logger.info(`[EVENT] ${sessionName} - Sending presence available`);
         wbot.sendPresenceAvailable();
 
-        // COMENTADO: No ejecutar automáticamente al iniciar sesión para evitar sobrecarga
-        // Usar ImportConnectionMessagesService o CRON job en su lugar
-        // try {
-        //   logger.info(`Session: ${sessionName} searchForUnSaveMessages`);
-        //   const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
-        //     wbot,
-        //     whatsapp,
-        //     timeIntervalInHours: 168 // 7 días
-        //   });
-        //   console.log(
-        //     `Session: ${sessionName} syncUnreadMessagesResult: `,
-        //     searchForUnSaveMessagesResult
-        //   );
-        // } catch (error) {
-        //   console.log(`Session: ${sessionName} error on syncUnreadMessages: `, error);
-        // }
+        logger.info(`[EVENT] ${sessionName} - Starting searchForUnSaveMessages (7 days)`);
+        try {
+          const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
+            wbot,
+            whatsapp,
+            timeIntervalInHours: 168 // 7 días
+          });
+          logger.info(`[EVENT] ${sessionName} - searchForUnSaveMessages completed. Messages: ${searchForUnSaveMessagesResult.messagesCount}`);
+        } catch (error) {
+          logger.error(`[EVENT] ${sessionName} - searchForUnSaveMessages error:`, error);
+        }
 
+        logger.info(`[EVENT] ${sessionName} - Resolving promise - Session fully initialized`);
         resolve(wbot);
       });
     } catch (err) {
