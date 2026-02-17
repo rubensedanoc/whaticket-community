@@ -37,9 +37,12 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
   const whatsapp = await ShowWhatsAppService(whatsappId);
 
-  const wbot = getWbot(whatsapp.id);
-
-  wbot.logout();
+  try {
+    const wbot = getWbot(whatsapp.id);
+    wbot.logout();
+  } catch (error) {
+    console.log(`Session not found for whatsappId ${whatsappId}, nothing to remove`);
+  }
 
   return res.status(200).json({ message: "Session disconnected." });
 };
@@ -52,18 +55,23 @@ const reset = async (req: Request, res: Response): Promise<Response> => {
   try {
     const whatsapp = await ShowWhatsAppService(whatsappId);
 
-    const wbot = getWbot(whatsapp.id);
-
+    // Intentar obtener la sesión, pero no fallar si no existe
     try {
-      wbot.logout();
-    } catch (error) {
-      console.error("Error on logout:", error);
-    }
+      const wbot = getWbot(whatsapp.id);
 
-    try {
-      wbot.destroy();
+      try {
+        wbot.logout();
+      } catch (error) {
+        console.error("Error on logout:", error);
+      }
+
+      try {
+        wbot.destroy();
+      } catch (error) {
+        console.error("Error on destroy:", error);
+      }
     } catch (error) {
-      console.error("Error on destroy:", error);
+      console.log(`Session not found for whatsappId ${whatsappId}, will create new one`);
     }
 
     await whatsapp.update({ sessionUuid: uuidv4() });
@@ -71,7 +79,7 @@ const reset = async (req: Request, res: Response): Promise<Response> => {
 
     setTimeout(() => StartWhatsAppSession(whatsapp), 2000);
 
-    return res.status(200).json({ message: "Session disconnected." });
+    return res.status(200).json({ message: "Session reset initiated." });
   } catch (error) {
     return res.status(500).json({ message: "Error on reset session.", error });
   }
