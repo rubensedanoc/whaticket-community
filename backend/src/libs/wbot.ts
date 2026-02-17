@@ -216,14 +216,24 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       const sessionDir = path.join(process.cwd(), '.wwebjs_auth', `session-${clientId}`);
       const lockFile = path.join(sessionDir, 'SingletonLock');
       
+      logger.info(`[INIT] ${sessionName} - Checking for lock file at: ${lockFile}`);
+      
       try {
-        if (fs.existsSync(lockFile)) {
-          logger.info(`[INIT] ${sessionName} - Removing Chrome lock file: ${lockFile}`);
-          fs.unlinkSync(lockFile);
-          logger.info(`[INIT] ${sessionName} - Lock file removed successfully`);
+        if (fs.existsSync(sessionDir)) {
+          logger.info(`[INIT] ${sessionName} - Session directory exists`);
+          
+          if (fs.existsSync(lockFile)) {
+            logger.info(`[INIT] ${sessionName} - Lock file found, removing: ${lockFile}`);
+            fs.unlinkSync(lockFile);
+            logger.info(`[INIT] ${sessionName} - Lock file removed successfully`);
+          } else {
+            logger.info(`[INIT] ${sessionName} - No lock file found (this is OK)`);
+          }
+        } else {
+          logger.info(`[INIT] ${sessionName} - Session directory does not exist yet (first time init)`);
         }
       } catch (err) {
-        logger.warn(`[INIT] ${sessionName} - Error removing lock file:`, err?.message);
+        logger.error(`[INIT] ${sessionName} - Error during lock file cleanup:`, err?.message);
       }
 
       if (whatsapp && whatsapp.session) {
