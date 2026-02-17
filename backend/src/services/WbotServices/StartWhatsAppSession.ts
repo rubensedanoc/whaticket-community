@@ -37,12 +37,12 @@ export const StartWhatsAppSession = async (
       wbotMonitor(wbot, whatsapp);
     }
   } catch (err) {
-    logger.error(`[StartWhatsAppSession] Error initializing whatsapp ${whatsapp.id}:`, {
-      message: err?.message || 'No message',
-      name: err?.name || 'No name',
-      stack: err?.stack?.split('\n').slice(0, 5) || 'No stack',
-      fullError: err
-    });
+    console.error(`[StartWhatsAppSession] Error initializing whatsapp ${whatsapp.id}. Error type:`, typeof err);
+    console.error(`[StartWhatsAppSession] Error message:`, err?.message);
+    console.error(`[StartWhatsAppSession] Error name:`, err?.name);
+    console.error(`[StartWhatsAppSession] Error stack:`, err?.stack);
+    console.error(`[StartWhatsAppSession] Full error:`, JSON.stringify(err, null, 2));
+    logger.error(`[StartWhatsAppSession] Error initializing whatsapp ${whatsapp.id}`);
     
     await whatsapp.update({ 
       status: "DISCONNECTED",
