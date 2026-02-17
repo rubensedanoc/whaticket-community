@@ -234,7 +234,14 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
 
       logger.info(`[INIT] ${sessionName} - Step 2: Client created, calling initialize()`);
-      wbot.initialize();
+      
+      // Capturar errores de inicialización de Puppeteer
+      wbot.initialize().catch(err => {
+        logger.error(`[INIT] ${sessionName} - initialize() failed:`, err);
+        clearTimeout(initTimeout);
+        reject(err);
+      });
+      
       logger.info(`[INIT] ${sessionName} - Step 3: initialize() called, waiting for events...`);
 
       wbot.on("qr", async qr => {
