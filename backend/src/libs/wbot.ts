@@ -219,12 +219,15 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       logger.info(`[INIT] ${sessionName} - Step 1: Creating Client instance`);
       
+      // Filtrar --user-data-dir de los args porque LocalAuth lo maneja automáticamente
+      const argsArray = args.split(" ").filter(arg => !arg.includes('--user-data-dir'));
+      
       const puppeteerConfig = {
         headless: true,
         ignoreHTTPSErrors: true,
         executablePath: process.env.CHROME_BIN || undefined,
         browserWSEndpoint: process.env.CHROME_WS || undefined,
-        args: args.split(" ")
+        args: argsArray
       };
       
       logger.info(`[INIT] ${sessionName} - Puppeteer config:`, {
