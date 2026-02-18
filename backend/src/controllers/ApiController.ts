@@ -11,7 +11,7 @@ import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
-import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
+import SendWhatsAppMedia from "../services/MessageServices/SendWhatsAppMedia";
 import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 
 type WhatsappData = {

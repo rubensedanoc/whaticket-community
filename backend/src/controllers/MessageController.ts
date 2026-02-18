@@ -17,7 +17,7 @@ import ListConsolidatedMessagesService from "../services/MessageServices/ListCon
 import SearchMessagesService from "../services/MessageServices/SearchMessagesService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import DeleteWhatsAppMessage from "../services/WbotServices/DeleteWhatsAppMessage";
-import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
+import SendWhatsAppMedia from "../services/MessageServices/SendWhatsAppMedia";
 import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 import verifyPrivateMessage from "../utils/verifyPrivateMessage";
 
