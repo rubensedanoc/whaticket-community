@@ -18,7 +18,7 @@ import SearchMessagesService from "../services/MessageServices/SearchMessagesSer
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import DeleteWhatsAppMessage from "../services/WbotServices/DeleteWhatsAppMessage";
 import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
-import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 import verifyPrivateMessage from "../utils/verifyPrivateMessage";
 
 type searchQuery = {

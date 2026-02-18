@@ -16,18 +16,18 @@ interface Request {
   quotedMsg?: Message;
 }
 
-const SendWhatsAppMessage = async ({
+const SendWhatsAppMessageWbot = async ({
   body,
   ticket,
   quotedMsg
 }: Request): Promise<WbotMessage> => {
   try {
-    console.log("[SendWhatsAppMessage] Iniciando envio");
-    console.log("[SendWhatsAppMessage] TicketId:", ticket.id);
-    console.log("[SendWhatsAppMessage] WhatsappId:", ticket.whatsappId);
-    console.log("[SendWhatsAppMessage] ContactNumber:", ticket.contact.number);
-    console.log("[SendWhatsAppMessage] IsGroup:", ticket.isGroup);
-    console.log("[SendWhatsAppMessage] Body length:", body.length);
+    console.log("[SendWhatsAppMessageWbot] Iniciando envio");
+    console.log("[SendWhatsAppMessageWbot] TicketId:", ticket.id);
+    console.log("[SendWhatsAppMessageWbot] WhatsappId:", ticket.whatsappId);
+    console.log("[SendWhatsAppMessageWbot] ContactNumber:", ticket.contact.number);
+    console.log("[SendWhatsAppMessageWbot] IsGroup:", ticket.isGroup);
+    console.log("[SendWhatsAppMessageWbot] Body length:", body.length);
     
     let quotedMsgSerializedId: string | undefined;
 
@@ -65,35 +65,35 @@ const SendWhatsAppMessage = async ({
     const wbot = await GetTicketWbot(ticket);
 
     // Logs de diagnóstico para verificar estado del wbot
-    console.log("[SendWhatsAppMessage] Wbot obtenido");
+    console.log("[SendWhatsAppMessageWbot] Wbot obtenido");
     // @ts-ignore - id se agrega dinámicamente en wbot.ts
-    console.log("[SendWhatsAppMessage] Wbot ID:", wbot.id || "unknown");
-    console.log("[SendWhatsAppMessage] Wbot info existe:", !!wbot.info);
-    console.log("[SendWhatsAppMessage] Wbot pupPage existe:", !!wbot.pupPage);
+    console.log("[SendWhatsAppMessageWbot] Wbot ID:", wbot.id || "unknown");
+    console.log("[SendWhatsAppMessageWbot] Wbot info existe:", !!wbot.info);
+    console.log("[SendWhatsAppMessageWbot] Wbot pupPage existe:", !!wbot.pupPage);
     
     try {
       const wbotState = await wbot.getState();
-      console.log("[SendWhatsAppMessage] Estado de la conexión:", wbotState);
+      console.log("[SendWhatsAppMessageWbot] Estado de la conexión:", wbotState);
     } catch (stateErr) {
-      console.log("[SendWhatsAppMessage] WARNING: No se pudo obtener estado:", stateErr.message);
+      console.log("[SendWhatsAppMessageWbot] WARNING: No se pudo obtener estado:", stateErr.message);
     }
 
     const bodyFormated = formatBody(body, ticket.contact);
 
-    console.log("[SendWhatsAppMessage] Body formateado OK");
+    console.log("[SendWhatsAppMessageWbot] Body formateado OK");
 
     // Intentar aplicar parches en la sesión si es posible (on-demand)
     try {
       if (wbot?.pupPage) {
         const patched = await applyPatchesToWbot(wbot as any);
         if (!patched) {
-          console.log("[SendWhatsAppMessage] WARNING: No se pudo aplicar el parche on-demand en esta sesión");
+          console.log("[SendWhatsAppMessageWbot] WARNING: No se pudo aplicar el parche on-demand en esta sesión");
           throw new Error("ERR_PATCH_NOT_APPLIED");
         }
-        console.log("[SendWhatsAppMessage] Parche on-demand aplicado OK");
+        console.log("[SendWhatsAppMessageWbot] Parche on-demand aplicado OK");
       }
     } catch (patchErr) {
-      console.log("[SendWhatsAppMessage] ERROR aplicando parche on-demand:", patchErr?.message || patchErr);
+      console.log("[SendWhatsAppMessageWbot] ERROR aplicando parche on-demand:", patchErr?.message || patchErr);
       throw patchErr;
     }
 
@@ -103,13 +103,13 @@ const SendWhatsAppMessage = async ({
       mentionedNumbers = bodyFormated
         .match(/@(\d+)/g)
         ?.map(match => match.slice(1));
-      console.log("[SendWhatsAppMessage] MentionedNumbers:", mentionedNumbers);
+      console.log("[SendWhatsAppMessageWbot] MentionedNumbers:", mentionedNumbers);
     }
 
     const destinationNumber = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
-    console.log("[SendWhatsAppMessage] DestinationNumber:", destinationNumber);
-    console.log("[SendWhatsAppMessage] QuotedMsgId:", quotedMsgSerializedId || "none");
-    console.log("[SendWhatsAppMessage] Enviando mensaje...");
+    console.log("[SendWhatsAppMessageWbot] DestinationNumber:", destinationNumber);
+    console.log("[SendWhatsAppMessageWbot] QuotedMsgId:", quotedMsgSerializedId || "none");
+    console.log("[SendWhatsAppMessageWbot] Enviando mensaje...");
 
     // Intentar enviar mensaje con captura detallada de error
     let sentMessage;
@@ -129,42 +129,42 @@ const SendWhatsAppMessage = async ({
         }
       );
     } catch (sendError) {
-      console.log("[SendWhatsAppMessage] ERROR DETALLADO en wbot.sendMessage:");
-      console.log("[SendWhatsAppMessage] - Error name:", sendError.name);
-      console.log("[SendWhatsAppMessage] - Error message:", sendError.message);
-      console.log("[SendWhatsAppMessage] - Error en método de librería whatsapp-web.js");
-      console.log("[SendWhatsAppMessage] - Indica que el parche NO se aplicó correctamente a esta sesión");
-      console.log("[SendWhatsAppMessage] - Solución: Reconectar WhatsApp ID", ticket.whatsappId);
+      console.log("[SendWhatsAppMessageWbot] ERROR DETALLADO en wbot.sendMessage:");
+      console.log("[SendWhatsAppMessageWbot] - Error name:", sendError.name);
+      console.log("[SendWhatsAppMessageWbot] - Error message:", sendError.message);
+      console.log("[SendWhatsAppMessageWbot] - Error en método de librería whatsapp-web.js");
+      console.log("[SendWhatsAppMessageWbot] - Indica que el parche NO se aplicó correctamente a esta sesión");
+      console.log("[SendWhatsAppMessageWbot] - Solución: Reconectar WhatsApp ID", ticket.whatsappId);
       throw sendError;
     }
 
-    console.log("[SendWhatsAppMessage] Mensaje enviado exitosamente");
-    console.log("[SendWhatsAppMessage] MessageId:", sentMessage.id._serialized);
+    console.log("[SendWhatsAppMessageWbot] Mensaje enviado exitosamente");
+    console.log("[SendWhatsAppMessageWbot] MessageId:", sentMessage.id._serialized);
 
     await ticket.update({ lastMessage: body });
     return sentMessage;
   } catch (err) {
     console.log("=".repeat(80));
-    console.log("[SendWhatsAppMessage] ❌ ERROR CAPTURADO EN CATCH PRINCIPAL");
+    console.log("[SendWhatsAppMessageWbot] ❌ ERROR CAPTURADO EN CATCH PRINCIPAL");
     console.log("=".repeat(80));
-    console.log("[SendWhatsAppMessage] ERROR TicketId:", ticket.id);
-    console.log("[SendWhatsAppMessage] ERROR WhatsappId:", ticket.whatsappId);
-    console.log("[SendWhatsAppMessage] ERROR ContactNumber:", ticket.contact.number);
-    console.log("[SendWhatsAppMessage] ERROR IsGroup:", ticket.isGroup);
-    console.log("[SendWhatsAppMessage] ERROR Message:", err.message);
-    console.log("[SendWhatsAppMessage] ERROR Name:", err.name);
+    console.log("[SendWhatsAppMessageWbot] ERROR TicketId:", ticket.id);
+    console.log("[SendWhatsAppMessageWbot] ERROR WhatsappId:", ticket.whatsappId);
+    console.log("[SendWhatsAppMessageWbot] ERROR ContactNumber:", ticket.contact.number);
+    console.log("[SendWhatsAppMessageWbot] ERROR IsGroup:", ticket.isGroup);
+    console.log("[SendWhatsAppMessageWbot] ERROR Message:", err.message);
+    console.log("[SendWhatsAppMessageWbot] ERROR Name:", err.name);
     
     // Diagnóstico específico del error
     if (err.message && err.message.includes("Cannot read properties of undefined (reading 'getChat')")) {
       console.log("=".repeat(80));
-      console.log("[SendWhatsAppMessage] 🔍 DIAGNÓSTICO:");
-      console.log("[SendWhatsAppMessage] - Este es un error de la LIBRERÍA whatsapp-web.js");
-      console.log("[SendWhatsAppMessage] - El método getChat() está devolviendo undefined");
-      console.log("[SendWhatsAppMessage] - El parche en wbot.ts NO está aplicado a esta sesión");
-      console.log("[SendWhatsAppMessage] - SOLUCIÓN: Desconectar y reconectar WhatsApp ID:", ticket.whatsappId);
+      console.log("[SendWhatsAppMessageWbot] 🔍 DIAGNÓSTICO:");
+      console.log("[SendWhatsAppMessageWbot] - Este es un error de la LIBRERÍA whatsapp-web.js");
+      console.log("[SendWhatsAppMessageWbot] - El método getChat() está devolviendo undefined");
+      console.log("[SendWhatsAppMessageWbot] - El parche en wbot.ts NO está aplicado a esta sesión");
+      console.log("[SendWhatsAppMessageWbot] - SOLUCIÓN: Desconectar y reconectar WhatsApp ID:", ticket.whatsappId);
       console.log("=".repeat(80));
     } else {
-      console.log("[SendWhatsAppMessage] ERROR Stack:", err.stack);
+      console.log("[SendWhatsAppMessageWbot] ERROR Stack:", err.stack);
     }
     
     Sentry.captureException(err);
@@ -177,4 +177,4 @@ const SendWhatsAppMessage = async ({
   }
 };
 
-export default SendWhatsAppMessage;
+export default SendWhatsAppMessageWbot;

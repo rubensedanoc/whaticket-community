@@ -20,7 +20,7 @@ import getAndSetBeenWaitingSinceTimestampTicketService from "../services/TicketS
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
-import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 import { verifyContact } from "../services/WbotServices/wbotMessageListener";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import Notification from "../models/Notification";

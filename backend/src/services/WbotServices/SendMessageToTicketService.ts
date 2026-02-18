@@ -1,6 +1,6 @@
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
-import SendWhatsAppMessage from "./SendWhatsAppMessage";
+import SendWhatsAppMessage from "../MessageServices/SendWhatsAppMessage";
 
 interface CalendarEvent {
   id?: string;
