@@ -93,11 +93,12 @@ const processMessage = async (
     console.log("[HandleMetaWebhookMessage] Ticket:", ticket.id);
 
     // Guardar mensaje en BD
-    const messageBody = getMessageBody(message);
     const mediaType = getMediaType(message);
 
     // Descargar media si el mensaje tiene adjuntos
     let mediaUrl: string | null = null;
+    let messageBody = getMessageBody(message);
+    
     if (hasMedia(message)) {
       try {
         console.log("[HandleMetaWebhookMessage] Mensaje tiene media, descargando...");
@@ -110,6 +111,12 @@ const processMessage = async (
         });
 
         mediaUrl = downloadResult.filename;
+        
+        // Si no hay caption, usar el filename como body (igual que Puppeteer)
+        if (!hasCaption(message)) {
+          messageBody = downloadResult.filename;
+        }
+        
         console.log("[HandleMetaWebhookMessage] Media descargado:", mediaUrl);
       } catch (err) {
         console.error("[HandleMetaWebhookMessage] Error descargando media:", err);
@@ -224,6 +231,16 @@ const hasMedia = (message: MetaWebhookMessage): boolean => {
          message.type === "video" ||
          message.type === "document" ||
          message.type === "sticker";
+};
+
+/**
+ * Verifica si el mensaje tiene caption
+ */
+const hasCaption = (message: MetaWebhookMessage): boolean => {
+  if (message.type === "image" && message.image?.caption) return true;
+  if (message.type === "video" && message.video?.caption) return true;
+  if (message.type === "document" && message.document?.caption) return true;
+  return false;
 };
 
 /**

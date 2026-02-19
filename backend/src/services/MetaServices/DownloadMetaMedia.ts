@@ -101,6 +101,9 @@ const DownloadMetaMedia = async ({
  * Obtiene la extensión del archivo según el mimeType
  */
 const getExtensionFromMimeType = (mimeType: string): string => {
+  // Limpiar mimeType (remover codecs y parámetros adicionales)
+  const cleanMimeType = mimeType.split(";")[0].trim();
+
   const mimeToExt: Record<string, string> = {
     // Images
     "image/jpeg": ".jpg",
@@ -131,7 +134,7 @@ const getExtensionFromMimeType = (mimeType: string): string => {
     "text/plain": ".txt"
   };
 
-  return mimeToExt[mimeType] || ".bin";
+  return mimeToExt[cleanMimeType] || ".bin";
 };
 
 export default DownloadMetaMedia;
