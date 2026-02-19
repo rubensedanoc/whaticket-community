@@ -5,6 +5,8 @@ import {
   MetaWebhookMessage,
   MetaWebhookContact
 } from "../types/meta/MetaWebhookTypes";
+import Whatsapp from "../models/Whatsapp";
+import HandleMetaWebhookMessage from "../services/MetaServices/HandleMetaWebhookMessage";
 
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
 
@@ -76,7 +78,7 @@ const extractMessageContent = (message: MetaWebhookMessage): Record<string, unkn
  * POST /webhooks/meta
  * Recepción de eventos del webhook (mensajes, estados, etc.)
  */
-export const handleWebhookEvent = (req: Request, res: Response): void => {
+export const handleWebhookEvent = async (req: Request, res: Response): Promise<void> => {
   const payload = req.body as MetaWebhookPayload;
 
   // Responder 200 inmediatamente (Meta requiere respuesta rápida)
@@ -85,7 +87,7 @@ export const handleWebhookEvent = (req: Request, res: Response): void => {
   // Loguear el evento recibido
   console.log("📩 Webhook Meta recibido:", JSON.stringify(payload, null, 2));
 
-  // Procesar cada entry
+  // Procesar cada entry de forma asíncrona (no bloquear respuesta)
   if (payload.entry) {
     for (const entry of payload.entry) {
       for (const change of entry.changes) {
@@ -116,11 +118,20 @@ export const handleWebhookEvent = (req: Request, res: Response): void => {
               referral: message.referral
             });
 
-            // TODO: Aquí se procesará el mensaje según su tipo
-            // - Crear/buscar contacto en BD
-            // - Crear/buscar ticket
-            // - Guardar mensaje
-            // - Descargar media si aplica
+            // Buscar whatsapp por phoneNumberId
+            const whatsapp = await Whatsapp.findOne({
+              where: { phoneNumberId }
+            });
+
+            if (!whatsapp) {
+              console.error(`❌ No se encontró WhatsApp con phoneNumberId: ${phoneNumberId}`);
+              continue;
+            }
+
+            // Procesar mensaje de forma asíncrona (no esperar)
+            HandleMetaWebhookMessage({ payload, whatsapp }).catch(err => {
+              console.error("[MetaWebhookController] Error procesando mensaje:", err);
+            });
           }
         }
 
