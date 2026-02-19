@@ -19,7 +19,7 @@ import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTi
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import SendApiChatbotMessage from "../services/WbotServices/SendApiChatbotMessage";
 import SendExternalWhatsAppImageMessage from "../services/WbotServices/SendExternalWhatsAppImageMessage";
-import SendExternalWhatsAppMessage from "../services/WbotServices/SendExternalWhatsAppMessage";
+import SendExternalWhatsAppMessage from "../services/ExternalServices/SendExternalWhatsAppMessage";
 import FindGroupByNameService from "../services/WbotServices/FindGroupByNameService";
 import SendMessageToTicketService from "../services/WbotServices/SendMessageToTicketService";
 import {
@@ -1390,7 +1390,7 @@ export const findGroupByName = async (
 
     if (!result.success) {
       let statusCode = 500;
-      
+
       if (result.error === "WHATSAPP_NOT_FOUND") {
         statusCode = 404;
       } else if (result.error === "WHATSAPP_DISCONNECTED") {
@@ -1469,7 +1469,7 @@ export const sendMessageToTicket = async (
 
     if (!result.success) {
       let statusCode = 500;
-      
+
       if (result.error === "TICKET_NOT_FOUND") {
         statusCode = 404;
       }

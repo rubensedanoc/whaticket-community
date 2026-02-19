@@ -4,7 +4,7 @@ import { initWbot } from "../../libs/wbot";
 import SendMessageRequest from "../../models/SendMessageRequest";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
-import SendExternalWhatsAppMessage from "./SendExternalWhatsAppMessage";
+import SendExternalWhatsAppMessageWbot from "./SendExternalWhatsAppMessageWbot";
 import { wbotMessageListener } from "./wbotMessageListener";
 import wbotMonitor from "./wbotMonitor";
 
@@ -49,7 +49,7 @@ export const StartWhatsAppSession = async (
 
       // for (const failedRequest of failedSendMessageRequest) {
       //   try {
-      //     await SendExternalWhatsAppMessage({
+      //     await SendExternalWhatsAppMessageWbot({
       //       fromNumber: failedRequest.fromNumber,
       //       toNumber: failedRequest.toNumber,
       //       message: failedRequest.message,
