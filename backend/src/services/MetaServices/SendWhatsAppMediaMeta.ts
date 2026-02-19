@@ -104,7 +104,8 @@ const SendWhatsAppMediaMeta = async ({
       mediaType,
       mediaUrl: media.filename,
       read: true,
-      quotedMsgId: null
+      quotedMsgId: null,
+      timestamp: Math.floor(Date.now() / 1000)
     });
 
     // Actualizar último mensaje del ticket

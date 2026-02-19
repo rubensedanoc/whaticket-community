@@ -59,7 +59,7 @@ const SendWhatsAppMessageMeta = async ({
 
     // Enviar mensaje
     console.log("[SendWhatsAppMessageMeta] Enviando mensaje a:", ticket.contact.number);
-    
+
     const result: MetaApiSuccessResponse = await client.sendText({
       to: ticket.contact.number,
       body: bodyFormated,
@@ -78,7 +78,8 @@ const SendWhatsAppMessageMeta = async ({
       contactId: ticket.contactId,
       fromMe: true,
       read: true,
-      quotedMsgId: quotedMsg?.id
+      quotedMsgId: quotedMsg?.id,
+      timestamp: Math.floor(Date.now() / 1000)
     });
 
     // Actualizar último mensaje del ticket
@@ -116,7 +117,7 @@ const SendWhatsAppMessageMeta = async ({
     console.log("[SendWhatsAppMessageMeta] ERROR ContactNumber:", ticket.contact.number);
     console.log("[SendWhatsAppMessageMeta] ERROR Message:", err.message);
     console.log("[SendWhatsAppMessageMeta] ERROR Stack:", err.stack);
-    
+
     Sentry.captureException(err);
 
     throw new AppError("ERR_SENDING_WAPP_MSG_META");
