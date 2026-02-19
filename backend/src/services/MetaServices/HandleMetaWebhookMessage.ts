@@ -7,6 +7,7 @@ import { emitEvent } from "../../libs/emitEvent";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
 import { MetaWebhookMessage, MetaWebhookPayload } from "../../types/meta/MetaWebhookTypes";
+import DownloadMetaMedia from "./DownloadMetaMedia";
 
 interface HandleMetaWebhookMessageParams {
   payload: MetaWebhookPayload;
@@ -95,6 +96,27 @@ const processMessage = async (
     const messageBody = getMessageBody(message);
     const mediaType = getMediaType(message);
 
+    // Descargar media si el mensaje tiene adjuntos
+    let mediaUrl: string | null = null;
+    if (hasMedia(message)) {
+      try {
+        console.log("[HandleMetaWebhookMessage] Mensaje tiene media, descargando...");
+        const mediaInfo = getMediaInfo(message);
+
+        const downloadResult = await DownloadMetaMedia({
+          mediaId: mediaInfo.id,
+          accessToken: whatsapp.metaAccessToken,
+          mimeType: mediaInfo.mimeType
+        });
+
+        mediaUrl = downloadResult.filename;
+        console.log("[HandleMetaWebhookMessage] Media descargado:", mediaUrl);
+      } catch (err) {
+        console.error("[HandleMetaWebhookMessage] Error descargando media:", err);
+        // Continuar sin media si falla la descarga
+      }
+    }
+
     const newMessage = await Message.create({
       id: message.id, // wamid.xxx
       body: messageBody,
@@ -102,7 +124,7 @@ const processMessage = async (
       contactId: contact.id,
       fromMe: false,
       mediaType: mediaType,
-      mediaUrl: null, // TODO: Implementar descarga de media
+      mediaUrl: mediaUrl,
       read: false,
       quotedMsgId: message.context?.id || null,
       timestamp: parseInt(message.timestamp),
@@ -159,13 +181,13 @@ const getMessageBody = (message: MetaWebhookMessage): string => {
     case "text":
       return message.text?.body || "";
     case "image":
-      return message.image?.caption || "📷 Imagen";
+      return message.image?.caption || "Imagen";
     case "audio":
       return "🎵 Audio";
     case "video":
-      return message.video?.caption || "🎥 Video";
+      return message.video?.caption || "Video";
     case "document":
-      return message.document?.caption || message.document?.filename || "📄 Documento";
+      return message.document?.caption || message.document?.filename || "Documento";
     case "location":
       return "📍 Ubicación";
     case "sticker":
@@ -190,6 +212,52 @@ const getMediaType = (message: MetaWebhookMessage): string | null => {
       return "application";
     default:
       return null;
+  }
+};
+
+/**
+ * Verifica si el mensaje tiene media adjunto
+ */
+const hasMedia = (message: MetaWebhookMessage): boolean => {
+  return message.type === "image" ||
+         message.type === "audio" ||
+         message.type === "video" ||
+         message.type === "document" ||
+         message.type === "sticker";
+};
+
+/**
+ * Extrae información del media del mensaje
+ */
+const getMediaInfo = (message: MetaWebhookMessage): { id: string; mimeType: string } => {
+  switch (message.type) {
+    case "image":
+      return {
+        id: message.image!.id,
+        mimeType: message.image!.mime_type
+      };
+    case "audio":
+      return {
+        id: message.audio!.id,
+        mimeType: message.audio!.mime_type
+      };
+    case "video":
+      return {
+        id: message.video!.id,
+        mimeType: message.video!.mime_type
+      };
+    case "document":
+      return {
+        id: message.document!.id,
+        mimeType: message.document!.mime_type
+      };
+    case "sticker":
+      return {
+        id: message.sticker!.id,
+        mimeType: message.sticker!.mime_type
+      };
+    default:
+      throw new Error(`Tipo de mensaje no soportado para media: ${message.type}`);
   }
 };
 
