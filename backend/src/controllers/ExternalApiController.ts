@@ -41,7 +41,7 @@ import utc from "dayjs/plugin/utc";
 import Country from "../models/Country";
 import WhatsappCountry from "../models/WhatsappCountry";
 import Queue from "../models/Queue";
-import { addMessageToQueue } from "../services/WbotServices/SendExternalWhatsAppMessageV2";
+import { addMessageToQueue } from "../services/ExternalServices/SendExternalWhatsAppMessageV2";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

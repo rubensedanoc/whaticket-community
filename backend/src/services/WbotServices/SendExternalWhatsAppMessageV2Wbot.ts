@@ -29,7 +29,7 @@ const delay = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-const processQueue = async () => {
+const processQueueWbot = async () => {
   if (queueState.processing) return;
   queueState.processing = true;
 
@@ -100,7 +100,7 @@ const processQueue = async () => {
   queueState.processing = false;
 };
 
-export const addMessageToQueue = async ({
+export const addMessageToQueueWbot = async ({
   fromNumber,
   toNumber,
   message,
@@ -137,7 +137,7 @@ export const addMessageToQueue = async ({
     queueState.queue.push({ fromNumber, toNumber, message, mediaUrl, sendMessageRequest });
 
     if (!queueState.processing) {
-      processQueue();
+      processQueueWbot();
     }
 
     data = { sendMessageRequest };
