@@ -54,9 +54,16 @@ const SendWhatsAppMediaMeta = async ({
     // Formatear caption si existe
     const caption = body ? formatBody(body, ticket.contact) : undefined;
 
+    // Normalizar MIME type (Meta API no acepta audio/mp3, debe ser audio/mpeg)
+    let normalizedMimetype = media.mimetype;
+    if (media.mimetype === "audio/mp3") {
+      normalizedMimetype = "audio/mpeg";
+      console.log("[SendWhatsAppMediaMeta] MIME type normalizado: audio/mp3 -> audio/mpeg");
+    }
+
     // Subir media a Meta
     console.log("[SendWhatsAppMediaMeta] Subiendo media a Meta...");
-    const uploadResult = await client.uploadMedia(media.path, media.mimetype);
+    const uploadResult = await client.uploadMedia(media.path, normalizedMimetype);
     const mediaId = uploadResult.id;
     console.log("[SendWhatsAppMediaMeta] Media subida, ID:", mediaId);
 
