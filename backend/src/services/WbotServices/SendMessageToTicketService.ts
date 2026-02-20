@@ -1,5 +1,6 @@
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
+import Whatsapp from "../../models/Whatsapp";
 import SendWhatsAppMessage from "./SendWhatsAppMessage";
 import { verifyMessage } from "./wbotMessageListener";
 
@@ -58,6 +59,10 @@ const SendMessageToTicketService = async ({
         {
           model: Contact,
           as: "contact"
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp"
         }
       ]
     });
@@ -67,6 +72,23 @@ const SendMessageToTicketService = async ({
         success: false,
         error: "TICKET_NOT_FOUND",
         message: `No se encontró el ticket con ID ${ticketId}`
+      };
+    }
+
+    if (!ticket.whatsapp) {
+      return {
+        success: false,
+        error: "WHATSAPP_NOT_FOUND",
+        message: `No se encontró la conexión de WhatsApp para el ticket ${ticketId}`
+      };
+    }
+
+    const validStatuses = ["CONNECTED", "PAIRING", "OPENING"];
+    if (!validStatuses.includes(ticket.whatsapp.status)) {
+      return {
+        success: false,
+        error: "WHATSAPP_DISCONNECTED",
+        message: `La conexión de WhatsApp no está activa. Estado actual: ${ticket.whatsapp.status}`
       };
     }
 
@@ -92,7 +114,8 @@ const SendMessageToTicketService = async ({
     await verifyMessage({
       msg: sentMessage,
       ticket: ticket,
-      contact: ticket.contact
+      contact: ticket.contact,
+      skipUnreadReset: true
     });
 
     console.log("[SendMessageToTicketService] ✅ Mensaje guardado en BD y emitido al frontend");
