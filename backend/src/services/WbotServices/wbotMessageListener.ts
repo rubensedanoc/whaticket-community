@@ -280,7 +280,8 @@ export const verifyMessage = async ({
   isPrivate = false,
   updateTicketLastMessage = true,
   identifier = "",
-  shouldUpdateUserHadContact = true
+  shouldUpdateUserHadContact = true,
+  skipUnreadReset = false
 }: {
   msg: WbotMessage;
   ticket: Ticket;
@@ -289,6 +290,7 @@ export const verifyMessage = async ({
   updateTicketLastMessage?: boolean;
   identifier?: string;
   shouldUpdateUserHadContact?: boolean;
+  skipUnreadReset?: boolean;
 }) => {
   if (msg.type === "location") msg = prepareLocation(msg);
 
@@ -305,8 +307,34 @@ export const verifyMessage = async ({
     quotedMsgId: quotedMsg?.id,
     isPrivate,
     timestamp: msg.timestamp,
-    ...(identifier && { identifier })
+    identifier: skipUnreadReset ? "SKIP_UNREAD_RESET" : (identifier || undefined)
   };
+
+  if (skipUnreadReset) {
+    console.log(`[VERIFY] 🔒 Guardando mensaje con identifier: SKIP_UNREAD_RESET - ID: ${msg.id.id}`);
+  }
+
+  // Verificar si el mensaje ya existe en la base de datos para evitar duplicados
+  // Primero verificar por ID exacto
+  let existingMessage = await Message.findByPk(msg.id.id);
+  
+  // Si no existe por ID, verificar por criterios alternativos (mismo ticket, timestamp y body)
+  // Esto maneja el caso donde WhatsApp genera IDs diferentes para el mismo mensaje
+  if (!existingMessage) {
+    existingMessage = await Message.findOne({
+      where: {
+        ticketId: ticket.id,
+        timestamp: msg.timestamp,
+        body: msg.body,
+        fromMe: msg.fromMe
+      }
+    });
+  }
+  
+  if (existingMessage) {
+    console.log(`[VERIFY] ⚠️ Mensaje ya existe en BD - ID: ${existingMessage.id}, retornando mensaje existente`);
+    return existingMessage;
+  }
 
   if (updateTicketLastMessage) {
 
@@ -700,10 +728,10 @@ const handleMessage = async ({
 
     const whatsapp = await ShowWhatsAppService(wbot.id!);
 
+    const contact = await verifyContact(msgContact);
+
     // if i sent the message, unreadMessages = 0 otherwise unreadMessages = chat.unreadCount
     const unreadMessages = msg.fromMe ? 0 : chat.unreadCount;
-
-    const contact = await verifyContact(msgContact);
 
     // if the message is the conection farewell message, dont do anything
     if (
@@ -726,6 +754,17 @@ const handleMessage = async ({
       return;
     }
 
+    // Verificar si el mensaje ya existe con el flag SKIP_UNREAD_RESET
+    // Si existe, significa que ya fue procesado desde SendMessageToTicketService
+    // y NO debemos actualizar unreadMessages
+    const existingMsgWithFlag = await Message.findByPk(msg.id.id);
+    const shouldPreserveUnread = existingMsgWithFlag?.identifier === "SKIP_UNREAD_RESET";
+    
+    if (shouldPreserveUnread) {
+      console.log(`[LISTENER] 🔒 Mensaje con flag SKIP_UNREAD_RESET detectado - ID: ${msg.id.id}`);
+      console.log(`[LISTENER] 🔒 Preservando contador de mensajes no leídos`);
+    }
+    
     let ticket: Ticket | null;
 
     // Validamos primero si el mensaje puede pertenecer a un ticket ya existente
@@ -742,11 +781,25 @@ const handleMessage = async ({
       ticket = await FindOrCreateTicketService({
         contact,
         whatsappId: whatsapp.id,
-        unreadMessages,
+        unreadMessages: shouldPreserveUnread ? undefined : unreadMessages,
         groupContact,
         lastMessageTimestamp: msg.timestamp,
         msgFromMe: msg.fromMe,
         body: msg.body
+      });
+    } else if (shouldPreserveUnread) {
+      // Si el ticket ya existe pero el mensaje tiene el flag, NO actualizar unreadMessages
+      // Solo actualizar si el mensaje es del cliente (no fromMe)
+      if (!msg.fromMe) {
+        await ticket.update({
+          unreadMessages: chat.unreadCount
+        });
+      }
+      // Si es fromMe con flag, NO hacer nada (preservar contador)
+    } else {
+      // Comportamiento normal: actualizar unreadMessages
+      await ticket.update({
+        unreadMessages
       });
     }
 

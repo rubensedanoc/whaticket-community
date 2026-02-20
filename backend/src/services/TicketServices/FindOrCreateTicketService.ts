@@ -273,7 +273,7 @@ const findTicket = async ({
   // if ticket exists, update his unreadMessages
   if (ticket) {
     await ticket.update({
-      unreadMessages,
+      ...(unreadMessages !== undefined && { unreadMessages }),
       ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
         lastMessageTimestamp
       }),
@@ -332,7 +332,7 @@ const findTicket = async ({
       await ticket.update({
         status: "open",
         // userId: null,
-        unreadMessages,
+        ...(unreadMessages !== undefined && { unreadMessages }),
         ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
           lastMessageTimestamp
         })
@@ -448,7 +448,7 @@ const findTicket = async ({
               : "open"
             : undefined,
         // userId: null,
-        unreadMessages,
+        ...(unreadMessages !== undefined && { unreadMessages }),
         ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
           lastMessageTimestamp
         }),

@@ -82,6 +82,7 @@ export const searchForUnSaveMessages = async ({
     let chats = await wbot.getChats();
 
     response.logs.push(`END - wbot.getChats ${Date.now()}`);
+    response.logs.push(`Total chats found: ${chats?.length || 0}`);
 
     // filter chats with last message in the last x hours
     let last8HoursChats = chats.filter(chat =>
@@ -217,9 +218,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       console.log("client args: ", args);
 
-      // @ts-ignore - session option deprecated but still works
       const wbot: Session = new Client({
-        // @ts-ignore
         session: sessionCfg,
         authStrategy: new LocalAuth({
           clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
@@ -230,7 +229,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           executablePath: process.env.CHROME_BIN || undefined,
           // @ts-ignore
           browserWSEndpoint: process.env.CHROME_WS || undefined,
-          args: args.split(" ")
+          args: args.split(" "),
+          // @ts-ignore - protocolTimeout exists in whatsapp-web.js but TS definitions are outdated
+          protocolTimeout: 300000 // 5 minutos para operaciones pesadas como getChats()
       }
       });
 

@@ -1,6 +1,7 @@
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
 import SendWhatsAppMessage from "../MessageServices/SendWhatsAppMessage";
+import Whatsapp from "../../models/Whatsapp";
 
 interface CalendarEvent {
   id?: string;
@@ -57,6 +58,10 @@ const SendMessageToTicketService = async ({
         {
           model: Contact,
           as: "contact"
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp"
         }
       ]
     });
@@ -69,8 +74,25 @@ const SendMessageToTicketService = async ({
       };
     }
 
+    if (!ticket.whatsapp) {
+      return {
+        success: false,
+        error: "WHATSAPP_NOT_FOUND",
+        message: `No se encontró la conexión de WhatsApp para el ticket ${ticketId}`
+      };
+    }
+
+    const validStatuses = ["CONNECTED", "PAIRING", "OPENING"];
+    if (!validStatuses.includes(ticket.whatsapp.status)) {
+      return {
+        success: false,
+        error: "WHATSAPP_DISCONNECTED",
+        message: `La conexión de WhatsApp no está activa. Estado actual: ${ticket.whatsapp.status}`
+      };
+    }
+
     let finalMessage = message;
-    
+
     if (calendarEvent?.hangoutLink) {
       finalMessage = `${message}\n\n🔗 *Link de reunión:*\n${calendarEvent.hangoutLink}`;
     } else if (calendarEvent?.conferenceData?.entryPoints) {
@@ -86,6 +108,8 @@ const SendMessageToTicketService = async ({
       body: finalMessage,
       ticket: ticket
     });
+
+    console.log("[SendMessageToTicketService] ✅ Mensaje guardado en BD y emitido al frontend");
 
     return {
       success: true,
