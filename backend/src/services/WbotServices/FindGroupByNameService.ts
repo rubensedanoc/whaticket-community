@@ -37,7 +37,8 @@ const FindGroupByNameService = async ({
       };
     }
 
-    if (whatsapp.status !== "CONNECTED") {
+    const validStatuses = ["CONNECTED", "PAIRING", "OPENING"];
+    if (!validStatuses.includes(whatsapp.status)) {
       return {
         success: false,
         error: "WHATSAPP_DISCONNECTED",
