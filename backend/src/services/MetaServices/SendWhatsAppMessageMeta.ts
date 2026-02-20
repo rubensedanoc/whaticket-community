@@ -49,6 +49,11 @@ const SendWhatsAppMessageMeta = async ({
     const bodyFormated = formatBody(body, ticket.contact);
     console.log("[SendWhatsAppMessageMeta] Body formateado OK");
 
+    // Limpiar número de teléfono (remover + si existe)
+    const cleanNumber = ticket.contact.number.replace(/^\+/, '');
+    console.log("[SendWhatsAppMessageMeta] Número original:", ticket.contact.number);
+    console.log("[SendWhatsAppMessageMeta] Número limpio:", cleanNumber);
+
     // Preparar replyToMessageId si hay mensaje citado
     let replyToMessageId: string | undefined;
     if (quotedMsg) {
@@ -58,17 +63,26 @@ const SendWhatsAppMessageMeta = async ({
     }
 
     // Enviar mensaje
-    console.log("[SendWhatsAppMessageMeta] Enviando mensaje a:", ticket.contact.number);
+    console.log("[SendWhatsAppMessageMeta] Enviando mensaje a:", cleanNumber);
+    console.log("[SendWhatsAppMessageMeta] PhoneNumberId:", whatsapp.phoneNumberId);
+    console.log("[SendWhatsAppMessageMeta] Payload:", JSON.stringify({
+      to: cleanNumber,
+      body: bodyFormated,
+      replyToMessageId
+    }));
 
     const result: MetaApiSuccessResponse = await client.sendText({
-      to: ticket.contact.number,
+      to: cleanNumber,
       body: bodyFormated,
       replyToMessageId
     });
 
+    console.log("[SendWhatsAppMessageMeta] Respuesta completa de Meta API:", JSON.stringify(result, null, 2));
+
     const messageId = result.messages[0].id;
     console.log("[SendWhatsAppMessageMeta] Mensaje enviado exitosamente");
     console.log("[SendWhatsAppMessageMeta] MessageId:", messageId);
+    console.log("[SendWhatsAppMessageMeta] WA_ID del contacto:", result.contacts[0]?.wa_id);
 
     // Guardar mensaje en BD (Meta no tiene eventos de socket como Puppeteer)
     const newMessage = await Message.create({
