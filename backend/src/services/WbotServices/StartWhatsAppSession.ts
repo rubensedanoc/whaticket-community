@@ -11,6 +11,23 @@ import wbotMonitor from "./wbotMonitor";
 export const StartWhatsAppSession = async (
   whatsapp: Whatsapp
 ): Promise<void> => {
+  const apiType = whatsapp.apiType || "whatsapp-web.js";
+
+  if (apiType === "meta-api") {
+    logger.info(`Skipping WhatsApp Web session for ${whatsapp.name} (apiType: meta-api)`);
+    await whatsapp.update({ status: "CONNECTED" });
+    emitEvent({
+      event: {
+        name: "whatsappSession",
+        data: {
+          action: "update",
+          session: whatsapp
+        }
+      }
+    });
+    return;
+  }
+
   await whatsapp.update({ status: "OPENING" });
 
   // const io = getIO();
