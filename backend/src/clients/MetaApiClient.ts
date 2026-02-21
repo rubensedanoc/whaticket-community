@@ -147,6 +147,25 @@ export class MetaApiClient {
     }
   }
 
+  // ========== MESSAGE STATUS ==========
+
+  async markMessageAsRead(messageId: string): Promise<{ success: boolean }> {
+    try {
+      const response = await this.client.post<{ success: boolean }>(
+        `/${this.phoneNumberId}/messages`,
+        {
+          messaging_product: "whatsapp",
+          status: "read",
+          message_id: messageId
+        }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
   private handleError(error: unknown): never {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<MetaApiErrorResponse>;

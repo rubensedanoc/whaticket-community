@@ -7,6 +7,7 @@ import {
 } from "../types/meta/MetaWebhookTypes";
 import Whatsapp from "../models/Whatsapp";
 import HandleMetaWebhookMessage from "../services/MetaServices/HandleMetaWebhookMessage";
+import HandleMetaMessageStatus from "../services/MetaServices/HandleMetaMessageStatus";
 
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
 
@@ -148,7 +149,10 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<v
               errors: status.errors
             });
 
-            // TODO: Aquí se actualizará el estado del mensaje en BD
+            // Procesar actualización de estado
+            HandleMetaMessageStatus({ status }).catch(err => {
+              console.error("[MetaWebhookController] Error procesando estado:", err);
+            });
           }
         }
 

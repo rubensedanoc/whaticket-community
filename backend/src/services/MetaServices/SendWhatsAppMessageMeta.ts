@@ -85,6 +85,7 @@ const SendWhatsAppMessageMeta = async ({
     console.log("[SendWhatsAppMessageMeta] WA_ID del contacto:", result.contacts[0]?.wa_id);
 
     // Guardar mensaje en BD (Meta no tiene eventos de socket como Puppeteer)
+    // ack: 0 = pending, se actualizará cuando llegue el webhook de estado
     const newMessage = await Message.create({
       id: messageId,
       body: bodyFormated,
@@ -93,7 +94,8 @@ const SendWhatsAppMessageMeta = async ({
       fromMe: true,
       read: true,
       quotedMsgId: quotedMsg?.id,
-      timestamp: Math.floor(Date.now() / 1000)
+      timestamp: Math.floor(Date.now() / 1000),
+      ack: 0
     });
 
     // Actualizar último mensaje del ticket
