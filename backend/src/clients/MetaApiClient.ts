@@ -5,10 +5,12 @@ import {
   SendImageParams,
   SendAudioParams,
   SendDocumentParams,
+  SendTemplateParams,
   buildTextPayload,
   buildImagePayload,
   buildAudioPayload,
-  buildDocumentPayload
+  buildDocumentPayload,
+  buildTemplatePayload
 } from "../types/meta/MetaSendTypes";
 import {
   MetaApiSuccessResponse,
@@ -87,6 +89,11 @@ export class MetaApiClient {
       throw new Error("Se requiere mediaId o mediaUrl para enviar documento");
     }
     const payload = buildDocumentPayload(params);
+    return this.sendMessage(payload);
+  }
+
+  async sendTemplate(params: SendTemplateParams): Promise<MetaApiSuccessResponse> {
+    const payload = buildTemplatePayload(params);
     return this.sendMessage(payload);
   }
 

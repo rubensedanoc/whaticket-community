@@ -7,6 +7,7 @@ import formatBody from "../../helpers/Mustache";
 import { MetaApiClient } from "../../clients/MetaApiClient";
 import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 import { emitEvent } from "../../libs/emitEvent";
+import CheckMetaConversationWindow from "../../helpers/CheckMetaConversationWindow";
 
 interface Request {
   body: string;
@@ -62,20 +63,59 @@ const SendWhatsAppMessageMeta = async ({
       console.log("[SendWhatsAppMessageMeta] ReplyToMessageId:", replyToMessageId);
     }
 
-    // Enviar mensaje
-    console.log("[SendWhatsAppMessageMeta] Enviando mensaje a:", cleanNumber);
-    console.log("[SendWhatsAppMessageMeta] PhoneNumberId:", whatsapp.phoneNumberId);
-    console.log("[SendWhatsAppMessageMeta] Payload:", JSON.stringify({
-      to: cleanNumber,
-      body: bodyFormated,
-      replyToMessageId
-    }));
+    // Validar ventana de conversación de 24 horas
+    const windowIsOpen = await CheckMetaConversationWindow(ticket);
+    console.log("[SendWhatsAppMessageMeta] Ventana de 24 horas activa:", windowIsOpen);
 
-    const result: MetaApiSuccessResponse = await client.sendText({
-      to: cleanNumber,
-      body: bodyFormated,
-      replyToMessageId
-    });
+    let result: MetaApiSuccessResponse;
+
+    if (!windowIsOpen) {
+      // Ventana cerrada: Enviar plantilla con el mensaje del agente incluido
+      console.log("[SendWhatsAppMessageMeta] ⚠️ Ventana cerrada, enviando plantilla para reabrir conversación");
+      
+      // Nombre de la plantilla configurada en Meta
+      // NOTA: Esta plantilla debe estar aprobada en Meta Business Manager
+      const templateName = process.env.META_REENGAGEMENT_TEMPLATE_NAME || "reengagement_message";
+      
+      try {
+        // Enviar plantilla con el mensaje del agente como parámetro
+        result = await client.sendTemplate({
+          to: cleanNumber,
+          templateName: templateName,
+          languageCode: "es",
+          bodyParameters: [bodyFormated] // El mensaje del agente se incluye como {{1}}
+        });
+
+        console.log("[SendWhatsAppMessageMeta] ✅ Plantilla enviada con mensaje incluido");
+      } catch (templateErr) {
+        console.error("[SendWhatsAppMessageMeta] ❌ Error enviando plantilla:", templateErr);
+        
+        // Si falla la plantilla, intentar enviar mensaje normal
+        // (probablemente fallará también, pero al menos lo intentamos)
+        console.log("[SendWhatsAppMessageMeta] Intentando enviar mensaje normal como fallback...");
+        result = await client.sendText({
+          to: cleanNumber,
+          body: bodyFormated,
+          replyToMessageId
+        });
+      }
+    } else {
+      // Ventana abierta: Enviar mensaje normal
+      console.log("[SendWhatsAppMessageMeta] Enviando mensaje normal (ventana activa)");
+      console.log("[SendWhatsAppMessageMeta] Enviando mensaje a:", cleanNumber);
+      console.log("[SendWhatsAppMessageMeta] PhoneNumberId:", whatsapp.phoneNumberId);
+      console.log("[SendWhatsAppMessageMeta] Payload:", JSON.stringify({
+        to: cleanNumber,
+        body: bodyFormated,
+        replyToMessageId
+      }));
+
+      result = await client.sendText({
+        to: cleanNumber,
+        body: bodyFormated,
+        replyToMessageId
+      });
+    }
 
     console.log("[SendWhatsAppMessageMeta] Respuesta completa de Meta API:", JSON.stringify(result, null, 2));
 
