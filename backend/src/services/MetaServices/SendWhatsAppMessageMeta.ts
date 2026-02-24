@@ -50,22 +50,35 @@ const SendWhatsAppMessageMeta = async ({
     const bodyFormated = formatBody(body, ticket.contact);
     console.log("[SendWhatsAppMessageMeta] Body formateado OK");
 
-    // Limpiar número de teléfono (remover + si existe)
-    const cleanNumber = ticket.contact.number.replace(/^\+/, '');
-    console.log("[SendWhatsAppMessageMeta] Número original:", ticket.contact.number);
-    console.log("[SendWhatsAppMessageMeta] Número limpio:", cleanNumber);
+    // Determinar número de destino
+    let recipientNumber: string;
+    
+    if (ticket.isGroup) {
+      recipientNumber = ticket.contact.number;
+      console.log("[SendWhatsAppMessageMeta] Enviando a grupo:", recipientNumber);
+    } else {
+      recipientNumber = ticket.contact.number.replace(/^\+/, '');
+      console.log("[SendWhatsAppMessageMeta] Número original:", ticket.contact.number);
+      console.log("[SendWhatsAppMessageMeta] Número limpio:", recipientNumber);
+    }
 
     // Preparar replyToMessageId si hay mensaje citado
     let replyToMessageId: string | undefined;
     if (quotedMsg) {
-      // Para Meta API, usamos directamente el ID del mensaje (formato wamid.xxx)
       replyToMessageId = quotedMsg.id;
       console.log("[SendWhatsAppMessageMeta] ReplyToMessageId:", replyToMessageId);
     }
 
-    // Validar ventana de conversación de 24 horas
-    const windowStatus = await CheckMetaConversationWindow(ticket);
-    console.log("[SendWhatsAppMessageMeta] Estado de ventana:", windowStatus);
+    // Validar ventana de conversación solo para individuales
+    let windowStatus: { isOpen: boolean; type: string };
+    
+    if (!ticket.isGroup) {
+      windowStatus = await CheckMetaConversationWindow(ticket);
+      console.log("[SendWhatsAppMessageMeta] Estado de ventana:", windowStatus);
+    } else {
+      console.log("[SendWhatsAppMessageMeta] Grupo: omitiendo validación de ventana de 24h");
+      windowStatus = { isOpen: true, type: "active" };
+    }
 
     let result: MetaApiSuccessResponse;
 
@@ -97,21 +110,19 @@ const SendWhatsAppMessageMeta = async ({
 
         // Enviar plantilla con el mensaje del agente como parámetro
         result = await client.sendTemplate({
-          to: cleanNumber,
+          to: recipientNumber,
           templateName: templateName,
           languageCode: "es",
-          bodyParameters: [cleanedBody] // El mensaje del agente limpio se incluye como {{1}}
+          bodyParameters: [cleanedBody]
         });
 
         console.log(`[SendWhatsAppMessageMeta] ✅ Plantilla ${templateName} enviada con mensaje incluido`);
       } catch (templateErr) {
         console.error("[SendWhatsAppMessageMeta] ❌ Error enviando plantilla:", templateErr);
         
-        // Si falla la plantilla, intentar enviar mensaje normal
-        // (probablemente fallará también, pero al menos lo intentamos)
         console.log("[SendWhatsAppMessageMeta] Intentando enviar mensaje normal como fallback...");
         result = await client.sendText({
-          to: cleanNumber,
+          to: recipientNumber,
           body: bodyFormated,
           replyToMessageId
         });
@@ -119,16 +130,16 @@ const SendWhatsAppMessageMeta = async ({
     } else {
       // Ventana abierta: Enviar mensaje normal
       console.log("[SendWhatsAppMessageMeta] Enviando mensaje normal (ventana activa)");
-      console.log("[SendWhatsAppMessageMeta] Enviando mensaje a:", cleanNumber);
+      console.log("[SendWhatsAppMessageMeta] Enviando mensaje a:", recipientNumber);
       console.log("[SendWhatsAppMessageMeta] PhoneNumberId:", whatsapp.phoneNumberId);
       console.log("[SendWhatsAppMessageMeta] Payload:", JSON.stringify({
-        to: cleanNumber,
+        to: recipientNumber,
         body: bodyFormated,
         replyToMessageId
       }));
 
       result = await client.sendText({
-        to: cleanNumber,
+        to: recipientNumber,
         body: bodyFormated,
         replyToMessageId
       });

@@ -61,30 +61,69 @@ const processMessage = async (
     console.log("[HandleMetaWebhookMessage] Tipo:", message.type);
     console.log("[HandleMetaWebhookMessage] From:", message.from);
 
-    // Obtener información del contacto
-    const contactInfo = value.contacts?.find((c: any) => c.wa_id === message.from);
-    const contactName = contactInfo?.profile?.name || message.from;
-    const contactNumber = message.from;
+    // Meta API usa el prefijo 120363 para identificar grupos de WhatsApp
+    // Formato grupo: 120363XXXXXXXXXX@g.us
+    // Formato individual: número de teléfono normal (ej: 5215512345678)
+    const isGroup = message.from.startsWith('120363');
+    console.log("[HandleMetaWebhookMessage] Es grupo:", isGroup);
 
-    console.log("[HandleMetaWebhookMessage] Contacto:", contactName, contactNumber);
+    let contact: Contact;
+    let groupContact: Contact | undefined;
 
-    // Crear o actualizar contacto
-    const contact = await CreateOrUpdateContactService({
-      name: contactName,
-      number: contactNumber,
-      isGroup: false,
-      email: "",
-      profilePicUrl: ""
-    });
+    if (isGroup) {
+      groupContact = await Contact.findOne({
+        where: {
+          number: message.from,
+          isGroup: true
+        }
+      });
 
-    console.log("[HandleMetaWebhookMessage] Contacto creado/actualizado:", contact.id);
+      if (!groupContact) {
+        groupContact = await Contact.create({
+          name: `Grupo ${message.from}`,
+          number: message.from,
+          isGroup: true,
+          email: ""
+        });
+        console.log("[HandleMetaWebhookMessage] Grupo creado automáticamente:", groupContact.id);
+      }
 
-    // Buscar o crear ticket
+      const contactInfo = value.contacts?.find((c: any) => c.wa_id === message.from);
+      const participantName = contactInfo?.profile?.name || "Participante";
+      const participantNumber = contactInfo?.wa_id || message.from;
+
+      contact = await CreateOrUpdateContactService({
+        name: participantName,
+        number: participantNumber,
+        isGroup: false,
+        email: "",
+        profilePicUrl: ""
+      });
+
+      console.log("[HandleMetaWebhookMessage] Participante del grupo:", contact.id);
+    } else {
+      const contactInfo = value.contacts?.find((c: any) => c.wa_id === message.from);
+      const contactName = contactInfo?.profile?.name || message.from;
+      const contactNumber = message.from;
+
+      console.log("[HandleMetaWebhookMessage] Contacto:", contactName, contactNumber);
+
+      contact = await CreateOrUpdateContactService({
+        name: contactName,
+        number: contactNumber,
+        isGroup: false,
+        email: "",
+        profilePicUrl: ""
+      });
+
+      console.log("[HandleMetaWebhookMessage] Contacto creado/actualizado:", contact.id);
+    }
+
     const ticket = await FindOrCreateTicketService({
       contact,
       whatsappId: whatsapp.id,
       unreadMessages: 1,
-      groupContact: undefined,
+      groupContact: isGroup ? groupContact : undefined,
       lastMessageTimestamp: parseInt(message.timestamp),
       msgFromMe: false,
       body: getMessageBody(message)
