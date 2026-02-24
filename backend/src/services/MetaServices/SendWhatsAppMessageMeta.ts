@@ -84,12 +84,23 @@ const SendWhatsAppMessageMeta = async ({
       }
       
       try {
+        // Limpiar el mensaje para la plantilla:
+        // Meta no permite saltos de línea, tabs, ni más de 4 espacios consecutivos en parámetros
+        const cleanedBody = bodyFormated
+          .replace(/\n/g, ' ')           // Reemplazar saltos de línea con espacio
+          .replace(/\t/g, ' ')           // Reemplazar tabs con espacio
+          .replace(/\s{4,}/g, '   ')     // Reemplazar 4+ espacios con 3 espacios
+          .trim();                       // Eliminar espacios al inicio/final
+
+        console.log("[SendWhatsAppMessageMeta] Mensaje original:", bodyFormated);
+        console.log("[SendWhatsAppMessageMeta] Mensaje limpio para plantilla:", cleanedBody);
+
         // Enviar plantilla con el mensaje del agente como parámetro
         result = await client.sendTemplate({
           to: cleanNumber,
           templateName: templateName,
           languageCode: "es",
-          bodyParameters: [bodyFormated] // El mensaje del agente se incluye como {{1}}
+          bodyParameters: [cleanedBody] // El mensaje del agente limpio se incluye como {{1}}
         });
 
         console.log(`[SendWhatsAppMessageMeta] ✅ Plantilla ${templateName} enviada con mensaje incluido`);
