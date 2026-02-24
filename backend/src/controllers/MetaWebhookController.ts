@@ -5,9 +5,11 @@ import {
   MetaWebhookMessage,
   MetaWebhookContact
 } from "../types/meta/MetaWebhookTypes";
+import { MetaGroupWebhookPayload } from "../types/meta/MetaGroupWebhookTypes";
 import Whatsapp from "../models/Whatsapp";
 import HandleMetaWebhookMessage from "../services/MetaServices/HandleMetaWebhookMessage";
 import HandleMetaMessageStatus from "../services/MetaServices/HandleMetaMessageStatus";
+import HandleMetaGroupWebhook from "../services/MetaServices/HandleMetaGroupWebhook";
 
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
 
@@ -92,9 +94,18 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<v
   if (payload.entry) {
     for (const entry of payload.entry) {
       for (const change of entry.changes) {
-        const { value } = change;
+        const { value, field } = change;
         const phoneNumberId = value.metadata.phone_number_id;
         const displayPhoneNumber = value.metadata.display_phone_number;
+
+        // Webhooks de grupos
+        if (field && field.includes('group_')) {
+          console.log(`📁 Webhook de grupo recibido: ${field}`);
+          HandleMetaGroupWebhook({ payload: payload as unknown as MetaGroupWebhookPayload }).catch(err => {
+            console.error("[MetaWebhookController] Error procesando webhook de grupo:", err);
+          });
+          continue;
+        }
 
         // Obtener info del contacto remitente
         const contact: MetaWebhookContact | undefined = value.contacts?.[0];
