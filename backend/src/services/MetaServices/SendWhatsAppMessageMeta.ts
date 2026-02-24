@@ -64,18 +64,24 @@ const SendWhatsAppMessageMeta = async ({
     }
 
     // Validar ventana de conversación de 24 horas
-    const windowIsOpen = await CheckMetaConversationWindow(ticket);
-    console.log("[SendWhatsAppMessageMeta] Ventana de 24 horas activa:", windowIsOpen);
+    const windowStatus = await CheckMetaConversationWindow(ticket);
+    console.log("[SendWhatsAppMessageMeta] Estado de ventana:", windowStatus);
 
     let result: MetaApiSuccessResponse;
 
-    if (!windowIsOpen) {
-      // Ventana cerrada: Enviar plantilla con el mensaje del agente incluido
-      console.log("[SendWhatsAppMessageMeta] ⚠️ Ventana cerrada, enviando plantilla para reabrir conversación");
+    if (!windowStatus.isOpen) {
+      // Ventana cerrada o conversación nueva: Enviar plantilla apropiada
+      let templateName: string;
       
-      // Nombre de la plantilla configurada en Meta
-      // NOTA: Esta plantilla debe estar aprobada en Meta Business Manager
-      const templateName = process.env.META_REENGAGEMENT_TEMPLATE_NAME || "reengagement_message";
+      if (windowStatus.type === "new_conversation") {
+        // Conversación inicial - usar plantilla de bienvenida
+        templateName = process.env.META_INITIAL_TEMPLATE_NAME || "initial_conversation";
+        console.log("[SendWhatsAppMessageMeta] ⚠️ Conversación inicial, enviando plantilla de bienvenida");
+      } else {
+        // Ventana expirada - usar plantilla de reengagement
+        templateName = process.env.META_REENGAGEMENT_TEMPLATE_NAME || "reengagement_message";
+        console.log("[SendWhatsAppMessageMeta] ⚠️ Ventana cerrada, enviando plantilla de reengagement");
+      }
       
       try {
         // Enviar plantilla con el mensaje del agente como parámetro
@@ -86,7 +92,7 @@ const SendWhatsAppMessageMeta = async ({
           bodyParameters: [bodyFormated] // El mensaje del agente se incluye como {{1}}
         });
 
-        console.log("[SendWhatsAppMessageMeta] ✅ Plantilla enviada con mensaje incluido");
+        console.log(`[SendWhatsAppMessageMeta] ✅ Plantilla ${templateName} enviada con mensaje incluido`);
       } catch (templateErr) {
         console.error("[SendWhatsAppMessageMeta] ❌ Error enviando plantilla:", templateErr);
         
