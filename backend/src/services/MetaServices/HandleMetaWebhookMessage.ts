@@ -137,7 +137,7 @@ const processMessage = async (
     // Descargar media si el mensaje tiene adjuntos
     let mediaUrl: string | null = null;
     let messageBody = getMessageBody(message);
-    
+
     if (hasMedia(message)) {
       try {
         console.log("[HandleMetaWebhookMessage] Mensaje tiene media, descargando...");
@@ -150,12 +150,12 @@ const processMessage = async (
         });
 
         mediaUrl = downloadResult.filename;
-        
+
         // Si no hay caption, usar el filename como body (igual que Puppeteer)
         if (!hasCaption(message)) {
           messageBody = downloadResult.filename;
         }
-        
+
         console.log("[HandleMetaWebhookMessage] Media descargado:", mediaUrl);
       } catch (err) {
         console.error("[HandleMetaWebhookMessage] Error descargando media:", err);
@@ -198,7 +198,7 @@ const processMessage = async (
 
     // Emitir evento socket para actualizar frontend
     emitEvent({
-      to: [ticket.id.toString()],
+      to: [ticket.id.toString(), ticket.status, "notification"],
       event: {
         name: "appMessage",
         data: {
