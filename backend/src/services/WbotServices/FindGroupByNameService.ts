@@ -22,6 +22,19 @@ interface ServiceResponse {
   message?: string;
 }
 
+/**
+ * Normaliza un string eliminando tildes, acentos y caracteres especiales
+ * para hacer comparaciones insensibles a estos caracteres.
+ * Ejemplo: "Administración" → "administracion"
+ */
+const normalizeString = (str: string): string => {
+  return str
+    .normalize("NFD") // Descompone caracteres con acentos (é → e + ´)
+    .replace(/[\u0300-\u036f]/g, "") // Elimina los diacríticos (acentos, tildes)
+    .toLowerCase()
+    .trim();
+};
+
 const FindGroupByNameService = async ({
   groupName,
   whatsappId
@@ -46,37 +59,30 @@ const FindGroupByNameService = async ({
       };
     }
 
-    const searchName = groupName.trim().toLowerCase();
+    // Normalizar el nombre de búsqueda eliminando tildes y acentos
+    const normalizedSearchName = normalizeString(groupName);
 
-    let matchingGroups = await Contact.findAll({
+    // Obtener todos los grupos para hacer comparación normalizada
+    const allGroups = await Contact.findAll({
       where: {
-        isGroup: true,
-        [Op.and]: [
-          Sequelize.where(
-            Sequelize.fn("LOWER", Sequelize.col("name")),
-            searchName
-          )
-        ]
+        isGroup: true
       }
     });
 
+    // Filtrar grupos coincidentes con normalización
+    // Primero buscar coincidencia exacta
+    let matchingGroups = allGroups.filter(group => 
+      normalizeString(group.name) === normalizedSearchName
+    );
+
+    // Si no hay coincidencia exacta, buscar grupos que contengan el término
     if (matchingGroups.length === 0) {
-      matchingGroups = await Contact.findAll({
-        where: {
-          isGroup: true,
-          [Op.and]: [
-            Sequelize.where(
-              Sequelize.fn("LOWER", Sequelize.col("name")),
-              "LIKE",
-              `%${searchName}%`
-            )
-          ]
-        },
-        limit: 10,
-        order: [
-          [Sequelize.literal(`CHAR_LENGTH(name)`), "ASC"]
-        ]
-      });
+      matchingGroups = allGroups
+        .filter(group => 
+          normalizeString(group.name).includes(normalizedSearchName)
+        )
+        .sort((a, b) => a.name.length - b.name.length) // Ordenar por longitud
+        .slice(0, 10); // Limitar a 10 resultados
     }
 
     if (matchingGroups.length === 0) {
