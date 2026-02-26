@@ -163,6 +163,17 @@ const processMessage = async (
       }
     }
 
+    // Verificar si el mensaje citado existe antes de asignarlo
+    let quotedMsgId = null;
+    if (message.context?.id) {
+      const quotedMessage = await Message.findByPk(message.context.id);
+      if (quotedMessage) {
+        quotedMsgId = message.context.id;
+      } else {
+        console.log("[HandleMetaWebhookMessage] Mensaje citado no encontrado:", message.context.id);
+      }
+    }
+
     const newMessage = await Message.create({
       id: message.id, // wamid.xxx
       body: messageBody,
@@ -172,7 +183,7 @@ const processMessage = async (
       mediaType: mediaType,
       mediaUrl: mediaUrl,
       read: false,
-      quotedMsgId: message.context?.id || null,
+      quotedMsgId: quotedMsgId,
       timestamp: parseInt(message.timestamp),
       ack: 0
     });
