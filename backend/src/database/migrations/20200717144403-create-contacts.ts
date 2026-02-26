@@ -21,6 +21,10 @@ module.exports = {
       profilePicUrl: {
         type: DataTypes.STRING
       },
+      attentionType: {
+        type: DataTypes.ENUM("HIGH_TOUCH", "LOW_TOUCH", "TECH_TOUCH"),
+        allowNull: true
+      },
       createdAt: {
         type: DataTypes.DATE,
         allowNull: false
