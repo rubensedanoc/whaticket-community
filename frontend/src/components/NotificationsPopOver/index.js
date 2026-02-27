@@ -117,8 +117,15 @@ const NotificationsPopOver = () => {
     });
 
     socket.on("appMessage", (data) => {
-      // console.log("appMessage", data);
-      // console.log("user", user);
+      console.log("[DEBUG] appMessage recibido:", {
+        action: data.action,
+        ticketId: data.ticket?.id,
+        ticketUserId: data.ticket?.userId,
+        ticketQueueId: data.ticket?.queueId,
+        myUserId: user?.id,
+        myQueues: user?.queues?.map(q => q.id),
+        messageRead: data.message?.read,
+      });
 
       if (
         data.action === "create" &&
@@ -128,6 +135,7 @@ const NotificationsPopOver = () => {
             user?.queues?.find((q) => q.id === data.ticket.queueId)) ||
           !data.ticket.queueId)
       ) {
+        console.log("[DEBUG] Notificación PASÓ el filtro — ticket:", data.ticket?.id, "userId:", data.ticket?.userId);
         setNotifications((prevState) => {
           const ticketIndex = prevState.findIndex(
             (t) => t.id === data.ticket.id
