@@ -8,6 +8,7 @@ interface TokenPayload {
   id: string;
   username: string;
   profile: string;
+  meta?: string;
   iat: number;
   exp: number;
 }
