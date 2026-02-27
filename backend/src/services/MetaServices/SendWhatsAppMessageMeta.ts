@@ -8,6 +8,7 @@ import { MetaApiClient } from "../../clients/MetaApiClient";
 import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 import { emitEvent } from "../../libs/emitEvent";
 import CheckMetaConversationWindow from "../../helpers/CheckMetaConversationWindow";
+import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 
 interface Request {
   body: string;
@@ -171,6 +172,9 @@ const SendWhatsAppMessageMeta = async ({
 
     console.log("[SendWhatsAppMessageMeta] Mensaje guardado en BD:", newMessage.id);
 
+    // Recalcular beenWaitingSinceTimestamp: si el CS ya respondió debe quedar null
+    const updatedTicket = await getAndSetBeenWaitingSinceTimestampTicketService(ticket) as Ticket;
+
     // Emitir evento de socket para actualizar frontend
     emitEvent({
       to: [ticket.id.toString()],
@@ -179,7 +183,7 @@ const SendWhatsAppMessageMeta = async ({
         data: {
           action: "create",
           message: newMessage,
-          ticket,
+          ticket: updatedTicket,
           contact: ticket.contact
         }
       }

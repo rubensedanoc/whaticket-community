@@ -7,6 +7,7 @@ import formatBody from "../../helpers/Mustache";
 import { MetaApiClient } from "../../clients/MetaApiClient";
 import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 import { emitEvent } from "../../libs/emitEvent";
+import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import * as path from "path";
 
 interface Request {
@@ -120,6 +121,9 @@ const SendWhatsAppMediaMeta = async ({
 
     console.log("[SendWhatsAppMediaMeta] Mensaje guardado en BD:", newMessage.id);
 
+    // Recalcular beenWaitingSinceTimestamp: si el CS ya respondió debe quedar null
+    const updatedTicket = await getAndSetBeenWaitingSinceTimestampTicketService(ticket) as Ticket;
+
     // Emitir evento socket para actualizar frontend
     emitEvent({
       to: [ticket.id.toString()],
@@ -128,7 +132,7 @@ const SendWhatsAppMediaMeta = async ({
         data: {
           action: "create",
           message: newMessage,
-          ticket,
+          ticket: updatedTicket,
           contact: ticket.contact
         }
       }
