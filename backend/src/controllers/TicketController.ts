@@ -183,6 +183,20 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       waitingTimeRanges // ✅ Pasar al servicio
     });
 
+  //Para tickets "pending" con beenWaitingSinceTimestamp null, calcular ahora
+  // Cubre tickets viejos o creados antes del fix de Meta
+  if (status === "pending") {
+    const ticketsWithoutTimestamp = tickets.filter(t => !t.beenWaitingSinceTimestamp);
+    if (ticketsWithoutTimestamp.length > 0) {
+      await getAndSetBeenWaitingSinceTimestampTicketService(ticketsWithoutTimestamp);
+      // Reflejar los valores recién calculados en el array original
+      ticketsWithoutTimestamp.forEach(updated => {
+        const original = tickets.find(t => t.id === updated.id);
+        if (original) original.beenWaitingSinceTimestamp = updated.beenWaitingSinceTimestamp;
+      });
+    }
+  }
+
   let ticketsToSend = tickets; // Inicializamos con la lista original
 
   if (process.env.APP_PURPOSE === "comercial") {
@@ -403,6 +417,19 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       forceUserIdFilter: isImpersonationActive, // Solo forzar si impersonación fue exitosa
       waitingTimeRanges // ✅ Pasar al servicio
     });
+
+  // Para tickets "pending" sin beenWaitingSinceTimestamp, calcular ahora
+  // En advancedIndex los tickets pueden ser pending aunque status param sea otro
+  {
+    const pendingWithoutTimestamp = tickets.filter(t => t.status === "pending" && !t.beenWaitingSinceTimestamp);
+    if (pendingWithoutTimestamp.length > 0) {
+      await getAndSetBeenWaitingSinceTimestampTicketService(pendingWithoutTimestamp);
+      pendingWithoutTimestamp.forEach(updated => {
+        const original = tickets.find(t => t.id === updated.id);
+        if (original) original.beenWaitingSinceTimestamp = updated.beenWaitingSinceTimestamp;
+      });
+    }
+  }
 
   let ticketsToSend = tickets; // Inicializamos con la lista original
 

@@ -6,6 +6,7 @@ import Whatsapp from "../../models/Whatsapp";
 import { emitEvent } from "../../libs/emitEvent";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
+import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import { MetaWebhookMessage, MetaWebhookPayload } from "../../types/meta/MetaWebhookTypes";
 import DownloadMetaMedia from "./DownloadMetaMedia";
 
@@ -196,6 +197,9 @@ const processMessage = async (
       lastMessageAt: new Date(parseInt(message.timestamp) * 1000)
     });
 
+    // Recalcular beenWaitingSinceTimestamp: el cliente acaba de escribir, debe iniciarse el timer
+    const updatedTicket = await getAndSetBeenWaitingSinceTimestampTicketService(ticket) as Ticket;
+
     // Emitir evento socket para actualizar frontend
     emitEvent({
       to: [ticket.id.toString(), ticket.status, "notification"],
@@ -204,7 +208,7 @@ const processMessage = async (
         data: {
           action: "create",
           message: newMessage,
-          ticket: ticket,
+          ticket: updatedTicket,
           contact: contact
         }
       }
@@ -219,7 +223,7 @@ const processMessage = async (
         name: "ticket",
         data: {
           action: "update",
-          ticket: ticket
+          ticket: updatedTicket
         }
       }
     });
