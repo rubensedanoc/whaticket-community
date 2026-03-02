@@ -37,4 +37,10 @@ ticketRoutes.post(
   TicketController.getAndSetBeenWaitingSinceTimestampToAllTheTickets
 );
 
+ticketRoutes.post(
+  "/tickets/migrate-without-queue",
+  isAuth,
+  TicketController.migrateTicketsWithoutQueue
+);
+
 export default ticketRoutes;
