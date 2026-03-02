@@ -632,9 +632,50 @@ const TicketListItem = ({
                     style={{
                       display: "flex",
                       alignItems: "center",
+                      gap: "4px",
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
+
+                    {/* TOMAR APOYO BTN - Solo si estoy en helpUsers pero no soy el dueño */}
+                    {!ticket.isGroup && 
+                     ticket.helpUsers?.find((hu) => hu.id === user?.id) && 
+                     ticket.userId !== user?.id && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        style={{
+                          backgroundColor: "#4caf50",
+                          color: "white",
+                          fontSize: "10px",
+                          padding: "2px 8px",
+                          minWidth: "auto",
+                          height: "24px",
+                        }}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          try {
+                            // Guardar el userId original antes de tomar el apoyo
+                            const originalUserId = ticket.userId;
+                            
+                            await api.put(`/tickets/${ticket.id}`, {
+                              userId: user?.id,
+                              privateNote: originalUserId ? `ORIGINAL_USER:${originalUserId}` : null,
+                            });
+
+                            await api.post(`/privateMessages/${ticket.id}`, {
+                              body: `${user?.name} *tomó el apoyo* de la conversación`,
+                            });
+                          } catch (err) {
+                            toastError(err);
+                          }
+                        }}
+                      >
+                        ✋ TOMAR APOYO
+                      </Button>
+                    )}
+                    {/* - TOMAR APOYO BTN */}
 
                     {/* SEE PREVIEW BTN */}
                     <IconButton

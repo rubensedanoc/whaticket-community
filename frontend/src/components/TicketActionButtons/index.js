@@ -262,8 +262,12 @@ const TicketActionButtons = ({ ticket }) => {
                       startIcon={<PanToolIcon />}
                       onClick={async () => {
                         try {
+                          // Guardar el userId original antes de tomar el apoyo
+                          const originalUserId = ticket.userId;
+                          
                           await api.put(`/tickets/${ticket.id}`, {
                             userId: user?.id,
+                            privateNote: originalUserId ? `ORIGINAL_USER:${originalUserId}` : null,
                           });
 
                           await api.post(`/privateMessages/${ticket.id}`, {
@@ -284,10 +288,19 @@ const TicketActionButtons = ({ ticket }) => {
                     color="default"
                     onClick={async () => {
                       try {
+                        // Restaurar el userId original si existe
+                        let userIdToRestore = null;
+                        if (ticket.privateNote && ticket.privateNote.startsWith('ORIGINAL_USER:')) {
+                          const originalUserIdStr = ticket.privateNote.replace('ORIGINAL_USER:', '');
+                          userIdToRestore = parseInt(originalUserIdStr);
+                        }
+
                         await api.put(`/tickets/${ticket.id}`, {
                           helpUsersIds: ticket.helpUsers
                             .filter((hu) => hu.id !== user?.id)
                             .map((pu) => pu.id),
+                          userId: userIdToRestore,
+                          privateNote: null, // Limpiar la nota privada
                         });
 
                         await api.post(`/privateMessages/${ticket.id}`, {
