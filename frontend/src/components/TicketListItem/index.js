@@ -8,6 +8,7 @@ import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
 import Avatar from "@material-ui/core/Avatar";
+import Button from "@material-ui/core/Button";
 import Chip from "@material-ui/core/Chip";
 import Divider from "@material-ui/core/Divider";
 import ListItem from "@material-ui/core/ListItem";
