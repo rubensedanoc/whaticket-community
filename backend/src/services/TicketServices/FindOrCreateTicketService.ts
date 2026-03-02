@@ -394,21 +394,13 @@ const findTicket = async ({
       !ticket.messagingCampaignId &&
       !ticket.marketingMessagingCampaignId
     ) {
-      const twoHoursAgo = subHours(new Date(), 2);
-      const fiveMinutesAgo = subMinutes(new Date(), 5);
-
-      let validTime = twoHoursAgo;
-
-      // si no estamos en la app comercial
-      if (process.env.APP_PURPOSE !== "comercial") {
-        // validamos si es el area de soporte tecnico
-        if (ticket.queueId && ticket.queueId === 10) {
-          // bajamos el valid time a 5 minutos
-          validTime = fiveMinutesAgo;
-        }
-      }
-
+      // ✅ LÓGICA DE REAPERTURA:
+      // - Si el ticket fue cerrado hace MENOS de 15 minutos → Reabrir con status "open"
+      // - Si el ticket fue cerrado hace MÁS de 15 minutos → Ignorar y crear nuevo ticket
+      // - Excepción: Tickets con chatbot usan su propia configuración de tiempo
+      
       if (ticket.chatbotMessageIdentifier && !ticket.userId) {
+        // Lógica especial para chatbots
         const chatbotMessage = await ChatbotMessage.findOne({
           where: {
             identifier: ticket.chatbotMessageIdentifier,
@@ -418,35 +410,48 @@ const findTicket = async ({
         });
 
         if (chatbotMessage && chatbotMessage.timeToWaitInMinutes) {
-          validTime = subMinutes(
+          const validTime = subMinutes(
             new Date(),
             chatbotMessage.timeToWaitInMinutes
           );
+          
+          if (new Date(ticket.updatedAt) < validTime) {
+            logs.push(`--- Ignore chatbot ticket: ${new Date(ticket.updatedAt).toISOString()} < ${validTime.toISOString()}`);
+            ticket = null;
+          }
         }
       } else {
-        // console.log(
-        //   "xxx Ticket antiguo no tiene chatbotMessageIdentifier o ya ha tenido usuario se va a usar el validTime de 2 horas"
-        // );
-      }
-
-      if (new Date(ticket.updatedAt) < validTime) {
-        logs.push(`--- Ignore ticket 2 ${new Date(ticket.updatedAt).toISOString()} < ${validTime.toISOString()}`);
-        ticket = null;
+        // Lógica para tickets normales: ventana de 15 minutos
+        const fifteenMinutesAgo = subMinutes(new Date(), 15);
+        
+        if (new Date(ticket.updatedAt) < fifteenMinutesAgo) {
+          // Ticket cerrado hace más de 15 minutos → Crear nuevo ticket
+          logs.push(`--- Ticket too old (>15 min), will create new ticket. Last update: ${new Date(ticket.updatedAt).toISOString()}`);
+          ticket = null;
+        } else {
+          // Ticket cerrado hace menos de 15 minutos → Reabrir
+          logs.push(`--- Ticket will be reopened (<15 min). ID: ${ticket.id}, status: ${ticket.status}, updatedAt: ${ticket.updatedAt}`);
+        }
       }
     }
 
     if (ticket) {
       const oldStatus = ticket.status;
 
+      // Determinar el nuevo status
+      let newStatus = undefined;
+      if ((!ticket.messagingCampaignId && !ticket.marketingMessagingCampaignId) || !msgFromMe) {
+        if (oldStatus === "closed") {
+          // Si el ticket estaba cerrado y se está reabriendo (dentro de 15 min), ponerlo en "open"
+          newStatus = "open";
+        } else {
+          // Para otros casos, usar la lógica original
+          newStatus = !ticket.userId ? "pending" : "open";
+        }
+      }
+
       await ticket.update({
-        status:
-          (!ticket.messagingCampaignId &&
-            !ticket.marketingMessagingCampaignId) ||
-          !msgFromMe
-            ? !ticket.userId
-              ? "pending"
-              : "open"
-            : undefined,
+        status: newStatus,
         // userId: null,
         ...(unreadMessages !== undefined && { unreadMessages }),
         ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {

@@ -249,6 +249,9 @@ const TicketListItem = ({
             {
               [classes.seenNotification]: notificacionUnseen === true,
             },
+            {
+              "ticket-needs-help": ticket.helpUsers && ticket.helpUsers.length > 0,
+            }
           )}
         >
           <Tooltip

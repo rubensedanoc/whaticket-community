@@ -6,6 +6,8 @@ import { makeStyles } from "@material-ui/core/styles";
 import { MoreVert, Replay } from "@material-ui/icons";
 
 import GroupAddIcon from "@material-ui/icons/GroupAdd";
+import HelpOutlineIcon from "@material-ui/icons/HelpOutline";
+import PanToolIcon from "@material-ui/icons/PanTool";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
@@ -235,7 +237,11 @@ const TicketActionButtons = ({ ticket }) => {
                   <Button
                     size="small"
                     variant="contained"
-                    color="default"
+                    style={{
+                      backgroundColor: "#ff9800",
+                      color: "white",
+                    }}
+                    startIcon={<HelpOutlineIcon />}
                     onClick={() => setAskForHelpTicketModalOpen(true)}
                   >
                     Pedir apoyo
@@ -245,6 +251,33 @@ const TicketActionButtons = ({ ticket }) => {
 
               {ticket.helpUsers?.find((hu) => hu.id === user?.id) && (
                 <>
+                  {ticket.userId !== user?.id && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      style={{
+                        backgroundColor: "#4caf50",
+                        color: "white",
+                      }}
+                      startIcon={<PanToolIcon />}
+                      onClick={async () => {
+                        try {
+                          await api.put(`/tickets/${ticket.id}`, {
+                            userId: user?.id,
+                          });
+
+                          await api.post(`/privateMessages/${ticket.id}`, {
+                            body: `${user?.name} *tomó el apoyo* de la conversación`,
+                          });
+                        } catch (err) {
+                          toastError(err);
+                        }
+                      }}
+                    >
+                      Tomar apoyo
+                    </Button>
+                  )}
+
                   <Button
                     size="small"
                     variant="contained"
