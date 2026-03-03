@@ -20,6 +20,7 @@ import getAndSetBeenWaitingSinceTimestampTicketService from "../services/TicketS
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
+import MigrateTicketsWithoutQueueService from "../services/TicketServices/MigrateTicketsWithoutQueueService";
 import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 import { verifyContact } from "../services/WbotServices/wbotMessageListener";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
@@ -841,4 +842,17 @@ export const getAndSetBeenWaitingSinceTimestampToAllTheTickets = async (
     firstId: tickets[0].id,
     lastId: tickets[tickets.length - 1].id
   });
+};
+
+export const migrateTicketsWithoutQueue = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  if (req.user.profile !== "admin") {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const result = await MigrateTicketsWithoutQueueService();
+
+  return res.status(200).json(result);
 };

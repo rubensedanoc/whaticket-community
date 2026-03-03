@@ -1318,7 +1318,6 @@ export const reportToExcel = async (
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = `
-      t.status != 'pending' AND
       ( t.chatbotMessageIdentifier IS NULL || (t.chatbotMessageIdentifier IS NOT NULL AND ( t.chatbotMessageLastStep IS NOT NULL OR t.userId ) ) ) AND
       (ct.isCompanyMember = 0 or ct.isCompanyMember is null) AND
       t.createdAt between '${formatDateToMySQL(fromDateAsString)}' AND '${formatDateToMySQL(toDateAsString)}'

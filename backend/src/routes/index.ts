@@ -17,7 +17,6 @@ import messagingCampaignMessageRoutes from "./messagingCampaignMessageRoutes";
 import messagingCampaignRoutes from "./messagingCampaignRoutes";
 import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
-// ⚠️ REPORTES COMENTADOS - Alto consumo de CPU/DB
 import reportsRoutes from "./reports";
 import settingRoutes from "./settingRoutes";
 import ticketRoutes from "./ticketRoutes";

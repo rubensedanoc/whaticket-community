@@ -6,6 +6,7 @@ import Whatsapp from "../../models/Whatsapp";
 import { emitEvent } from "../../libs/emitEvent";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
+import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import { MetaWebhookMessage, MetaWebhookPayload } from "../../types/meta/MetaWebhookTypes";
 import DownloadMetaMedia from "./DownloadMetaMedia";
@@ -131,6 +132,21 @@ const processMessage = async (
     });
 
     console.log("[HandleMetaWebhookMessage] Ticket:", ticket.id);
+
+    // Asignar queue automáticamente si el ticket no tiene uno (igual que Puppeteer)
+    if (!ticket.queueId && whatsapp.queues && whatsapp.queues.length > 0) {
+      console.log(`[HandleMetaWebhookMessage] Ticket ${ticket.id} sin departamento, asignando automáticamente...`);
+      
+      try {
+        await UpdateTicketService({
+          ticketData: { queueId: whatsapp.queues[0].id },
+          ticketId: ticket.id
+        });
+        console.log(`[HandleMetaWebhookMessage] Ticket ${ticket.id} asignado a departamento: ${whatsapp.queues[0].name} (ID: ${whatsapp.queues[0].id})`);
+      } catch (err) {
+        console.error(`[HandleMetaWebhookMessage] Error asignando departamento al ticket ${ticket.id}:`, err);
+      }
+    }
 
     // Guardar mensaje en BD
     const mediaType = getMediaType(message);

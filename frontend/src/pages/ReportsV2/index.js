@@ -628,200 +628,6 @@ const Reports = () => {
         </MainHeader>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <Paper className={classes.fixedHeightPaper}>
-              <Typography
-                component="h3"
-                variant="h6"
-                color="primary"
-                paragraph
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
-                <span>Quintiles de espera actual</span>
-                <span style={{ color: "black" }}>
-                  Tickets Totales:{" "}
-                  {responseTimesData ? responseTimesData.length : 0}
-                </span>
-              </Typography>
-              <div style={{ flexGrow: 1 }}>
-                <Grid container spacing={3} style={{ fontSize: 18 }}>
-                  {responseTimes ? (
-                    <>
-                      <Grid item xs={4}>
-                        {responseTimes.slice(0, 5).map((range) => (
-                          <div key={range.label}>
-                            <span>{range.label}</span>
-                            {": "}
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              style={{ fontWeight: "bold" }}
-                              onClick={() => {
-                                setTicketListModalOpen(true);
-                                setTicketListModalTickets(range.ticketIds);
-                                setTicketListModalTitle(range.label);
-                              }}
-                            >
-                              {range.count}{" "}
-                              {range.count > 0 && (
-                                <span
-                                  style={{
-                                    color: "black",
-                                    fontSize: "12px",
-                                    display: "inline-block",
-                                    marginLeft: 5,
-                                  }}
-                                >
-                                  (
-                                  {Math.round(
-                                    (range.count * 100) /
-                                      responseTimes
-                                        .slice(0, 5)
-                                        .reduce(
-                                          (acc, range) => acc + range.count,
-                                          0
-                                        )
-                                  )}
-                                  %)
-                                </span>
-                              )}
-                            </IconButton>
-                          </div>
-                        ))}
-
-                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
-                          Porcentaje:{" "}
-                          {Math.round(
-                            (responseTimes
-                              .slice(0, 5)
-                              .reduce((acc, range) => acc + range.count, 0) *
-                              100) /
-                              responseTimesData.length
-                          )}
-                          %
-                        </div>
-                      </Grid>
-                      <Grid item xs={4}>
-                        {responseTimes.slice(5, 10).map((range, index) => (
-                          <div key={range.label}>
-                            <span>{range.label}</span>
-                            {": "}
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              style={{ fontWeight: "bold" }}
-                              onClick={() => {
-                                setTicketListModalOpen(true);
-                                setTicketListModalTickets(range.ticketIds);
-                                setTicketListModalTitle(range.label);
-                              }}
-                            >
-                              {range.count}{" "}
-                              {index !== 0 && range.count > 0 && (
-                                <span
-                                  style={{
-                                    color: "black",
-                                    fontSize: "12px",
-                                    display: "inline-block",
-                                    marginLeft: 5,
-                                  }}
-                                >
-                                  (
-                                  {Math.round(
-                                    (range.count * 100) /
-                                      responseTimes
-                                        .slice(6, 10)
-                                        .reduce(
-                                          (acc, range) => acc + range.count,
-                                          0
-                                        )
-                                  )}
-                                  %)
-                                </span>
-                              )}
-                            </IconButton>
-                          </div>
-                        ))}
-                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
-                          Porcentaje:{" "}
-                          {Math.round(
-                            (responseTimes
-                              .slice(6, 10)
-                              .reduce((acc, range) => acc + range.count, 0) *
-                              100) /
-                              responseTimesData.length
-                          )}
-                          %
-                        </div>
-                      </Grid>
-                      <Grid item xs={4}>
-                        {responseTimes.slice(10, 15).map((range, index) => (
-                          <div key={range.label}>
-                            <span>{range.label}</span>
-                            {": "}
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              style={{ fontWeight: "bold" }}
-                              onClick={() => {
-                                setTicketListModalOpen(true);
-                                setTicketListModalTickets(range.ticketIds);
-                                setTicketListModalTitle(range.label);
-                              }}
-                            >
-                              {range.count}
-                              {index !== 0 && range.count > 0 && (
-                                <span
-                                  style={{
-                                    color: "black",
-                                    fontSize: "12px",
-                                    display: "inline-block",
-                                    marginLeft: 5,
-                                  }}
-                                >
-                                  (
-                                  {Math.round(
-                                    (range.count * 100) /
-                                      responseTimes
-                                        .slice(11, 15)
-                                        .reduce(
-                                          (acc, range) => acc + range.count,
-                                          0
-                                        )
-                                  )}
-                                  %)
-                                </span>
-                              )}
-                            </IconButton>
-                          </div>
-                        ))}
-                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
-                          Porcentaje:{" "}
-                          {Math.round(
-                            (responseTimes
-                              .slice(11, 15)
-                              .reduce((acc, range) => acc + range.count, 0) *
-                              100) /
-                              responseTimesData.length
-                          )}
-                          %
-                        </div>
-                      </Grid>
-
-                      <TicketListModal
-                        modalOpen={ticketListModalOpen}
-                        onClose={() => setTicketListModalOpen(false)}
-                        title={ticketListModalTitle}
-                        tickets={ticketListModalTickets}
-                        newView={true}
-                      />
-                    </>
-                  ) : null}
-                </Grid>
-              </div>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12}>
             <Paper className={classes.customFixedHeightPaper}>
               <Typography
                 component="h3"
@@ -1257,6 +1063,202 @@ const Reports = () => {
               </Table>
             </Paper>
           </Grid>
+
+          <Grid item xs={12}>
+            <Paper className={classes.fixedHeightPaper}>
+              <Typography
+                component="h3"
+                variant="h6"
+                color="primary"
+                paragraph
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
+                <span>Quintiles de espera actual (solo sin respuesta)</span>
+                <span style={{ color: "black" }}>
+                  Tickets Totales Sin Respuesta:{" "}
+                  {responseTimesData ? responseTimesData.length : 0}
+                </span>
+              </Typography>
+              <div style={{ flexGrow: 1 }}>
+                <Grid container spacing={3} style={{ fontSize: 18 }}>
+                  {responseTimes ? (
+                    <>
+                      <Grid item xs={4}>
+                        {responseTimes.slice(0, 5).map((range) => (
+                          <div key={range.label}>
+                            <span>{range.label}</span>
+                            {": "}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              style={{ fontWeight: "bold" }}
+                              onClick={() => {
+                                setTicketListModalOpen(true);
+                                setTicketListModalTickets(range.ticketIds);
+                                setTicketListModalTitle(range.label);
+                              }}
+                            >
+                              {range.count}{" "}
+                              {range.count > 0 && (
+                                <span
+                                  style={{
+                                    color: "black",
+                                    fontSize: "12px",
+                                    display: "inline-block",
+                                    marginLeft: 5,
+                                  }}
+                                >
+                                  (
+                                  {Math.round(
+                                    (range.count * 100) /
+                                      responseTimes
+                                        .slice(0, 5)
+                                        .reduce(
+                                          (acc, range) => acc + range.count,
+                                          0
+                                        )
+                                  )}
+                                  %)
+                                </span>
+                              )}
+                            </IconButton>
+                          </div>
+                        ))}
+
+                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
+                          Porcentaje:{" "}
+                          {Math.round(
+                            (responseTimes
+                              .slice(0, 5)
+                              .reduce((acc, range) => acc + range.count, 0) *
+                              100) /
+                              responseTimesData.length
+                          )}
+                          %
+                        </div>
+                      </Grid>
+                      <Grid item xs={4}>
+                        {responseTimes.slice(5, 10).map((range, index) => (
+                          <div key={range.label}>
+                            <span>{range.label}</span>
+                            {": "}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              style={{ fontWeight: "bold" }}
+                              onClick={() => {
+                                setTicketListModalOpen(true);
+                                setTicketListModalTickets(range.ticketIds);
+                                setTicketListModalTitle(range.label);
+                              }}
+                            >
+                              {range.count}{" "}
+                              {index !== 0 && range.count > 0 && (
+                                <span
+                                  style={{
+                                    color: "black",
+                                    fontSize: "12px",
+                                    display: "inline-block",
+                                    marginLeft: 5,
+                                  }}
+                                >
+                                  (
+                                  {Math.round(
+                                    (range.count * 100) /
+                                      responseTimes
+                                        .slice(6, 10)
+                                        .reduce(
+                                          (acc, range) => acc + range.count,
+                                          0
+                                        )
+                                  )}
+                                  %)
+                                </span>
+                              )}
+                            </IconButton>
+                          </div>
+                        ))}
+                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
+                          Porcentaje:{" "}
+                          {Math.round(
+                            (responseTimes
+                              .slice(6, 10)
+                              .reduce((acc, range) => acc + range.count, 0) *
+                              100) /
+                              responseTimesData.length
+                          )}
+                          %
+                        </div>
+                      </Grid>
+                      <Grid item xs={4}>
+                        {responseTimes.slice(10, 15).map((range, index) => (
+                          <div key={range.label}>
+                            <span>{range.label}</span>
+                            {": "}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              style={{ fontWeight: "bold" }}
+                              onClick={() => {
+                                setTicketListModalOpen(true);
+                                setTicketListModalTickets(range.ticketIds);
+                                setTicketListModalTitle(range.label);
+                              }}
+                            >
+                              {range.count}
+                              {index !== 0 && range.count > 0 && (
+                                <span
+                                  style={{
+                                    color: "black",
+                                    fontSize: "12px",
+                                    display: "inline-block",
+                                    marginLeft: 5,
+                                  }}
+                                >
+                                  (
+                                  {Math.round(
+                                    (range.count * 100) /
+                                      responseTimes
+                                        .slice(11, 15)
+                                        .reduce(
+                                          (acc, range) => acc + range.count,
+                                          0
+                                        )
+                                  )}
+                                  %)
+                                </span>
+                              )}
+                            </IconButton>
+                          </div>
+                        ))}
+                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
+                          Porcentaje:{" "}
+                          {Math.round(
+                            (responseTimes
+                              .slice(11, 15)
+                              .reduce((acc, range) => acc + range.count, 0) *
+                              100) /
+                              responseTimesData.length
+                          )}
+                          %
+                        </div>
+                      </Grid>
+
+                      <TicketListModal
+                        modalOpen={ticketListModalOpen}
+                        onClose={() => setTicketListModalOpen(false)}
+                        title={ticketListModalTitle}
+                        tickets={ticketListModalTickets}
+                        newView={true}
+                      />
+                    </>
+                  ) : null}
+                </Grid>
+              </div>
+            </Paper>
+          </Grid>
+
+          
 
           <Grid item xs={12}>
             <MainHeader>

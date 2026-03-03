@@ -7,6 +7,7 @@ import {
 } from "../types/meta/MetaWebhookTypes";
 import { MetaGroupWebhookPayload } from "../types/meta/MetaGroupWebhookTypes";
 import Whatsapp from "../models/Whatsapp";
+import Queue from "../models/Queue";
 import HandleMetaWebhookMessage from "../services/MetaServices/HandleMetaWebhookMessage";
 import HandleMetaMessageStatus from "../services/MetaServices/HandleMetaMessageStatus";
 import HandleMetaGroupWebhook from "../services/MetaServices/HandleMetaGroupWebhook";
@@ -130,9 +131,16 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<v
               referral: message.referral
             });
 
-            // Buscar whatsapp por phoneNumberId
+            // Buscar whatsapp por phoneNumberId (incluir queues para asignación automática)
             const whatsapp = await Whatsapp.findOne({
-              where: { phoneNumberId }
+              where: { phoneNumberId },
+              include: [
+                {
+                  model: Queue,
+                  as: "queues",
+                  attributes: ["id", "name"]
+                }
+              ]
             });
 
             if (!whatsapp) {
