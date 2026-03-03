@@ -11,6 +11,7 @@ import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/g
 import { MetaWebhookMessage, MetaWebhookPayload } from "../../types/meta/MetaWebhookTypes";
 import DownloadMetaMedia from "./DownloadMetaMedia";
 import SendWelcomeBotMessageMeta from "./SendWelcomeBotMessageMeta";
+import ProcessChatbotResponseMeta from "./ProcessChatbotResponseMeta";
 
 interface HandleMetaWebhookMessageParams {
   payload: MetaWebhookPayload;
@@ -166,6 +167,24 @@ const processMessage = async (
       SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
         console.error("[HandleMetaWebhookMessage] Error enviando bot de bienvenida:", err);
       });
+    }
+
+    // Procesar respuesta del chatbot si el ticket está en modo bot
+    if (ticket.chatbotMessageIdentifier) {
+      console.log(`[HandleMetaWebhookMessage] Ticket ${ticket.id} en modo chatbot, procesando respuesta`);
+      try {
+        await ProcessChatbotResponseMeta({
+          ticket,
+          userMessage: getMessageBody(message),
+          contact,
+          whatsapp
+        });
+        console.log(`[HandleMetaWebhookMessage] Respuesta del chatbot procesada, no se guarda mensaje del usuario`);
+        return; // No continuar con el flujo normal, ya se procesó en el chatbot
+      } catch (err) {
+        console.error("[HandleMetaWebhookMessage] Error procesando respuesta del chatbot:", err);
+        // Continuar con flujo normal si falla el procesamiento del chatbot
+      }
     }
 
     // Guardar mensaje en BD

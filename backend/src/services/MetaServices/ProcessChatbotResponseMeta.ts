@@ -60,14 +60,60 @@ const ProcessChatbotResponseMeta = async ({
       return;
     }
 
-    // Buscar la opción elegida por el usuario (replica wbotMessageListener.ts:949-951)
-    const chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
-      userMessage.toLowerCase().includes(co.label.toLowerCase())
+    // Normalizar entrada del usuario (quitar espacios y convertir a mayúsculas)
+    const normalizedUserMessage = userMessage.trim().toUpperCase();
+    
+    // Buscar la opción elegida por el usuario
+    // Primero intentar coincidencia exacta, luego includes
+    let chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
+      normalizedUserMessage === co.label.toUpperCase()
     );
+    
+    // Si no hay coincidencia exacta, buscar si el mensaje incluye la letra
+    if (!chooseOption) {
+      chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
+        normalizedUserMessage.includes(co.label.toUpperCase())
+      );
+    }
 
     if (!chooseOption) {
       console.log(`[ProcessChatbotResponseMeta] No se encontró opción para la respuesta: "${userMessage}"`);
-      // TODO: Enviar mensaje de error y repetir opciones
+      
+      // Enviar mensaje de error y repetir opciones
+      const client = new MetaApiClient({
+        phoneNumberId: whatsapp.phoneNumberId,
+        accessToken: whatsapp.metaAccessToken
+      });
+
+      // Formatear mensaje de error con opciones válidas
+      let errorMessage = `❌ Lo siento, no entendí tu respuesta.\n\nPor favor, selecciona una de las siguientes opciones:\n\n`;
+      
+      chatbotMessageReplied.chatbotOptions.forEach((option, index) => {
+        errorMessage += `*${option.label}* - *${option.title.trim()}*`;
+        if (index < chatbotMessageReplied.chatbotOptions.length - 1) {
+          errorMessage += "\n\n";
+        }
+      });
+
+      await client.sendText({
+        to: contact.number,
+        body: errorMessage
+      });
+
+      // Guardar mensaje de error en BD
+      await Message.create({
+        ticketId: ticket.id,
+        contactId: contact.id,
+        body: errorMessage,
+        fromMe: true,
+        mediaType: "chat",
+        read: true,
+        quotedMsgId: null,
+        ack: 3,
+        identifier: chatbotMessageReplied.identifier
+      });
+
+      console.log(`[ProcessChatbotResponseMeta] Mensaje de error enviado, esperando respuesta válida`);
       return;
     }
 
