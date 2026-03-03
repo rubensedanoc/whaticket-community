@@ -154,6 +154,217 @@ export class MetaApiClient {
     }
   }
 
+  // ========== GROUPS ==========
+
+  /**
+   * Crear un nuevo grupo
+   * POST /<PHONE_NUMBER_ID>/groups
+   */
+  async createGroup(subject: string, description?: string, joinApprovalMode: 'auto_approve' | 'approval_required' = 'auto_approve'): Promise<any> {
+    try {
+      const response = await this.client.post(
+        `/${this.phoneNumberId}/groups`,
+        {
+          messaging_product: "whatsapp",
+          subject,
+          ...(description && { description }),
+          join_approval_mode: joinApprovalMode
+        }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener invite link de un grupo
+   * GET /<GROUP_ID>/invite_link
+   */
+  async getGroupInviteLink(groupId: string): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/${groupId}/invite_link`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restablecer invite link (revoca el anterior)
+   * POST /<GROUP_ID>/invite_link
+   */
+  async resetGroupInviteLink(groupId: string): Promise<any> {
+    try {
+      const response = await this.client.post(
+        `/${groupId}/invite_link`,
+        {
+          messaging_product: "whatsapp"
+        }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener información de un grupo
+   * GET /<GROUP_ID>?fields=...
+   */
+  async getGroupInfo(groupId: string, fields?: string[]): Promise<any> {
+    try {
+      const fieldsParam = fields ? `?fields=${fields.join(',')}` : '';
+      const response = await this.client.get(
+        `/${groupId}${fieldsParam}`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener grupos activos
+   * GET /<PHONE_NUMBER_ID>/groups
+   */
+  async getActiveGroups(limit: number = 25, after?: string, before?: string): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      params.append('limit', limit.toString());
+      if (after) params.append('after', after);
+      if (before) params.append('before', before);
+
+      const response = await this.client.get(
+        `/${this.phoneNumberId}/groups?${params.toString()}`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar un grupo
+   * DELETE /<GROUP_ID>
+   */
+  async deleteGroup(groupId: string): Promise<any> {
+    try {
+      const response = await this.client.delete(`/${groupId}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar participantes de un grupo
+   * DELETE /<GROUP_ID>/participants
+   */
+  async removeGroupParticipants(groupId: string, participants: string[]): Promise<any> {
+    try {
+      const response = await this.client.delete(
+        `/${groupId}/participants`,
+        {
+          data: {
+            messaging_product: "whatsapp",
+            participants: participants.map(user => ({ user }))
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar configuración del grupo
+   * POST /<GROUP_ID>
+   */
+  async updateGroupSettings(groupId: string, settings: { subject?: string; description?: string }): Promise<any> {
+    try {
+      const response = await this.client.post(
+        `/${groupId}`,
+        {
+          messaging_product: "whatsapp",
+          ...settings
+        }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener solicitudes de unión pendientes
+   * GET /<GROUP_ID>/join_requests
+   */
+  async getJoinRequests(groupId: string): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/${groupId}/join_requests`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Aprobar solicitudes de unión
+   * POST /<GROUP_ID>/join_requests
+   */
+  async approveJoinRequests(groupId: string, joinRequestIds: string[]): Promise<any> {
+    try {
+      const response = await this.client.post(
+        `/${groupId}/join_requests`,
+        {
+          messaging_product: "whatsapp",
+          join_requests: joinRequestIds
+        }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rechazar solicitudes de unión
+   * DELETE /<GROUP_ID>/join_requests
+   */
+  async rejectJoinRequests(groupId: string, joinRequestIds: string[]): Promise<any> {
+    try {
+      const response = await this.client.delete(
+        `/${groupId}/join_requests`,
+        {
+          data: {
+            messaging_product: "whatsapp",
+            join_requests: joinRequestIds
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
   // ========== MESSAGE STATUS ==========
 
   async markMessageAsRead(messageId: string): Promise<{ success: boolean }> {

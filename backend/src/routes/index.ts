@@ -29,6 +29,7 @@ import conversationIAQuestionsRoutes from "./conversationIAQuestionsRoutes";
 import conversationIAEvalutaionsRoutes from "./conversationIAEvalutaionsRoutes";
 import metaWebhookRoutes from "./metaWebhookRoutes";
 import metaTestRoutes from "./metaTestRoutes";
+import metaGroupRoutes from "./metaGroupRoutes";
 
 const routes = Router();
 
@@ -60,5 +61,6 @@ routes.use(conversationIAQuestionsRoutes);
 routes.use(conversationIAEvalutaionsRoutes);
 routes.use(metaWebhookRoutes);
 routes.use("/meta-test", metaTestRoutes);
+routes.use(metaGroupRoutes);
 
 export default routes;
