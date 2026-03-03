@@ -136,13 +136,15 @@ const SendWhatsAppMessageMeta = async ({
       console.log("[SendWhatsAppMessageMeta] Payload:", JSON.stringify({
         to: recipientNumber,
         body: bodyFormated,
-        replyToMessageId
+        replyToMessageId,
+        recipientType: ticket.isGroup ? "group" : undefined
       }));
 
       result = await client.sendText({
         to: recipientNumber,
         body: bodyFormated,
-        replyToMessageId
+        replyToMessageId,
+        recipientType: ticket.isGroup ? "group" : undefined
       });
     }
 

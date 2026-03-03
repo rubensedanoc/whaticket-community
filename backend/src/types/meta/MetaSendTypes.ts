@@ -5,7 +5,7 @@
 // Payload principal
 export interface MetaSendMessagePayload {
   messaging_product: "whatsapp";
-  recipient_type?: "individual";
+  recipient_type?: "individual" | "group";
   to: string;
   type: MetaSendMessageType;
   context?: MetaSendContext;
@@ -97,6 +97,7 @@ export interface SendTextParams {
   body: string;
   previewUrl?: boolean;
   replyToMessageId?: string;
+  recipientType?: "individual" | "group";
 }
 
 export interface SendImageParams {
@@ -105,6 +106,7 @@ export interface SendImageParams {
   mediaUrl?: string;
   caption?: string;
   replyToMessageId?: string;
+  recipientType?: "individual" | "group";
 }
 
 export interface SendAudioParams {
@@ -112,6 +114,7 @@ export interface SendAudioParams {
   mediaId?: string;
   mediaUrl?: string;
   replyToMessageId?: string;
+  recipientType?: "individual" | "group";
 }
 
 export interface SendDocumentParams {
@@ -121,6 +124,7 @@ export interface SendDocumentParams {
   filename?: string;
   caption?: string;
   replyToMessageId?: string;
+  recipientType?: "individual" | "group";
 }
 
 export interface SendTemplateParams {
@@ -130,24 +134,25 @@ export interface SendTemplateParams {
   bodyParameters?: string[];
   headerParameters?: MetaTemplateParameter[];
   buttonParameters?: Array<{ index: number; parameters: MetaTemplateParameter[] }>;
+  recipientType?: "individual" | "group";
 }
 
 // Builders
 export const buildTextPayload = (params: SendTextParams): MetaSendMessagePayload => ({
   messaging_product: "whatsapp",
-  recipient_type: "individual",
+  ...(params.recipientType && { recipient_type: params.recipientType }),
   to: params.to,
   type: "text",
   text: {
     body: params.body,
-    preview_url: params.previewUrl ?? false
+    preview_url: params.previewUrl ?? true
   },
   ...(params.replyToMessageId && { context: { message_id: params.replyToMessageId } })
 });
 
 export const buildImagePayload = (params: SendImageParams): MetaSendMessagePayload => ({
   messaging_product: "whatsapp",
-  recipient_type: "individual",
+  ...(params.recipientType && { recipient_type: params.recipientType }),
   to: params.to,
   type: "image",
   image: {
@@ -160,7 +165,7 @@ export const buildImagePayload = (params: SendImageParams): MetaSendMessagePaylo
 
 export const buildAudioPayload = (params: SendAudioParams): MetaSendMessagePayload => ({
   messaging_product: "whatsapp",
-  recipient_type: "individual",
+  ...(params.recipientType && { recipient_type: params.recipientType }),
   to: params.to,
   type: "audio",
   audio: {
@@ -172,7 +177,7 @@ export const buildAudioPayload = (params: SendAudioParams): MetaSendMessagePaylo
 
 export const buildDocumentPayload = (params: SendDocumentParams): MetaSendMessagePayload => ({
   messaging_product: "whatsapp",
-  recipient_type: "individual",
+  ...(params.recipientType && { recipient_type: params.recipientType }),
   to: params.to,
   type: "document",
   document: {
@@ -220,7 +225,7 @@ export const buildTemplatePayload = (params: SendTemplateParams): MetaSendMessag
 
   return {
     messaging_product: "whatsapp",
-    recipient_type: "individual",
+    ...(params.recipientType && { recipient_type: params.recipientType }),
     to: params.to,
     type: "template",
     template: {

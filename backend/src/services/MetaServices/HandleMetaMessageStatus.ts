@@ -40,6 +40,11 @@ const HandleMetaMessageStatus = async ({
 }: HandleMetaMessageStatusParams): Promise<void> => {
   try {
     logger.info(`[HandleMetaMessageStatus] Procesando estado: ${status.status} para mensaje: ${status.id}`);
+    
+    // Log adicional para mensajes de grupos
+    if (status.recipient_type === "group") {
+      logger.info(`[HandleMetaMessageStatus] Mensaje de grupo - Group ID: ${status.recipient_id}`);
+    }
 
     // Buscar el mensaje en BD
     const message = await Message.findByPk(status.id);

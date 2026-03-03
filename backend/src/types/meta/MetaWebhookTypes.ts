@@ -69,6 +69,7 @@ export type MetaWebhookMessageType =
   | "reaction"
   | "order"
   | "system"
+  | "unsupported"
   | "unknown";
 
 export interface MetaWebhookMessage {
@@ -76,6 +77,7 @@ export interface MetaWebhookMessage {
   id: string;
   timestamp: string;
   type: MetaWebhookMessageType;
+  group_id?: string; // Identifica mensajes de grupos (presente solo en mensajes grupales)
   // Contenido según tipo
   text?: MetaTextObject;
   image?: MetaMediaObject;
@@ -174,6 +176,7 @@ export interface MetaWebhookStatus {
   status: "sent" | "delivered" | "read" | "failed" | "deleted";
   timestamp: string;
   recipient_id: string;
+  recipient_type?: "individual" | "group"; // Tipo de destinatario (presente en mensajes a grupos)
   conversation?: MetaConversationObject;
   pricing?: MetaPricingObject;
   errors?: MetaWebhookError[];

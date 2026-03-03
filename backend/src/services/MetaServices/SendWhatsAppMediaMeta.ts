@@ -73,19 +73,22 @@ const SendWhatsAppMediaMeta = async ({
     let result: MetaApiSuccessResponse;
 
     const toNumber = ticket.contact.number;
+    const recipientType = ticket.isGroup ? "group" : undefined;
 
     if (mediaType === "image") {
       console.log("[SendWhatsAppMediaMeta] Enviando como imagen");
       result = await client.sendImage({
         to: toNumber,
         mediaId,
-        caption
+        caption,
+        recipientType
       });
     } else if (mediaType === "audio") {
       console.log("[SendWhatsAppMediaMeta] Enviando como audio");
       result = await client.sendAudio({
         to: toNumber,
-        mediaId
+        mediaId,
+        recipientType
       });
     } else {
       // document (application/*, video/*, etc)
@@ -95,7 +98,8 @@ const SendWhatsAppMediaMeta = async ({
         to: toNumber,
         mediaId,
         filename,
-        caption
+        caption,
+        recipientType
       });
     }
 

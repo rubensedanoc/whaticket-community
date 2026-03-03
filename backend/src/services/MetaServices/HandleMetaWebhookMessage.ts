@@ -63,27 +63,38 @@ const processMessage = async (
     console.log("[HandleMetaWebhookMessage] Tipo:", message.type);
     console.log("[HandleMetaWebhookMessage] From:", message.from);
 
-    // Meta API usa el prefijo 120363 para identificar grupos de WhatsApp
-    // Formato grupo: 120363XXXXXXXXXX@g.us
-    // Formato individual: número de teléfono normal (ej: 5215512345678)
-    const isGroup = message.from.startsWith('120363');
+    // Detectar si es mensaje de grupo usando el campo group_id oficial
+    const isGroup = !!message.group_id;
     console.log("[HandleMetaWebhookMessage] Es grupo:", isGroup);
+    if (isGroup) {
+      console.log("[HandleMetaWebhookMessage] Group ID:", message.group_id);
+    }
+
+    // Manejar mensajes de tipo no soportado
+    if (message.type === "unsupported") {
+      console.warn("[HandleMetaWebhookMessage] Mensaje de tipo no soportado recibido");
+      if (message.errors && message.errors.length > 0) {
+        console.warn("[HandleMetaWebhookMessage] Errores:", JSON.stringify(message.errors));
+      }
+      // Continuar procesamiento para guardar mensaje de error
+    }
 
     let contact: Contact;
     let groupContact: Contact | undefined;
 
     if (isGroup) {
+      // Buscar o crear contacto de grupo usando group_id
       groupContact = await Contact.findOne({
         where: {
-          number: message.from,
+          number: message.group_id,
           isGroup: true
         }
       });
 
       if (!groupContact) {
         groupContact = await Contact.create({
-          name: `Grupo ${message.from}`,
-          number: message.from,
+          name: `Grupo ${message.group_id}`,
+          number: message.group_id,
           isGroup: true,
           email: ""
         });
