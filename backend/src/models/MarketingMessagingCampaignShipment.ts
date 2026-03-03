@@ -10,6 +10,7 @@ import {
   Table,
   UpdatedAt
 } from "sequelize-typescript";
+import { getStoragePublicUrl } from "../services/StorageService";
 import MarketingMessagingCampaign from "./MarketingMessagingCampaigns";
 import MarketingMessagingCampaignShipmentNumber from "./MarketingMessagingCampaignShipmentNumber";
 import User from "./User";
@@ -33,12 +34,7 @@ class MarketingMessagingCampaignShipment extends Model<MarketingMessagingCampaig
 
   @Column
   get excelUrl(): string | null {
-    if (this.getDataValue("excelUrl")) {
-      return `${process.env.BACKEND_URL}:${
-        process.env.PROXY_PORT
-      }/public/${this.getDataValue("excelUrl")}`;
-    }
-    return null;
+    return getStoragePublicUrl(this.getDataValue("excelUrl"));
   }
 
   @ForeignKey(() => User)

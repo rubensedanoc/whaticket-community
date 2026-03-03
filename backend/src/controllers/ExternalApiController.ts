@@ -42,6 +42,10 @@ import Country from "../models/Country";
 import WhatsappCountry from "../models/WhatsappCountry";
 import Queue from "../models/Queue";
 import { addMessageToQueue } from "../services/ExternalServices/SendExternalWhatsAppMessageV2";
+import {
+  persistBufferFile,
+  resolveStoredFileToLocalPath
+} from "../services/StorageService";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -180,8 +184,14 @@ export const sendMakeMessaginCampaign = async (
   });
 
   const excelName = `${messagingCampaign.name}-${Date.now()}.xlsx`;
-
-  await workbook.xlsx.writeFile("public/" + excelName);
+  const excelBuffer = await workbook.xlsx.writeBuffer();
+  const storedExcelKey = await persistBufferFile({
+    buffer: Buffer.from(excelBuffer as any),
+    originalName: excelName,
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    prefix: "campaigns"
+  });
 
   console.log("Excel creado");
   console.log("messagingCampaign", messagingCampaign);
@@ -191,7 +201,7 @@ export const sendMakeMessaginCampaign = async (
     messagingCampaignId: messagingCampaign.id,
     startTimestamp: (Date.now() / 1000) | 0,
     whatsappId: whatsapp.id,
-    excelUrl: excelName
+    excelUrl: storedExcelKey
   });
 
   await messagingCampaign.reload();
@@ -478,26 +488,29 @@ export const sendMarketingCampaignIntro = async (
     } else {
       try {
         req.myLog("mensaje multimedia");
-        const newMedia = MessageMedia.fromFilePath(
-          `public/${messageToSend.mediaUrl.split("/").pop()}`
+        const { localPath, cleanup } = await resolveStoredFileToLocalPath(
+          messageToSend.getDataValue("mediaUrl")
         );
 
-        let mediaOptions: MessageSendOptions = {
-          sendAudioAsVoice: true
-        };
+        try {
+          const newMedia = MessageMedia.fromFilePath(localPath);
 
-        if (
-          newMedia.mimetype.startsWith("image/") &&
-          !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
-        ) {
-          mediaOptions["sendMediaAsDocument"] = true;
+          let mediaOptions: MessageSendOptions = {
+            sendAudioAsVoice: true
+          };
+
+          if (
+            newMedia.mimetype.startsWith("image/") &&
+            !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
+          ) {
+            mediaOptions["sendMediaAsDocument"] = true;
+          }
+
+          await wbot.sendMessage(`${contacto_numero}@c.us`, newMedia, mediaOptions);
+
+        } finally {
+          await cleanup();
         }
-
-        const msg = await wbot.sendMessage(
-          `${contacto_numero}@c.us`,
-          newMedia,
-          mediaOptions
-        );
 
         await sleepPromise(1500);
       } catch (error) {

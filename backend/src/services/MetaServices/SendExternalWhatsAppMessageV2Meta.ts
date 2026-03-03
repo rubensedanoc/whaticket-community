@@ -4,6 +4,8 @@ import { MetaApiClient } from "../../clients/MetaApiClient";
 import path from "path";
 import fs from "fs";
 import axios from "axios";
+import os from "os";
+import { resolveStoredFileToLocalPath } from "../StorageService";
 
 interface QueuedMessage {
   fromNumber: string;
@@ -85,7 +87,7 @@ const processQueueMeta = async () => {
         const isExternalUrl = message.mediaUrl.startsWith('http://') || message.mediaUrl.startsWith('https://');
         
         let mediaPath: string;
-        let isTemporaryFile = false;
+        let cleanup = async () => undefined;
 
         if (isExternalUrl) {
           // Descargar URL externa temporalmente
@@ -95,10 +97,14 @@ const processQueueMeta = async () => {
             const response = await axios.get(message.mediaUrl, { responseType: 'arraybuffer' });
             const ext = path.extname(new URL(message.mediaUrl).pathname) || '.jpg';
             const tempFilename = `temp-${Date.now()}${ext}`;
-            mediaPath = path.join(process.cwd(), 'public', tempFilename);
+            mediaPath = path.join(os.tmpdir(), tempFilename);
             
             fs.writeFileSync(mediaPath, response.data);
-            isTemporaryFile = true;
+            cleanup = async () => {
+              if (fs.existsSync(mediaPath)) {
+                fs.unlinkSync(mediaPath);
+              }
+            };
             console.log('[meta-queue] Media descargada temporalmente:', tempFilename);
           } catch (error) {
             console.error('[meta-queue] Error descargando media externa:', error);
@@ -113,8 +119,9 @@ const processQueueMeta = async () => {
             continue;
           }
         } else {
-          // Es archivo local en /public
-          mediaPath = path.join(process.cwd(), 'public', message.mediaUrl);
+          const resolved = await resolveStoredFileToLocalPath(message.mediaUrl);
+          mediaPath = resolved.localPath;
+          cleanup = resolved.cleanup;
         }
 
         // Determinar tipo de media por extensión
@@ -153,18 +160,10 @@ const processQueueMeta = async () => {
             });
           }
 
-          // Eliminar archivo temporal si fue descargado
-          if (isTemporaryFile && fs.existsSync(mediaPath)) {
-            fs.unlinkSync(mediaPath);
-            console.log('[meta-queue] Archivo temporal eliminado:', mediaPath);
-          }
+          await cleanup();
         } catch (uploadError) {
           console.error('[meta-queue] Error subiendo media:', uploadError);
-          
-          // Eliminar archivo temporal si existe
-          if (isTemporaryFile && fs.existsSync(mediaPath)) {
-            fs.unlinkSync(mediaPath);
-          }
+          await cleanup();
           
           throw uploadError;
         }

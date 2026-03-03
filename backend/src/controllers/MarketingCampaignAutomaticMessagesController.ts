@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import AppError from "../errors/AppError";
 import { emitEvent } from "../libs/emitEvent";
 import MarketingCampaignAutomaticMessage from "../models/MarketingCampaignAutomaticMessage";
+import { persistMulterFile } from "../services/StorageService";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const marketingCampaignAutomaticMessages =
@@ -46,12 +47,14 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
     console.log(media);
 
+    const storedMediaKey = await persistMulterFile(media, "campaigns");
+
     marketingCampaignAutomaticMessage =
       await MarketingCampaignAutomaticMessage.create({
         order,
         body,
         mediaType,
-        mediaUrl: media.filename,
+        mediaUrl: storedMediaKey,
         ...(marketingCampaignId ? { marketingCampaignId } : null),
         ...(marketingMessagingCampaignId
           ? { marketingMessagingCampaignId }
@@ -105,11 +108,13 @@ export const update = async (
 
     console.log(media);
 
+    const storedMediaKey = await persistMulterFile(media, "campaigns");
+
     marketingCampaignAutomaticMessage.update({
       order,
       body,
       mediaType,
-      mediaUrl: media.filename
+      mediaUrl: storedMediaKey
     });
   } else {
     marketingCampaignAutomaticMessage.update({

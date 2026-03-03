@@ -9,6 +9,10 @@ import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 import { emitEvent } from "../../libs/emitEvent";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import * as path from "path";
+import {
+  ensureMulterFileLocalPath,
+  persistMulterFile
+} from "../StorageService";
 
 interface Request {
   media: Express.Multer.File;
@@ -30,9 +34,12 @@ const SendWhatsAppMediaMeta = async ({
   body
 }: Request): Promise<MetaMediaResult> => {
   try {
+    const storedMediaKey = await persistMulterFile(media, "messages");
+    const { localPath, cleanup } = await ensureMulterFileLocalPath(media);
+
     console.log("[SendWhatsAppMediaMeta] Iniciando envio de media");
     console.log("[SendWhatsAppMediaMeta] TicketId:", ticket.id);
-    console.log("[SendWhatsAppMediaMeta] Filename:", media.filename);
+    console.log("[SendWhatsAppMediaMeta] Filename:", storedMediaKey);
     console.log("[SendWhatsAppMediaMeta] Mimetype:", media.mimetype);
     console.log("[SendWhatsAppMediaMeta] Size:", media.size);
 
@@ -64,7 +71,11 @@ const SendWhatsAppMediaMeta = async ({
 
     // Subir media a Meta
     console.log("[SendWhatsAppMediaMeta] Subiendo media a Meta...");
-    const uploadResult = await client.uploadMedia(media.path, normalizedMimetype);
+    const uploadResult = await client
+      .uploadMedia(localPath, normalizedMimetype)
+      .finally(async () => {
+        await cleanup();
+      });
     const mediaId = uploadResult.id;
     console.log("[SendWhatsAppMediaMeta] Media subida, ID:", mediaId);
 
@@ -90,7 +101,7 @@ const SendWhatsAppMediaMeta = async ({
     } else {
       // document (application/*, video/*, etc)
       console.log("[SendWhatsAppMediaMeta] Enviando como documento");
-      const filename = media.originalname || path.basename(media.filename);
+      const filename = media.originalname || path.basename(storedMediaKey);
       result = await client.sendDocument({
         to: toNumber,
         mediaId,
@@ -105,19 +116,19 @@ const SendWhatsAppMediaMeta = async ({
     // Guardar mensaje en BD
     const newMessage = await Message.create({
       id: messageId,
-      body: caption || media.filename,
+      body: caption || storedMediaKey,
       ticketId: ticket.id,
       contactId: ticket.contactId,
       fromMe: true,
       mediaType,
-      mediaUrl: media.filename,
+      mediaUrl: storedMediaKey,
       read: true,
       quotedMsgId: null,
       timestamp: Math.floor(Date.now() / 1000)
     });
 
     // Actualizar último mensaje del ticket
-    await ticket.update({ lastMessage: body || media.filename });
+    await ticket.update({ lastMessage: body || storedMediaKey });
 
     console.log("[SendWhatsAppMediaMeta] Mensaje guardado en BD:", newMessage.id);
 
@@ -149,7 +160,7 @@ const SendWhatsAppMediaMeta = async ({
     console.log("[SendWhatsAppMediaMeta] ❌ ERROR CAPTURADO");
     console.log("=".repeat(80));
     console.log("[SendWhatsAppMediaMeta] ERROR TicketId:", ticket.id);
-    console.log("[SendWhatsAppMediaMeta] ERROR Filename:", media.filename);
+    console.log("[SendWhatsAppMediaMeta] ERROR Filename:", media.originalname);
     console.log("[SendWhatsAppMediaMeta] ERROR Message:", err.message);
     console.log("[SendWhatsAppMediaMeta] ERROR Stack:", err.stack);
 

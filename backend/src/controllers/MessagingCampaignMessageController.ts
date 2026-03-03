@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import AppError from "../errors/AppError";
 import { emitEvent } from "../libs/emitEvent";
 import MessagingCampaignMessage from "../models/MessagingCampaignMessage";
+import { persistMulterFile } from "../services/StorageService";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const messagingCampaignMessages = await MessagingCampaignMessage.findAll({
@@ -39,11 +40,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
     console.log(media);
 
+    const storedMediaKey = await persistMulterFile(media, "campaigns");
+
     messagingCampaignMessage = await MessagingCampaignMessage.create({
       order,
       body,
       mediaType,
-      mediaUrl: media.filename,
+      mediaUrl: storedMediaKey,
       ...(messagingCampaignId ? { messagingCampaignId } : null)
     });
   } else {
@@ -89,11 +92,13 @@ export const update = async (
 
     console.log(media);
 
+    const storedMediaKey = await persistMulterFile(media, "campaigns");
+
     messagingCampaignMessage.update({
       order,
       body,
       mediaType,
-      mediaUrl: media.filename
+      mediaUrl: storedMediaKey
     });
   } else {
     messagingCampaignMessage.update({
