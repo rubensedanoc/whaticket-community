@@ -10,6 +10,7 @@ import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import { MetaWebhookMessage, MetaWebhookPayload } from "../../types/meta/MetaWebhookTypes";
 import DownloadMetaMedia from "./DownloadMetaMedia";
+import SendWelcomeBotMessageMeta from "./SendWelcomeBotMessageMeta";
 
 interface HandleMetaWebhookMessageParams {
   payload: MetaWebhookPayload;
@@ -157,6 +158,14 @@ const processMessage = async (
       } catch (err) {
         console.error(`[HandleMetaWebhookMessage] Error asignando departamento al ticket ${ticket.id}:`, err);
       }
+    }
+
+    // Disparar bot de bienvenida si es ticket nuevo sin chatbot activo
+    if (!isGroup && !ticket.userId && !ticket.chatbotMessageIdentifier) {
+      console.log(`[HandleMetaWebhookMessage] Disparando bot de bienvenida para ticket ${ticket.id}`);
+      SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
+        console.error("[HandleMetaWebhookMessage] Error enviando bot de bienvenida:", err);
+      });
     }
 
     // Guardar mensaje en BD
