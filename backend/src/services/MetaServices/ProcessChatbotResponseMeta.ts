@@ -95,13 +95,16 @@ const ProcessChatbotResponseMeta = async ({
         }
       });
 
-      await client.sendText({
+      const errorResponse = await client.sendText({
         to: contact.number,
         body: errorMessage
       });
 
+      const errorMessageId = errorResponse.messages[0].id;
+
       // Guardar mensaje de error en BD
       await Message.create({
+        id: errorMessageId,
         ticketId: ticket.id,
         contactId: contact.id,
         body: errorMessage,
@@ -165,6 +168,8 @@ const ProcessChatbotResponseMeta = async ({
     });
 
     // Enviar mensaje (replica wbotMessageListener.ts:996-1044)
+    let messageId: string;
+
     if (nextChatbotMessage.mediaType === "image" && nextChatbotMessage.mediaUrl) {
       console.log(`[ProcessChatbotResponseMeta] Enviando imagen con caption`);
       
@@ -173,22 +178,29 @@ const ProcessChatbotResponseMeta = async ({
         "image/jpeg"
       );
 
-      await client.sendImage({
+      const response = await client.sendImage({
         to: contact.number,
         mediaId: uploadResult.id,
         caption: message
       });
+
+      messageId = response.messages[0].id;
     } else {
       console.log(`[ProcessChatbotResponseMeta] Enviando mensaje de texto`);
       
-      await client.sendText({
+      const response = await client.sendText({
         to: contact.number,
         body: message
       });
+
+      messageId = response.messages[0].id;
     }
+
+    console.log(`[ProcessChatbotResponseMeta] Mensaje enviado con ID: ${messageId}`);
 
     // Guardar mensaje en BD
     await Message.create({
+      id: messageId,
       ticketId: ticket.id,
       contactId: contact.id,
       body: message,

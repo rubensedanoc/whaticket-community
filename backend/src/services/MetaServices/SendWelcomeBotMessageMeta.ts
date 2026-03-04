@@ -64,6 +64,8 @@ const SendWelcomeBotMessageMeta = async ({
       accessToken: whatsapp.metaAccessToken
     });
 
+    let messageId: string;
+
     if (welcomeBot.mediaType === "image" && welcomeBot.mediaUrl) {
       console.log(`[SendWelcomeBotMessageMeta] Enviando imagen con caption`);
       
@@ -72,21 +74,28 @@ const SendWelcomeBotMessageMeta = async ({
         "image/jpeg"
       );
 
-      await client.sendImage({
+      const response = await client.sendImage({
         to: contact.number,
         mediaId: uploadResult.id,
         caption: message
       });
+
+      messageId = response.messages[0].id;
     } else {
       console.log(`[SendWelcomeBotMessageMeta] Enviando mensaje de texto`);
       
-      await client.sendText({
+      const response = await client.sendText({
         to: contact.number,
         body: message
       });
+
+      messageId = response.messages[0].id;
     }
 
+    console.log(`[SendWelcomeBotMessageMeta] Mensaje enviado con ID: ${messageId}`);
+
     await Message.create({
+      id: messageId,
       ticketId: ticket.id,
       contactId: contact.id,
       body: message,
