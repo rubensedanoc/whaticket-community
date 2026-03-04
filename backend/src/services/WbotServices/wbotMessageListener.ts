@@ -60,10 +60,18 @@ const writeFileAsync = promisify(writeFile);
 export const verifyContact = async (
   msgContact: WbotContact
 ): Promise<Contact> => {
-  const profilePicUrl = await timeoutPromise(
-    msgContact.getProfilePicUrl(),
-    200
-  );
+  let profilePicUrl;
+  
+  try {
+    profilePicUrl = await timeoutPromise(
+      msgContact.getProfilePicUrl(),
+      200
+    );
+  } catch (err) {
+    // Ignore errors when getting profile pic (e.g., isNewsletter errors with LID contacts)
+    logger.warn(`Failed to get profile pic for ${msgContact.id.user}: ${err.message}`);
+    profilePicUrl = null;
+  }
 
   const contactData: {
     name: string;
@@ -108,7 +116,13 @@ const verifyContactForSyncUnreadMessages = async (
   contact = await Contact.findOne({ where: { number } });
 
   if (!contact) {
-    contactData.profilePicUrl = await msgContact.getProfilePicUrl();
+    try {
+      contactData.profilePicUrl = await msgContact.getProfilePicUrl();
+    } catch (err) {
+      // Ignore errors when getting profile pic (e.g., isNewsletter errors with LID contacts)
+      logger.warn(`Failed to get profile pic for ${msgContact.id.user}: ${err.message}`);
+      contactData.profilePicUrl = undefined;
+    }
 
     contact = await Contact.create({
       name: contactData.name,
