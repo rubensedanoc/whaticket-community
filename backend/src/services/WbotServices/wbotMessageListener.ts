@@ -62,14 +62,20 @@ export const verifyContact = async (
 ): Promise<Contact> => {
   let profilePicUrl;
   
-  try {
-    profilePicUrl = await timeoutPromise(
-      msgContact.getProfilePicUrl(),
-      200
-    );
-  } catch (err) {
-    // Ignore errors when getting profile pic (e.g., isNewsletter errors with LID contacts)
-    logger.warn(`Failed to get profile pic for ${msgContact.id.user}: ${err.message}`);
+  // Skip profile pic for LID contacts (new WhatsApp format) to avoid errors
+  const isLidContact = msgContact.id._serialized?.includes('@lid');
+  
+  if (!isLidContact) {
+    try {
+      profilePicUrl = await timeoutPromise(
+        msgContact.getProfilePicUrl(),
+        200
+      );
+    } catch (err) {
+      // Silently ignore profile pic errors
+      profilePicUrl = null;
+    }
+  } else {
     profilePicUrl = null;
   }
 
@@ -116,11 +122,17 @@ const verifyContactForSyncUnreadMessages = async (
   contact = await Contact.findOne({ where: { number } });
 
   if (!contact) {
-    try {
-      contactData.profilePicUrl = await msgContact.getProfilePicUrl();
-    } catch (err) {
-      // Ignore errors when getting profile pic (e.g., isNewsletter errors with LID contacts)
-      logger.warn(`Failed to get profile pic for ${msgContact.id.user}: ${err.message}`);
+    // Skip profile pic for LID contacts (new WhatsApp format) to avoid errors
+    const isLidContact = msgContact.id._serialized?.includes('@lid');
+    
+    if (!isLidContact) {
+      try {
+        contactData.profilePicUrl = await msgContact.getProfilePicUrl();
+      } catch (err) {
+        // Silently ignore profile pic errors
+        contactData.profilePicUrl = undefined;
+      }
+    } else {
       contactData.profilePicUrl = undefined;
     }
 
