@@ -41,6 +41,14 @@ services:
 
       - DOCKERFILE_PATH=${DOCKERFILE_PATH:-./Dockerfile}
       - APP_PURPOSE=${REACT_APP_PURPOSE}
+
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - S3_BUCKET=${S3_BUCKET:-my-s3-bucket}
+      - S3_BACKUP_PREFIX=${S3_BACKUP_PREFIX:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
     ports:
       - ${BACKEND_PORT:-8080}:3000
     volumes:

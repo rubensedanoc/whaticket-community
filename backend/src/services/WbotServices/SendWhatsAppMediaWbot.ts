@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/node";
-import fs from "fs";
 import {
   MessageMedia,
   MessageSendOptions,
@@ -10,6 +9,10 @@ import GetTicketWbot from "../../helpers/GetTicketWbot";
 import Ticket from "../../models/Ticket";
 import Message from "../../models/Message";
 import { emitEvent } from "../../libs/emitEvent";
+import {
+  ensureMulterFileLocalPath,
+  persistMulterFile
+} from "../StorageService";
 
 import formatBody from "../../helpers/Mustache";
 
@@ -29,32 +32,39 @@ const SendWhatsAppMediaWbot = async ({
   }
 
   try {
+    const storedMediaKey = await persistMulterFile(media, "messages");
+    const { localPath, cleanup } = await ensureMulterFileLocalPath(media);
+
     const wbot = await GetTicketWbot(ticket);
     const hasBody = body
       ? formatBody(body as string, ticket.contact)
       : undefined;
 
-    const newMedia = MessageMedia.fromFilePath(media.path);
+    const newMedia = MessageMedia.fromFilePath(localPath);
 
-    let mediaOptions: MessageSendOptions = {
+    const mediaOptions: MessageSendOptions = {
       caption: hasBody,
       sendAudioAsVoice: true
     };
 
     if (
       newMedia.mimetype.startsWith("image/") &&
-      !/^.*\.(jpe?g|png|gif)?$/i.exec(media.filename)
+      !/^.*\.(jpe?g|png|gif)?$/i.exec(storedMediaKey)
     ) {
-      mediaOptions["sendMediaAsDocument"] = true;
+      mediaOptions.sendMediaAsDocument = true;
     }
 
-    const sentMessage = await wbot.sendMessage(
-      `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`,
-      newMedia,
-      mediaOptions
-    );
+    const sentMessage = await wbot
+      .sendMessage(
+        `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`,
+        newMedia,
+        mediaOptions
+      )
+      .finally(async () => {
+        await cleanup();
+      });
 
-    await ticket.update({ lastMessage: body || media.filename });
+    await ticket.update({ lastMessage: body || storedMediaKey });
 
     // Crear el mensaje en la base de datos inmediatamente
     // IMPORTANTE: Usamos el ID de WhatsApp para evitar duplicados cuando llegue el evento message_create
@@ -62,10 +72,10 @@ const SendWhatsAppMediaWbot = async ({
       id: sentMessage.id.id, // ID único de WhatsApp - evita duplicados
       ticketId: ticket.id,
       contactId: ticket.contactId,
-      body: hasBody || media.filename,
+      body: hasBody || storedMediaKey,
       fromMe: true,
       mediaType: newMedia.mimetype.split("/")[0], // image, video, audio, etc
-      mediaUrl: media.filename, // ✅ Nombre del archivo guardado en /public
+      mediaUrl: storedMediaKey,
       read: true,
       quotedMsgId: null,
       ack: sentMessage.ack || 0,
@@ -86,7 +96,7 @@ const SendWhatsAppMediaWbot = async ({
           data: {
             action: "create",
             message: newMessage,
-            ticket: ticket,
+            ticket,
             contact: ticket.contact
           }
         }
@@ -94,7 +104,9 @@ const SendWhatsAppMediaWbot = async ({
     } catch (error) {
       // Si el mensaje ya existe (clave primaria duplicada), ignorar el error
       // Esto puede pasar si el listener de WhatsApp lo procesó muy rápido
-      console.log(`[SendWhatsAppMediaWbot] Mensaje ${sentMessage.id.id} ya existe en BD, ignorando duplicado`);
+      console.log(
+        `[SendWhatsAppMediaWbot] Mensaje ${sentMessage.id.id} ya existe en BD, ignorando duplicado`
+      );
     }
 
     // fs.unlinkSync(media.path);

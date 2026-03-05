@@ -1,11 +1,7 @@
 import * as Sentry from "@sentry/node";
 import axios from "axios";
-import fs from "fs";
-import path from "path";
-import { promisify } from "util";
 import AppError from "../../errors/AppError";
-
-const writeFileAsync = promisify(fs.writeFile);
+import { persistBufferFile } from "../StorageService";
 
 interface DownloadMetaMediaParams {
   mediaId: string;
@@ -19,12 +15,12 @@ interface DownloadMetaMediaResult {
 }
 
 /**
- * Descarga media desde Meta API y lo guarda en /public
+ * Descarga media desde Meta API y lo guarda en storage configurado (local o s3)
  *
  * Flujo:
  * 1. GET a Meta API para obtener URL del media
  * 2. Descargar archivo desde la URL
- * 3. Guardar en /public con nombre único
+ * 3. Guardar en storage con nombre único
  * 4. Retornar filename y mediaType
  */
 const DownloadMetaMedia = async ({
@@ -67,22 +63,18 @@ const DownloadMetaMedia = async ({
     const timestamp = Date.now();
     const filename = `${mediaType}-${timestamp}${extension}`;
 
-    // Paso 4: Guardar en /public
-    const publicPath = path.join(__dirname, "..", "..", "..", "public");
-    const filePath = path.join(publicPath, filename);
+    // Paso 4: Guardar en storage activo
+    const storedMediaKey = await persistBufferFile({
+      buffer: Buffer.from(fileResponse.data),
+      originalName: filename,
+      mimeType,
+      prefix: "messages"
+    });
 
-    // Crear directorio /public si no existe
-    if (!fs.existsSync(publicPath)) {
-      fs.mkdirSync(publicPath, { recursive: true });
-    }
-
-    await writeFileAsync(filePath, fileResponse.data);
-
-    console.log("[DownloadMetaMedia] Archivo guardado:", filename);
-    console.log("[DownloadMetaMedia] Path completo:", filePath);
+    console.log("[DownloadMetaMedia] Archivo guardado:", storedMediaKey);
 
     return {
-      filename,
+      filename: storedMediaKey,
       mediaType
     };
 
