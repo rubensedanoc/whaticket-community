@@ -45,29 +45,40 @@ const SendWelcomeBotMessageMeta = async ({
 
     console.log(`[SendWelcomeBotMessageMeta] Mensaje de bienvenida encontrado: ${welcomeBot.id}`);
 
-    let message = `\u200e${welcomeBot.value}`;
-
-    if (welcomeBot.hasSubOptions && welcomeBot.chatbotOptions && welcomeBot.chatbotOptions.length > 0) {
-      message += "\n\n";
-      welcomeBot.chatbotOptions.forEach((option, index) => {
-        message += `*${option.label}* - *${option.title.trim()}*`;
-        if (index < welcomeBot.chatbotOptions.length - 1) {
-          message += "\n\n";
-        }
-      });
-    }
-
-    console.log(`[SendWelcomeBotMessageMeta] Mensaje formateado (${message.length} caracteres)`);
-
     const client = new MetaApiClient({
       phoneNumberId: whatsapp.phoneNumberId,
       accessToken: whatsapp.metaAccessToken
     });
 
     let messageId: string;
+    let message: string;
 
-    if (welcomeBot.mediaType === "image" && welcomeBot.mediaUrl) {
+    if (welcomeBot.hasSubOptions && welcomeBot.chatbotOptions && welcomeBot.chatbotOptions.length > 0) {
+      console.log(`[SendWelcomeBotMessageMeta] Enviando lista interactiva con ${welcomeBot.chatbotOptions.length} opciones`);
+      
+      const rows = welcomeBot.chatbotOptions.map(option => ({
+        id: option.label,
+        title: option.title.trim().substring(0, 24),
+        description: option.title.trim().length > 24 ? option.title.trim().substring(24, 96) : undefined
+      }));
+
+      const response = await client.sendInteractiveList({
+        to: contact.number,
+        bodyText: `\u200e${welcomeBot.value}`,
+        buttonText: "Ver opciones",
+        sections: [
+          {
+            rows: rows
+          }
+        ]
+      });
+
+      messageId = response.messages[0].id;
+      message = `\u200e${welcomeBot.value}`;
+    } else if (welcomeBot.mediaType === "image" && welcomeBot.mediaUrl) {
       console.log(`[SendWelcomeBotMessageMeta] Enviando imagen con caption`);
+      
+      message = `\u200e${welcomeBot.value}`;
       
       const uploadResult = await client.uploadMedia(
         welcomeBot.mediaUrl,
@@ -83,6 +94,8 @@ const SendWelcomeBotMessageMeta = async ({
       messageId = response.messages[0].id;
     } else {
       console.log(`[SendWelcomeBotMessageMeta] Enviando mensaje de texto`);
+      
+      message = `\u200e${welcomeBot.value}`;
       
       const response = await client.sendText({
         to: contact.number,
