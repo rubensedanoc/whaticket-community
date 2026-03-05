@@ -14,9 +14,10 @@ export interface MetaSendMessagePayload {
   audio?: MetaSendMedia;
   document?: MetaSendDocument;
   template?: MetaSendTemplate;
+  interactive?: MetaSendInteractive;
 }
 
-export type MetaSendMessageType = "text" | "image" | "audio" | "document" | "template";
+export type MetaSendMessageType = "text" | "image" | "audio" | "document" | "template" | "interactive";
 
 // Contexto para reply
 export interface MetaSendContext {
@@ -40,6 +41,66 @@ export interface MetaSendDocument {
   link?: string;
   caption?: string;
   filename?: string;
+}
+
+// Interactive (mensajes interactivos)
+export interface MetaSendInteractive {
+  type: "list" | "button";
+  header?: MetaInteractiveHeader;
+  body: MetaInteractiveBody;
+  footer?: MetaInteractiveFooter;
+  action: MetaInteractiveAction;
+}
+
+export interface MetaInteractiveHeader {
+  type: "text" | "image" | "video" | "document";
+  text?: string;
+  image?: {
+    id?: string;
+    link?: string;
+  };
+  video?: {
+    id?: string;
+    link?: string;
+  };
+  document?: {
+    id?: string;
+    link?: string;
+    filename?: string;
+  };
+}
+
+export interface MetaInteractiveBody {
+  text: string;
+}
+
+export interface MetaInteractiveFooter {
+  text: string;
+}
+
+export interface MetaInteractiveAction {
+  button?: string;
+  buttons?: MetaInteractiveButton[];
+  sections?: MetaInteractiveListSection[];
+}
+
+export interface MetaInteractiveButton {
+  type: "reply";
+  reply: {
+    id: string;
+    title: string;
+  };
+}
+
+export interface MetaInteractiveListSection {
+  title?: string;
+  rows: MetaInteractiveListRow[];
+}
+
+export interface MetaInteractiveListRow {
+  id: string;
+  title: string;
+  description?: string;
 }
 
 // Template (plantilla)
@@ -134,6 +195,24 @@ export interface SendTemplateParams {
   bodyParameters?: string[];
   headerParameters?: MetaTemplateParameter[];
   buttonParameters?: Array<{ index: number; parameters: MetaTemplateParameter[] }>;
+  recipientType?: "individual" | "group";
+}
+
+export interface SendInteractiveListParams {
+  to: string;
+  bodyText: string;
+  buttonText: string;
+  sections: Array<{
+    title?: string;
+    rows: Array<{
+      id: string;
+      title: string;
+      description?: string;
+    }>;
+  }>;
+  headerText?: string;
+  footerText?: string;
+  replyToMessageId?: string;
   recipientType?: "individual" | "group";
 }
 
@@ -235,5 +314,40 @@ export const buildTemplatePayload = (params: SendTemplateParams): MetaSendMessag
       },
       ...(components.length > 0 && { components })
     }
+  };
+};
+
+export const buildInteractiveListPayload = (params: SendInteractiveListParams): MetaSendMessagePayload => {
+  const interactive: MetaSendInteractive = {
+    type: "list",
+    body: {
+      text: params.bodyText
+    },
+    action: {
+      button: params.buttonText,
+      sections: params.sections
+    }
+  };
+
+  if (params.headerText) {
+    interactive.header = {
+      type: "text",
+      text: params.headerText
+    };
+  }
+
+  if (params.footerText) {
+    interactive.footer = {
+      text: params.footerText
+    };
+  }
+
+  return {
+    messaging_product: "whatsapp",
+    ...(params.recipientType && { recipient_type: params.recipientType }),
+    to: params.to,
+    type: "interactive",
+    interactive,
+    ...(params.replyToMessageId && { context: { message_id: params.replyToMessageId } })
   };
 };

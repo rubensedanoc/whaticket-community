@@ -6,11 +6,13 @@ import {
   SendAudioParams,
   SendDocumentParams,
   SendTemplateParams,
+  SendInteractiveListParams,
   buildTextPayload,
   buildImagePayload,
   buildAudioPayload,
   buildDocumentPayload,
-  buildTemplatePayload
+  buildTemplatePayload,
+  buildInteractiveListPayload
 } from "../types/meta/MetaSendTypes";
 import {
   MetaApiSuccessResponse,
@@ -94,6 +96,30 @@ export class MetaApiClient {
 
   async sendTemplate(params: SendTemplateParams): Promise<MetaApiSuccessResponse> {
     const payload = buildTemplatePayload(params);
+    return this.sendMessage(payload);
+  }
+
+  async sendInteractiveList(params: SendInteractiveListParams): Promise<MetaApiSuccessResponse> {
+    if (!params.sections || params.sections.length === 0) {
+      throw new Error("Se requiere al menos una sección con opciones para enviar lista interactiva");
+    }
+
+    const totalRows = params.sections.reduce((sum, section) => sum + section.rows.length, 0);
+    if (totalRows === 0) {
+      throw new Error("Se requiere al menos una opción (row) en las secciones");
+    }
+
+    if (totalRows > 10) {
+      throw new Error("El máximo de opciones permitidas es 10 por mensaje");
+    }
+
+    for (const section of params.sections) {
+      if (section.rows.length > 10) {
+        throw new Error("El máximo de opciones por sección es 10");
+      }
+    }
+
+    const payload = buildInteractiveListPayload(params);
     return this.sendMessage(payload);
   }
 

@@ -156,7 +156,8 @@ const handleChatbot = async (
   messageBody: string,
   contact: Contact,
   whatsapp: Whatsapp,
-  shouldSkipBot: boolean
+  shouldSkipBot: boolean,
+  selectedOptionId?: string
 ): Promise<void> => {
   if (shouldSkipBot) return;
 
@@ -178,7 +179,8 @@ const handleChatbot = async (
         ticket,
         userMessage: messageBody,
         contact,
-        whatsapp
+        whatsapp,
+        selectedOptionId
       });
       console.log(`[HandleMetaWebhookMessage] Respuesta del chatbot procesada exitosamente`);
     } catch (err) {
@@ -307,6 +309,13 @@ const processMessage = async (
     console.log("[HandleMetaWebhookMessage] Procesando mensaje:", message.id);
     console.log("[HandleMetaWebhookMessage] Tipo:", message.type);
 
+    if (message.type === "interactive") {
+      console.log("[HandleMetaWebhookMessage] Mensaje interactivo detectado:", message.interactive?.type);
+      if (message.interactive?.type === "list_reply") {
+        console.log("[HandleMetaWebhookMessage] Opción seleccionada:", message.interactive.list_reply?.id);
+      }
+    }
+
     if (message.type === "unsupported") {
       console.warn("[HandleMetaWebhookMessage] Mensaje de tipo no soportado");
       if (message.errors?.length) {
@@ -330,7 +339,8 @@ const processMessage = async (
 
     const { shouldSkipBot } = await setupTicket(ticket, whatsapp, isGroup);
     const { newMessage, messageBody } = await saveUserMessage(message, ticket, contact, whatsapp);
-    await handleChatbot(ticket, messageBody, contact, whatsapp, shouldSkipBot);
+    const selectedOptionId = getSelectedOptionId(message);
+    await handleChatbot(ticket, messageBody, contact, whatsapp, shouldSkipBot, selectedOptionId);
     await emitSocketEvents(ticket, newMessage, contact);
 
   } catch (err) {
@@ -346,6 +356,13 @@ const getMessageBody = (message: MetaWebhookMessage): string => {
   switch (message.type) {
     case "text":
       return message.text?.body || "";
+    case "interactive":
+      if (message.interactive?.type === "list_reply") {
+        return message.interactive.list_reply?.title || "";
+      } else if (message.interactive?.type === "button_reply") {
+        return message.interactive.button_reply?.title || "";
+      }
+      return "Mensaje interactivo";
     case "image":
       return message.image?.caption || "Imagen";
     case "audio":
@@ -361,6 +378,20 @@ const getMessageBody = (message: MetaWebhookMessage): string => {
     default:
       return `Mensaje tipo: ${message.type}`;
   }
+};
+
+/**
+ * Extrae el ID de la opción seleccionada de un mensaje interactivo
+ */
+const getSelectedOptionId = (message: MetaWebhookMessage): string | undefined => {
+  if (message.type === "interactive") {
+    if (message.interactive?.type === "list_reply") {
+      return message.interactive.list_reply?.id;
+    } else if (message.interactive?.type === "button_reply") {
+      return message.interactive.button_reply?.id;
+    }
+  }
+  return undefined;
 };
 
 /**

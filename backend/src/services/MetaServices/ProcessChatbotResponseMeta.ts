@@ -11,13 +11,15 @@ interface ProcessChatbotResponseMetaParams {
   userMessage: string;
   contact: Contact;
   whatsapp: Whatsapp;
+  selectedOptionId?: string;
 }
 
 const ProcessChatbotResponseMeta = async ({
   ticket,
   userMessage,
   contact,
-  whatsapp
+  whatsapp,
+  selectedOptionId
 }: ProcessChatbotResponseMetaParams): Promise<void> => {
   try {
     console.log(`[ProcessChatbotResponseMeta] Procesando respuesta para ticket ${ticket.id}: "${userMessage}"`);
@@ -61,44 +63,82 @@ const ProcessChatbotResponseMeta = async ({
       return;
     }
 
-    // Normalizar entrada del usuario (quitar espacios y convertir a mayúsculas)
-    const normalizedUserMessage = userMessage.trim().toUpperCase();
-    
     // Buscar la opción elegida por el usuario
-    // Primero intentar coincidencia exacta, luego includes
-    let chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
-      normalizedUserMessage === co.label.toUpperCase()
-    );
-    
-    // Si no hay coincidencia exacta, buscar si el mensaje incluye la letra
-    if (!chooseOption) {
+    let chooseOption;
+
+    if (selectedOptionId) {
+      // Si viene de un mensaje interactivo, buscar por ID exacto
+      console.log(`[ProcessChatbotResponseMeta] Buscando opción por ID: ${selectedOptionId}`);
       chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
-        normalizedUserMessage.includes(co.label.toUpperCase())
+        co.label === selectedOptionId
       );
+    } else {
+      // Si es mensaje de texto (legacy), normalizar y buscar
+      const normalizedUserMessage = userMessage.trim().toUpperCase();
+
+      // Primero intentar coincidencia exacta, luego includes
+      chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
+        normalizedUserMessage === co.label.toUpperCase()
+      );
+
+      // Si no hay coincidencia exacta, buscar si el mensaje incluye la letra
+      if (!chooseOption) {
+        chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
+          normalizedUserMessage.includes(co.label.toUpperCase())
+        );
+      }
     }
 
     if (!chooseOption) {
       console.log(`[ProcessChatbotResponseMeta] No se encontró opción para la respuesta: "${userMessage}"`);
-      
-      // Enviar mensaje de error y repetir opciones
+
+      // Enviar mensaje de error con lista interactiva
       const client = new MetaApiClient({
         phoneNumberId: whatsapp.phoneNumberId,
         accessToken: whatsapp.metaAccessToken
       });
 
-      // Formatear mensaje de error con opciones válidas
-      let errorMessage = `❌ Lo siento, no entendí tu respuesta.\n\nPor favor, selecciona una de las siguientes opciones:\n\n`;
-      
-      chatbotMessageReplied.chatbotOptions.forEach((option, index) => {
-        errorMessage += `*${option.label}* - *${option.title.trim()}*`;
-        if (index < chatbotMessageReplied.chatbotOptions.length - 1) {
-          errorMessage += "\n\n";
+      const errorBodyText = `❌ Lo siento, no entendí tu respuesta.\n\nPor favor, selecciona una de las siguientes opciones:`;
+
+      const rows = chatbotMessageReplied.chatbotOptions.map(option => {
+        const fullText = option.title.trim();
+        
+        // Detectar si hay dos puntos para separar título y descripción
+        if (fullText.includes(':')) {
+          const [beforeColon, afterColon] = fullText.split(':').map(s => s.trim());
+          
+          return {
+            id: option.label,
+            title: beforeColon.substring(0, 24),
+            description: afterColon ? afterColon.substring(0, 72) : undefined
+          };
         }
+        
+        // Si no hay dos puntos y el texto es corto, solo título
+        if (fullText.length <= 24) {
+          return {
+            id: option.label,
+            title: fullText
+          };
+        }
+        
+        // Si es largo sin dos puntos, cortar en 24 y poner el resto en descripción
+        return {
+          id: option.label,
+          title: fullText.substring(0, 24),
+          description: fullText.substring(24, 96)
+        };
       });
 
-      const errorResponse = await client.sendText({
+      const errorResponse = await client.sendInteractiveList({
         to: contact.number,
-        body: errorMessage
+        bodyText: errorBodyText,
+        buttonText: "Ver opciones",
+        sections: [
+          {
+            rows: rows
+          }
+        ]
       });
 
       const errorMessageId = errorResponse.messages[0].id;
@@ -108,7 +148,7 @@ const ProcessChatbotResponseMeta = async ({
         id: errorMessageId,
         ticketId: ticket.id,
         contactId: contact.id,
-        body: errorMessage,
+        body: errorBodyText,
         fromMe: true,
         mediaType: "chat",
         read: true,
@@ -117,7 +157,7 @@ const ProcessChatbotResponseMeta = async ({
         identifier: chatbotMessageReplied.identifier
       });
 
-      console.log(`[ProcessChatbotResponseMeta] Mensaje de error enviado, esperando respuesta válida`);
+      console.log(`[ProcessChatbotResponseMeta] Mensaje de error con lista interactiva enviado, esperando respuesta válida`);
       return;
     }
 
@@ -147,33 +187,67 @@ const ProcessChatbotResponseMeta = async ({
 
     console.log(`[ProcessChatbotResponseMeta] Siguiente mensaje: ${nextChatbotMessage.identifier}, hasSubOptions: ${nextChatbotMessage.hasSubOptions}`);
 
-    // Formatear mensaje (replica wbotMessageListener.ts:971-987)
-    let message = `\u200e${nextChatbotMessage.value}`;
-
-    if (nextChatbotMessage.hasSubOptions && nextChatbotMessage.chatbotOptions && nextChatbotMessage.chatbotOptions.length > 0) {
-      message += "\n\n";
-      nextChatbotMessage.chatbotOptions.forEach((chatbotOption, index) => {
-        message += `*${chatbotOption.label}* - *${chatbotOption.title.trim()}*`;
-        if (index < nextChatbotMessage.chatbotOptions.length - 1) {
-          message += "\n\n";
-        }
-      });
-    }
-
-    console.log(`[ProcessChatbotResponseMeta] Mensaje formateado (${message.length} caracteres)`);
-
     // Crear cliente Meta API
     const client = new MetaApiClient({
       phoneNumberId: whatsapp.phoneNumberId,
       accessToken: whatsapp.metaAccessToken
     });
 
-    // Enviar mensaje (replica wbotMessageListener.ts:996-1044)
+    // Enviar mensaje
     let messageId: string;
+    let message: string;
 
-    if (nextChatbotMessage.mediaType === "image" && nextChatbotMessage.mediaUrl) {
+    if (nextChatbotMessage.hasSubOptions && nextChatbotMessage.chatbotOptions && nextChatbotMessage.chatbotOptions.length > 0) {
+      console.log(`[ProcessChatbotResponseMeta] Enviando lista interactiva con ${nextChatbotMessage.chatbotOptions.length} opciones`);
+
+      const rows = nextChatbotMessage.chatbotOptions.map(option => {
+        const fullText = option.title.trim();
+        
+        // Detectar si hay dos puntos para separar título y descripción
+        if (fullText.includes(':')) {
+          const [beforeColon, afterColon] = fullText.split(':').map(s => s.trim());
+          
+          return {
+            id: option.label,
+            title: beforeColon.substring(0, 24),
+            description: afterColon ? afterColon.substring(0, 72) : undefined
+          };
+        }
+        
+        // Si no hay dos puntos y el texto es corto, solo título
+        if (fullText.length <= 24) {
+          return {
+            id: option.label,
+            title: fullText
+          };
+        }
+        
+        // Si es largo sin dos puntos, cortar en 24 y poner el resto en descripción
+        return {
+          id: option.label,
+          title: fullText.substring(0, 24),
+          description: fullText.substring(24, 96)
+        };
+      });
+
+      const response = await client.sendInteractiveList({
+        to: contact.number,
+        bodyText: `\u200e${nextChatbotMessage.value}`,
+        buttonText: "Ver opciones",
+        sections: [
+          {
+            rows: rows
+          }
+        ]
+      });
+
+      messageId = response.messages[0].id;
+      message = `\u200e${nextChatbotMessage.value}`;
+    } else if (nextChatbotMessage.mediaType === "image" && nextChatbotMessage.mediaUrl) {
       console.log(`[ProcessChatbotResponseMeta] Enviando imagen con caption`);
-      
+
+      message = `\u200e${nextChatbotMessage.value}`;
+
       const uploadResult = await client.uploadMedia(
         nextChatbotMessage.mediaUrl,
         "image/jpeg"
@@ -188,7 +262,9 @@ const ProcessChatbotResponseMeta = async ({
       messageId = response.messages[0].id;
     } else {
       console.log(`[ProcessChatbotResponseMeta] Enviando mensaje de texto`);
-      
+
+      message = `\u200e${nextChatbotMessage.value}`;
+
       const response = await client.sendText({
         to: contact.number,
         body: message
