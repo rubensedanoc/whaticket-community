@@ -53,6 +53,249 @@ const HandleMetaWebhookMessage = async ({
 };
 
 /**
+ * Obtiene o crea los contactos necesarios (individual y grupo si aplica)
+ */
+const getOrCreateContacts = async (
+  message: MetaWebhookMessage,
+  value: any
+): Promise<{ contact: Contact; groupContact?: Contact; isGroup: boolean }> => {
+  const isGroup = !!message.group_id;
+  let contact: Contact;
+  let groupContact: Contact | undefined;
+
+  if (isGroup) {
+    // Buscar o crear contacto de grupo
+    groupContact = await Contact.findOne({
+      where: { number: message.group_id, isGroup: true }
+    });
+
+    if (!groupContact) {
+      groupContact = await Contact.create({
+        name: `Grupo ${message.group_id}`,
+        number: message.group_id,
+        isGroup: true,
+        email: ""
+      });
+      console.log("[HandleMetaWebhookMessage] Grupo creado:", groupContact.id);
+    }
+
+    // Crear contacto del participante
+    const contactInfo = value.contacts?.find((c: any) => c.wa_id === message.from);
+    const participantName = contactInfo?.profile?.name || "Participante";
+    const participantNumber = contactInfo?.wa_id || message.from;
+
+    contact = await CreateOrUpdateContactService({
+      name: participantName,
+      number: participantNumber,
+      isGroup: false,
+      email: "",
+      profilePicUrl: ""
+    });
+
+    console.log("[HandleMetaWebhookMessage] Participante del grupo:", contact.id);
+  } else {
+    // Crear contacto individual
+    const contactInfo = value.contacts?.find((c: any) => c.wa_id === message.from);
+    const contactName = contactInfo?.profile?.name || message.from;
+    const contactNumber = message.from;
+
+    contact = await CreateOrUpdateContactService({
+      name: contactName,
+      number: contactNumber,
+      isGroup: false,
+      email: "",
+      profilePicUrl: ""
+    });
+
+    console.log("[HandleMetaWebhookMessage] Contacto creado/actualizado:", contact.id);
+  }
+
+  return { contact, groupContact, isGroup };
+};
+
+/**
+ * Configura el ticket: asigna departamento y determina si se debe procesar el bot
+ */
+const setupTicket = async (
+  ticket: Ticket,
+  whatsapp: Whatsapp,
+  isGroup: boolean
+): Promise<{ shouldSkipBot: boolean }> => {
+  // Asignar departamento si no tiene uno
+  if (!ticket.queueId && whatsapp.queues && whatsapp.queues.length > 0) {
+    console.log(`[HandleMetaWebhookMessage] Asignando departamento al ticket ${ticket.id}...`);
+    
+    try {
+      await UpdateTicketService({
+        ticketData: { queueId: whatsapp.queues[0].id },
+        ticketId: ticket.id
+      });
+      console.log(`[HandleMetaWebhookMessage] Departamento asignado: ${whatsapp.queues[0].name}`);
+    } catch (err) {
+      console.error(`[HandleMetaWebhookMessage] Error asignando departamento:`, err);
+    }
+  }
+
+  // Determinar si se debe omitir el bot
+  const shouldSkipBot = (
+    isGroup ||
+    ticket.status === "closed" ||
+    ticket.userId != null ||
+    ticket.messagingCampaignId != null ||
+    ticket.marketingMessagingCampaignId != null
+  );
+
+  return { shouldSkipBot };
+};
+
+/**
+ * Maneja todo el flujo del chatbot: bienvenida y procesamiento de respuestas
+ */
+const handleChatbot = async (
+  ticket: Ticket,
+  messageBody: string,
+  contact: Contact,
+  whatsapp: Whatsapp,
+  shouldSkipBot: boolean
+): Promise<void> => {
+  if (shouldSkipBot) return;
+
+  // Disparar bot de bienvenida si es necesario
+  if (!ticket.chatbotMessageIdentifier && !ticket.chatbotFinishedAt) {
+    console.log(`[HandleMetaWebhookMessage] Disparando bot de bienvenida para ticket ${ticket.id}`);
+    SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
+      console.error("[HandleMetaWebhookMessage] Error enviando bot de bienvenida:", err);
+    });
+  } else if (ticket.chatbotFinishedAt && !ticket.userId) {
+    console.log(`[HandleMetaWebhookMessage] Bot ya terminó para ticket ${ticket.id}`);
+  }
+
+  // Procesar respuesta del chatbot si el ticket está en modo bot
+  if (ticket.chatbotMessageIdentifier) {
+    console.log(`[HandleMetaWebhookMessage] Procesando respuesta del chatbot para ticket ${ticket.id}`);
+    try {
+      await ProcessChatbotResponseMeta({
+        ticket,
+        userMessage: messageBody,
+        contact,
+        whatsapp
+      });
+      console.log(`[HandleMetaWebhookMessage] Respuesta del chatbot procesada exitosamente`);
+    } catch (err) {
+      console.error("[HandleMetaWebhookMessage] Error procesando chatbot:", err);
+    }
+  }
+};
+
+/**
+ * Guarda el mensaje del usuario en la base de datos
+ */
+const saveUserMessage = async (
+  message: MetaWebhookMessage,
+  ticket: Ticket,
+  contact: Contact,
+  whatsapp: Whatsapp
+): Promise<{ newMessage: Message; messageBody: string }> => {
+  const mediaType = getMediaType(message);
+  let mediaUrl: string | null = null;
+  let messageBody = getMessageBody(message);
+
+  // Descargar media si existe
+  if (hasMedia(message)) {
+    try {
+      console.log("[HandleMetaWebhookMessage] Descargando media...");
+      const mediaInfo = getMediaInfo(message);
+
+      const downloadResult = await DownloadMetaMedia({
+        mediaId: mediaInfo.id,
+        accessToken: whatsapp.metaAccessToken,
+        mimeType: mediaInfo.mimeType
+      });
+
+      mediaUrl = downloadResult.filename;
+      if (!hasCaption(message)) {
+        messageBody = downloadResult.filename;
+      }
+
+      console.log("[HandleMetaWebhookMessage] Media descargado:", mediaUrl);
+    } catch (err) {
+      console.error("[HandleMetaWebhookMessage] Error descargando media:", err);
+    }
+  }
+
+  // Obtener mensaje citado si existe
+  let quotedMsgId = null;
+  if (message.context?.id) {
+    const quotedMessage = await Message.findByPk(message.context.id);
+    if (quotedMessage) {
+      quotedMsgId = message.context.id;
+    } else {
+      console.log("[HandleMetaWebhookMessage] Mensaje citado no encontrado:", message.context.id);
+    }
+  }
+
+  const newMessage = await Message.create({
+    id: message.id,
+    body: messageBody,
+    ticketId: ticket.id,
+    contactId: contact.id,
+    fromMe: false,
+    mediaType: mediaType,
+    mediaUrl: mediaUrl,
+    read: false,
+    quotedMsgId: quotedMsgId,
+    timestamp: parseInt(message.timestamp),
+    ack: 0
+  });
+
+  console.log("[HandleMetaWebhookMessage] Mensaje guardado:", newMessage.id);
+
+  await ticket.update({
+    lastMessage: messageBody,
+    lastMessageAt: new Date(parseInt(message.timestamp) * 1000)
+  });
+
+  return { newMessage, messageBody };
+};
+
+/**
+ * Emite eventos socket para actualizar el frontend
+ */
+const emitSocketEvents = async (
+  ticket: Ticket,
+  newMessage: Message,
+  contact: Contact
+): Promise<void> => {
+  const updatedTicket = await getAndSetBeenWaitingSinceTimestampTicketService(ticket) as Ticket;
+
+  emitEvent({
+    to: [ticket.id.toString(), ticket.status, "notification"],
+    event: {
+      name: "appMessage",
+      data: {
+        action: "create",
+        message: newMessage,
+        ticket: updatedTicket,
+        contact: contact
+      }
+    }
+  });
+
+  emitEvent({
+    to: [ticket.id.toString()],
+    event: {
+      name: "ticket",
+      data: {
+        action: "update",
+        ticket: updatedTicket
+      }
+    }
+  });
+
+  console.log("[HandleMetaWebhookMessage] Eventos socket emitidos");
+};
+
+/**
  * Procesa un mensaje individual
  */
 const processMessage = async (
@@ -63,82 +306,21 @@ const processMessage = async (
   try {
     console.log("[HandleMetaWebhookMessage] Procesando mensaje:", message.id);
     console.log("[HandleMetaWebhookMessage] Tipo:", message.type);
-    console.log("[HandleMetaWebhookMessage] From:", message.from);
 
-    // Detectar si es mensaje de grupo usando el campo group_id oficial
-    const isGroup = !!message.group_id;
-    console.log("[HandleMetaWebhookMessage] Es grupo:", isGroup);
-    if (isGroup) {
-      console.log("[HandleMetaWebhookMessage] Group ID:", message.group_id);
-    }
-
-    // Manejar mensajes de tipo no soportado
     if (message.type === "unsupported") {
-      console.warn("[HandleMetaWebhookMessage] Mensaje de tipo no soportado recibido");
-      if (message.errors && message.errors.length > 0) {
+      console.warn("[HandleMetaWebhookMessage] Mensaje de tipo no soportado");
+      if (message.errors?.length) {
         console.warn("[HandleMetaWebhookMessage] Errores:", JSON.stringify(message.errors));
       }
-      // Continuar procesamiento para guardar mensaje de error
     }
 
-    let contact: Contact;
-    let groupContact: Contact | undefined;
-
-    if (isGroup) {
-      // Buscar o crear contacto de grupo usando group_id
-      groupContact = await Contact.findOne({
-        where: {
-          number: message.group_id,
-          isGroup: true
-        }
-      });
-
-      if (!groupContact) {
-        groupContact = await Contact.create({
-          name: `Grupo ${message.group_id}`,
-          number: message.group_id,
-          isGroup: true,
-          email: ""
-        });
-        console.log("[HandleMetaWebhookMessage] Grupo creado automáticamente:", groupContact.id);
-      }
-
-      const contactInfo = value.contacts?.find((c: any) => c.wa_id === message.from);
-      const participantName = contactInfo?.profile?.name || "Participante";
-      const participantNumber = contactInfo?.wa_id || message.from;
-
-      contact = await CreateOrUpdateContactService({
-        name: participantName,
-        number: participantNumber,
-        isGroup: false,
-        email: "",
-        profilePicUrl: ""
-      });
-
-      console.log("[HandleMetaWebhookMessage] Participante del grupo:", contact.id);
-    } else {
-      const contactInfo = value.contacts?.find((c: any) => c.wa_id === message.from);
-      const contactName = contactInfo?.profile?.name || message.from;
-      const contactNumber = message.from;
-
-      console.log("[HandleMetaWebhookMessage] Contacto:", contactName, contactNumber);
-
-      contact = await CreateOrUpdateContactService({
-        name: contactName,
-        number: contactNumber,
-        isGroup: false,
-        email: "",
-        profilePicUrl: ""
-      });
-
-      console.log("[HandleMetaWebhookMessage] Contacto creado/actualizado:", contact.id);
-    }
+    const { contact, groupContact, isGroup } = await getOrCreateContacts(message, value);
 
     const ticket = await FindOrCreateTicketService({
       contact,
       whatsappId: whatsapp.id,
       unreadMessages: 1,
-      groupContact: isGroup ? groupContact : undefined,
+      groupContact,
       lastMessageTimestamp: parseInt(message.timestamp),
       msgFromMe: false,
       body: getMessageBody(message)
@@ -146,153 +328,10 @@ const processMessage = async (
 
     console.log("[HandleMetaWebhookMessage] Ticket:", ticket.id);
 
-    // Asignar queue automáticamente si el ticket no tiene uno (igual que Puppeteer)
-    if (!ticket.queueId && whatsapp.queues && whatsapp.queues.length > 0) {
-      console.log(`[HandleMetaWebhookMessage] Ticket ${ticket.id} sin departamento, asignando automáticamente...`);
-      
-      try {
-        await UpdateTicketService({
-          ticketData: { queueId: whatsapp.queues[0].id },
-          ticketId: ticket.id
-        });
-        console.log(`[HandleMetaWebhookMessage] Ticket ${ticket.id} asignado a departamento: ${whatsapp.queues[0].name} (ID: ${whatsapp.queues[0].id})`);
-      } catch (err) {
-        console.error(`[HandleMetaWebhookMessage] Error asignando departamento al ticket ${ticket.id}:`, err);
-      }
-    }
-
-    // VALIDACIONES: No disparar bot si se cumplen estas condiciones
-    const shouldSkipBot = 
-      isGroup ||                                      // Es mensaje de grupo
-      ticket.status === "closed" ||                  // Ticket cerrado
-      ticket.userId != null ||                       // Agente asignado
-      ticket.messagingCampaignId != null ||          // Campaña activa
-      ticket.marketingMessagingCampaignId != null;   // Campaña marketing activa
-
-    // Disparar bot de bienvenida si es ticket nuevo sin chatbot activo
-    // NO disparar si el bot ya terminó (chatbotFinishedAt existe)
-    if (!shouldSkipBot && !ticket.chatbotMessageIdentifier && !ticket.chatbotFinishedAt) {
-      console.log(`[HandleMetaWebhookMessage] Disparando bot de bienvenida para ticket ${ticket.id}`);
-      SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
-        console.error("[HandleMetaWebhookMessage] Error enviando bot de bienvenida:", err);
-      });
-    } else if (ticket.chatbotFinishedAt && !ticket.userId) {
-      console.log(`[HandleMetaWebhookMessage] Bot ya terminó para ticket ${ticket.id}, guardando mensaje normalmente`);
-    }
-
-    // Procesar respuesta del chatbot si el ticket está en modo bot
-    if (!shouldSkipBot && ticket.chatbotMessageIdentifier) {
-      console.log(`[HandleMetaWebhookMessage] Ticket ${ticket.id} en modo chatbot, procesando respuesta`);
-      try {
-        await ProcessChatbotResponseMeta({
-          ticket,
-          userMessage: getMessageBody(message),
-          contact,
-          whatsapp
-        });
-        console.log(`[HandleMetaWebhookMessage] Respuesta del chatbot procesada, no se guarda mensaje del usuario`);
-        return; // No continuar con el flujo normal, ya se procesó en el chatbot
-      } catch (err) {
-        console.error("[HandleMetaWebhookMessage] Error procesando respuesta del chatbot:", err);
-        // Continuar con flujo normal si falla el procesamiento del chatbot
-      }
-    }
-
-    // Guardar mensaje en BD
-    const mediaType = getMediaType(message);
-
-    // Descargar media si el mensaje tiene adjuntos
-    let mediaUrl: string | null = null;
-    let messageBody = getMessageBody(message);
-
-    if (hasMedia(message)) {
-      try {
-        console.log("[HandleMetaWebhookMessage] Mensaje tiene media, descargando...");
-        const mediaInfo = getMediaInfo(message);
-
-        const downloadResult = await DownloadMetaMedia({
-          mediaId: mediaInfo.id,
-          accessToken: whatsapp.metaAccessToken,
-          mimeType: mediaInfo.mimeType
-        });
-
-        mediaUrl = downloadResult.filename;
-
-        // Si no hay caption, usar el filename como body (igual que Puppeteer)
-        if (!hasCaption(message)) {
-          messageBody = downloadResult.filename;
-        }
-
-        console.log("[HandleMetaWebhookMessage] Media descargado:", mediaUrl);
-      } catch (err) {
-        console.error("[HandleMetaWebhookMessage] Error descargando media:", err);
-        // Continuar sin media si falla la descarga
-      }
-    }
-
-    // Verificar si el mensaje citado existe antes de asignarlo
-    let quotedMsgId = null;
-    if (message.context?.id) {
-      const quotedMessage = await Message.findByPk(message.context.id);
-      if (quotedMessage) {
-        quotedMsgId = message.context.id;
-      } else {
-        console.log("[HandleMetaWebhookMessage] Mensaje citado no encontrado:", message.context.id);
-      }
-    }
-
-    const newMessage = await Message.create({
-      id: message.id, // wamid.xxx
-      body: messageBody,
-      ticketId: ticket.id,
-      contactId: contact.id,
-      fromMe: false,
-      mediaType: mediaType,
-      mediaUrl: mediaUrl,
-      read: false,
-      quotedMsgId: quotedMsgId,
-      timestamp: parseInt(message.timestamp),
-      ack: 0
-    });
-
-    console.log("[HandleMetaWebhookMessage] Mensaje guardado:", newMessage.id);
-
-    // Actualizar último mensaje del ticket
-    await ticket.update({
-      lastMessage: messageBody,
-      lastMessageAt: new Date(parseInt(message.timestamp) * 1000)
-    });
-
-    // Recalcular beenWaitingSinceTimestamp: el cliente acaba de escribir, debe iniciarse el timer
-    const updatedTicket = await getAndSetBeenWaitingSinceTimestampTicketService(ticket) as Ticket;
-
-    // Emitir evento socket para actualizar frontend
-    emitEvent({
-      to: [ticket.id.toString(), ticket.status, "notification"],
-      event: {
-        name: "appMessage",
-        data: {
-          action: "create",
-          message: newMessage,
-          ticket: updatedTicket,
-          contact: contact
-        }
-      }
-    });
-
-    console.log("[HandleMetaWebhookMessage] Evento socket emitido");
-
-    // Emitir evento de ticket para actualizar lista
-    emitEvent({
-      to: [ticket.id.toString()],
-      event: {
-        name: "ticket",
-        data: {
-          action: "update",
-          ticket: updatedTicket
-        }
-      }
-    });
+    const { shouldSkipBot } = await setupTicket(ticket, whatsapp, isGroup);
+    const { newMessage, messageBody } = await saveUserMessage(message, ticket, contact, whatsapp);
+    await handleChatbot(ticket, messageBody, contact, whatsapp, shouldSkipBot);
+    await emitSocketEvents(ticket, newMessage, contact);
 
   } catch (err) {
     console.error("[HandleMetaWebhookMessage] Error procesando mensaje:", err);
