@@ -85,10 +85,10 @@ export interface MetaWebhookMessage {
   video?: MetaMediaObject;
   document?: MetaDocumentObject;
   sticker?: MetaStickerObject;
+  interactive?: MetaInteractiveObject;
   // TODO: Agregar cuando se necesiten
   // location?: MetaLocationObject;
   // contacts?: MetaContactObject[];
-  // interactive?: MetaInteractiveObject;
   // button?: MetaButtonObject;
   // reaction?: MetaReactionObject;
   // Contexto (si es respuesta o reenviado)
@@ -133,6 +133,24 @@ export interface MetaStickerObject {
   mime_type: string;
   sha256: string;
   animated?: boolean;
+}
+
+// Interactive (respuesta de mensajes interactivos)
+export interface MetaInteractiveObject {
+  type: "button_reply" | "list_reply";
+  button_reply?: MetaButtonReply;
+  list_reply?: MetaListReply;
+}
+
+export interface MetaButtonReply {
+  id: string;
+  title: string;
+}
+
+export interface MetaListReply {
+  id: string;
+  title: string;
+  description?: string;
 }
 
 // Contexto (mensaje reenviado o respuesta)
@@ -228,12 +246,6 @@ export interface MetaWebhookVerifyQuery {
 // }
 
 // export interface MetaContactObject { ... }
-
-// export interface MetaInteractiveObject {
-//   type: "button_reply" | "list_reply";
-//   button_reply?: { id: string; title: string };
-//   list_reply?: { id: string; title: string; description?: string };
-// }
 
 // export interface MetaButtonObject {
 //   payload: string;
