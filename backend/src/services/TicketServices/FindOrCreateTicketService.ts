@@ -424,7 +424,11 @@ const findTicket = async ({
         // Lógica para tickets normales: ventana de 15 minutos
         const fifteenMinutesAgo = subMinutes(new Date(), 15);
         
-        if (new Date(ticket.updatedAt) < fifteenMinutesAgo) {
+        // Si el ticket fue cerrado por expiración del chatbot, NO reabrir (crear nuevo)
+        if (ticket.chatbotFinishedAt && ticket.status === "closed") {
+          logs.push(`--- Ticket closed by chatbot timeout, will create new ticket. ID: ${ticket.id}, chatbotFinishedAt: ${ticket.chatbotFinishedAt}`);
+          ticket = null;
+        } else if (new Date(ticket.updatedAt) < fifteenMinutesAgo) {
           // Ticket cerrado hace más de 15 minutos → Crear nuevo ticket
           logs.push(`--- Ticket too old (>15 min), will create new ticket. Last update: ${new Date(ticket.updatedAt).toISOString()}`);
           ticket = null;

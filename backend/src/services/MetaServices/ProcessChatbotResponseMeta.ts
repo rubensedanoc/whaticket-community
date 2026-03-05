@@ -55,7 +55,8 @@ const ProcessChatbotResponseMeta = async ({
       console.log("[ProcessChatbotResponseMeta] No hay opciones disponibles, finalizando chatbot");
       await ticket.update({
         chatbotMessageIdentifier: null,
-        chatbotMessageLastStep: null
+        chatbotMessageLastStep: null,
+        chatbotFinishedAt: new Date()
       });
       return;
     }
@@ -214,9 +215,20 @@ const ProcessChatbotResponseMeta = async ({
     });
 
     // Actualizar ticket (replica wbotMessageListener.ts:1046-1048)
-    await ticket.update({
-      chatbotMessageLastStep: nextChatbotMessage.identifier
-    });
+    // Si el mensaje NO tiene más opciones, el bot terminó
+    if (!nextChatbotMessage.hasSubOptions || !nextChatbotMessage.chatbotOptions || nextChatbotMessage.chatbotOptions.length === 0) {
+      console.log(`[ProcessChatbotResponseMeta] Bot terminó (sin más opciones), limpiando chatbot y guardando chatbotFinishedAt`);
+      await ticket.update({
+        chatbotMessageIdentifier: null,
+        chatbotMessageLastStep: null,
+        chatbotFinishedAt: new Date()
+      });
+    } else {
+      // Si tiene más opciones, actualizar el último paso
+      await ticket.update({
+        chatbotMessageLastStep: nextChatbotMessage.identifier
+      });
+    }
 
     console.log(`[ProcessChatbotResponseMeta] Respuesta del chatbot enviada exitosamente para ticket ${ticket.id}`);
 

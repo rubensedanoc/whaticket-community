@@ -44,7 +44,7 @@ gracefulShutdown(server);
 cron.schedule("*/30 * * * *", async () => {
   const cronStartTime = Date.now();
   const memBefore = process.memoryUsage();
-  
+
   logger.info(
     `[${new Date().toISOString()}] CRON START searchForUnSaveMessages - heap: ${Math.round(memBefore.heapUsed / 1024 / 1024)}MB`
   );
@@ -76,7 +76,7 @@ cron.schedule("*/30 * * * *", async () => {
         logger.info(
           `[${new Date().toISOString()}] CRON - Processing whatsapp ${processedCount + 1}/${whatsapps.length} - ID: ${whatsapp.id} - name: ${whatsapp.name}`
         );
-        
+
         // VALIDACIÓN CRÍTICA: Verificar que la sesión wbot exista antes de usarla
         let wbot;
         try {
@@ -109,7 +109,7 @@ cron.schedule("*/30 * * * *", async () => {
         }
 
         const whatsappElapsed = Date.now() - whatsappStartTime;
-        
+
         if (searchForUnSaveMessagesResult.error) {
           errorCount++;
           logger.error(
@@ -127,7 +127,7 @@ cron.schedule("*/30 * * * *", async () => {
           `[${new Date().toISOString()}] searchForUnSaveMessagesResult (${whatsapp.name}): `,
           searchForUnSaveMessagesResult
         );
-        
+
         processedCount++;
       } catch (err) {
         errorCount++;
@@ -139,11 +139,11 @@ cron.schedule("*/30 * * * *", async () => {
         Sentry.captureException(err);
       }
     }
-    
+
     const cronElapsed = Date.now() - cronStartTime;
     const memAfter = process.memoryUsage();
     const memDiff = Math.round((memAfter.heapUsed - memBefore.heapUsed) / 1024 / 1024);
-    
+
     logger.info(
       `[${new Date().toISOString()}] CRON END searchForUnSaveMessages - processed: ${processedCount}/${whatsapps.length} - errors: ${errorCount} - totalMessages: ${totalMessages} - elapsed: ${cronElapsed}ms - memDiff: ${memDiff}MB`
     );
@@ -331,7 +331,7 @@ cron.schedule("*/30 * * * *", async () => {
 cron.schedule('0 * * * *', async () => {
   const cronStartTime = Date.now();
   logger.info(`[${new Date().toISOString()}] CRON START searchForExclusiveNumbers`);
-  
+
   try {
     // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
     const response = await fetch(
@@ -356,7 +356,7 @@ cron.schedule('0 * * * *', async () => {
     if (typeof data.data === "object") {
 
       const exclusiveNumbers = Object.keys(data.data).map(number => number.replace(/\D/g, "")).filter(number => number.length > 6);
-      
+
       logger.info(
         `[${new Date().toISOString()}] CRON searchForExclusiveNumbers - found ${exclusiveNumbers.length} exclusive numbers`
       );
@@ -373,7 +373,7 @@ cron.schedule('0 * * * *', async () => {
       );
 
     }
-    
+
     const cronElapsed = Date.now() - cronStartTime;
     logger.info(
       `[${new Date().toISOString()}] CRON END searchForExclusiveNumbers - elapsed: ${cronElapsed}ms`
@@ -388,6 +388,12 @@ cron.schedule('0 * * * *', async () => {
   }
 });
 
+// CRON FOR CHECKING EXPIRED CHATBOT SESSIONS
+// Every 5 minute
+cron.schedule('*/5 * * * *', async () => {
+  const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
+  await CheckExpiredChatbotSessions();
+});
 
 // Every minute of every hour of the day
 // cron.schedule('0 * * * *', async () => {
