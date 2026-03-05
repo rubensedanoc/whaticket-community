@@ -56,11 +56,35 @@ const SendWelcomeBotMessageMeta = async ({
     if (welcomeBot.hasSubOptions && welcomeBot.chatbotOptions && welcomeBot.chatbotOptions.length > 0) {
       console.log(`[SendWelcomeBotMessageMeta] Enviando lista interactiva con ${welcomeBot.chatbotOptions.length} opciones`);
       
-      const rows = welcomeBot.chatbotOptions.map(option => ({
-        id: option.label,
-        title: option.title.trim().substring(0, 24),
-        description: option.title.trim().length > 24 ? option.title.trim().substring(24, 96) : undefined
-      }));
+      const rows = welcomeBot.chatbotOptions.map(option => {
+        const fullText = option.title.trim();
+        
+        // Detectar si hay dos puntos para separar título y descripción
+        if (fullText.includes(':')) {
+          const [beforeColon, afterColon] = fullText.split(':').map(s => s.trim());
+          
+          return {
+            id: option.label,
+            title: beforeColon.substring(0, 24),
+            description: afterColon ? afterColon.substring(0, 72) : undefined
+          };
+        }
+        
+        // Si no hay dos puntos y el texto es corto, solo título
+        if (fullText.length <= 24) {
+          return {
+            id: option.label,
+            title: fullText
+          };
+        }
+        
+        // Si es largo sin dos puntos, cortar en 24 y poner el resto en descripción
+        return {
+          id: option.label,
+          title: fullText.substring(0, 24),
+          description: fullText.substring(24, 96)
+        };
+      });
 
       const response = await client.sendInteractiveList({
         to: contact.number,
