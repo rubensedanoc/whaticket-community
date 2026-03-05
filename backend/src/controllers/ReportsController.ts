@@ -2089,6 +2089,45 @@ export const reportToUsers = async (
       usersListAll["sin_asignar"].ticketOpenCount += 1;
     }
   }
+  
+  // Count pending tickets without assigned user (Sin asignar)
+  let sqlWherePending = `t.status = 'pending' and t.userId IS NULL and t.isGroup = 0 and t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+  
+  if (selectedWhatsappIds.length > 0) {
+    sqlWherePending += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWherePending += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWherePending += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWherePending += ` AND t.queueId IS NULL`;
+      } else {
+        sqlWherePending += ` AND (t.queueId IN (${selectedQueueIds
+          .filter(q => q !== null)
+          .join(",")}) OR t.queueId IS NULL)`;
+      }
+    }
+  }
+  
+  const sqlPending = `SELECT COUNT(DISTINCT t.id) as count
+  FROM Tickets t
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
+  WHERE ${sqlWherePending}`;
+  
+  const pendingUnassignedResult: any = await Ticket.sequelize.query(sqlPending, {
+    type: QueryTypes.SELECT
+  });
+  
+  const pendingUnassignedCount = pendingUnassignedResult[0]?.count || 0;
+  usersListAll["sin_asignar"].ticketCount += parseInt(pendingUnassignedCount);
+  usersListAll["sin_asignar"].ticketOpenCount += parseInt(pendingUnassignedCount);
+  
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
     usersListAll,
