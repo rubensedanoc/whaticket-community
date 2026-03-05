@@ -77,7 +77,6 @@ const FindOrCreateTicketService = async (props: {
       ticket = await Ticket.create({
         contactId: groupContact ? groupContact.id : contact.id,
         status:
-          chatbotMessageIdentifier ||
           messagingCampaignId ||
           marketingMessagingCampaignId
             ? "closed"
@@ -140,7 +139,6 @@ const FindOrCreateTicketService = async (props: {
         ticket = await Ticket.create({
           contactId: groupContact ? groupContact.id : contact.id,
           status:
-            chatbotMessageIdentifier ||
             messagingCampaignId ||
             marketingMessagingCampaignId
               ? "closed"
@@ -421,21 +419,30 @@ const findTicket = async ({
           }
         }
       } else {
-        // Lógica para tickets normales: ventana de 15 minutos
-        const fifteenMinutesAgo = subMinutes(new Date(), 15);
-        
-        // Si el ticket fue cerrado por expiración del chatbot, NO reabrir (crear nuevo)
-        if (ticket.chatbotFinishedAt && ticket.status === "closed") {
-          logs.push(`--- Ticket closed by chatbot timeout, will create new ticket. ID: ${ticket.id}, chatbotFinishedAt: ${ticket.chatbotFinishedAt}`);
+        // Lógica simplificada: Si el ticket está cerrado, crear nuevo ticket
+        if (ticket.status === "closed") {
+          logs.push(`--- Ticket closed, will create new ticket. ID: ${ticket.id}`);
           ticket = null;
-        } else if (new Date(ticket.updatedAt) < fifteenMinutesAgo) {
-          // Ticket cerrado hace más de 15 minutos → Crear nuevo ticket
-          logs.push(`--- Ticket too old (>15 min), will create new ticket. Last update: ${new Date(ticket.updatedAt).toISOString()}`);
-          ticket = null;
-        } else {
-          // Ticket cerrado hace menos de 15 minutos → Reabrir
-          logs.push(`--- Ticket will be reopened (<15 min). ID: ${ticket.id}, status: ${ticket.status}, updatedAt: ${ticket.updatedAt}`);
         }
+        // Si el ticket está abierto/pending, se reabrirá automáticamente abajo
+
+        // ============================================================
+        // LÓGICA ANTERIOR (COMENTADA): Ventana de 15 minutos
+        // ============================================================
+        // const fifteenMinutesAgo = subMinutes(new Date(), 15);
+        // 
+        // // Si el ticket fue cerrado por expiración del chatbot, NO reabrir (crear nuevo)
+        // if (ticket.chatbotFinishedAt && ticket.status === "closed") {
+        //   logs.push(`--- Ticket closed by chatbot timeout, will create new ticket. ID: ${ticket.id}, chatbotFinishedAt: ${ticket.chatbotFinishedAt}`);
+        //   ticket = null;
+        // } else if (new Date(ticket.updatedAt) < fifteenMinutesAgo) {
+        //   // Ticket cerrado hace más de 15 minutos → Crear nuevo ticket
+        //   logs.push(`--- Ticket too old (>15 min), will create new ticket. Last update: ${new Date(ticket.updatedAt).toISOString()}`);
+        //   ticket = null;
+        // } else {
+        //   // Ticket cerrado hace menos de 15 minutos → Reabrir
+        //   logs.push(`--- Ticket will be reopened (<15 min). ID: ${ticket.id}, status: ${ticket.status}, updatedAt: ${ticket.updatedAt}`);
+        // }
       }
     }
 
