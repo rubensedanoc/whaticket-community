@@ -1,4 +1,8 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client
+} from "@aws-sdk/client-s3";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -45,13 +49,18 @@ export const generateStorageFilename = (
   originalName: string,
   mimeType?: string
 ): string => {
-  const base = sanitizeBaseName(path.basename(originalName || "file", path.extname(originalName || "")) || "file");
+  const base = sanitizeBaseName(
+    path.basename(originalName || "file", path.extname(originalName || "")) ||
+      "file"
+  );
   const ext = getExtension(originalName, mimeType);
   return `${base}-${Date.now()}${ext}`;
 };
 
 const withPrefix = (fileName: string, prefix?: string): string => {
-  const normalizedPrefix = (prefix ?? s3BackupPrefix ?? "").trim().replace(/^\/+|\/+$/g, "");
+  const normalizedPrefix = (prefix ?? s3BackupPrefix ?? "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "");
   if (!normalizedPrefix) return fileName;
   return `${normalizedPrefix}/${fileName}`;
 };
@@ -140,7 +149,9 @@ export const persistMulterFile = async (
   prefix?: string
 ): Promise<string> => {
   if (isLocalStorage) {
-    return file.filename || generateStorageFilename(file.originalname, file.mimetype);
+    return (
+      file.filename || generateStorageFilename(file.originalname, file.mimetype)
+    );
   }
 
   if (!file?.buffer) {
@@ -155,7 +166,9 @@ export const persistMulterFile = async (
   });
 };
 
-export const getStoragePublicUrl = (storedValue?: string | null): string | null => {
+export const getStoragePublicUrl = (
+  storedValue?: string | null
+): string | null => {
   if (!storedValue) return null;
   if (isAbsoluteUrl(storedValue)) return storedValue;
 
@@ -184,7 +197,10 @@ const downloadS3ObjectToTemp = async (key: string): Promise<string> => {
   });
 
   const ext = path.extname(key) || ".bin";
-  const tempPath = path.join(os.tmpdir(), `whaticket-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  const tempPath = path.join(
+    os.tmpdir(),
+    `whaticket-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+  );
   await writeFileAsync(tempPath, Buffer.concat(chunks));
   return tempPath;
 };
@@ -230,7 +246,10 @@ export const ensureMulterFileLocalPath = async (
     throw new Error("No hay path ni buffer disponible para el archivo");
   }
 
-  const tempFileName = generateStorageFilename(file.originalname, file.mimetype);
+  const tempFileName = generateStorageFilename(
+    file.originalname,
+    file.mimetype
+  );
   const tempPath = path.join(os.tmpdir(), `whaticket-upload-${tempFileName}`);
   await writeFileAsync(tempPath, file.buffer);
 

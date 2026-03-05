@@ -42,7 +42,7 @@ const SendWhatsAppMediaWbot = async ({
 
     const newMedia = MessageMedia.fromFilePath(localPath);
 
-    let mediaOptions: MessageSendOptions = {
+    const mediaOptions: MessageSendOptions = {
       caption: hasBody,
       sendAudioAsVoice: true
     };
@@ -51,7 +51,7 @@ const SendWhatsAppMediaWbot = async ({
       newMedia.mimetype.startsWith("image/") &&
       !/^.*\.(jpe?g|png|gif)?$/i.exec(storedMediaKey)
     ) {
-      mediaOptions["sendMediaAsDocument"] = true;
+      mediaOptions.sendMediaAsDocument = true;
     }
 
     const sentMessage = await wbot
@@ -96,7 +96,7 @@ const SendWhatsAppMediaWbot = async ({
           data: {
             action: "create",
             message: newMessage,
-            ticket: ticket,
+            ticket,
             contact: ticket.contact
           }
         }
@@ -104,7 +104,9 @@ const SendWhatsAppMediaWbot = async ({
     } catch (error) {
       // Si el mensaje ya existe (clave primaria duplicada), ignorar el error
       // Esto puede pasar si el listener de WhatsApp lo procesó muy rápido
-      console.log(`[SendWhatsAppMediaWbot] Mensaje ${sentMessage.id.id} ya existe en BD, ignorando duplicado`);
+      console.log(
+        `[SendWhatsAppMediaWbot] Mensaje ${sentMessage.id.id} ya existe en BD, ignorando duplicado`
+      );
     }
 
     // fs.unlinkSync(media.path);

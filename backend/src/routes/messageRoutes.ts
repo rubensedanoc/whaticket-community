@@ -14,7 +14,11 @@ const upload = multer(uploadConfig);
 messageRoutes.get("/messages/:ticketId", isAuth, MessageController.index);
 
 // Endpoint para mensajes consolidados (vista agrupada)
-messageRoutes.get("/consolidated-messages/:contactId", isAuth, MessageController.consolidatedIndex);
+messageRoutes.get(
+  "/consolidated-messages/:contactId",
+  isAuth,
+  MessageController.consolidatedIndex
+);
 
 messageRoutes.get("/messagesV2", isAuth, MessageController.indexV2);
 

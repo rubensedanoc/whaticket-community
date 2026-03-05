@@ -2,13 +2,21 @@ import path from "path";
 
 export type StorageType = "local" | "s3";
 
-const rawStorageType = (process.env.STORAGE_TYPE || "local").toLowerCase();
+const rawStorageType = (process.env.STORAGE_TYPE || "local")
+  .trim()
+  .toLowerCase();
 
-export const storageType: StorageType = rawStorageType === "s3" ? "s3" : "local";
+export const storageType: StorageType =
+  rawStorageType === "s3" ? "s3" : "local";
 export const isS3Storage = storageType === "s3";
 export const isLocalStorage = storageType === "local";
 
-export const localPublicDirectory = path.resolve(__dirname, "..", "..", "public");
+export const localPublicDirectory = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "public"
+);
 
 export const awsRegion =
   process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-east-1";
