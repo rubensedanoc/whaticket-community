@@ -161,16 +161,27 @@ const processMessage = async (
       }
     }
 
+    // VALIDACIONES: No disparar bot si se cumplen estas condiciones
+    const shouldSkipBot = 
+      isGroup ||                                      // Es mensaje de grupo
+      ticket.status === "closed" ||                  // Ticket cerrado
+      ticket.userId != null ||                       // Agente asignado
+      ticket.messagingCampaignId != null ||          // Campaña activa
+      ticket.marketingMessagingCampaignId != null;   // Campaña marketing activa
+
     // Disparar bot de bienvenida si es ticket nuevo sin chatbot activo
-    if (!isGroup && !ticket.userId && !ticket.chatbotMessageIdentifier) {
+    // NO disparar si el bot ya terminó (chatbotFinishedAt existe)
+    if (!shouldSkipBot && !ticket.chatbotMessageIdentifier && !ticket.chatbotFinishedAt) {
       console.log(`[HandleMetaWebhookMessage] Disparando bot de bienvenida para ticket ${ticket.id}`);
       SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
         console.error("[HandleMetaWebhookMessage] Error enviando bot de bienvenida:", err);
       });
+    } else if (ticket.chatbotFinishedAt && !ticket.userId) {
+      console.log(`[HandleMetaWebhookMessage] Bot ya terminó para ticket ${ticket.id}, guardando mensaje normalmente`);
     }
 
     // Procesar respuesta del chatbot si el ticket está en modo bot
-    if (ticket.chatbotMessageIdentifier) {
+    if (!shouldSkipBot && ticket.chatbotMessageIdentifier) {
       console.log(`[HandleMetaWebhookMessage] Ticket ${ticket.id} en modo chatbot, procesando respuesta`);
       try {
         await ProcessChatbotResponseMeta({
