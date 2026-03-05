@@ -1084,7 +1084,7 @@ const Reports = () => {
                   {responseTimes ? (
                     <>
                       <Grid item xs={4}>
-                        {responseTimes.slice(0, 5).map((range) => (
+                        {responseTimes.slice(0, 4).map((range) => (
                           <div key={range.label}>
                             <span>{range.label}</span>
                             {": "}
@@ -1112,7 +1112,7 @@ const Reports = () => {
                                   {Math.round(
                                     (range.count * 100) /
                                       responseTimes
-                                        .slice(0, 5)
+                                        .slice(0, 4)
                                         .reduce(
                                           (acc, range) => acc + range.count,
                                           0
@@ -1129,7 +1129,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (responseTimes
-                              .slice(0, 5)
+                              .slice(0, 4)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               responseTimesData.length
@@ -1138,7 +1138,7 @@ const Reports = () => {
                         </div>
                       </Grid>
                       <Grid item xs={4}>
-                        {responseTimes.slice(5, 10).map((range, index) => (
+                        {responseTimes.slice(4, 7).map((range) => (
                           <div key={range.label}>
                             <span>{range.label}</span>
                             {": "}
@@ -1153,7 +1153,7 @@ const Reports = () => {
                               }}
                             >
                               {range.count}{" "}
-                              {index !== 0 && range.count > 0 && (
+                              {range.count > 0 && (
                                 <span
                                   style={{
                                     color: "black",
@@ -1166,7 +1166,7 @@ const Reports = () => {
                                   {Math.round(
                                     (range.count * 100) /
                                       responseTimes
-                                        .slice(6, 10)
+                                        .slice(4, 7)
                                         .reduce(
                                           (acc, range) => acc + range.count,
                                           0
@@ -1182,7 +1182,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (responseTimes
-                              .slice(6, 10)
+                              .slice(4, 7)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               responseTimesData.length
@@ -1191,7 +1191,7 @@ const Reports = () => {
                         </div>
                       </Grid>
                       <Grid item xs={4}>
-                        {responseTimes.slice(10, 15).map((range, index) => (
+                        {responseTimes.slice(7, 10).map((range) => (
                           <div key={range.label}>
                             <span>{range.label}</span>
                             {": "}
@@ -1206,7 +1206,7 @@ const Reports = () => {
                               }}
                             >
                               {range.count}
-                              {index !== 0 && range.count > 0 && (
+                              {range.count > 0 && (
                                 <span
                                   style={{
                                     color: "black",
@@ -1219,7 +1219,7 @@ const Reports = () => {
                                   {Math.round(
                                     (range.count * 100) /
                                       responseTimes
-                                        .slice(11, 15)
+                                        .slice(7, 10)
                                         .reduce(
                                           (acc, range) => acc + range.count,
                                           0
@@ -1235,7 +1235,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (responseTimes
-                              .slice(11, 15)
+                              .slice(7, 10)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               responseTimesData.length
@@ -1467,7 +1467,7 @@ const Reports = () => {
                   {closeQuintilesTimes ? (
                     <>
                       <Grid item xs={4}>
-                        {closeQuintilesTimes.slice(0, 5).map((range) => (
+                        {closeQuintilesTimes.slice(0, 4).map((range) => (
                           <div key={range.label}>
                             <span>{range.label}</span>
                             {": "}
@@ -1495,7 +1495,7 @@ const Reports = () => {
                                   {Math.round(
                                     (range.count * 100) /
                                       closeQuintilesTimes
-                                        .slice(0, 5)
+                                        .slice(0, 4)
                                         .reduce(
                                           (acc, range) => acc + range.count,
                                           0
@@ -1512,7 +1512,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (closeQuintilesTimes
-                              .slice(0, 5)
+                              .slice(0, 4)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount
@@ -1522,8 +1522,8 @@ const Reports = () => {
                       </Grid>
                       <Grid item xs={4}>
                         {closeQuintilesTimes
-                          .slice(5, 10)
-                          .map((range, index) => (
+                          .slice(4, 7)
+                          .map((range) => (
                             <div key={range.label}>
                               <span>{range.label}</span>
                               {": "}
@@ -1538,7 +1538,7 @@ const Reports = () => {
                                 }}
                               >
                                 {range.count}{" "}
-                                {index !== 0 && range.count > 0 && (
+                                {range.count > 0 && (
                                   <span
                                     style={{
                                       color: "black",
@@ -1551,7 +1551,7 @@ const Reports = () => {
                                     {Math.round(
                                       (range.count * 100) /
                                         closeQuintilesTimes
-                                          .slice(6, 10)
+                                          .slice(4, 7)
                                           .reduce(
                                             (acc, range) => acc + range.count,
                                             0
@@ -1567,7 +1567,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (closeQuintilesTimes
-                              .slice(6, 10)
+                              .slice(4, 7)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount
@@ -1577,8 +1577,8 @@ const Reports = () => {
                       </Grid>
                       <Grid item xs={4}>
                         {closeQuintilesTimes
-                          .slice(10, 15)
-                          .map((range, index) => (
+                          .slice(7, 10)
+                          .map((range) => (
                             <div key={range.label}>
                               <span>{range.label}</span>
                               {": "}
@@ -1593,7 +1593,7 @@ const Reports = () => {
                                 }}
                               >
                                 {range.count}
-                                {index !== 0 && range.count > 0 && (
+                                {range.count > 0 && (
                                   <span
                                     style={{
                                       color: "black",
@@ -1606,7 +1606,7 @@ const Reports = () => {
                                     {Math.round(
                                       (range.count * 100) /
                                         closeQuintilesTimes
-                                          .slice(11, 15)
+                                          .slice(7, 10)
                                           .reduce(
                                             (acc, range) => acc + range.count,
                                             0
@@ -1622,7 +1622,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (closeQuintilesTimes
-                              .slice(11, 15)
+                              .slice(7, 10)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount

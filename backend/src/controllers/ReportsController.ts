@@ -827,21 +827,16 @@ export const reportHistory = async (
    */
 
   const timesQuintalWaitingResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
 
   const ticketsCount = {
@@ -1164,21 +1159,16 @@ export const reportHistoryWithDateRange = async (
    * Los agrupos por para obtener los mensajes del ticket
    */
   const timesQuintalResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
   const ticketsCreated = { count: 0, ticketIds: [] };
   const ticketsClosed = { count: 0, ticketIds: [] };
@@ -1877,6 +1867,15 @@ export const reportToUsers = async (
       name: usersListFind[userId][0].name
     };
   }
+  // Add entry for tickets without assigned users
+  usersListAll["sin_asignar"] = {
+    ticketCount: 0,
+    ticketClosedCount: 0,
+    ticketOpenCount: 0,
+    timeWaitingCount: 0,
+    timeWaitingSecounds: 0,
+    name: "Sin asignar"
+  };
   logsTime.push(`usersfind-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
@@ -1931,39 +1930,29 @@ export const reportToUsers = async (
    * Agrupar en ram por ticketID
    */
   const timesQuintalResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
 
   const timesQuintalWaitingResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
 
   let ticketsClosed: any = ticketListFind.filter(
@@ -2028,6 +2017,9 @@ export const reportToUsers = async (
     if (ticketUserID !== null && usersListAll?.[ticketUserID] !== null) {
       usersListAll[ticketUserID].ticketCount += 1;
       usersListAll[ticketUserID].ticketClosedCount += 1;
+    } else if (ticketUserID === null) {
+      usersListAll["sin_asignar"].ticketCount += 1;
+      usersListAll["sin_asignar"].ticketClosedCount += 1;
     }
   }
 
@@ -2090,6 +2082,11 @@ export const reportToUsers = async (
       usersListAll[ticketUserID].timeWaitingSecounds += timeWaitingSecounds;
       usersListAll[ticketUserID].ticketCount += 1;
       usersListAll[ticketUserID].ticketOpenCount += 1;
+    } else if (ticketUserID === null) {
+      usersListAll["sin_asignar"].timeWaitingCount += timeWaitingCount;
+      usersListAll["sin_asignar"].timeWaitingSecounds += timeWaitingSecounds;
+      usersListAll["sin_asignar"].ticketCount += 1;
+      usersListAll["sin_asignar"].ticketOpenCount += 1;
     }
   }
   logsTime.push(`asignacion-fin: ${Date()}`);
