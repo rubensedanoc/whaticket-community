@@ -92,7 +92,7 @@ const ProcessChatbotResponseMeta = async ({
       // Si viene de un mensaje interactivo, buscar por ID exacto
       console.log(`[ProcessChatbotResponseMeta] Buscando opción por ID: ${selectedOptionId}`);
       chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
-        co.label === selectedOptionId
+        co.id.toString() === selectedOptionId
       );
     } else {
       // Si es mensaje de texto (legacy), normalizar y buscar
