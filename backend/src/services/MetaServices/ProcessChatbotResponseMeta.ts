@@ -6,6 +6,26 @@ import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { MetaApiClient } from "../../clients/MetaApiClient";
 
+interface InteractiveListRow {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+const formatInteractiveListOptionsAsText = (rows: InteractiveListRow[]): string => {
+  if (!rows || rows.length === 0) return "";
+  
+  const optionsText = rows.map((row, index) => {
+    const number = index + 1;
+    if (row.description) {
+      return `${number}. ${row.title}: ${row.description}`;
+    }
+    return `${number}. ${row.title}`;
+  }).join("\n");
+  
+  return `\n\n${optionsText}`;
+};
+
 interface ProcessChatbotResponseMetaParams {
   ticket: Ticket;
   userMessage: string;
@@ -144,11 +164,12 @@ const ProcessChatbotResponseMeta = async ({
       const errorMessageId = errorResponse.messages[0].id;
 
       // Guardar mensaje de error en BD
+      const errorOptionsText = formatInteractiveListOptionsAsText(rows);
       await Message.create({
         id: errorMessageId,
         ticketId: ticket.id,
         contactId: contact.id,
-        body: errorBodyText,
+        body: `${errorBodyText}${errorOptionsText}`,
         fromMe: true,
         mediaType: "chat",
         read: true,
@@ -242,7 +263,8 @@ const ProcessChatbotResponseMeta = async ({
       });
 
       messageId = response.messages[0].id;
-      message = `\u200e${nextChatbotMessage.value}`;
+      const optionsText = formatInteractiveListOptionsAsText(rows);
+      message = `\u200e${nextChatbotMessage.value}${optionsText}`;
     } else if (nextChatbotMessage.mediaType === "image" && nextChatbotMessage.mediaUrl) {
       console.log(`[ProcessChatbotResponseMeta] Enviando imagen con caption`);
 

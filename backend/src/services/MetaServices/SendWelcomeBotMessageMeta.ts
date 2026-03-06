@@ -6,6 +6,26 @@ import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { MetaApiClient } from "../../clients/MetaApiClient";
 
+interface InteractiveListRow {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+const formatInteractiveListOptionsAsText = (rows: InteractiveListRow[]): string => {
+  if (!rows || rows.length === 0) return "";
+  
+  const optionsText = rows.map((row, index) => {
+    const number = index + 1;
+    if (row.description) {
+      return `${number}. ${row.title}: ${row.description}`;
+    }
+    return `${number}. ${row.title}`;
+  }).join("\n");
+  
+  return `\n\n${optionsText}`;
+};
+
 interface SendWelcomeBotMessageMetaParams {
   ticket: Ticket;
   contact: Contact;
@@ -98,7 +118,8 @@ const SendWelcomeBotMessageMeta = async ({
       });
 
       messageId = response.messages[0].id;
-      message = `\u200e${welcomeBot.value}`;
+      const optionsText = formatInteractiveListOptionsAsText(rows);
+      message = `\u200e${welcomeBot.value}${optionsText}`;
     } else if (welcomeBot.mediaType === "image" && welcomeBot.mediaUrl) {
       console.log(`[SendWelcomeBotMessageMeta] Enviando imagen con caption`);
       
