@@ -5,22 +5,24 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { MetaApiClient } from "../../clients/MetaApiClient";
+import { emitEvent } from "../../libs/emitEvent";
 
 interface InteractiveListRow {
   id: string;
   title: string;
   description?: string;
+  label?: string;
 }
 
 const formatInteractiveListOptionsAsText = (rows: InteractiveListRow[]): string => {
   if (!rows || rows.length === 0) return "";
   
-  const optionsText = rows.map((row, index) => {
-    const number = index + 1;
+  const optionsText = rows.map((row) => {
+    const prefix = row.label || row.id;
     if (row.description) {
-      return `${number}. ${row.title}: ${row.description}`;
+      return `${prefix}. ${row.title}: ${row.description}`;
     }
-    return `${number}. ${row.title}`;
+    return `${prefix}. ${row.title}`;
   }).join("\n");
   
   return `\n\n${optionsText}`;
@@ -84,27 +86,33 @@ const SendWelcomeBotMessageMeta = async ({
           const [beforeColon, afterColon] = fullText.split(':').map(s => s.trim());
           
           return {
-            id: option.label,
+            id: option.id.toString(),
             title: beforeColon.substring(0, 24),
-            description: afterColon ? afterColon.substring(0, 72) : undefined
+            description: afterColon ? afterColon.substring(0, 72) : undefined,
+            label: option.label
           };
         }
         
         // Si no hay dos puntos y el texto es corto, solo título
         if (fullText.length <= 24) {
           return {
-            id: option.label,
-            title: fullText
+            id: option.id.toString(),
+            title: fullText,
+            label: option.label
           };
         }
         
         // Si es largo sin dos puntos, cortar en 24 y poner el resto en descripción
         return {
-          id: option.label,
+          id: option.id.toString(),
           title: fullText.substring(0, 24),
-          description: fullText.substring(24, 96)
+          description: fullText.substring(24, 96),
+          label: option.label
         };
       });
+
+      // Crear rows sin el campo label para enviar a Meta API
+      const rowsForMeta = rows.map(({ label, ...row }) => row);
 
       const response = await client.sendInteractiveList({
         to: contact.number,
@@ -112,7 +120,7 @@ const SendWelcomeBotMessageMeta = async ({
         buttonText: "Ver opciones",
         sections: [
           {
-            rows: rows
+            rows: rowsForMeta
           }
         ]
       });
@@ -152,7 +160,7 @@ const SendWelcomeBotMessageMeta = async ({
 
     console.log(`[SendWelcomeBotMessageMeta] Mensaje enviado con ID: ${messageId}`);
 
-    await Message.create({
+    const botMessage = await Message.create({
       id: messageId,
       ticketId: ticket.id,
       contactId: contact.id,
@@ -162,8 +170,23 @@ const SendWelcomeBotMessageMeta = async ({
       mediaUrl: welcomeBot.mediaUrl || null,
       read: true,
       quotedMsgId: null,
+      timestamp: Math.floor(Date.now() / 1000),
       ack: 3,
       identifier: welcomeBot.identifier
+    });
+
+    // Emitir evento socket para mostrar mensaje en frontend
+    emitEvent({
+      to: [ticket.id.toString(), ticket.status],
+      event: {
+        name: "appMessage",
+        data: {
+          action: "create",
+          message: botMessage,
+          ticket: ticket,
+          contact: contact
+        }
+      }
     });
 
     await ticket.update({
