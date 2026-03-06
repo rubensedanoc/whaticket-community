@@ -5,6 +5,7 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { MetaApiClient } from "../../clients/MetaApiClient";
+import { emitEvent } from "../../libs/emitEvent";
 
 interface InteractiveListRow {
   id: string;
@@ -15,12 +16,11 @@ interface InteractiveListRow {
 const formatInteractiveListOptionsAsText = (rows: InteractiveListRow[]): string => {
   if (!rows || rows.length === 0) return "";
   
-  const optionsText = rows.map((row, index) => {
-    const number = index + 1;
+  const optionsText = rows.map((row) => {
     if (row.description) {
-      return `${number}. ${row.title}: ${row.description}`;
+      return `${row.id}. ${row.title}: ${row.description}`;
     }
-    return `${number}. ${row.title}`;
+    return `${row.id}. ${row.title}`;
   }).join("\n");
   
   return `\n\n${optionsText}`;
@@ -165,7 +165,7 @@ const ProcessChatbotResponseMeta = async ({
 
       // Guardar mensaje de error en BD
       const errorOptionsText = formatInteractiveListOptionsAsText(rows);
-      await Message.create({
+      const errorMessage = await Message.create({
         id: errorMessageId,
         ticketId: ticket.id,
         contactId: contact.id,
@@ -174,8 +174,23 @@ const ProcessChatbotResponseMeta = async ({
         mediaType: "chat",
         read: true,
         quotedMsgId: null,
+        timestamp: Math.floor(Date.now() / 1000),
         ack: 3,
         identifier: chatbotMessageReplied.identifier
+      });
+
+      // Emitir evento socket para mostrar mensaje en frontend
+      emitEvent({
+        to: [ticket.id.toString(), ticket.status],
+        event: {
+          name: "appMessage",
+          data: {
+            action: "create",
+            message: errorMessage,
+            ticket: ticket,
+            contact: contact
+          }
+        }
       });
 
       console.log(`[ProcessChatbotResponseMeta] Mensaje de error con lista interactiva enviado, esperando respuesta válida`);
@@ -298,7 +313,7 @@ const ProcessChatbotResponseMeta = async ({
     console.log(`[ProcessChatbotResponseMeta] Mensaje enviado con ID: ${messageId}`);
 
     // Guardar mensaje en BD
-    await Message.create({
+    const botMessage = await Message.create({
       id: messageId,
       ticketId: ticket.id,
       contactId: contact.id,
@@ -308,8 +323,23 @@ const ProcessChatbotResponseMeta = async ({
       mediaUrl: nextChatbotMessage.mediaUrl || null,
       read: true,
       quotedMsgId: null,
+      timestamp: Math.floor(Date.now() / 1000),
       ack: 3,
       identifier: nextChatbotMessage.identifier
+    });
+
+    // Emitir evento socket para mostrar mensaje en frontend
+    emitEvent({
+      to: [ticket.id.toString(), ticket.status],
+      event: {
+        name: "appMessage",
+        data: {
+          action: "create",
+          message: botMessage,
+          ticket: ticket,
+          contact: contact
+        }
+      }
     });
 
     // Actualizar ticket (replica wbotMessageListener.ts:1046-1048)

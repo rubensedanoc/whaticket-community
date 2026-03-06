@@ -5,6 +5,7 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { MetaApiClient } from "../../clients/MetaApiClient";
+import { emitEvent } from "../../libs/emitEvent";
 
 interface InteractiveListRow {
   id: string;
@@ -15,12 +16,11 @@ interface InteractiveListRow {
 const formatInteractiveListOptionsAsText = (rows: InteractiveListRow[]): string => {
   if (!rows || rows.length === 0) return "";
   
-  const optionsText = rows.map((row, index) => {
-    const number = index + 1;
+  const optionsText = rows.map((row) => {
     if (row.description) {
-      return `${number}. ${row.title}: ${row.description}`;
+      return `${row.id}. ${row.title}: ${row.description}`;
     }
-    return `${number}. ${row.title}`;
+    return `${row.id}. ${row.title}`;
   }).join("\n");
   
   return `\n\n${optionsText}`;
@@ -152,7 +152,7 @@ const SendWelcomeBotMessageMeta = async ({
 
     console.log(`[SendWelcomeBotMessageMeta] Mensaje enviado con ID: ${messageId}`);
 
-    await Message.create({
+    const botMessage = await Message.create({
       id: messageId,
       ticketId: ticket.id,
       contactId: contact.id,
@@ -162,8 +162,23 @@ const SendWelcomeBotMessageMeta = async ({
       mediaUrl: welcomeBot.mediaUrl || null,
       read: true,
       quotedMsgId: null,
+      timestamp: Math.floor(Date.now() / 1000),
       ack: 3,
       identifier: welcomeBot.identifier
+    });
+
+    // Emitir evento socket para mostrar mensaje en frontend
+    emitEvent({
+      to: [ticket.id.toString(), ticket.status],
+      event: {
+        name: "appMessage",
+        data: {
+          action: "create",
+          message: botMessage,
+          ticket: ticket,
+          contact: contact
+        }
+      }
     });
 
     await ticket.update({
