@@ -26,12 +26,17 @@ const ListContactsService = async ({
     const searchWithoutSpaces = normalizedSearch.toLowerCase().replace(/\s+/g, "");
     let searchOnlyNumbers = normalizedSearch.replace(/[^0-9]/g, "");
     
-    // Remover el 0 después del código de país si existe
-    // Esto maneja el prefijo nacional que algunos países usan (ej: 5930995... → 593995...)
-    // Funciona para códigos de país de 1-3 dígitos seguidos de 0
+    // Remover el 0 después del código de país SOLO para países específicos que lo requieren
+    // Ecuador (593), Argentina (54), Colombia (57) usan 0 después del código de país
     if (searchOnlyNumbers.length >= 10) {
-      // Intentar remover 0 después de 1, 2 o 3 dígitos iniciales
-      searchOnlyNumbers = searchOnlyNumbers.replace(/^(\d{1,3})0(\d{8,})$/, '$1$2');
+      const countriesWithZero = ['593', '54', '57'];
+      const matchedCountry = countriesWithZero.find(code => searchOnlyNumbers.startsWith(code));
+      
+      if (matchedCountry) {
+        // Verificar si después del código de país hay un 0
+        const pattern = new RegExp(`^(${matchedCountry})0(\\d{8,})$`);
+        searchOnlyNumbers = searchOnlyNumbers.replace(pattern, '$1$2');
+      }
     }
     
     whereCondition = {
