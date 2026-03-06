@@ -155,13 +155,16 @@ const ProcessChatbotResponseMeta = async ({
         };
       });
 
+      // Crear rows sin el campo label para enviar a Meta API
+      const rowsForMeta = rows.map(({ label, ...row }) => row);
+
       const errorResponse = await client.sendInteractiveList({
         to: contact.number,
         bodyText: errorBodyText,
         buttonText: "Ver opciones",
         sections: [
           {
-            rows: rows
+            rows: rowsForMeta
           }
         ]
       });
@@ -274,13 +277,16 @@ const ProcessChatbotResponseMeta = async ({
         };
       });
 
+      // Crear rows sin el campo label para enviar a Meta API
+      const rowsForMeta = rows.map(({ label, ...row }) => row);
+
       const response = await client.sendInteractiveList({
         to: contact.number,
         bodyText: `\u200e${nextChatbotMessage.value}`,
         buttonText: "Ver opciones",
         sections: [
           {
-            rows: rows
+            rows: rowsForMeta
           }
         ]
       });

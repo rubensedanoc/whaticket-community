@@ -111,13 +111,16 @@ const SendWelcomeBotMessageMeta = async ({
         };
       });
 
+      // Crear rows sin el campo label para enviar a Meta API
+      const rowsForMeta = rows.map(({ label, ...row }) => row);
+
       const response = await client.sendInteractiveList({
         to: contact.number,
         bodyText: `\u200e${welcomeBot.value}`,
         buttonText: "Ver opciones",
         sections: [
           {
-            rows: rows
+            rows: rowsForMeta
           }
         ]
       });
