@@ -68,16 +68,21 @@ export const sendGoogleChatLog = async (
   errorType: string = "general"
 ): Promise<void> => {
   if (!GOOGLE_CHAT_WEBHOOK) {
+    console.log("[GoogleChatLog] ❌ Webhook no configurado");
     return;
   }
 
   if (!shouldSendNotification(errorType)) {
+    console.log(`[GoogleChatLog] ⏱️ Throttled: ${errorType}`);
     return;
   }
 
   if (!checkCircuitBreaker()) {
+    console.log("[GoogleChatLog] 🔌 Circuit breaker abierto");
     return;
   }
+
+  console.log(`[GoogleChatLog] ✅ Enviando notificación: ${errorType}`);
 
   setImmediate(async () => {
     try {
@@ -87,9 +92,10 @@ export const sendGoogleChatLog = async (
         { timeout: REQUEST_TIMEOUT }
       );
       recordSuccess();
+      console.log("[GoogleChatLog] ✅ Notificación enviada exitosamente");
     } catch (err) {
       recordFailure();
-      console.error("[GoogleChatLog] Error enviando a Google Chat:", err.message);
+      console.error("[GoogleChatLog] ❌ Error enviando a Google Chat:", err.message);
     }
   });
 };
