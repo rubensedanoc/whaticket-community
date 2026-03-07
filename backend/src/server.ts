@@ -18,6 +18,7 @@ import CheckSettingsHelper from "./helpers/CheckSettings";
 import ConversationIAEvalutaion from "./models/ConversationIAEvalutaion";
 import ContactClientelicencia from "./models/ContactClientelicencias";
 import AnalizeTicketToCreateAConversationIAEvaluationService from "./services/ConversationIAEvalutaion/AnalizeTicketToCreateAConversationIAEvaluationService";
+import { sendGoogleChatError } from "./helpers/SendGoogleChatLog";
 
 const server = app.listen(process.env.PORT, () => {
   const memUsage = process.memoryUsage();
@@ -154,6 +155,12 @@ cron.schedule("*/30 * * * *", async () => {
       err
     );
     Sentry.captureException(err);
+    
+    sendGoogleChatError({
+      service: "CRON searchForUnSaveMessages",
+      error: "Error crítico en CRON",
+      details: `${err?.message || err?.toString()} - Tiempo: ${cronElapsed}ms`
+    });
   }
 });
 
@@ -385,6 +392,12 @@ cron.schedule('0 * * * *', async () => {
       error
     );
     Sentry.captureException(error);
+    
+    sendGoogleChatError({
+      service: "CRON searchForExclusiveNumbers",
+      error: "Error en CRON de números exclusivos",
+      details: `${error?.message || error?.toString()} - Tiempo: ${cronElapsed}ms`
+    });
   }
 });
 

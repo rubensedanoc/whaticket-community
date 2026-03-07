@@ -13,6 +13,7 @@ import {
   ensureMulterFileLocalPath,
   persistMulterFile
 } from "../StorageService";
+import { sendGoogleChatMetaError } from "../../helpers/SendGoogleChatLog";
 
 interface Request {
   media: Express.Multer.File;
@@ -169,6 +170,16 @@ const SendWhatsAppMediaMeta = async ({
     console.log("[SendWhatsAppMediaMeta] ERROR Stack:", err.stack);
 
     Sentry.captureException(err);
+
+    sendGoogleChatMetaError({
+      service: "SendWhatsAppMediaMeta",
+      error: "Error al enviar media",
+      details: `${err?.message || err?.toString()} - Archivo: ${media.originalname}`,
+      whatsappId: ticket.whatsappId,
+      ticketId: ticket.id,
+      contactNumber: ticket.contact.number
+    });
+
     throw new AppError("ERR_SENDING_WAPP_MSG_META");
   }
 };

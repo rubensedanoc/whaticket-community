@@ -7,6 +7,7 @@ import { logger } from "../../utils/logger";
 import SendExternalWhatsAppMessageWbot from "./SendExternalWhatsAppMessageWbot";
 import { wbotMessageListener } from "./wbotMessageListener";
 import wbotMonitor from "./wbotMonitor";
+import { sendGoogleChatError } from "../../helpers/SendGoogleChatLog";
 
 export const StartWhatsAppSession = async (
   whatsapp: Whatsapp
@@ -78,5 +79,12 @@ export const StartWhatsAppSession = async (
     }
   } catch (err) {
     logger.error(err);
+    
+    sendGoogleChatError({
+      service: "StartWhatsAppSession",
+      error: `Fallo al inicializar sesión: ${whatsapp.name}`,
+      details: err?.message || err?.toString(),
+      whatsappId: whatsapp.id
+    });
   }
 };

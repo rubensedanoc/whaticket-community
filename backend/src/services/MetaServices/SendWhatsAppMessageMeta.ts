@@ -9,6 +9,7 @@ import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 import { emitEvent } from "../../libs/emitEvent";
 import CheckMetaConversationWindow from "../../helpers/CheckMetaConversationWindow";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
+import { sendGoogleChatMetaError } from "../../helpers/SendGoogleChatLog";
 
 interface Request {
   body: string;
@@ -209,6 +210,15 @@ const SendWhatsAppMessageMeta = async ({
     console.log("[SendWhatsAppMessageMeta] ERROR Stack:", err.stack);
 
     Sentry.captureException(err);
+
+    sendGoogleChatMetaError({
+      service: "SendWhatsAppMessageMeta",
+      error: "Error al enviar mensaje",
+      details: err?.message || err?.toString(),
+      whatsappId: ticket.whatsappId,
+      ticketId: ticket.id,
+      contactNumber: ticket.contact.number
+    });
 
     throw new AppError("ERR_SENDING_WAPP_MSG_META");
   }

@@ -3,6 +3,7 @@ import Message from "../../models/Message";
 import { emitEvent } from "../../libs/emitEvent";
 import { MetaWebhookStatus } from "../../types/meta/MetaWebhookTypes";
 import { logger } from "../../utils/logger";
+import { sendGoogleChatMetaError } from "../../helpers/SendGoogleChatLog";
 
 interface HandleMetaMessageStatusParams {
   status: MetaWebhookStatus;
@@ -64,10 +65,20 @@ const HandleMetaMessageStatus = async ({
         errors: status.errors
       });
 
+      const errorTitle = status.errors[0]?.title || 'Error desconocido';
+      const errorDetails = status.errors[0]?.message || status.errors[0]?.details || '';
+
+      sendGoogleChatMetaError({
+        service: "HandleMetaMessageStatus",
+        error: `Mensaje fallido: ${errorTitle}`,
+        details: `Destinatario: ${status.recipient_id} - ${errorDetails}`,
+        ticketId: message.ticketId
+      });
+
       // Actualizar el mensaje con información del error
       await message.update({
         ack: newAck,
-        body: message.body + `\n\n❌ Error: ${status.errors[0]?.title || 'Error desconocido'}`
+        body: message.body + `\n\n❌ Error: ${errorTitle}`
       });
     } else {
       // Actualizar solo el ack
