@@ -66,7 +66,7 @@ const HandleMetaMessageStatus = async ({
       });
 
       const errorTitle = status.errors[0]?.title || 'Error desconocido';
-      const errorDetails = status.errors[0]?.message || status.errors[0]?.details || '';
+      const errorDetails = status.errors[0]?.details || '';
 
       sendGoogleChatMetaError({
         service: "HandleMetaMessageStatus",
