@@ -609,7 +609,7 @@ const Reports = () => {
                 {/* {loading && <CircularProgress color="primary" size={25} />} */}
               </div>
             </div>
-            <ButtonWithSpinner
+            {/* <ButtonWithSpinner
               variant="contained"
               color="primary"
               onClick={() => {
@@ -623,9 +623,131 @@ const Reports = () => {
               loading={loadingReportHistory}
             >
               Actualizar
-            </ButtonWithSpinner>
+            </ButtonWithSpinner> */}
           </div>
         </MainHeader>
+         <Grid item xs={12}>
+            <MainHeader>
+              <div
+                style={{
+                  display: "flex",
+                  marginTop: "1rem",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ display: "flex" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                    }}
+                  >
+                    <TextField
+                      id="date"
+                      label="Desde"
+                      type="datetime-local"
+                      variant="outlined"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className={classes.textField}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                    />
+                    <TextField
+                      id="date"
+                      label="Hasta"
+                      type="datetime-local"
+                      variant="outlined"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className={classes.textField}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                    />
+                    <div>
+                      {/* <UsersSelect
+                selectedUserIds={selectedUserIds}
+                onChange={(value) => {
+                  setSelectedUserIds(value);
+                }}
+              /> */}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "1rem",
+                  }}
+                >
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#2de241" }}
+                    onClick={() =>
+                      getReportToExcel({
+                        fromDate,
+                        toDate,
+                        selectedWhatsappIds,
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportToExcel}
+                  >
+                    Exportar a Excel
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#2de241" }}
+                    onClick={() =>
+                      reportToExcelForIA({
+                        fromDate,
+                        toDate,
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportToExcelIA}
+                  >
+                    IA Excel (by departamento)
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#ff9800" }}
+                    onClick={() =>
+                      reportOpenChats({
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportOpenChats}
+                  >
+                    Reporte de chats abiertos
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      getReportHistoryWithDateRange({
+                        fromDate,
+                        toDate,
+                        selectedWhatsappIds,
+                        selectedCountryIds,
+                        selectedQueueIds,
+                      });
+                    }}
+                    loading={loadingReportHistoryWithDateRange}
+                  >
+                    Actualizar
+                  </ButtonWithSpinner>
+                </div>
+              </div>
+            </MainHeader>
+          </Grid>
+          
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Paper className={classes.customFixedHeightPaper}>
@@ -1258,129 +1380,6 @@ const Reports = () => {
             </Paper>
           </Grid>
 
-          
-
-          <Grid item xs={12}>
-            <MainHeader>
-              <div
-                style={{
-                  display: "flex",
-                  marginTop: "1rem",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "flex" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "1rem",
-                    }}
-                  >
-                    <TextField
-                      id="date"
-                      label="Desde"
-                      type="datetime-local"
-                      variant="outlined"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                      className={classes.textField}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                    />
-                    <TextField
-                      id="date"
-                      label="Hasta"
-                      type="datetime-local"
-                      variant="outlined"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                      className={classes.textField}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                    />
-                    <div>
-                      {/* <UsersSelect
-                selectedUserIds={selectedUserIds}
-                onChange={(value) => {
-                  setSelectedUserIds(value);
-                }}
-              /> */}
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "1rem",
-                  }}
-                >
-                  <ButtonWithSpinner
-                    variant="contained"
-                    style={{ color: "white", backgroundColor: "#2de241" }}
-                    onClick={() =>
-                      getReportToExcel({
-                        fromDate,
-                        toDate,
-                        selectedWhatsappIds,
-                        selectedQueueIds,
-                      })
-                    }
-                    loading={loadingReportToExcel}
-                  >
-                    Exportar a Excel
-                  </ButtonWithSpinner>
-                  <ButtonWithSpinner
-                    variant="contained"
-                    style={{ color: "white", backgroundColor: "#2de241" }}
-                    onClick={() =>
-                      reportToExcelForIA({
-                        fromDate,
-                        toDate,
-                        selectedQueueIds,
-                      })
-                    }
-                    loading={loadingReportToExcelIA}
-                  >
-                    IA Excel (by departamento)
-                  </ButtonWithSpinner>
-                  <ButtonWithSpinner
-                    variant="contained"
-                    style={{ color: "white", backgroundColor: "#ff9800" }}
-                    onClick={() =>
-                      reportOpenChats({
-                        selectedQueueIds,
-                      })
-                    }
-                    loading={loadingReportOpenChats}
-                  >
-                    Reporte de chats abiertos
-                  </ButtonWithSpinner>
-                  <ButtonWithSpinner
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                      getReportHistoryWithDateRange({
-                        fromDate,
-                        toDate,
-                        selectedWhatsappIds,
-                        selectedCountryIds,
-                        selectedQueueIds,
-                      });
-                    }}
-                    loading={loadingReportHistoryWithDateRange}
-                  >
-                    Actualizar
-                  </ButtonWithSpinner>
-                </div>
-              </div>
-            </MainHeader>
-          </Grid>
 
           <Grid item xs={12}>
             <Paper className={classes.customFixedHeightPaper}>
