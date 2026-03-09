@@ -716,9 +716,12 @@ export const reportHistory = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -1036,9 +1039,12 @@ export const reportHistoryWithDateRange = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -1612,9 +1618,12 @@ export const reportToExcelForIA = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -1828,9 +1837,12 @@ export const reportToUsers = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -2108,9 +2120,12 @@ export const reportToUsers = async (
       if (selectedQueueIds.length === 1) {
         sqlWherePending += ` AND t.queueId IS NULL`;
       } else {
-        sqlWherePending += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWherePending += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWherePending += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -2293,9 +2308,12 @@ export const getTicketsDistributionByStages = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -2851,9 +2869,12 @@ export const getTicketsDistributionByStages = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd2 += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd2 += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd2 += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd2 += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
