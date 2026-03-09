@@ -745,6 +745,10 @@ export const reportHistory = async (
   whatasappListIDS = whatasappListIDS
     .map(whatasapp => `'${whatasapp.number}'`)
     .join(",");
+  
+  if (!whatasappListIDS || whatasappListIDS.trim() === '') {
+    whatasappListIDS = "''";
+  }
 
   const sql = `SELECT
     t.id,
@@ -758,7 +762,7 @@ export const reportHistory = async (
           AND (m.isPrivate IS NULL OR m.isPrivate != '1')
           AND m.fromMe != 1
           AND (c.isCompanyMember IS NULL OR c.isCompanyMember != '1')
-          AND c.number NOT IN (${whatasappListIDS})
+          AND (c.number NOT IN (${whatasappListIDS}) OR ${whatasappListIDS} = '')
         THEN m.timestamp
         END) as dateFirstMessageClient,
     MIN(
@@ -1057,6 +1061,10 @@ export const reportHistoryWithDateRange = async (
   whatasappListIDS = whatasappListIDS
     .map(whatasapp => `'${whatasapp.number}'`)
     .join(",");
+  
+  if (!whatasappListIDS || whatasappListIDS.trim() === '') {
+    whatasappListIDS = "''";
+  }
 
   const sql = `SELECT
     t.id,
@@ -1334,6 +1342,10 @@ export const reportToExcel = async (
   logsTime.push(`Whatasappnew-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+  
+  if (!whatasappListIDS || whatasappListIDS.length === 0) {
+    whatasappListIDS = ['""'];
+  }
 
   const sql = `SELECT
     t.id as tid,
@@ -1638,6 +1650,10 @@ export const reportToExcelForIA = async (
   logsTime.push(`Whatasappnew-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+  
+  if (!whatasappListIDS || whatasappListIDS.length === 0) {
+    whatasappListIDS = ['""'];
+  }
 
   const sql = `SELECT
     t.id as tid,
@@ -1891,6 +1907,10 @@ export const reportToUsers = async (
   logsTime.push(`usersfind-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+  
+  if (!whatasappListIDS || whatasappListIDS.length === 0) {
+    whatasappListIDS = ['""'];
+  }
 
   const sql = `SELECT
     t.id as tid,
