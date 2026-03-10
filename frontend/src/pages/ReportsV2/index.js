@@ -1418,23 +1418,53 @@ const Reports = () => {
                 </TableHead>
                 <TableBody>
                   {reportsByUser.length > 0 ? (
-                    reportsByUser.map((report) => (
-                      <TableRow key={report.name}>
-                        <TableCell>{report.name}</TableCell>
-                        <TableCell>{report.ticketCount}</TableCell>
-                        <TableCell>{report.ticketOpenCount}</TableCell>
-                        <TableCell>{report.timeWaitingCount}</TableCell>
-                        <TableCell>
-                          {report.timeWaitingSecounds / report.timeWaitingCount
-                            ? segundosAHorasMinutos(
-                                report.timeWaitingSecounds /
-                                  report.timeWaitingCount
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell>{report.ticketClosedCount}</TableCell>
-                      </TableRow>
-                    ))
+                    <>
+                      {reportsByUser.filter(r => r.name !== "TOTAL").map((report) => (
+                        <TableRow key={report.name}>
+                          <TableCell>{report.name}</TableCell>
+                          <TableCell>{report.ticketCount}</TableCell>
+                          <TableCell>{report.ticketOpenCount}</TableCell>
+                          <TableCell>{report.timeWaitingCount}</TableCell>
+                          <TableCell>
+                            {report.timeWaitingSecounds / report.timeWaitingCount
+                              ? segundosAHorasMinutos(
+                                  report.timeWaitingSecounds /
+                                    report.timeWaitingCount
+                                )
+                              : "-"}
+                          </TableCell>
+                          <TableCell>{report.ticketClosedCount}</TableCell>
+                        </TableRow>
+                      ))}
+                      {reportsByUser.find(r => r.name === "TOTAL") && (
+                        <TableRow style={{ backgroundColor: "#f5f5f5" }}>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").name}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").ticketCount}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").ticketOpenCount}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").timeWaitingCount}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").timeWaitingSecounds / 
+                             reportsByUser.find(r => r.name === "TOTAL").timeWaitingCount
+                              ? segundosAHorasMinutos(
+                                  reportsByUser.find(r => r.name === "TOTAL").timeWaitingSecounds /
+                                    reportsByUser.find(r => r.name === "TOTAL").timeWaitingCount
+                                )
+                              : "-"}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").ticketClosedCount}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   ) : (
                     <TableRow>
                       <TableCell colSpan={4}>Sin hay datos</TableCell>

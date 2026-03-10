@@ -2163,6 +2163,27 @@ export const reportToUsers = async (
   usersListAll["sin_asignar"].ticketCount += parseInt(pendingUnassignedCount);
   usersListAll["sin_asignar"].ticketOpenCount += parseInt(pendingUnassignedCount);
   
+  // Calcular totales
+  const totals = {
+    ticketCount: 0,
+    ticketClosedCount: 0,
+    ticketOpenCount: 0,
+    timeWaitingCount: 0,
+    timeWaitingSecounds: 0,
+    name: "TOTAL"
+  };
+  
+  Object.keys(usersListAll).forEach(userId => {
+    const user = usersListAll[userId];
+    totals.ticketCount += user.ticketCount || 0;
+    totals.ticketClosedCount += user.ticketClosedCount || 0;
+    totals.ticketOpenCount += user.ticketOpenCount || 0;
+    totals.timeWaitingCount += user.timeWaitingCount || 0;
+    totals.timeWaitingSecounds += user.timeWaitingSecounds || 0;
+  });
+  
+  usersListAll["total"] = totals;
+  
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
     usersListAll,
