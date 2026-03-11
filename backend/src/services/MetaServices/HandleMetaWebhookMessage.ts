@@ -347,6 +347,8 @@ const processMessage = async (
       tempMessageBody.toLowerCase().trim() === keyword
     );
 
+    let skipChatbotProcessing = false;
+
     if (shouldActivateBot) {
       console.log(`[PRUEBA BOT META] Detectada palabra clave: "${tempMessageBody}"`);
       
@@ -369,6 +371,9 @@ const processMessage = async (
       });
       
       console.log(`[PRUEBA BOT META] Nuevo ticket ${ticket.id} creado con bot activado (identifier: ${chatbotIdentifier})`);
+      
+      // Marcar para NO procesar el mensaje "iniciar" como respuesta del chatbot
+      skipChatbotProcessing = true;
     }
     // ========================================
     // 🧪 TEMPORAL PARA PRUEBAS - FIN
@@ -377,7 +382,18 @@ const processMessage = async (
     const { shouldSkipBot } = await setupTicket(ticket, whatsapp, isGroup);
     const { newMessage, messageBody } = await saveUserMessage(message, ticket, contact, whatsapp);
     const selectedOptionId = getSelectedOptionId(message);
-    await handleChatbot(ticket, messageBody, contact, whatsapp, shouldSkipBot, selectedOptionId);
+    
+    // Solo procesar chatbot si NO acabamos de activarlo con palabra clave
+    if (!skipChatbotProcessing) {
+      await handleChatbot(ticket, messageBody, contact, whatsapp, shouldSkipBot, selectedOptionId);
+    } else {
+      // Enviar solo el mensaje de bienvenida
+      console.log(`[PRUEBA BOT META] Enviando mensaje de bienvenida inicial`);
+      SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
+        console.error("[PRUEBA BOT META] Error enviando bot de bienvenida:", err);
+      });
+    }
+    
     await emitSocketEvents(ticket, newMessage, contact);
 
   } catch (err) {
