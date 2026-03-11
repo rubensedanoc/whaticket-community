@@ -806,6 +806,44 @@ const handleMessage = async ({
       });
     }
 
+    // ========================================
+    // 🧪 TEMPORAL PARA PRUEBAS - INICIO
+    // Para remover: Eliminar todo este bloque
+    // ========================================
+    if (!msg.fromMe && ticket) {
+      const activationKeywords = ['iniciar', 'inicio'];
+      const shouldActivateBot = activationKeywords.some(keyword => 
+        msg.body.toLowerCase().trim() === keyword
+      );
+
+      if (shouldActivateBot) {
+        console.log(`[PRUEBA BOT] Detectada palabra clave: "${msg.body}"`);
+        
+        // Cerrar ticket actual si existe y está abierto
+        if (ticket.status !== 'closed') {
+          await ticket.update({ status: 'closed' });
+          console.log(`[PRUEBA BOT] Ticket ${ticket.id} cerrado`);
+        }
+        
+        // Crear nuevo ticket con chatbot activado
+        const chatbotIdentifier = 'soporte';
+        ticket = await Ticket.create({
+          contactId: groupContact ? groupContact.id : contact.id,
+          status: "pending",
+          isGroup: !!groupContact,
+          unreadMessages: shouldPreserveUnread ? undefined : unreadMessages,
+          whatsappId: whatsapp.id,
+          lastMessageTimestamp: msg.timestamp,
+          chatbotMessageIdentifier: chatbotIdentifier
+        });
+        
+        console.log(`[PRUEBA BOT] Nuevo ticket ${ticket.id} creado con bot activado (identifier: ${chatbotIdentifier})`);
+      }
+    }
+    // ========================================
+    // 🧪 TEMPORAL PARA PRUEBAS - FIN
+    // ========================================
+
     let incomingMessage: null | Message = null;
 
     if (msg.hasMedia) {
