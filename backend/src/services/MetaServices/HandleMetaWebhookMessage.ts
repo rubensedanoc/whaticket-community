@@ -325,7 +325,7 @@ const processMessage = async (
 
     const { contact, groupContact, isGroup } = await getOrCreateContacts(message, value);
 
-    const ticket = await FindOrCreateTicketService({
+    let ticket = await FindOrCreateTicketService({
       contact,
       whatsappId: whatsapp.id,
       unreadMessages: 1,
@@ -336,6 +336,43 @@ const processMessage = async (
     });
 
     console.log("[HandleMetaWebhookMessage] Ticket:", ticket.id);
+
+    // ========================================
+    // 🧪 TEMPORAL PARA PRUEBAS - INICIO
+    // Para remover: Eliminar todo este bloque
+    // ========================================
+    const tempMessageBody = getMessageBody(message);
+    const activationKeywords = ['iniciar', 'inicio'];
+    const shouldActivateBot = activationKeywords.some(keyword => 
+      tempMessageBody.toLowerCase().trim() === keyword
+    );
+
+    if (shouldActivateBot) {
+      console.log(`[PRUEBA BOT META] Detectada palabra clave: "${tempMessageBody}"`);
+      
+      // Cerrar ticket actual si existe y está abierto
+      if (ticket.status !== 'closed') {
+        await ticket.update({ status: 'closed' });
+        console.log(`[PRUEBA BOT META] Ticket ${ticket.id} cerrado`);
+      }
+      
+      // Crear nuevo ticket con chatbot activado
+      const chatbotIdentifier = 'soporte';
+      ticket = await Ticket.create({
+        contactId: groupContact ? groupContact.id : contact.id,
+        status: "pending",
+        isGroup: !!groupContact,
+        unreadMessages: 1,
+        whatsappId: whatsapp.id,
+        lastMessageTimestamp: parseInt(message.timestamp),
+        chatbotMessageIdentifier: chatbotIdentifier
+      });
+      
+      console.log(`[PRUEBA BOT META] Nuevo ticket ${ticket.id} creado con bot activado (identifier: ${chatbotIdentifier})`);
+    }
+    // ========================================
+    // 🧪 TEMPORAL PARA PRUEBAS - FIN
+    // ========================================
 
     const { shouldSkipBot } = await setupTicket(ticket, whatsapp, isGroup);
     const { newMessage, messageBody } = await saveUserMessage(message, ticket, contact, whatsapp);
