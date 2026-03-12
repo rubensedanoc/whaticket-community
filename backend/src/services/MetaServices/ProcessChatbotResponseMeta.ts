@@ -312,6 +312,14 @@ const ProcessChatbotResponseMeta = async ({
 
     console.log(`[ProcessChatbotResponseMeta] Opción seleccionada: ${chooseOption.label} - ${chooseOption.title}`);
 
+    // Si es la primera opción seleccionada (estamos en el mensaje raíz), guardar la categoría
+    if (ticket.chatbotMessageIdentifier === chatbotMessageReplied.identifier && !ticket.chatbotSelectedCategory) {
+      await ticket.update({
+        chatbotSelectedCategory: chooseOption.title.trim()
+      });
+      console.log(`[ProcessChatbotResponseMeta] Categoría guardada: ${chooseOption.title.trim()}`);
+    }
+
     // Cargar el siguiente mensaje del chatbot (replica wbotMessageListener.ts:956-969)
     const nextChatbotMessage = await ChatbotMessage.findOne({
       where: {

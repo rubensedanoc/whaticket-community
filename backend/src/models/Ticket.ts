@@ -88,6 +88,9 @@ class Ticket extends Model<Ticket> {
   @Column
   chatbotFinishedAt: Date;
 
+  @Column
+  chatbotSelectedCategory: string;
+
   @ForeignKey(() => User)
   @Column
   userId: number;

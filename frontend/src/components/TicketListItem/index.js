@@ -497,6 +497,22 @@ const TicketListItem = ({
                     )}
                     {/* BOT FINISHED BADGE */}
 
+                    {/* CHATBOT CATEGORY BADGE */}
+                    {ticket.chatbotFinishedAt && ticket.chatbotSelectedCategory && (
+                      <Chip
+                        style={{ 
+                          height: "16px", 
+                          fontSize: "9px", 
+                          backgroundColor: "#e3f2fd", 
+                          color: "#1976d2",
+                          border: "1px solid #1976d2"
+                        }}
+                        size="small"
+                        label={ticket.chatbotSelectedCategory}
+                      />
+                    )}
+                    {/* CHATBOT CATEGORY BADGE */}
+
                     {/* ATTENTION TYPE CHIP */}
                     {ticket.contact?.attentionType && (
                       <Chip
