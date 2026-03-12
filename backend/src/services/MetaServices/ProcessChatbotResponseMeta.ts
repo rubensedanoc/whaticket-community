@@ -314,10 +314,19 @@ const ProcessChatbotResponseMeta = async ({
 
     // Si es la primera opción seleccionada (estamos en el mensaje raíz), guardar la categoría
     if (ticket.chatbotMessageIdentifier === chatbotMessageReplied.identifier && !ticket.chatbotSelectedCategory) {
+      // Extraer solo la parte corta del título (antes de ":" o máximo 30 caracteres)
+      let categoryText = chooseOption.title.trim();
+      if (categoryText.includes(':')) {
+        categoryText = categoryText.split(':')[0].trim();
+      }
+      if (categoryText.length > 30) {
+        categoryText = categoryText.substring(0, 30) + '...';
+      }
+      
       await ticket.update({
-        chatbotSelectedCategory: chooseOption.title.trim()
+        chatbotSelectedCategory: categoryText
       });
-      console.log(`[ProcessChatbotResponseMeta] Categoría guardada: ${chooseOption.title.trim()}`);
+      console.log(`[ProcessChatbotResponseMeta] Categoría guardada: ${categoryText}`);
     }
 
     // Cargar el siguiente mensaje del chatbot (replica wbotMessageListener.ts:956-969)
