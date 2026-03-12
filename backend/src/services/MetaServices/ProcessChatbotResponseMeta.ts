@@ -9,7 +9,9 @@ import { emitEvent } from "../../libs/emitEvent";
 import {
   NAV_BACK_ID,
   NAV_HOME_ID,
+  NAV_END_CONVERSATION_ID,
   appendNavigationRows,
+  appendResolutionRows,
   resolveNavigationTarget
 } from "../ChatbotMessageService/ChatbotNavigationHelper";
 
@@ -169,6 +171,79 @@ const ProcessChatbotResponseMeta = async ({
         console.log(`[ProcessChatbotResponseMeta] Navegación completada a: ${navResult.targetNode.identifier}`);
         return;
       }
+    }
+
+    // ── Interceptar "Finalizar conversación" ──
+    if (selectedOptionId === NAV_END_CONVERSATION_ID) {
+      console.log(`[ProcessChatbotResponseMeta] Finalizar conversación solicitado para ticket ${ticket.id}`);
+
+      const client = new MetaApiClient({
+        phoneNumberId: whatsapp.phoneNumberId,
+        accessToken: whatsapp.metaAccessToken
+      });
+
+      // Enviar mensaje de despedida si está configurado en el Whatsapp
+      if (whatsapp.farewellMessage) {
+        const farewellBody = `\u200e${whatsapp.farewellMessage}`;
+
+        const farewellResponse = await client.sendText({
+          to: contact.number,
+          body: farewellBody
+        });
+
+        const farewellMessageId = farewellResponse.messages[0].id;
+        const farewellMsg = await Message.create({
+          id: farewellMessageId,
+          ticketId: ticket.id,
+          contactId: contact.id,
+          body: farewellBody,
+          fromMe: true,
+          mediaType: "chat",
+          read: true,
+          quotedMsgId: null,
+          timestamp: Math.floor(Date.now() / 1000),
+          ack: 3
+        });
+
+        emitEvent({
+          to: [ticket.id.toString(), ticket.status],
+          event: {
+            name: "appMessage",
+            data: { action: "create", message: farewellMsg, ticket, contact }
+          }
+        });
+      }
+
+      // Cerrar ticket y limpiar chatbot
+      const oldStatus = ticket.status;
+      await ticket.update({
+        chatbotMessageIdentifier: null,
+        chatbotMessageLastStep: null,
+        chatbotFinishedAt: new Date(),
+        status: "closed"
+      });
+
+      // Emitir evento de eliminación del status anterior
+      emitEvent({
+        to: [oldStatus],
+        event: {
+          name: "ticket",
+          data: { action: "delete", ticketId: ticket.id }
+        }
+      });
+
+      // Emitir evento de actualización con nuevo status
+      await ticket.reload();
+      emitEvent({
+        to: [ticket.status, "notification", ticket.id.toString()],
+        event: {
+          name: "ticket",
+          data: { action: "update", ticket }
+        }
+      });
+
+      console.log(`[ProcessChatbotResponseMeta] Conversación finalizada y ticket ${ticket.id} cerrado`);
+      return;
     }
     // ── Fin interceptar navegación ──
 
@@ -470,14 +545,64 @@ const ProcessChatbotResponseMeta = async ({
     });
 
     // Actualizar ticket (replica wbotMessageListener.ts:1046-1048)
-    // Si el mensaje NO tiene más opciones, el bot terminó
+    // Si el mensaje NO tiene más opciones, evaluar según messageType
     if (!nextChatbotMessage.hasSubOptions || !nextChatbotMessage.chatbotOptions || nextChatbotMessage.chatbotOptions.length === 0) {
-      console.log(`[ProcessChatbotResponseMeta] Bot terminó (sin más opciones), limpiando chatbot y guardando chatbotFinishedAt`);
-      await ticket.update({
-        chatbotMessageIdentifier: null,
-        chatbotMessageLastStep: null,
-        chatbotFinishedAt: new Date()
-      });
+
+      if (nextChatbotMessage.messageType === "resolution") {
+        // Nodo de resolución: enviar lista con "Finalizar conversación" y "Menú principal"
+        console.log(`[ProcessChatbotResponseMeta] Nodo de resolución detectado, enviando opciones de cierre`);
+
+        const resolutionRows: InteractiveListRow[] = [];
+        appendResolutionRows(resolutionRows);
+
+        const resolutionRowsForMeta = resolutionRows.map(({ label, ...row }) => row);
+
+        const resolutionResponse = await client.sendInteractiveList({
+          to: contact.number,
+          bodyText: "¿Te fue útil esta información?",
+          buttonText: "Ver opciones",
+          sections: [{ rows: resolutionRowsForMeta }]
+        });
+
+        const resolutionMessageId = resolutionResponse.messages[0].id;
+        const resolutionOptionsText = formatInteractiveListOptionsAsText(resolutionRows);
+        const resolutionMsg = await Message.create({
+          id: resolutionMessageId,
+          ticketId: ticket.id,
+          contactId: contact.id,
+          body: `¿Te fue útil esta información?${resolutionOptionsText}`,
+          fromMe: true,
+          mediaType: "chat",
+          read: true,
+          quotedMsgId: null,
+          timestamp: Math.floor(Date.now() / 1000),
+          ack: 3,
+          identifier: nextChatbotMessage.identifier
+        });
+
+        emitEvent({
+          to: [ticket.id.toString(), ticket.status],
+          event: {
+            name: "appMessage",
+            data: { action: "create", message: resolutionMsg, ticket, contact }
+          }
+        });
+
+        // Mantener el chatbot activo para que pueda procesar nav_end_conversation o nav_home
+        await ticket.update({
+          chatbotMessageLastStep: nextChatbotMessage.identifier
+        });
+
+      } else {
+        // messageType es "handoff", null o cualquier otro → comportamiento actual
+        console.log(`[ProcessChatbotResponseMeta] Bot terminó (sin más opciones, messageType: ${nextChatbotMessage.messageType || "default"}), limpiando chatbot`);
+        await ticket.update({
+          chatbotMessageIdentifier: null,
+          chatbotMessageLastStep: null,
+          chatbotFinishedAt: new Date()
+        });
+      }
+
     } else {
       // Si tiene más opciones, actualizar el último paso
       await ticket.update({

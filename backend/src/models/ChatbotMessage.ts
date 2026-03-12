@@ -53,6 +53,9 @@ class ChatbotMessage extends Model<ChatbotMessage> {
   @Column
   hasSubOptions: boolean;
 
+  @Column
+  messageType: string;
+
   @ForeignKey(() => ChatbotMessage)
   @Column
   fatherChatbotOptionId: number;

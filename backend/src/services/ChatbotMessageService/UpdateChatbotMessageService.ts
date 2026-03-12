@@ -9,6 +9,7 @@ interface ChatbotMessageData {
   mediaUrl: string;
   label: string;
   order: number;
+  messageType?: string;
 }
 
 interface Request {
@@ -20,7 +21,7 @@ const UpdateChatbotMessageService = async ({
   chatbotMessageData,
   chatbotMessageId
 }: Request): Promise<ChatbotMessage> => {
-  const { title, value, isActive, mediaType, mediaUrl, label, order } =
+  const { title, value, isActive, mediaType, mediaUrl, label, order, messageType } =
     chatbotMessageData;
 
   const chatbotMessage = await ChatbotMessage.findOne({
@@ -37,7 +38,8 @@ const UpdateChatbotMessageService = async ({
     mediaType,
     order,
     ...(mediaUrl && { mediaUrl }),
-    ...(label && { label })
+    ...(label && { label }),
+    messageType: messageType || null
   });
 
   await chatbotMessage.reload();

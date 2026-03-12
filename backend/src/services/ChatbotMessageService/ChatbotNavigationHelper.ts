@@ -3,6 +3,7 @@ import ChatbotMessage from "../../models/ChatbotMessage";
 // IDs reservados para opciones de navegación virtual
 export const NAV_BACK_ID = "nav_back";
 export const NAV_HOME_ID = "nav_home";
+export const NAV_END_CONVERSATION_ID = "nav_end_conversation";
 
 interface InteractiveListRow {
   id: string;
@@ -121,6 +122,27 @@ export const resolveNavigationTarget = async (
     : parentNode.identifier;
 
   return { targetNode: parentNode, newLastStep };
+};
+
+/**
+ * Agrega opciones de resolución ("Finalizar conversación" y "Menú principal")
+ * cuando un nodo hoja tiene messageType === "resolution".
+ * Se usa en lugar de terminar el chatbot silenciosamente.
+ */
+export const appendResolutionRows = (
+  rows: InteractiveListRow[]
+): InteractiveListRow[] => {
+  rows.push({
+    id: NAV_END_CONVERSATION_ID,
+    title: "✅ Finalizar conversación",
+    label: NAV_END_CONVERSATION_ID
+  });
+  rows.push({
+    id: NAV_HOME_ID,
+    title: "🏠 Menú principal",
+    label: NAV_HOME_ID
+  });
+  return rows;
 };
 
 const findChatbotMessageWithOptions = async (

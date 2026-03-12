@@ -10,6 +10,10 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
+import FormControl from "@material-ui/core/FormControl";
+import InputLabel from "@material-ui/core/InputLabel";
+import MenuItem from "@material-ui/core/MenuItem";
+import Select from "@material-ui/core/Select";
 import Switch from "@material-ui/core/Switch";
 import TextField from "@material-ui/core/TextField";
 import { green } from "@material-ui/core/colors";
@@ -334,6 +338,7 @@ const ChatbotOptionTextField = ({
   const [mediaUrl, setMediaUrl] = useState("");
   const [label, setLabel] = useState(chatbotOptionIndex + 1);
   const [order, setOrder] = useState(chatbotOptionIndex + 1);
+  const [messageType, setMessageType] = useState("");
 
   useEffect(() => {
     if (chatbotOption.id) {
@@ -343,6 +348,7 @@ const ChatbotOptionTextField = ({
       setOrder(chatbotOption.order);
       setWithImage(chatbotOption.mediaType === "image");
       setMediaUrl(chatbotOption.mediaUrl);
+      setMessageType(chatbotOption.messageType || "");
     }
   }, [chatbotOption]);
 
@@ -416,6 +422,31 @@ const ChatbotOptionTextField = ({
             onChange={(e) => setMediaUrl(e.target.value)}
           />
         )}
+        <FormControl
+          variant="outlined"
+          margin="dense"
+          style={{ minWidth: 220 }}
+        >
+          <InputLabel id={`messageType-label-${chatbotOptionIndex}`}>
+            Tipo de mensaje
+          </InputLabel>
+          <Select
+            labelId={`messageType-label-${chatbotOptionIndex}`}
+            value={messageType}
+            onChange={(e) => setMessageType(e.target.value)}
+            label="Tipo de mensaje"
+          >
+            <MenuItem value="">
+              <em>Sin definir</em>
+            </MenuItem>
+            <MenuItem value="resolution">
+              Resolución (muestra opciones de cierre)
+            </MenuItem>
+            <MenuItem value="handoff">
+              Derivación a asesor
+            </MenuItem>
+          </Select>
+        </FormControl>
       </div>
       <SaveOutlinedIcon
         onClick={async () => {
@@ -436,6 +467,7 @@ const ChatbotOptionTextField = ({
                   mediaType: withImage ? "image" : "chat",
                   ...(withImage && { mediaUrl }),
                   ...(label && { label }),
+                  messageType: messageType || null,
                 }
               );
               onSave(updatedChatbotOption.data);
@@ -448,6 +480,7 @@ const ChatbotOptionTextField = ({
                 mediaType: withImage ? "image" : "chat",
                 ...(withImage && { mediaUrl }),
                 ...(label && { label }),
+                messageType: messageType || null,
               });
 
               onSave(newChatbotOption.data);
@@ -488,6 +521,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
   const [isActive, setIsActive] = useState(false);
   const [withImage, setWithImage] = useState(false);
   const [mediaUrl, setMediaUrl] = useState("");
+  const [messageType, setMessageType] = useState("");
   const greetingRef = useRef();
 
   // useEffect(() => {
@@ -529,6 +563,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
         setIsActive(data.isActive);
         setWithImage(data.mediaType === "image");
         setMediaUrl(data.mediaUrl);
+        setMessageType(data.messageType || "");
 
         if (data.chatbotOptions && data.chatbotOptions.length > 0) {
           setOptions((oldChatbotOptions) => [
@@ -577,6 +612,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
       isActive,
       mediaType: withImage ? "image" : "chat",
       ...(withImage && { mediaUrl }),
+      messageType: messageType || null,
     };
 
     delete MessageData["chatbotOptions"];
@@ -590,6 +626,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
           isActive,
           mediaType: withImage ? "image" : "chat",
           ...(withImage && { mediaUrl }),
+          messageType: messageType || null,
         });
       }
       toast.success("Message saved successfully");
@@ -693,6 +730,31 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
                     margin="dense"
                     className={classes.textField}
                   />
+                  <FormControl
+                    variant="outlined"
+                    margin="dense"
+                    style={{ marginTop: "8px", minWidth: 220 }}
+                  >
+                    <InputLabel id="messageType-label">
+                      Tipo de mensaje
+                    </InputLabel>
+                    <Select
+                      labelId="messageType-label"
+                      value={messageType}
+                      onChange={(e) => setMessageType(e.target.value)}
+                      label="Tipo de mensaje"
+                    >
+                      <MenuItem value="">
+                        <em>Sin definir</em>
+                      </MenuItem>
+                      <MenuItem value="resolution">
+                        Resolución (muestra opciones de cierre)
+                      </MenuItem>
+                      <MenuItem value="handoff">
+                        Derivación a asesor
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
                   {chatbotMessageId && (
                     <ChatbotOptionList
                       fatherChatbotMessageId={chatbotMessageId}

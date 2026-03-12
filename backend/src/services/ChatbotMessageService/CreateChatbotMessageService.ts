@@ -13,6 +13,7 @@ interface ChatbotMessageData {
   mediaUrl?: string;
   label?: string;
   order?: number;
+  messageType?: string;
 }
 
 const CreateChatbotMessageService = async (
@@ -27,7 +28,8 @@ const CreateChatbotMessageService = async (
     isActive,
     mediaUrl,
     label,
-    order
+    order,
+    messageType
   } = chatbotMessageData;
 
   console.log("ORDER", order);
@@ -53,7 +55,8 @@ const CreateChatbotMessageService = async (
       isActive,
       order,
       ...(mediaUrl && { mediaUrl }),
-      ...(label && { label })
+      ...(label && { label }),
+      ...(messageType && { messageType })
     });
 
     return newChatbotMessage;
@@ -82,7 +85,8 @@ const CreateChatbotMessageService = async (
       mediaType,
       order,
       ...(mediaUrl && { mediaUrl }),
-      ...(label && { label })
+      ...(label && { label }),
+      ...(messageType && { messageType })
     });
 
     return newChatbotMessage;
