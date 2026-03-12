@@ -6,6 +6,12 @@ import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { MetaApiClient } from "../../clients/MetaApiClient";
 import { emitEvent } from "../../libs/emitEvent";
+import {
+  NAV_BACK_ID,
+  NAV_HOME_ID,
+  appendNavigationRows,
+  resolveNavigationTarget
+} from "../ChatbotMessageService/ChatbotNavigationHelper";
 
 interface InteractiveListRow {
   id: string;
@@ -75,6 +81,97 @@ const ProcessChatbotResponseMeta = async ({
 
     console.log(`[ProcessChatbotResponseMeta] Mensaje actual del chatbot: ${chatbotMessageReplied.identifier}, opciones: ${chatbotMessageReplied.chatbotOptions?.length || 0}`);
 
+    // ── Interceptar comandos de navegación (Volver / Menú principal) ──
+    if (selectedOptionId === NAV_BACK_ID || selectedOptionId === NAV_HOME_ID) {
+      const navAction = selectedOptionId === NAV_BACK_ID ? "back" : "home";
+      const currentIdentifier = ticket.chatbotMessageLastStep || ticket.chatbotMessageIdentifier;
+
+      console.log(`[ProcessChatbotResponseMeta] Navegación detectada: "${navAction}" desde ${currentIdentifier}`);
+
+      const navResult = await resolveNavigationTarget(navAction, currentIdentifier, ticket.chatbotMessageIdentifier);
+
+      if (navResult) {
+        const { targetNode, newLastStep } = navResult;
+
+        await ticket.update({ chatbotMessageLastStep: newLastStep });
+
+        // Enviar el menú del nodo destino
+        if (targetNode.hasSubOptions && targetNode.chatbotOptions && targetNode.chatbotOptions.length > 0) {
+          const client = new MetaApiClient({
+            phoneNumberId: whatsapp.phoneNumberId,
+            accessToken: whatsapp.metaAccessToken
+          });
+
+          let rows: InteractiveListRow[] = targetNode.chatbotOptions.map(option => {
+            const fullText = option.title.trim();
+            if (fullText.includes(':')) {
+              const [beforeColon, afterColon] = fullText.split(':').map(s => s.trim());
+              return {
+                id: option.id.toString(),
+                title: beforeColon.substring(0, 24),
+                description: afterColon ? afterColon.substring(0, 72) : undefined,
+                label: option.label
+              };
+            }
+            if (fullText.length <= 24) {
+              return { id: option.id.toString(), title: fullText, label: option.label };
+            }
+            return {
+              id: option.id.toString(),
+              title: fullText.substring(0, 24),
+              description: fullText.substring(24, 96),
+              label: option.label
+            };
+          });
+
+          // Agregar opciones de navegación al nodo destino si aplica
+          rows = await appendNavigationRows(
+            rows,
+            targetNode,
+            newLastStep,
+            ticket.chatbotMessageIdentifier
+          );
+
+          const rowsForMeta = rows.map(({ label, ...row }) => row);
+
+          const response = await client.sendInteractiveList({
+            to: contact.number,
+            bodyText: `\u200e${targetNode.value}`,
+            buttonText: "Ver opciones",
+            sections: [{ rows: rowsForMeta }]
+          });
+
+          const navMessageId = response.messages[0].id;
+          const optionsText = formatInteractiveListOptionsAsText(rows);
+          const navBotMessage = await Message.create({
+            id: navMessageId,
+            ticketId: ticket.id,
+            contactId: contact.id,
+            body: `\u200e${targetNode.value}${optionsText}`,
+            fromMe: true,
+            mediaType: "chat",
+            read: true,
+            quotedMsgId: null,
+            timestamp: Math.floor(Date.now() / 1000),
+            ack: 3,
+            identifier: targetNode.identifier
+          });
+
+          emitEvent({
+            to: [ticket.id.toString(), ticket.status],
+            event: {
+              name: "appMessage",
+              data: { action: "create", message: navBotMessage, ticket, contact }
+            }
+          });
+        }
+
+        console.log(`[ProcessChatbotResponseMeta] Navegación completada a: ${navResult.targetNode.identifier}`);
+        return;
+      }
+    }
+    // ── Fin interceptar navegación ──
+
     if (!chatbotMessageReplied.chatbotOptions || chatbotMessageReplied.chatbotOptions.length === 0) {
       console.log("[ProcessChatbotResponseMeta] No hay opciones disponibles, finalizando chatbot");
       await ticket.update({
@@ -122,7 +219,7 @@ const ProcessChatbotResponseMeta = async ({
 
       const errorBodyText = `❌ Lo siento, no entendí tu respuesta.\n\nPor favor, selecciona una de las siguientes opciones:`;
 
-      const rows = chatbotMessageReplied.chatbotOptions.map(option => {
+      let rows: InteractiveListRow[] = chatbotMessageReplied.chatbotOptions.map(option => {
         const fullText = option.title.trim();
         
         // Detectar si hay dos puntos para separar título y descripción
@@ -154,6 +251,14 @@ const ProcessChatbotResponseMeta = async ({
           label: option.label
         };
       });
+
+      // Agregar opciones de navegación si estamos en un submenú
+      rows = await appendNavigationRows(
+        rows,
+        chatbotMessageReplied,
+        ticket.chatbotMessageLastStep,
+        ticket.chatbotMessageIdentifier
+      );
 
       // Crear rows sin el campo label para enviar a Meta API
       const rowsForMeta = rows.map(({ label, ...row }) => row);
@@ -244,7 +349,7 @@ const ProcessChatbotResponseMeta = async ({
     if (nextChatbotMessage.hasSubOptions && nextChatbotMessage.chatbotOptions && nextChatbotMessage.chatbotOptions.length > 0) {
       console.log(`[ProcessChatbotResponseMeta] Enviando lista interactiva con ${nextChatbotMessage.chatbotOptions.length} opciones`);
 
-      const rows = nextChatbotMessage.chatbotOptions.map(option => {
+      let rows: InteractiveListRow[] = nextChatbotMessage.chatbotOptions.map(option => {
         const fullText = option.title.trim();
         
         // Detectar si hay dos puntos para separar título y descripción
@@ -276,6 +381,14 @@ const ProcessChatbotResponseMeta = async ({
           label: option.label
         };
       });
+
+      // Agregar opciones de navegación si el siguiente nodo es un submenú
+      rows = await appendNavigationRows(
+        rows,
+        nextChatbotMessage,
+        nextChatbotMessage.identifier,
+        ticket.chatbotMessageIdentifier
+      );
 
       // Crear rows sin el campo label para enviar a Meta API
       const rowsForMeta = rows.map(({ label, ...row }) => row);
