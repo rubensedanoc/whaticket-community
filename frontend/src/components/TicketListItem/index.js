@@ -219,6 +219,9 @@ const TicketListItem = ({
       <div
         style={{
           position: "relative",
+          ...(ticket.chatbotFinishedAt && !ticket.userId && {
+            backgroundColor: "#fff9c4",
+          }),
           ...(ticket.shouldSendToZapier && {
             backgroundColor: "#fceee4",
           }),
@@ -478,6 +481,21 @@ const TicketListItem = ({
                       />
                     )}
                     {/* STATUS BADGES */}
+
+                    {/* BOT FINISHED BADGE */}
+                    {ticket.chatbotFinishedAt && !ticket.userId && (
+                      <Chip
+                        style={{ 
+                          height: "16px", 
+                          fontSize: "9px", 
+                          backgroundColor: "#fdd835", 
+                          color: "#000" 
+                        }}
+                        size="small"
+                        label="🤖 Bot finalizado"
+                      />
+                    )}
+                    {/* BOT FINISHED BADGE */}
 
                     {/* ATTENTION TYPE CHIP */}
                     {ticket.contact?.attentionType && (
