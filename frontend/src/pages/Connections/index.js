@@ -120,6 +120,7 @@ const Connections = () => {
   // const [conectionsMenuOpen, setConectionsMenuOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const conectionsMenuOpen = Boolean(anchorEl);
+  const [resetCooldowns, setResetCooldowns] = useState({});
 
   const handleStartWhatsAppSession = async (whatsAppId) => {
     try {
@@ -383,12 +384,15 @@ const Connections = () => {
                       </TableCell>
                       <TableCell align="center">
                         {renderActionButtons(whatsApp, user?.id === 1)}
-                        {user?.id === 1 && (
+                        {user?.profile === "admin" && (
                           <Button
                             size="small"
                             variant="outlined"
                             color="secondary"
+                            disabled={resetCooldowns[whatsApp.id]}
                             onClick={async () => {
+                              setResetCooldowns(prev => ({ ...prev, [whatsApp.id]: true }));
+                              
                               try {
                                 await api.delete(
                                   `/whatsappsession-reset/${whatsApp.id}`
@@ -396,12 +400,17 @@ const Connections = () => {
                                 toast.success(
                                   "Se ha reseteado el bot con exito!"
                                 );
+                                
+                                setTimeout(() => {
+                                  setResetCooldowns(prev => ({ ...prev, [whatsApp.id]: false }));
+                                }, 120000);
                               } catch (err) {
                                 toastError(err);
+                                setResetCooldowns(prev => ({ ...prev, [whatsApp.id]: false }));
                               }
                             }}
                           >
-                            RESETEAR BOT
+                            {resetCooldowns[whatsApp.id] ? i18n.t("connections.buttons.resetting") : i18n.t("connections.buttons.reset")}
                           </Button>
                         )}
                       </TableCell>

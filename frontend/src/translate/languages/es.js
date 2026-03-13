@@ -71,6 +71,8 @@ const messages = {
           qrcode: "QR CODE",
           newQr: "Nuevo QR CODE",
           connecting: "Conectando",
+          reset: "Resetear Bot",
+          resetting: "Esperando...",
         },
         toolTips: {
           disconnected: {
