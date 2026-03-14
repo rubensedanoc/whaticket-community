@@ -73,6 +73,9 @@ class Ticket extends Model<Ticket> {
   @Column
   beenWaitingSinceTimestamp: number;
 
+  @Column
+  etapa_alta_assigned_at: Date;
+
   @CreatedAt
   createdAt: Date;
 

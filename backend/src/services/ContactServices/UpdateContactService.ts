@@ -36,13 +36,18 @@ const UpdateContactService = async ({
 
   const contact = await Contact.findOne({
     where: { id: contactId },
-    attributes: ["id", "name", "number", "email", "profilePicUrl"],
+    attributes: ["id", "name", "number", "email", "profilePicUrl", "traza_clientelicencia_currentetapaid"],
     include: ["extraInfo", "contactClientelicencias"]
   });
 
   if (!contact) {
     throw new AppError("ERR_NO_CONTACT_FOUND", 404);
   }
+
+  // Detectar si el contacto está cambiando a etapa ALTA (5)
+  const isChangingToAlta = 
+    traza_clientelicencia_currentetapaid === 5 && 
+    contact.traza_clientelicencia_currentetapaid !== 5;
 
   if (extraInfo) {
     await Promise.all(
@@ -89,6 +94,23 @@ const UpdateContactService = async ({
     // traza_clientelicencia_id, // ya no se usa esta propiedad
     traza_clientelicencia_currentetapaid
   });
+
+  // Si el contacto cambió a etapa ALTA, actualizar todos sus tickets abiertos/pendientes
+  if (isChangingToAlta) {
+    const Ticket = (await import("../../models/Ticket")).default;
+    const { Op } = await import("sequelize");
+    
+    await Ticket.update(
+      { etapa_alta_assigned_at: new Date() },
+      {
+        where: {
+          contactId: contact.id,
+          status: { [Op.in]: ["pending", "open"] },
+          isGroup: true
+        }
+      }
+    );
+  }
 
   await contact.reload({
     attributes: [
