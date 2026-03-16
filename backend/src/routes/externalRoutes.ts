@@ -62,4 +62,9 @@ externalRoutes.post(
   ExternalApiController.sendMessageToTicket
 );
 
+externalRoutes.post(
+  "/billing/incidencia-status",
+  ExternalApiController.handleBillingIncidenciaStatus
+);
+
 export default externalRoutes;

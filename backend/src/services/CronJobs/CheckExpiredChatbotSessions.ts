@@ -24,8 +24,13 @@ const CheckExpiredChatbotSessions = async (): Promise<void> => {
         },
         userId: null,  // Sin agente asignado
         status: {
-          [Op.or]: ["pending", "open"]
-        }
+          [Op.in]: ["pending", "open"]
+        },
+        // No cerrar tickets con incidencia completada: el bot sigue conteniendo al cliente
+        [Op.or]: [
+          { incidenciaStatus: { [Op.is]: null } },
+          { incidenciaStatus: { [Op.ne]: "completed" } }
+        ]
       },
       include: [
         {
@@ -94,12 +99,17 @@ const CheckExpiredChatbotSessions = async (): Promise<void> => {
             );
           }
 
-          // Limpiar chatbot y cerrar ticket
+          // Limpiar chatbot, incidencia y cerrar ticket
           await ticket.update({
             chatbotMessageIdentifier: null,
             chatbotMessageLastStep: null,
             chatbotFinishedAt: new Date(),
-            status: "closed"
+            status: "closed",
+            incidenciaFlowActive: false,
+            incidenciaStatus: "idle",
+            incidenciaPathJson: null,
+            incidenciaExternalId: null,
+            incidenciaLastAttemptAt: null
           });
 
           expiredCount++;

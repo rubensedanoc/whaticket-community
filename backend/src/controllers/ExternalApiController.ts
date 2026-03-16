@@ -26,6 +26,7 @@ import {
   verifyContact,
   verifyMessage
 } from "../services/WbotServices/wbotMessageListener";
+import HandleBillingIncidenciaStatusService from "../services/IncidenciaService/HandleBillingIncidenciaStatusService";
 import getUnixTimestamp from "../utils/getUnixTimestamp";
 import sleepPromise from "../utils/sleepPromise";
 import Contact from "../models/Contact";
@@ -1428,6 +1429,53 @@ export const findGroupByName = async (
       success: false,
       error: "INTERNAL_ERROR",
       message: `Error interno del servidor: ${error.message}`
+    });
+  }
+};
+
+/**
+ * Webhook para recibir notificaciones del sistema Billing Incidencias
+ * cuando una incidencia cambia de estado (RESUELTO, CLOSED, etc.).
+ *
+ * POST /external/billing/incidencia-status
+ * Body: { incidenciaId: string, estado: string }
+ *
+ * Headers requeridos:
+ *   x-billing-api-key: debe coincidir con BILLING_WEBHOOK_API_KEY
+ */
+export const handleBillingIncidenciaStatus = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    // Validar API key
+    const expectedKey = process.env.BILLING_WEBHOOK_API_KEY;
+    const receivedKey = req.headers["x-billing-api-key"] as string;
+
+    if (expectedKey && receivedKey !== expectedKey) {
+      console.warn("[ExternalApiController] Webhook Billing rechazado: API key inválida");
+      return res.status(401).json({ success: false, message: "API key inválida" });
+    }
+
+    const { incidenciaId, estado } = req.body;
+
+    if (!incidenciaId || !estado) {
+      return res.status(400).json({
+        success: false,
+        message: "Campos requeridos: incidenciaId, estado"
+      });
+    }
+
+    console.log(`[ExternalApiController] Webhook Billing recibido: incidencia ${incidenciaId} → ${estado}`);
+
+    const result = await HandleBillingIncidenciaStatusService({ incidenciaId, estado });
+
+    return res.status(result.success ? 200 : 404).json(result);
+  } catch (error: any) {
+    console.error("[ExternalApiController] Error en webhook Billing:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: `Error interno: ${error.message}`
     });
   }
 };

@@ -91,6 +91,34 @@ class Ticket extends Model<Ticket> {
   @Column
   chatbotSelectedCategory: string;
 
+  @Default(false)
+  @Column
+  incidenciaFlowActive: boolean;
+
+  @Default("idle")
+  @Column
+  incidenciaStatus: string;
+
+  @Column
+  incidenciaExternalId: string;
+
+  @Column
+  incidenciaPathJson: string;
+
+  @Column
+  incidenciaLastAttemptAt: Date;
+
+  @Default(0)
+  @Column
+  incidenciaContentionCount: number;
+
+  @Column
+  incidenciaLastContentionAt: Date;
+
+  @Default(false)
+  @Column
+  incidenciaEscalated: boolean;
+
   @ForeignKey(() => User)
   @Column
   userId: number;

@@ -89,7 +89,8 @@ const getOrCreateContacts = async (
       number: participantNumber,
       isGroup: false,
       email: "",
-      profilePicUrl: ""
+      profilePicUrl: "",
+      source: "meta"
     });
 
     console.log("[HandleMetaWebhookMessage] Participante del grupo:", contact.id);
@@ -104,7 +105,8 @@ const getOrCreateContacts = async (
       number: contactNumber,
       isGroup: false,
       email: "",
-      profilePicUrl: ""
+      profilePicUrl: "",
+      source: "meta"
     });
 
     console.log("[HandleMetaWebhookMessage] Contacto creado/actualizado:", contact.id);

@@ -486,6 +486,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
     },
   ]);
   const [isActive, setIsActive] = useState(false);
+  const [flujoConIncidencia, setFlujoConIncidencia] = useState(false);
   const [withImage, setWithImage] = useState(false);
   const [mediaUrl, setMediaUrl] = useState("");
   const greetingRef = useRef();
@@ -527,6 +528,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
         });
 
         setIsActive(data.isActive);
+        setFlujoConIncidencia(data.flujoConIncidencia || false);
         setWithImage(data.mediaType === "image");
         setMediaUrl(data.mediaUrl);
 
@@ -563,6 +565,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
         mediaUrl: "",
         value: "",
       });
+      setFlujoConIncidencia(false);
     };
   }, [chatbotMessageId, open]);
 
@@ -575,6 +578,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
     const MessageData = {
       ...values,
       isActive,
+      flujoConIncidencia,
       mediaType: withImage ? "image" : "chat",
       ...(withImage && { mediaUrl }),
     };
@@ -588,6 +592,7 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
         await api.post("/chatbotMessage", {
           ...values,
           isActive,
+          flujoConIncidencia,
           mediaType: withImage ? "image" : "chat",
           ...(withImage && { mediaUrl }),
         });
@@ -639,6 +644,19 @@ const ChatbotMessageModal = ({ open, onClose, chatbotMessageId }) => {
                     <Switch
                       checked={isActive}
                       onChange={(e) => setIsActive(e.target.checked)}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "start",
+                    }}
+                  >
+                    <p>Flujo con incidencia</p>
+
+                    <Switch
+                      checked={flujoConIncidencia}
+                      onChange={(e) => setFlujoConIncidencia(e.target.checked)}
                     />
                   </div>
                   <div style={{ display: "flex", alignItems: "center" }}>

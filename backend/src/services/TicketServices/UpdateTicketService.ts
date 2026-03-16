@@ -110,6 +110,25 @@ const UpdateTicketService = async ({
     });
   }
 
+  // Si un asesor toma el ticket y tiene flujo de incidencia activo, apagar chatbot definitivamente
+  if (
+    status === "open" &&
+    oldStatus !== "open" &&
+    ticket.chatbotMessageIdentifier &&
+    (ticket.incidenciaFlowActive || (ticket.incidenciaStatus && ticket.incidenciaStatus !== "idle"))
+  ) {
+    await ticket.update({
+      chatbotMessageIdentifier: null,
+      chatbotMessageLastStep: null,
+      chatbotFinishedAt: new Date(),
+      incidenciaFlowActive: false,
+      incidenciaStatus: "idle",
+      incidenciaContentionCount: 0,
+      incidenciaLastContentionAt: null
+    });
+    console.log(`[UpdateTicketService] Chatbot e incidencia desactivados: ticket ${ticket.id} tomado por asesor`);
+  }
+
   if (categoriesIds) {
     await ticket.$set("categories", categoriesIds);
 

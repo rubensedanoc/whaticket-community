@@ -16,6 +16,7 @@ interface Request {
   email?: string;
   profilePicUrl?: string;
   extraInfo?: ExtraInfo[];
+  source?: "meta" | "wbot"; // Origen del contacto: meta = formato internacional, wbot = formato local
 }
 
 const CreateOrUpdateContactService = async ({
@@ -24,9 +25,13 @@ const CreateOrUpdateContactService = async ({
   profilePicUrl,
   isGroup,
   email = "",
-  extraInfo = []
+  extraInfo = [],
+  source
 }: Request): Promise<Contact> => {
+  // Normalizar número: remover todo excepto dígitos (elimina "+", espacios, guiones, etc.)
   const number = isGroup ? rawNumber : rawNumber.replace(/[^0-9]/g, "");
+
+  console.log(`[CreateOrUpdateContactService] Número recibido: ${rawNumber}, normalizado: ${number}`);
 
   const io = getIO();
   let contact: Contact | null;
@@ -54,10 +59,13 @@ const CreateOrUpdateContactService = async ({
     }
   } else {
     try {
-      let countryId = null;
+      let countryId: number | null = null;
 
-      if (!isGroup) {
+      // Solo detectar país si el contacto viene explícitamente de Meta (formato internacional E.164)
+      // Si no se especifica source, no se detecta país (comportamiento por defecto para wbot)
+      if (!isGroup && source === "meta") {
         countryId = await getCountryIdOfNumber(number);
+        console.log(`[CreateOrUpdateContactService] País detectado para contacto Meta: ${countryId || 'ninguno'}`);
       }
 
       contact = await Contact.create({
@@ -104,10 +112,12 @@ const CreateOrUpdateContactService = async ({
           number
         );
 
-        let countryId = null;
+        let countryId: number | null = null;
 
-        if (!isGroup) {
+        // Solo detectar país si el contacto viene explícitamente de Meta
+        if (!isGroup && source === "meta") {
           countryId = await getCountryIdOfNumber(number);
+          console.log(`[CreateOrUpdateContactService] País detectado para contacto Meta (reintento): ${countryId || 'ninguno'}`);
         }
 
         contact = await Contact.create({
@@ -146,19 +156,38 @@ const CreateOrUpdateContactService = async ({
   return contact;
 };
 
-export const getCountryIdOfNumber = async (number: string) => {
+/**
+ * Detecta el país de un número telefónico basándose en el prefijo internacional.
+ * Diseñado para trabajar con números en formato E.164 provenientes de Meta WhatsApp API.
+ * 
+ * @param number - Número telefónico ya normalizado (solo dígitos, sin símbolos)
+ * @returns ID del país si se encuentra coincidencia, null si no se encuentra
+ */
+export const getCountryIdOfNumber = async (number: string): Promise<number | null> => {
+  // Normalizar: remover cualquier símbolo que pudiera quedar (especialmente "+")
+  const cleanNumber = number.replace(/[^0-9]/g, "");
+
+  console.log(`[getCountryIdOfNumber] Detectando país para número: ${cleanNumber}`);
+
+  // Obtener todos los países ordenados por longitud de código (más largo primero)
+  // Esto asegura que se evalúen primero los códigos de 3 dígitos, luego 2, luego 1
   const allCountries: Country[] = await Country.sequelize.query(
-    "SELECT * FROM Countries c ORDER BY LENGTH(c.code) DESC ",
+    "SELECT * FROM Countries c ORDER BY LENGTH(c.code) DESC",
     { type: QueryTypes.SELECT }
   );
 
-  // console.log("---- allCountries: ", allCountries);
+  console.log(`[getCountryIdOfNumber] Evaluando ${allCountries.length} países`);
 
+  // Buscar coincidencia con el prefijo más largo primero
   for (const country of allCountries) {
-    if (number.startsWith(country.code)) {
+    if (cleanNumber.startsWith(country.code)) {
+      console.log(`[getCountryIdOfNumber] País detectado: ${country.name} (ID: ${country.id}, código: ${country.code})`);
       return country.id;
     }
   }
+
+  console.warn(`[getCountryIdOfNumber] No se encontró país para el número: ${cleanNumber}`);
+  return null;
 };
 
 export default CreateOrUpdateContactService;

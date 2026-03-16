@@ -26,7 +26,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     isActive,
     mediaUrl,
     label,
-    order
+    order,
+    flujoConIncidencia
   } = req.body;
 
   const chatbotMessage = await CreateChatbotMessageService({
@@ -38,7 +39,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     isActive,
     mediaUrl,
     label,
-    order
+    order,
+    flujoConIncidencia
   });
 
   emitEvent({

@@ -4,6 +4,13 @@ import ChatbotMessage from "../../models/ChatbotMessage";
 export const NAV_BACK_ID = "nav_back";
 export const NAV_HOME_ID = "nav_home";
 
+// IDs reservados para flujo de incidencias
+export const INCIDENCIA_CONFIRM_ID = "incidencia_confirm";
+export const INCIDENCIA_CANCEL_ID = "incidencia_cancel";
+export const INCIDENCIA_RETRY_ID = "incidencia_retry";
+export const INCIDENCIA_NEW_ID = "incidencia_new";
+export const INCIDENCIA_RESOLVED_ID = "incidencia_resolved";
+
 interface InteractiveListRow {
   id: string;
   title: string;
