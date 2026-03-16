@@ -192,20 +192,8 @@ const ProcessChatbotResponseMeta = async ({
         co.id.toString() === selectedOptionId
       );
     } else {
-      // Si es mensaje de texto (legacy), normalizar y buscar
-      const normalizedUserMessage = userMessage.trim().toUpperCase();
-
-      // Primero intentar coincidencia exacta, luego includes
-      chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
-        normalizedUserMessage === co.label.toUpperCase()
-      );
-
-      // Si no hay coincidencia exacta, buscar si el mensaje incluye la letra
-      if (!chooseOption) {
-        chooseOption = chatbotMessageReplied.chatbotOptions.find(co =>
-          normalizedUserMessage.includes(co.label.toUpperCase())
-        );
-      }
+      // Texto libre: no matchea con ninguna opción, se mostrará el mensaje de error
+      console.log(`[ProcessChatbotResponseMeta] Mensaje de texto libre recibido, no se busca coincidencia por label`);
     }
 
     if (!chooseOption) {
