@@ -398,24 +398,30 @@ const findTicket = async ({
       // - Excepción: Tickets con chatbot usan su propia configuración de tiempo
       
       if (ticket.chatbotMessageIdentifier && !ticket.userId) {
-        // Lógica especial para chatbots
-        const chatbotMessage = await ChatbotMessage.findOne({
-          where: {
-            identifier: ticket.chatbotMessageIdentifier,
-            isActive: true,
-            wasDeleted: false
-          }
-        });
+        // No expirar tickets con incidencia activa (ESPERANDO_ATENCION, procesando, o confirmando)
+        const activeIncidenciaStates = ["completed", "processing", "awaiting_confirmation"];
+        if (activeIncidenciaStates.includes(ticket.incidenciaStatus)) {
+          logs.push(`--- Keeping ticket ${ticket.id}: incidenciaStatus=${ticket.incidenciaStatus} (active incidencia, skip expiration)`);
+        } else {
+          // Lógica especial para chatbots (solo si NO hay incidencia activa)
+          const chatbotMessage = await ChatbotMessage.findOne({
+            where: {
+              identifier: ticket.chatbotMessageIdentifier,
+              isActive: true,
+              wasDeleted: false
+            }
+          });
 
-        if (chatbotMessage && chatbotMessage.timeToWaitInMinutes) {
-          const validTime = subMinutes(
-            new Date(),
-            chatbotMessage.timeToWaitInMinutes
-          );
-          
-          if (new Date(ticket.updatedAt) < validTime) {
-            logs.push(`--- Ignore chatbot ticket: ${new Date(ticket.updatedAt).toISOString()} < ${validTime.toISOString()}`);
-            ticket = null;
+          if (chatbotMessage && chatbotMessage.timeToWaitInMinutes) {
+            const validTime = subMinutes(
+              new Date(),
+              chatbotMessage.timeToWaitInMinutes
+            );
+            
+            if (new Date(ticket.updatedAt) < validTime) {
+              logs.push(`--- Ignore chatbot ticket: ${new Date(ticket.updatedAt).toISOString()} < ${validTime.toISOString()}`);
+              ticket = null;
+            }
           }
         }
       } else {

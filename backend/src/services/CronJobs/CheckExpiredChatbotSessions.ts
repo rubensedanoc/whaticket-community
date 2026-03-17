@@ -26,11 +26,10 @@ const CheckExpiredChatbotSessions = async (): Promise<void> => {
         status: {
           [Op.in]: ["pending", "open"]
         },
-        // No cerrar tickets con incidencia completada: el bot sigue conteniendo al cliente
-        [Op.or]: [
-          { incidenciaStatus: { [Op.is]: null } },
-          { incidenciaStatus: { [Op.ne]: "completed" } }
-        ]
+        // No expirar tickets con incidencia activa (ESPERANDO_ATENCION, procesando, o confirmando)
+        incidenciaStatus: {
+          [Op.notIn]: ["completed", "processing", "awaiting_confirmation"]
+        }
       },
       include: [
         {
