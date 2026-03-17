@@ -39,8 +39,23 @@ const CreateOrUpdateContactService = async ({
   contact = await Contact.findOne({ where: { number } });
 
   if (contact) {
+    const updateData: Record<string, any> = {};
+
     if (profilePicUrl && contact.profilePicUrl !== profilePicUrl) {
-      contact.update({ profilePicUrl });
+      updateData.profilePicUrl = profilePicUrl;
+    }
+
+    // Solo detectar país si el contacto aún no tiene countryId
+    if (!contact.countryId && !isGroup && source === "meta") {
+      const countryId = await getCountryIdOfNumber(number);
+      if (countryId) {
+        updateData.countryId = countryId;
+        console.log(`[CreateOrUpdateContactService] País detectado para contacto existente: ${countryId}`);
+      }
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await contact.update(updateData);
 
       emitEvent({
         event: {
