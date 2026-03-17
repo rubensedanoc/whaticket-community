@@ -1555,3 +1555,68 @@ export const sendMessageToTicket = async (
   }
 };
 
+/**
+ * POST /external/billing/update-contact-domain
+ * Body: { number: string, domain: string }
+ *
+ * Headers requeridos:
+ *   x-billing-api-key: debe coincidir con BILLING_WEBHOOK_API_KEY
+ *
+ * Permite que el sistema externo de Billing actualice el atributo domain de un contacto
+ * buscándolo por número telefónico.
+ */
+export const updateContactDomain = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    // Validar API key
+    const expectedKey = process.env.BILLING_WEBHOOK_API_KEY;
+    const receivedKey = req.headers["x-billing-api-key"] as string;
+
+    if (expectedKey && receivedKey !== expectedKey) {
+      console.warn("[ExternalApiController] updateContactDomain rechazado: API key inválida");
+      return res.status(401).json({ success: false, message: "API key inválida" });
+    }
+
+    const { number, domain } = req.body;
+
+    if (!number || !domain) {
+      return res.status(400).json({
+        success: false,
+        message: "Campos requeridos: number, domain"
+      });
+    }
+
+    // Normalizar número: remover todo excepto dígitos
+    const normalizedNumber = String(number).replace(/[^0-9]/g, "");
+
+    const contact = await Contact.findOne({ where: { number: normalizedNumber } });
+
+    if (!contact) {
+      console.warn(`[ExternalApiController] updateContactDomain: contacto no encontrado para número ${normalizedNumber}`);
+      return res.status(404).json({
+        success: false,
+        message: `Contacto no encontrado para el número: ${normalizedNumber}`
+      });
+    }
+
+    await contact.update({ domain });
+
+    console.log(`[ExternalApiController] updateContactDomain: contacto ${contact.id} (${normalizedNumber}) domain actualizado a "${domain}"`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Domain actualizado correctamente",
+      contactId: contact.id,
+      domain: contact.domain
+    });
+  } catch (error: any) {
+    console.error("[ExternalApiController] Error en updateContactDomain:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: `Error interno: ${error.message}`
+    });
+  }
+};
+

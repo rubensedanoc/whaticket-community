@@ -67,4 +67,9 @@ externalRoutes.post(
   ExternalApiController.handleBillingIncidenciaStatus
 );
 
+externalRoutes.post(
+  "/billing/update-contact-domain",
+  ExternalApiController.updateContactDomain
+);
+
 export default externalRoutes;
