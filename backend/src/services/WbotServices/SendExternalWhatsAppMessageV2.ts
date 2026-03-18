@@ -21,8 +21,21 @@ const queueState = {
   processing: false,
   lastSentTimestamp: 0,
   config: {
-    delayBetweenMessages: 20000 // 20 segundos entre cada mensaje
+    delayBetweenMessages: 30000 // 30 segundos entre cada mensaje
   } as QueueConfig
+};
+
+// Estado de alternancia de números
+const alternationState = {
+  numbers: ['51985001690', '51985002996'], // <-- Configura aquí los números de WhatsApp conectados
+  currentIndex: 0
+};
+
+// Función para obtener el siguiente número en alternancia
+const getNextNumber = (): string => {
+  const number = alternationState.numbers[alternationState.currentIndex];
+  alternationState.currentIndex = (alternationState.currentIndex + 1) % alternationState.numbers.length;
+  return number;
 };
 
 const delay = (ms: number): Promise<void> => {
@@ -47,21 +60,32 @@ const processQueue = async () => {
     if (!message) continue;
 
     try {
-      // Buscar conexión activa
+      console.log(`[wbot-queue] 🔍 Buscando conexión para número: ${message.fromNumber}`);
+      
+      // Buscar conexión activa (CONNECTED o PAIRING)
       const fromWpp = await Whatsapp.findOne({
         where: {
           number: message.fromNumber,
-          status: "CONNECTED"
+          status: ["CONNECTED", "PAIRING"]
         },
         order: [['id', 'DESC']]
       });
 
       if (!fromWpp) {
-        console.error('[wbot-queue] No se encontró conexión activa para:', message.fromNumber);
+        console.error(`[wbot-queue] ❌ No se encontró conexión activa para: ${message.fromNumber}`);
+        
+        // Debug: mostrar todas las conexiones disponibles
+        const allConnections = await Whatsapp.findAll({
+          attributes: ['id', 'name', 'number', 'status']
+        });
+        console.error('[wbot-queue] 📋 Conexiones disponibles en DB:', JSON.stringify(allConnections, null, 2));
+        
         message.sendMessageRequest.status = 'failed';
         await message.sendMessageRequest.save();
         continue;
       }
+      
+      console.log(`[wbot-queue] ✅ Conexión encontrada - ID: ${fromWpp.id}, Nombre: ${fromWpp.name}, Estado: ${fromWpp.status}`);
 
       const wbot = getWbot(fromWpp.id);
 
@@ -125,8 +149,13 @@ export const addMessageToQueue = async ({
 
   if (!mensajes.length) {
     // Limpiar números
-    fromNumber = fromNumber.replace(/\D/g, '').trim();
     toNumber = toNumber.replace(/\D/g, '').trim();
+    
+    // Usar número alternado en vez del fromNumber que viene del PHP
+    const originalFromNumber = fromNumber;
+    fromNumber = getNextNumber();
+    
+    console.log(`[wbot-queue] 🔄 Alternancia: ${originalFromNumber} → ${fromNumber} (índice actual: ${alternationState.currentIndex})`);
 
     const sendMessageRequest = await SendMessageRequest.create({
       fromNumber,
@@ -135,6 +164,7 @@ export const addMessageToQueue = async ({
     });
 
     queueState.queue.push({ fromNumber, toNumber, message, mediaUrl, sendMessageRequest });
+    console.log(`[wbot-queue] 📨 Mensaje agregado a la cola. Total en cola: ${queueState.queue.length}`);
 
     if (!queueState.processing) {
       processQueue();
