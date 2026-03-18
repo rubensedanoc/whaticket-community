@@ -128,17 +128,20 @@ const processQueue = async () => {
         continue;
       }
 
-      // Aplicar parches si es necesario (solo si tiene pupPage)
+      // Intentar aplicar parches si tiene pupPage (opcional, no crítico)
+      // Los parches mejoran la funcionalidad pero wbot.sendMessage() funciona sin ellos
       if ((wbot as any)?.pupPage) {
         try {
+          console.log('[wbot-queue] 🔧 Intentando aplicar parches para whatsappId:', selectedConnection.id);
           const patched = await applyPatchesToWbot(wbot as any);
-          if (!patched) {
-            console.error('[wbot-queue] ⚠️ Falló aplicación de parches para whatsappId:', selectedConnection.id);
-            // Intentar enviar de todos modos, puede funcionar sin parches
+          if (patched) {
+            console.log('[wbot-queue] ✅ Parches aplicados exitosamente');
+          } else {
+            console.warn('[wbot-queue] ⚠️ Parches no aplicados - continuando sin parches (wbot.sendMessage() debería funcionar)');
           }
         } catch (patchError: any) {
-          console.error('[wbot-queue] ⚠️ Error al aplicar parches:', patchError?.message || patchError);
-          // Continuar de todos modos
+          console.warn('[wbot-queue] ⚠️ Error al aplicar parches:', patchError?.message || patchError);
+          console.warn('[wbot-queue] ⚠️ Continuando sin parches - usando método nativo de la librería');
         }
       }
 
