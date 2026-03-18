@@ -498,6 +498,22 @@ export const getWbots = (): Session[] => {
   return sessions;
 };
 
+export const hasActiveSession = (whatsappId: number): boolean => {
+  return sessions.findIndex(s => s.id === whatsappId) !== -1;
+};
+
+export const getActiveWhatsappSessions = (): Array<{
+  whatsappId: number;
+  session: Session;
+}> => {
+  return sessions
+    .filter(s => s.id !== undefined)
+    .map(s => ({
+      whatsappId: s.id!,
+      session: s
+    }));
+};
+
 export const removeWbot = (whatsappId: number): void => {
   try {
     const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
