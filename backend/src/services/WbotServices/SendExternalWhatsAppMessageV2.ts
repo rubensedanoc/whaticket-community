@@ -120,12 +120,25 @@ const processQueue = async () => {
       // Obtener sesión (ya validamos que existe)
       const wbot = getWbot(selectedConnection.id);
 
-      // Aplicar parches si es necesario
+      // Validar que wbot existe
+      if (!wbot) {
+        console.error('[wbot-queue] ❌ wbot no existe para whatsappId:', selectedConnection.id);
+        message.sendMessageRequest.status = 'failed';
+        await message.sendMessageRequest.save();
+        continue;
+      }
+
+      // Aplicar parches si es necesario (solo si tiene pupPage)
       if ((wbot as any)?.pupPage) {
-        const patched = await applyPatchesToWbot(wbot as any);
-        if (!patched) {
-          console.error('[wbot-queue] ⚠️ Falló aplicación de parches para whatsappId:', selectedConnection.id);
-          // Continuar de todos modos, puede funcionar sin parches
+        try {
+          const patched = await applyPatchesToWbot(wbot as any);
+          if (!patched) {
+            console.error('[wbot-queue] ⚠️ Falló aplicación de parches para whatsappId:', selectedConnection.id);
+            // Intentar enviar de todos modos, puede funcionar sin parches
+          }
+        } catch (patchError: any) {
+          console.error('[wbot-queue] ⚠️ Error al aplicar parches:', patchError?.message || patchError);
+          // Continuar de todos modos
         }
       }
 
