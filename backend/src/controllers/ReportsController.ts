@@ -1332,7 +1332,20 @@ export const reportToExcel = async (
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
   }
   if (selectedQueueIds && selectedQueueIds.length > 0) {
-    sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
+      }
+    }
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
