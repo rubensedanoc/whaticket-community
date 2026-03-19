@@ -1601,7 +1601,9 @@ export const reportToExcel = async (
         for (const number in data.data) {
           if (ticketListFinal.find(t => t.ctnumber === number)) {
             ticketListFinal.find(t => t.ctnumber === number).microserviceData =
-              data.data[number];
+              Array.isArray(data.data[number]) && data.data[number].length > 0
+                ? data.data[number][0]
+                : data.data[number];
           }
         }
       } catch (error) {

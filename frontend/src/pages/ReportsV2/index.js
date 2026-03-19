@@ -320,7 +320,12 @@ const Reports = () => {
           let extraData = null;
 
           if (row.microserviceData) {
-            row.microserviceData.forEach((dynamicRow, index) => {
+            // Si es un array, tomar solo el primer elemento
+            const dataToProcess = Array.isArray(row.microserviceData) 
+              ? [row.microserviceData[0]] 
+              : [row.microserviceData];
+
+            dataToProcess.forEach((dynamicRow, index) => {
               // Para evitar conflictos, añadimos el índice como prefijo de los campos dinámicos
               const dynamicFields = Object.keys(dynamicRow).reduce(
                 (acc, key) => {
