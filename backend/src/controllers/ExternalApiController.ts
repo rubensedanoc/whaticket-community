@@ -566,9 +566,28 @@ export const updateFromTrazaByClientelicenciaId = async (
   }
 
   for (const contact of contacts) {
+    // Detectar si el contacto está cambiando a etapa ALTA (5)
+    const isChangingToAlta = 
+      etapacl_id === 5 && 
+      contact.traza_clientelicencia_currentetapaid !== 5;
+
     await contact.update({
       traza_clientelicencia_currentetapaid: etapacl_id
     });
+
+    // Si el contacto cambió a etapa ALTA, actualizar todos sus tickets abiertos/pendientes de grupo
+    if (isChangingToAlta) {
+      await Ticket.update(
+        { etapa_alta_assigned_at: new Date() },
+        {
+          where: {
+            contactId: contact.id,
+            status: { [Op.in]: ["pending", "open"] },
+            isGroup: true
+          }
+        }
+      );
+    }
 
     const ticketsToUpdate = await Ticket.findAll({
       where: {
