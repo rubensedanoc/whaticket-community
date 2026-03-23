@@ -71,9 +71,22 @@ const SendWhatsAppMessage = async ({
     console.log("[SendWhatsAppMessage] Wbot info existe:", !!wbot.info);
     console.log("[SendWhatsAppMessage] Wbot pupPage existe:", !!wbot.pupPage);
     
+    if (wbot?.pupPage) {
+      console.log("[SendWhatsAppMessage] pupPage.isClosed():", wbot.pupPage.isClosed());
+      try {
+        console.log("[SendWhatsAppMessage] pupPage.url():", wbot.pupPage.url());
+      } catch (urlErr) {
+        console.log("[SendWhatsAppMessage] WARNING: No se pudo obtener URL:", urlErr.message);
+      }
+    }
+    
     try {
       const wbotState = await wbot.getState();
       console.log("[SendWhatsAppMessage] Estado de la conexión:", wbotState);
+      
+      if (wbotState === null) {
+        console.log("[SendWhatsAppMessage] WARNING: getState() retornó null - indica timing issue o window.Store.AppState no inicializado");
+      }
     } catch (stateErr) {
       console.log("[SendWhatsAppMessage] WARNING: No se pudo obtener estado:", stateErr.message);
     }
@@ -83,18 +96,30 @@ const SendWhatsAppMessage = async ({
     console.log("[SendWhatsAppMessage] Body formateado OK");
 
     // Intentar aplicar parches en la sesión si es posible (on-demand)
-    try {
-      if (wbot?.pupPage) {
+    // NOTA: Esto es redundante si el parche del evento 'ready' ya se aplicó
+    // El parche on-demand es OPCIONAL, no debe abortar el envío si falla
+    if (wbot?.pupPage) {
+      try {
+        console.log("[SendWhatsAppMessage] Intentando aplicar parche on-demand...");
         const patched = await applyPatchesToWbot(wbot as any);
-        if (!patched) {
-          console.log("[SendWhatsAppMessage] WARNING: No se pudo aplicar el parche on-demand en esta sesión");
-          throw new Error("ERR_PATCH_NOT_APPLIED");
+        
+        if (patched) {
+          console.log("[SendWhatsAppMessage] ✓ Parche on-demand aplicado/verificado OK");
+        } else {
+          console.log("[SendWhatsAppMessage] ⚠ WARNING: Parche on-demand no se aplicó");
+          console.log("[SendWhatsAppMessage] Esto puede ser normal si el parche del evento 'ready' ya está activo");
+          console.log("[SendWhatsAppMessage] Continuando con el envío del mensaje...");
+          // NO lanzar error, continuar con el envío
         }
-        console.log("[SendWhatsAppMessage] Parche on-demand aplicado OK");
+      } catch (patchErr) {
+        console.log("[SendWhatsAppMessage] ⚠ WARNING: Error aplicando parche on-demand:", patchErr?.message || patchErr);
+        console.log("[SendWhatsAppMessage] Continuando con el envío - el parche del evento 'ready' probablemente está activo");
+        // NO lanzar error, continuar con el envío
+        // Si realmente falta el parche, wbot.sendMessage() fallará con un error más específico
       }
-    } catch (patchErr) {
-      console.log("[SendWhatsAppMessage] ERROR aplicando parche on-demand:", patchErr?.message || patchErr);
-      throw patchErr;
+    } else {
+      console.log("[SendWhatsAppMessage] WARNING: pupPage no disponible, no se puede aplicar parche on-demand");
+      console.log("[SendWhatsAppMessage] Confiando en el parche del evento 'ready'");
     }
 
     let mentionedNumbers: string[] | null = null;
