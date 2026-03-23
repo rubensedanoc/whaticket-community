@@ -195,12 +195,6 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         ` --- wbot initWbot --- id: ${whatsapp.id}  name: ${sessionName} sessionUuid: ${whatsapp.sessionUuid}`
       );
 
-      let sessionCfg;
-
-      if (whatsapp && whatsapp.session) {
-        sessionCfg = JSON.parse(whatsapp.session);
-      }
-
       let args: String =
         process.env.DOCKERFILE_PATH &&
         process.env.DOCKERFILE_PATH.includes("chrome")
@@ -218,9 +212,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       console.log("client args: ", args);
 
       const wbot: Session = new Client({
-        session: sessionCfg,
         authStrategy: new LocalAuth({
-          clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
+          clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`,
+          dataPath: '.wwebjs_auth'  // Carpeta donde se guardan las sesiones
         }),
         puppeteer: {
           headless: true,
@@ -259,8 +253,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         });
       });
 
-      wbot.on("authenticated", async session => {
+      wbot.on("authenticated", async () => {
         logger.info(`Session: ${sessionName} AUTHENTICATED`);
+        // LocalAuth guarda la sesión automáticamente en .wwebjs_auth/
+        // Ya no es necesario guardar session en la BD
       });
 
       wbot.on("auth_failure", async msg => {
@@ -268,10 +264,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           `Session: ${sessionName} AUTHENTICATION FAILURE! Reason: ${msg}`
         );
 
-        if (whatsapp.retries > 1) {
-          await whatsapp.update({ session: "", retries: 0 });
-        }
-
+        // LocalAuth maneja la limpieza de sesión automáticamente
+        // Solo actualizamos el estado en la BD
         const retry = whatsapp.retries;
         await whatsapp.update({
           status: "DISCONNECTED",
