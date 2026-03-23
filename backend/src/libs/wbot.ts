@@ -379,9 +379,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
             wbot,
             whatsapp,
-            // timeIntervalInHours: 72
-            // timeIntervalInHours: 24
-            timeIntervalInHours: 168 // 7 días
+            // Reducido de 168 (7 días) a 24 horas para evitar timeout en getChats()
+            // Con 24 horas se procesan menos chats y es más rápido
+            // Los mensajes en tiempo real se capturan por eventos message_create
+            timeIntervalInHours: 72
           });
 
           console.log(
