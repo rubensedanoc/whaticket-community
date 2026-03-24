@@ -145,16 +145,40 @@ const processQueue = async () => {
         }
       }
 
-      // Enviar mensaje
+      // Validar que el número esté registrado en WhatsApp
+      console.log(`[wbot-queue] 🔍 Validando número ${message.toNumber} en WhatsApp...`);
+      
+      const isRegistered = await wbot.isRegisteredUser(`${message.toNumber}@c.us`);
+      
+      if (!isRegistered) {
+        console.error(`[wbot-queue] ❌ El número ${message.toNumber} no está registrado en WhatsApp`);
+        message.sendMessageRequest.status = 'failed';
+        await message.sendMessageRequest.save();
+        continue;
+      }
+
+      // Obtener el ID correcto del número
+      const numberId = await wbot.getNumberId(`${message.toNumber}@c.us`);
+      
+      if (!numberId) {
+        console.error(`[wbot-queue] ❌ No se pudo obtener el ID del número ${message.toNumber}`);
+        message.sendMessageRequest.status = 'failed';
+        await message.sendMessageRequest.save();
+        continue;
+      }
+
+      console.log(`[wbot-queue] ✅ Número validado: ${numberId._serialized}`);
+
+      // Enviar mensaje usando el numberId._serialized
       console.log(`[wbot-queue] 📤 Enviando desde ${selectedConnection.number || selectedConnection.name} a ${message.toNumber}`);
       
       if (message.mediaUrl) {
         const media = await MessageMedia.fromUrl(message.mediaUrl);
-        await wbot.sendMessage(`${message.toNumber}@c.us`, media, {
+        await wbot.sendMessage(numberId._serialized, media, {
           caption: message.message
         });
       } else {
-        await wbot.sendMessage(`${message.toNumber}@c.us`, message.message);
+        await wbot.sendMessage(numberId._serialized, message.message);
       }
 
       message.sendMessageRequest.status = 'sent';
