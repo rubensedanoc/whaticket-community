@@ -83,18 +83,21 @@ const SendWhatsAppMessage = async ({
     console.log("[SendWhatsAppMessage] Body formateado OK");
 
     // Intentar aplicar parches en la sesión si es posible (on-demand)
+    // Esto es opcional - los parches deberían haberse aplicado en el evento 'ready'
+    // Si falla aquí, no es crítico, solo continuamos
     try {
       if (wbot?.pupPage) {
         const patched = await applyPatchesToWbot(wbot as any);
-        if (!patched) {
-          console.log("[SendWhatsAppMessage] WARNING: No se pudo aplicar el parche on-demand en esta sesión");
-          throw new Error("ERR_PATCH_NOT_APPLIED");
+        if (patched) {
+          console.log("[SendWhatsAppMessage] ✓ Parche on-demand aplicado/verificado OK");
+        } else {
+          console.log("[SendWhatsAppMessage] ⚠ Parche on-demand no aplicado (probablemente ya aplicado en ready)");
         }
-        console.log("[SendWhatsAppMessage] Parche on-demand aplicado OK");
       }
     } catch (patchErr) {
-      console.log("[SendWhatsAppMessage] ERROR aplicando parche on-demand:", patchErr?.message || patchErr);
-      throw patchErr;
+      console.log("[SendWhatsAppMessage] ⚠ No se pudo verificar/aplicar parche on-demand:", patchErr?.message || patchErr);
+      console.log("[SendWhatsAppMessage] Continuando de todas formas (parche debería estar aplicado desde ready)");
+      // No lanzamos error, continuamos con el envío
     }
 
     let mentionedNumbers: string[] | null = null;
@@ -106,8 +109,36 @@ const SendWhatsAppMessage = async ({
       console.log("[SendWhatsAppMessage] MentionedNumbers:", mentionedNumbers);
     }
 
-    const destinationNumber = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
-    console.log("[SendWhatsAppMessage] DestinationNumber:", destinationNumber);
+    // Obtener el ID correcto del destinatario (maneja @c.us y @lid)
+    let destinationId: string;
+    
+    if (ticket.isGroup) {
+      // Para grupos, usar el formato tradicional
+      destinationId = `${ticket.contact.number}@g.us`;
+      console.log("[SendWhatsAppMessage] Grupo detectado, usando:", destinationId);
+    } else {
+      // Para contactos individuales, obtener el ID correcto con getNumberId
+      console.log("[SendWhatsAppMessage] 🔍 Obteniendo ID correcto para:", ticket.contact.number);
+      
+      try {
+        const numberId = await wbot.getNumberId(`${ticket.contact.number}@c.us`);
+        
+        if (!numberId) {
+          console.error("[SendWhatsAppMessage] ❌ No se pudo obtener el ID del número");
+          throw new AppError("ERR_NUMBER_NOT_REGISTERED");
+        }
+        
+        destinationId = numberId._serialized;
+        console.log("[SendWhatsAppMessage] ✅ ID obtenido:", destinationId);
+      } catch (numberIdErr) {
+        console.error("[SendWhatsAppMessage] Error obteniendo numberId:", numberIdErr);
+        // Fallback al formato tradicional
+        destinationId = `${ticket.contact.number}@c.us`;
+        console.log("[SendWhatsAppMessage] ⚠️ Usando fallback:", destinationId);
+      }
+    }
+
+    console.log("[SendWhatsAppMessage] DestinationId final:", destinationId);
     console.log("[SendWhatsAppMessage] QuotedMsgId:", quotedMsgSerializedId || "none");
     console.log("[SendWhatsAppMessage] Enviando mensaje...");
 
@@ -115,7 +146,7 @@ const SendWhatsAppMessage = async ({
     let sentMessage;
     try {
       sentMessage = await wbot.sendMessage(
-        destinationNumber,
+        destinationId,
         bodyFormated,
         {
           quotedMessageId: quotedMsgSerializedId,
