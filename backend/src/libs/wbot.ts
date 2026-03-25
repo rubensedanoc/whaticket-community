@@ -82,7 +82,6 @@ export const searchForUnSaveMessages = async ({
     let chats = await wbot.getChats();
 
     response.logs.push(`END - wbot.getChats ${Date.now()}`);
-    response.logs.push(`Total chats found: ${chats?.length || 0}`);
 
     // filter chats with last message in the last x hours
     let last8HoursChats = chats.filter(chat =>
@@ -131,14 +130,7 @@ export const searchForUnSaveMessages = async ({
               );
 
             for (const msg of wppMessagesFoundInTimeInterval) {
-              // Double-check: verificar nuevamente si el mensaje ya existe antes de procesar
-              // Esto previene duplicados por race conditions en grupos
-              const existsNow = await Message.findByPk(msg.id.id);
-              if (!existsNow) {
-                await handleMessage({ msg, wbot });
-              } else {
-                response.logs.push(`Message ${msg.id.id} already exists, skipping`);
-              }
+              await handleMessage({ msg, wbot });
             }
           }
 
@@ -186,11 +178,7 @@ export const searchForUnSaveMessages = async ({
     });
   } catch (error) {
     response.logs.push(`ERROR - ${Date.now()}`);
-    response.logs.push({
-      name: error?.name || 'Unknown',
-      message: error?.message || 'No message',
-      stack: error?.stack?.split('\n').slice(0, 3) || []
-    });
+    response.logs.push(error);
     response.error = error;
   }
 
@@ -206,12 +194,6 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       logger.info(
         ` --- wbot initWbot --- id: ${whatsapp.id}  name: ${sessionName} sessionUuid: ${whatsapp.sessionUuid}`
       );
-
-      let sessionCfg;
-
-      if (whatsapp && whatsapp.session) {
-        sessionCfg = JSON.parse(whatsapp.session);
-      }
 
       let args: String =
         process.env.DOCKERFILE_PATH &&
@@ -230,9 +212,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       console.log("client args: ", args);
 
       const wbot: Session = new Client({
-        session: sessionCfg,
         authStrategy: new LocalAuth({
-          clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`
+          clientId: `bd_${whatsapp.sessionUuid || whatsapp.id}`,
+          dataPath: '.wwebjs_auth'  // Carpeta donde se guardan las sesiones
         }),
         puppeteer: {
           headless: true,
@@ -240,9 +222,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           executablePath: process.env.CHROME_BIN || undefined,
           // @ts-ignore
           browserWSEndpoint: process.env.CHROME_WS || undefined,
-          args: args.split(" "),
-          // @ts-ignore - protocolTimeout exists in whatsapp-web.js but TS definitions are outdated
-          protocolTimeout: 300000 // 5 minutos para operaciones pesadas como getChats()
+          args: args.split(" ")
       }
       });
 
@@ -273,8 +253,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         });
       });
 
-      wbot.on("authenticated", async session => {
+      wbot.on("authenticated", async () => {
         logger.info(`Session: ${sessionName} AUTHENTICATED`);
+        // LocalAuth guarda la sesión automáticamente en .wwebjs_auth/
+        // Ya no es necesario guardar session en la BD
       });
 
       wbot.on("auth_failure", async msg => {
@@ -282,10 +264,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           `Session: ${sessionName} AUTHENTICATION FAILURE! Reason: ${msg}`
         );
 
-        if (whatsapp.retries > 1) {
-          await whatsapp.update({ session: "", retries: 0 });
-        }
-
+        // LocalAuth maneja la limpieza de sesión automáticamente
+        // Solo actualizamos el estado en la BD
         const retry = whatsapp.retries;
         await whatsapp.update({
           status: "DISCONNECTED",
@@ -393,9 +373,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           const searchForUnSaveMessagesResult = await searchForUnSaveMessages({
             wbot,
             whatsapp,
-            // timeIntervalInHours: 72
-            // timeIntervalInHours: 24
-            timeIntervalInHours: 168 // 7 días
+            // Reducido de 168 (7 días) a 24 horas para evitar timeout en getChats()
+            // Con 24 horas se procesan menos chats y es más rápido
+            // Los mensajes en tiempo real se capturan por eventos message_create
+            timeIntervalInHours: 72
           });
 
           console.log(
@@ -426,17 +407,181 @@ export const getWbot = (whatsappId: number): Session => {
 
 // Aplica parches en la página Puppeteer de WhatsApp Web de forma on-demand.
 // Devuelve true si el parche quedó aplicado correctamente, false en caso contrario.
-export const applyPatchesToWbot = async (wbot: Session): Promise<boolean> => {
+export const diagnoseWbotState = async (wbot: Session): Promise<any> => {
   try {
     if (!wbot?.pupPage) {
+      return {
+        success: false,
+        error: 'pupPage no existe',
+        pupPageExists: false
+      };
+    }
+
+    const isClosed = wbot.pupPage.isClosed();
+    if (isClosed) {
+      return {
+        success: false,
+        error: 'pupPage está cerrada',
+        pupPageExists: true,
+        pupPageClosed: true
+      };
+    }
+
+    const diagnosis = await wbot.pupPage.evaluate(() => {
+      const result: any = {
+        url: window.location.href,
+        // @ts-ignore - window.WWebJS es inyectado dinámicamente por whatsapp-web.js
+        windowWWebJSExists: typeof window.WWebJS !== 'undefined',
+        // @ts-ignore - window.Store es inyectado dinámicamente por whatsapp-web.js
+        windowStoreExists: typeof window.Store !== 'undefined',
+        patchApplied: !!(window as any).__whaticket_patch_applied
+      };
+
+      // @ts-ignore - window.WWebJS es inyectado dinámicamente por whatsapp-web.js
+      if (typeof window.WWebJS !== 'undefined') {
+        result.WWebJS = {
+          // @ts-ignore
+          getChatExists: typeof window.WWebJS.getChat === 'function',
+          // @ts-ignore
+          getChatType: typeof window.WWebJS.getChat,
+          // @ts-ignore
+          sendSeenExists: typeof window.WWebJS.sendSeen === 'function',
+          // @ts-ignore
+          sendSeenType: typeof window.WWebJS.sendSeen
+        };
+      } else {
+        result.WWebJS = null;
+        result.error = 'window.WWebJS is undefined';
+      }
+
+      // @ts-ignore - window.Store es inyectado dinámicamente por whatsapp-web.js
+      if (typeof window.Store !== 'undefined') {
+        result.Store = {
+          // @ts-ignore
+          ChatExists: typeof window.Store.Chat !== 'undefined',
+          // @ts-ignore
+          SendSeenExists: typeof window.Store.SendSeen !== 'undefined',
+          // @ts-ignore
+          WAWebStreamModelExists: typeof window.Store.WAWebStreamModel !== 'undefined'
+        };
+
+        // @ts-ignore
+        if (typeof window.Store.WAWebStreamModel !== 'undefined') {
+          // @ts-ignore
+          result.Store.StreamExists = typeof window.Store.WAWebStreamModel.Stream !== 'undefined';
+        }
+      } else {
+        result.Store = null;
+        if (!result.error) result.error = 'window.Store is undefined';
+      }
+
+      result.success = result.windowWWebJSExists && result.windowStoreExists;
+      return result;
+    });
+
+    return {
+      ...diagnosis,
+      pupPageExists: true,
+      pupPageClosed: false
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message,
+      errorName: err.name,
+      errorStack: err.stack,
+      pupPageExists: !!wbot?.pupPage,
+      evaluateError: true
+    };
+  }
+};
+
+export const applyPatchesToWbot = async (wbot: Session): Promise<boolean> => {
+  try {
+    logger.info('[applyPatchesToWbot] Iniciando diagnóstico previo...');
+    
+    if (!wbot?.pupPage) {
+      logger.warn('[applyPatchesToWbot] pupPage no existe');
       return false;
     }
+
+    if (wbot.pupPage.isClosed()) {
+      logger.warn('[applyPatchesToWbot] pupPage está cerrada');
+      return false;
+    }
+
+    // Primero verificar si el parche ya está aplicado
+    let alreadyPatched = false;
+    try {
+      alreadyPatched = await wbot.pupPage.evaluate(() => {
+        return !!(window as any).__whaticket_patch_applied;
+      });
+      
+      if (alreadyPatched) {
+        logger.info('[applyPatchesToWbot] ✓ Parche ya está aplicado (desde evento ready), no es necesario re-aplicar');
+        return true;
+      }
+    } catch (checkErr: any) {
+      logger.warn('[applyPatchesToWbot] No se pudo verificar si el parche ya está aplicado:', checkErr.message);
+    }
+
+    // Diagnóstico detallado del estado
+    const diagnosis = await diagnoseWbotState(wbot);
+    logger.info('[applyPatchesToWbot] Diagnóstico:', JSON.stringify(diagnosis, null, 2));
+
+    if (!diagnosis.success) {
+      logger.error('[applyPatchesToWbot] ✗ Diagnóstico falló:', diagnosis.error);
+      
+      if (!diagnosis.windowWWebJSExists) {
+        logger.error('[applyPatchesToWbot] ✗ PROBLEMA: window.WWebJS no existe');
+        logger.error('[applyPatchesToWbot] Causa probable: Inyección de WWebJS incompleta o timing issue');
+      }
+      
+      if (!diagnosis.windowStoreExists) {
+        logger.error('[applyPatchesToWbot] ✗ PROBLEMA: window.Store no existe');
+        logger.error('[applyPatchesToWbot] Causa probable: WhatsApp Web no está completamente cargado');
+      }
+      
+      return false;
+    }
+
+    // Verificar propiedades específicas
+    if (diagnosis.WWebJS) {
+      if (!diagnosis.WWebJS.getChatExists) {
+        logger.error('[applyPatchesToWbot] ✗ PROBLEMA: window.WWebJS.getChat no existe');
+        logger.error('[applyPatchesToWbot] Tipo actual:', diagnosis.WWebJS.getChatType);
+        return false;
+      }
+      
+      if (!diagnosis.WWebJS.sendSeenExists) {
+        logger.error('[applyPatchesToWbot] ✗ PROBLEMA: window.WWebJS.sendSeen no existe');
+        logger.error('[applyPatchesToWbot] Tipo actual:', diagnosis.WWebJS.sendSeenType);
+        return false;
+      }
+      
+      logger.info('[applyPatchesToWbot] ✓ window.WWebJS.getChat existe');
+      logger.info('[applyPatchesToWbot] ✓ window.WWebJS.sendSeen existe');
+    }
+
+    if (diagnosis.Store) {
+      logger.info('[applyPatchesToWbot] ✓ window.Store.Chat existe:', diagnosis.Store.ChatExists);
+      logger.info('[applyPatchesToWbot] ✓ window.Store.SendSeen existe:', diagnosis.Store.SendSeenExists);
+      logger.info('[applyPatchesToWbot] ✓ window.Store.WAWebStreamModel existe:', diagnosis.Store.WAWebStreamModelExists);
+      
+      if (diagnosis.Store.WAWebStreamModelExists) {
+        logger.info('[applyPatchesToWbot] ✓ window.Store.WAWebStreamModel.Stream existe:', diagnosis.Store.StreamExists);
+      }
+    }
+
+    logger.info('[applyPatchesToWbot] Aplicando parches...');
 
     // Ejecutar la misma evaluación que en el "ready" para asegurar que
     // `window.WWebJS.getChat` y `window.WWebJS.sendSeen` están parcheados.
     await wbot.pupPage.evaluate(`
       (function(){
         try {
+          console.log('[Patch] Iniciando aplicación de parches...');
+          
           // Patch 1: Corregir sendSeen
           window.WWebJS.sendSeen = async (chatId) => {
             try {
@@ -449,10 +594,11 @@ export const applyPatchesToWbot = async (wbot: Session): Promise<boolean> => {
               }
               return false;
             } catch (e) {
-              console.error('Error in patched sendSeen:', e);
+              console.error('[Patch] Error in patched sendSeen:', e);
               return false;
             }
           };
+          console.log('[Patch] ✓ sendSeen parcheado');
 
           // Patch 2: Asegurar que getChat siempre devuelva un objeto válido
           const originalGetChat = window.WWebJS.getChat;
@@ -467,15 +613,17 @@ export const applyPatchesToWbot = async (wbot: Session): Promise<boolean> => {
               if (foundChat) return foundChat;
               throw new Error('Chat not found: ' + chatId);
             } catch (e) {
-              console.error('Error in patched getChat for chatId:', chatId, e);
+              console.error('[Patch] Error in patched getChat for chatId:', chatId, e);
               throw e;
             }
           };
+          console.log('[Patch] ✓ getChat parcheado');
 
           // Señal de éxito del parche
           window.__whaticket_patch_applied = true;
+          console.log('[Patch] ✓ Parches aplicados exitosamente');
         } catch (e) {
-          console.error('Error applying patches (inner):', e);
+          console.error('[Patch] ✗ Error applying patches (inner):', e);
           window.__whaticket_patch_applied = false;
         }
       })();
@@ -487,9 +635,27 @@ export const applyPatchesToWbot = async (wbot: Session): Promise<boolean> => {
       return !!window.__whaticket_patch_applied;
     });
 
+    if (flag) {
+      logger.info('[applyPatchesToWbot] ✓ Parches aplicados exitosamente, bandera confirmada');
+    } else {
+      logger.error('[applyPatchesToWbot] ✗ Parches no se aplicaron, bandera es false');
+    }
+
     return !!flag;
-  } catch (err) {
-    logger.error('applyPatchesToWbot error:', err);
+  } catch (err: any) {
+    logger.error('[applyPatchesToWbot] ✗ ERROR en catch principal:');
+    logger.error('[applyPatchesToWbot] Error name:', err.name);
+    logger.error('[applyPatchesToWbot] Error message:', err.message);
+    logger.error('[applyPatchesToWbot] Error stack:', err.stack);
+    
+    if (err.message && err.message.includes('Execution context was destroyed')) {
+      logger.error('[applyPatchesToWbot] Causa: Contexto de ejecución de Puppeteer fue destruido');
+      logger.error('[applyPatchesToWbot] Solución: La página está navegando o recargando, reintentar más tarde');
+    } else if (err.message && err.message.includes('Protocol error')) {
+      logger.error('[applyPatchesToWbot] Causa: Error de protocolo de Puppeteer');
+      logger.error('[applyPatchesToWbot] Solución: Conexión con el navegador perdida o inestable');
+    }
+    
     return false;
   }
 };
