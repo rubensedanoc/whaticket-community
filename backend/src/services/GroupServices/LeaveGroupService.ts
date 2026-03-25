@@ -1,4 +1,5 @@
 import { GroupChat } from "whatsapp-web.js";
+import { differenceInDays } from "date-fns";
 import AppError from "../../errors/AppError";
 import GetTicketWbot from "../../helpers/GetTicketWbot";
 import ShowTicketService from "../TicketServices/ShowTicketService";
@@ -34,20 +35,43 @@ const LeaveGroupService = async ({
     throw new AppError("Este ticket ya está cerrado", 400);
   }
 
-  // 4. Obtener el bot de WhatsApp
+  // 4. Validar que el contacto esté en etapa ALTA (ID = 5)
+  if (ticket.contact?.traza_clientelicencia_currentetapaid !== 5) {
+    throw new AppError("El grupo no está en etapa ALTA", 400);
+  }
+
+  // 5. Validar que tenga fecha de asignación a ALTA
+  if (!ticket.etapa_alta_assigned_at) {
+    throw new AppError("El grupo no tiene fecha de asignación a ALTA", 400);
+  }
+
+  // 6. Validar que tenga al menos 15 días en ALTA
+  const daysInAlta = differenceInDays(
+    new Date(),
+    new Date(ticket.etapa_alta_assigned_at)
+  );
+
+  if (daysInAlta < 15) {
+    throw new AppError(
+      `El grupo debe tener al menos 15 días en ALTA. Actualmente tiene ${daysInAlta} días`,
+      400
+    );
+  }
+
+  // 7. Obtener el bot de WhatsApp
   const wbot = await GetTicketWbot(ticket);
 
-  // 5. Obtener el chat del grupo
+  // 8. Obtener el chat del grupo
   const wbotChat = await wbot.getChatById(
     `${ticket.contact?.number}@${ticket.isGroup ? "g" : "c"}.us`
   );
 
   const wbotGroupChat = wbotChat as GroupChat;
 
-  // 6. Salir del grupo
+  // 9. Salir del grupo
   await wbotGroupChat.leave();
 
-  // 7. Actualizar el ticket a cerrado
+  // 10. Actualizar el ticket a cerrado
   await UpdateTicketService({
     ticketId: ticket.id,
     ticketData: {
