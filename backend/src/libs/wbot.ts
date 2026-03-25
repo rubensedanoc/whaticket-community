@@ -413,7 +413,8 @@ export const diagnoseWbotState = async (wbot: Session): Promise<any> => {
       return {
         success: false,
         error: 'pupPage no existe',
-        pupPageExists: false
+        pupPageExists: false,
+        recommendation: 'Reiniciar la sesión de WhatsApp'
       };
     }
 
@@ -423,59 +424,156 @@ export const diagnoseWbotState = async (wbot: Session): Promise<any> => {
         success: false,
         error: 'pupPage está cerrada',
         pupPageExists: true,
-        pupPageClosed: true
+        pupPageClosed: true,
+        recommendation: 'La página de Puppeteer está cerrada, reiniciar sesión'
       };
     }
 
     const diagnosis = await wbot.pupPage.evaluate(() => {
       const result: any = {
         url: window.location.href,
-        // @ts-ignore - window.WWebJS es inyectado dinámicamente por whatsapp-web.js
+        timestamp: new Date().toISOString(),
+        // @ts-ignore
         windowWWebJSExists: typeof window.WWebJS !== 'undefined',
-        // @ts-ignore - window.Store es inyectado dinámicamente por whatsapp-web.js
+        // @ts-ignore
         windowStoreExists: typeof window.Store !== 'undefined',
-        patchApplied: !!(window as any).__whaticket_patch_applied
+        // @ts-ignore
+        patchApplied: !!(window as any).__whaticket_patch_applied,
+        // Información adicional del DOM
+        documentReadyState: document.readyState,
+        // @ts-ignore
+        hasWebpackChunk: typeof (window as any).webpackChunkwhatsapp_web_client !== 'undefined',
+        // @ts-ignore
+        hasRequire: typeof (window as any).require !== 'undefined'
       };
 
-      // @ts-ignore - window.WWebJS es inyectado dinámicamente por whatsapp-web.js
+      // Diagnóstico detallado de window.WWebJS
+      // @ts-ignore
       if (typeof window.WWebJS !== 'undefined') {
+        // @ts-ignore
+        const wwebjs = window.WWebJS;
         result.WWebJS = {
+          exists: true,
           // @ts-ignore
-          getChatExists: typeof window.WWebJS.getChat === 'function',
+          keys: Object.keys(wwebjs).slice(0, 20), // Primeras 20 propiedades
           // @ts-ignore
-          getChatType: typeof window.WWebJS.getChat,
+          getChatExists: typeof wwebjs.getChat === 'function',
           // @ts-ignore
-          sendSeenExists: typeof window.WWebJS.sendSeen === 'function',
+          getChatType: typeof wwebjs.getChat,
           // @ts-ignore
-          sendSeenType: typeof window.WWebJS.sendSeen
+          sendSeenExists: typeof wwebjs.sendSeen === 'function',
+          // @ts-ignore
+          sendSeenType: typeof wwebjs.sendSeen,
+          // @ts-ignore
+          sendMessageExists: typeof wwebjs.sendMessage === 'function',
+          // Verificar si getChat está parcheado
+          // @ts-ignore
+          getChatIsPatched: wwebjs.getChat && wwebjs.getChat.toString().includes('foundChat'),
+          // @ts-ignore
+          sendSeenIsPatched: wwebjs.sendSeen && wwebjs.sendSeen.toString().includes('SendSeen')
         };
       } else {
-        result.WWebJS = null;
+        result.WWebJS = {
+          exists: false,
+          error: 'window.WWebJS is undefined',
+          // @ts-ignore
+          windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('web')).slice(0, 10)
+        };
         result.error = 'window.WWebJS is undefined';
       }
 
-      // @ts-ignore - window.Store es inyectado dinámicamente por whatsapp-web.js
+      // Diagnóstico detallado de window.Store
+      // @ts-ignore
       if (typeof window.Store !== 'undefined') {
+        // @ts-ignore
+        const store = window.Store;
         result.Store = {
+          exists: true,
           // @ts-ignore
-          ChatExists: typeof window.Store.Chat !== 'undefined',
+          keys: Object.keys(store).slice(0, 30), // Primeras 30 propiedades
           // @ts-ignore
-          SendSeenExists: typeof window.Store.SendSeen !== 'undefined',
+          ChatExists: typeof store.Chat !== 'undefined',
           // @ts-ignore
-          WAWebStreamModelExists: typeof window.Store.WAWebStreamModel !== 'undefined'
+          ChatType: typeof store.Chat,
+          // @ts-ignore
+          SendSeenExists: typeof store.SendSeen !== 'undefined',
+          // @ts-ignore
+          SendSeenType: typeof store.SendSeen,
+          // @ts-ignore
+          MsgExists: typeof store.Msg !== 'undefined',
+          // @ts-ignore
+          WAWebStreamModelExists: typeof store.WAWebStreamModel !== 'undefined',
+          // @ts-ignore
+          SendMessageExists: typeof store.SendMessage !== 'undefined'
         };
 
         // @ts-ignore
-        if (typeof window.Store.WAWebStreamModel !== 'undefined') {
+        if (typeof store.Chat !== 'undefined') {
           // @ts-ignore
-          result.Store.StreamExists = typeof window.Store.WAWebStreamModel.Stream !== 'undefined';
+          result.Store.ChatDetails = {
+            // @ts-ignore
+            type: typeof store.Chat,
+            // @ts-ignore
+            isConstructor: store.Chat.prototype !== undefined,
+            // @ts-ignore
+            hasGet: typeof store.Chat.get === 'function',
+            // @ts-ignore
+            hasFindById: typeof store.Chat.findById === 'function'
+          };
+        }
+
+        // @ts-ignore
+        if (typeof store.WAWebStreamModel !== 'undefined') {
+          // @ts-ignore
+          result.Store.WAWebStreamModelDetails = {
+            // @ts-ignore
+            StreamExists: typeof store.WAWebStreamModel.Stream !== 'undefined',
+            // @ts-ignore
+            keys: Object.keys(store.WAWebStreamModel).slice(0, 10)
+          };
         }
       } else {
-        result.Store = null;
+        result.Store = {
+          exists: false,
+          error: 'window.Store is undefined',
+          // Buscar objetos similares en window
+          // @ts-ignore
+          windowKeys: Object.keys(window).filter(k => 
+            k.toLowerCase().includes('store') || 
+            k.toLowerCase().includes('chat') ||
+            k.toLowerCase().includes('msg')
+          ).slice(0, 15)
+        };
         if (!result.error) result.error = 'window.Store is undefined';
       }
 
+      // Verificar estado de carga de WhatsApp Web
+      result.whatsappWebState = {
+        // @ts-ignore
+        hasMainElement: !!document.querySelector('#app'),
+        // @ts-ignore
+        hasSidePanel: !!document.querySelector('[data-testid="chat-list"]'),
+        // @ts-ignore
+        hasQRCode: !!document.querySelector('canvas[aria-label*="QR"]'),
+        // @ts-ignore
+        isLoading: !!document.querySelector('[data-testid="startup-progress-bar"]')
+      };
+
       result.success = result.windowWWebJSExists && result.windowStoreExists;
+      
+      // Generar recomendación específica
+      if (!result.windowWWebJSExists && !result.windowStoreExists) {
+        result.recommendation = 'Ambos window.WWebJS y window.Store no existen. WhatsApp Web no está completamente inicializado. Esperar más tiempo o reiniciar sesión.';
+      } else if (!result.windowWWebJSExists) {
+        result.recommendation = 'window.WWebJS no existe pero window.Store sí. Problema con la inyección de whatsapp-web.js. Verificar versión de la librería.';
+      } else if (!result.windowStoreExists) {
+        result.recommendation = 'window.Store no existe pero window.WWebJS sí. WhatsApp Web aún está cargando. Esperar evento "ready" o reintentar en unos segundos.';
+      } else if (!result.patchApplied) {
+        result.recommendation = 'Ambos objetos existen pero los parches no están aplicados. Aplicar parches ahora.';
+      } else {
+        result.recommendation = 'Todo OK, parches ya aplicados.';
+      }
+
       return result;
     });
 
@@ -489,9 +587,14 @@ export const diagnoseWbotState = async (wbot: Session): Promise<any> => {
       success: false,
       error: err.message,
       errorName: err.name,
-      errorStack: err.stack,
+      errorStack: err.stack?.split('\n').slice(0, 5),
       pupPageExists: !!wbot?.pupPage,
-      evaluateError: true
+      evaluateError: true,
+      recommendation: err.message.includes('Execution context') 
+        ? 'Contexto de ejecución destruido - página está navegando o recargando'
+        : err.message.includes('Protocol error')
+        ? 'Error de protocolo Puppeteer - conexión con navegador perdida'
+        : 'Error desconocido al evaluar página'
     };
   }
 };
