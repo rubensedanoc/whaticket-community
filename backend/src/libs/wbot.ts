@@ -241,7 +241,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           browserWSEndpoint: process.env.CHROME_WS || undefined,
           args: args.split(" "),
           // @ts-ignore - protocolTimeout exists in whatsapp-web.js but TS definitions are outdated
-          protocolTimeout: 300000 // 5 minutos para operaciones pesadas como getChats()
+          protocolTimeout: 600000 // 10 minutos para operaciones pesadas como getChats()
       }
       });
 

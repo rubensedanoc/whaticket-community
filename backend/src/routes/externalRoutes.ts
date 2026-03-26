@@ -62,4 +62,10 @@ externalRoutes.post(
   ExternalApiController.sendMessageToTicket
 );
 
+externalRoutes.get("/queue-status", ExternalApiController.getQueueStatus);
+
+externalRoutes.post("/recover-pending-messages", ExternalApiController.manualRecoverPendingMessages);
+
+externalRoutes.post("/retry-failed-messages", ExternalApiController.manualRetryFailedMessages);
+
 export default externalRoutes;

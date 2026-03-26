@@ -12,6 +12,7 @@ import Queue from "./models/Queue";
 import Ticket from "./models/Ticket";
 import UpdateTicketService from "./services/TicketServices/UpdateTicketService";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
+import { recoverPendingMessages, retryFailedMessages } from "./services/WbotServices/SendExternalWhatsAppMessageV2";
 import ListWhatsAppsService from "./services/WhatsappService/ListWhatsAppsService";
 import { logger } from "./utils/logger";
 import CheckSettingsHelper from "./helpers/CheckSettings";
@@ -31,6 +32,17 @@ initIO();
 
 logger.info(`[${new Date().toISOString()}] Starting all WhatsApp sessions`);
 StartAllWhatsAppsSessions();
+
+// Recuperar mensajes pendientes después de 10 segundos (dar tiempo a que se conecten los WhatsApp)
+setTimeout(async () => {
+  logger.info(`[${new Date().toISOString()}] Recovering pending messages from database`);
+  try {
+    await recoverPendingMessages();
+  } catch (error) {
+    logger.error(`[${new Date().toISOString()}] Error recovering pending messages:`, error);
+    Sentry.captureException(error);
+  }
+}, 10000);
 
 logger.info(`[${new Date().toISOString()}] Configuring graceful shutdown`);
 gracefulShutdown(server);
@@ -314,6 +326,25 @@ cron.schedule("*/30 * * * *", async () => {
 //   }
 // });
 
+
+// CRON FOR RETRY FAILED MESSAGES
+// Every 30 minutes
+cron.schedule('*/30 * * * *', async () => {
+  logger.info(`[${new Date().toISOString()}] CRON START retryFailedMessages`);
+  
+  try {
+    const result = await retryFailedMessages(3);
+    logger.info(
+      `[${new Date().toISOString()}] CRON END retryFailedMessages - retried: ${result.retried}`
+    );
+  } catch (error) {
+    logger.error(
+      `[${new Date().toISOString()}] CRON ERROR retryFailedMessages`,
+      error
+    );
+    Sentry.captureException(error);
+  }
+});
 
 // CRON FOR SEARCH EXCLUSIVE NUMBERS ON CONTACTS
 // Every hour of the day

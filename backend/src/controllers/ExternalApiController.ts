@@ -41,7 +41,9 @@ import utc from "dayjs/plugin/utc";
 import Country from "../models/Country";
 import WhatsappCountry from "../models/WhatsappCountry";
 import Queue from "../models/Queue";
-import { addMessageToQueue } from "../services/WbotServices/SendExternalWhatsAppMessageV2";
+import { addMessageToQueue, recoverPendingMessages, retryFailedMessages } from "../services/WbotServices/SendExternalWhatsAppMessageV2";
+import SendMessageRequest from "../models/SendMessageRequest";
+import { getActiveWhatsappSessions } from "../libs/wbot";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -1491,6 +1493,65 @@ export const sendMessageToTicket = async (
       error: "INTERNAL_ERROR",
       message: `Error interno del servidor: ${error.message}`
     });
+  }
+};
+
+export const getQueueStatus = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    // Contar mensajes por status
+    const [pending, sent, failed] = await Promise.all([
+      SendMessageRequest.count({ where: { status: 'pending' } }),
+      SendMessageRequest.count({ where: { status: 'sent' } }),
+      SendMessageRequest.count({ where: { status: 'failed' } })
+    ]);
+    
+    // Obtener conexiones activas
+    const activeSessions = getActiveWhatsappSessions();
+    
+    return res.status(200).json({
+      queue: {
+        inMemory: 0,
+        processing: false
+      },
+      database: {
+        pending,
+        sent,
+        failed
+      },
+      connections: {
+        active: activeSessions.length,
+        details: activeSessions.map((s: any) => s.whatsappId)
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const manualRecoverPendingMessages = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    await recoverPendingMessages();
+    return res.status(200).json({ message: 'Mensajes pendientes recuperados' });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const manualRetryFailedMessages = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const result = await retryFailedMessages();
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
 };
 
