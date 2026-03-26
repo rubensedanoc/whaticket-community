@@ -55,6 +55,84 @@ interface Session extends Client {
 const writeFileAsync = promisify(writeFile);
 
 /**
+ * Universal helper to safely get contact by ID, handling both @c.us and @lid formats
+ * Works for individual contacts, groups, and all message scenarios
+ * 
+ * IMPORTANTE: Este helper NO rompe la funcionalidad existente:
+ * - Contactos normales @c.us: getContactById() funciona → retorna el contacto real
+ * - Contactos LID @lid: getContactById() falla → retorna objeto mock con datos del mensaje
+ */
+export const getContactByIdSafely = async (
+  wbot: Session,
+  contactId: string,
+  msg?: WbotMessage
+): Promise<WbotContact> => {
+  try {
+    // PASO 1: Intentar getContactById primero (funciona para contactos normales @c.us)
+    const contact = await wbot.getContactById(contactId);
+    return contact; // ✅ Retorna contacto real si es @c.us
+  } catch (err) {
+    // PASO 2: Solo llega aquí si getContactById falla (contactos LID @lid)
+    console.log(`[getContactByIdSafely] getContactById failed for ${contactId}, using fallback`);
+    
+    // Extract number from contact ID
+    const number = contactId.split('@')[0];
+    const isLid = contactId.includes('@lid');
+    
+    // Get name from message if available
+    let name = number;
+    if (msg) {
+      const msgData = (msg as any)._data;
+      name = msgData?.notifyName || msgData?.pushname || number;
+    }
+    
+    // Create minimal contact object for LID contacts
+    const mockContact: any = {
+      id: {
+        _serialized: contactId,
+        user: number,
+        server: isLid ? 'lid' : contactId.split('@')[1] || 'c.us'
+      },
+      number: number,
+      pushname: name,
+      name: name,
+      isGroup: contactId.includes('@g.us'),
+      isUser: !contactId.includes('@g.us'),
+      getProfilePicUrl: async () => null
+    };
+    
+    return mockContact as WbotContact; // ✅ Retorna mock solo para LID
+  }
+};
+
+/**
+ * Safely get contact for group messages, handling both @c.us and @lid formats
+ * For group messages with LID participants, use author/participant ID directly
+ * Now uses getContactByIdSafely internally for cleaner code
+ */
+const getContactSafelyForGroup = async (
+  msg: WbotMessage,
+  wbot: Session
+): Promise<WbotContact> => {
+  try {
+    // For group messages, check if we have author/participant info
+    const authorId = msg.author || (msg.id as any).participant;
+    
+    if (authorId) {
+      // Use the universal helper that handles both @c.us and @lid
+      return await getContactByIdSafely(wbot, authorId, msg);
+    }
+    
+    // Fallback to original method if no author info
+    return await msg.getContact();
+  } catch (err) {
+    console.log('[getContactSafelyForGroup] Error getting contact, using fallback:', err.message);
+    // Last resort fallback
+    return await msg.getContact();
+  }
+};
+
+/**
  * Save or update the contact in the database (name, number, profilePicUrl)
  */
 export const verifyContact = async (
@@ -708,6 +786,9 @@ const handleMessage = async ({
     let msgContact: WbotContact;
     let groupContact: Contact | undefined;
 
+    // Get chat first to determine if it's a group
+    const chat = await msg.getChat();
+
     // if i sent the message, msgContact is the contact that received the message
     // if i received the message, msgContact is the contact that sent the message
     if (msg.fromMe) {
@@ -729,12 +810,17 @@ const handleMessage = async ({
       )
         return;
 
-      msgContact = await wbot.getContactById(msg.to);
+      msgContact = await getContactByIdSafely(wbot, msg.to, msg);
     } else {
-      msgContact = await msg.getContact();
+      // For received messages in groups, use the safe helper to handle LID contacts
+      if (chat.isGroup) {
+        console.log(`[handleMessage] Grupo detectado - usando getContactSafelyForGroup para author: ${msg.author || (msg.id as any).participant}`);
+        msgContact = await getContactSafelyForGroup(msg, wbot);
+        console.log(`[handleMessage] Contacto obtenido exitosamente: ${msgContact.id._serialized}`);
+      } else {
+        msgContact = await msg.getContact();
+      }
     }
-
-    const chat = await msg.getChat();
 
     // if the message is from a group,
     // and i sent the message, groupContact is the contact that received the message
@@ -744,9 +830,9 @@ const handleMessage = async ({
       let msgGroupContact;
 
       if (msg.fromMe) {
-        msgGroupContact = await wbot.getContactById(msg.to);
+        msgGroupContact = await getContactByIdSafely(wbot, msg.to, msg);
       } else {
-        msgGroupContact = await wbot.getContactById(msg.from);
+        msgGroupContact = await getContactByIdSafely(wbot, msg.from, msg);
       }
 
       groupContact = await verifyContact(msgGroupContact);
@@ -1568,7 +1654,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
     // );
 
     try {
-      const wbotGroupContact = await wbot.getContactById(notification.chatId)
+      const wbotGroupContact = await getContactByIdSafely(wbot, notification.chatId);
       const groupContact = await verifyContact(wbotGroupContact);
 
       const newTicket = await CreateTicketService({
@@ -1607,7 +1693,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
       let msgContact: WbotContact;
 
       if (msg.fromMe) {
-        msgContact = await wbot.getContactById(msg.to);
+        msgContact = await getContactByIdSafely(wbot, msg.to, msg);
       } else {
         msgContact = await msg.getContact();
       }

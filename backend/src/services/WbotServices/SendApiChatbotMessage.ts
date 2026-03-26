@@ -7,7 +7,8 @@ import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketServi
 import {
   verifyContact,
   verifyMediaMessage,
-  verifyMessage
+  verifyMessage,
+  getContactByIdSafely
 } from "./wbotMessageListener";
 
 const formatChatbotMessage = (
@@ -95,7 +96,7 @@ const SendApiChatbotMessage = async ({
           msg = await wbot.sendMessage(`${toNumber}@c.us`, chatbotMessageValue);
         }
 
-        const msgContact = await wbot.getContactById(msg.to);
+        const msgContact = await getContactByIdSafely(wbot, msg.to, msg);
         const contact = await verifyContact(msgContact);
 
         const ticket = await FindOrCreateTicketService({
