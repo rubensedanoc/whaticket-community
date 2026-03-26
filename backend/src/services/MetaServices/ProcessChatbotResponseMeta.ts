@@ -315,6 +315,28 @@ const ProcessChatbotResponseMeta = async ({
         chatbotSelectedCategory: categoryText
       });
       console.log(`[ProcessChatbotResponseMeta] Categoría guardada: ${categoryText}`);
+    } else if (ticket.chatbotMessageIdentifier !== chatbotMessageReplied.identifier) {
+      // Si NO estamos en el mensaje raíz, es una subcategoría (nivel 2 o más)
+      // Verificar si el padre del mensaje actual es el mensaje raíz (nivel 2)
+      const parentMessage = await ChatbotMessage.findOne({
+        where: { id: chatbotMessageReplied.fatherChatbotOptionId }
+      });
+      
+      // Si el padre tiene como padre al root, entonces estamos en nivel 2 (subcategoría)
+      if (parentMessage && parentMessage.identifier === ticket.chatbotMessageIdentifier) {
+        let subcategoryText = chooseOption.title.trim();
+        if (subcategoryText.includes(':')) {
+          subcategoryText = subcategoryText.split(':')[0].trim();
+        }
+        if (subcategoryText.length > 30) {
+          subcategoryText = subcategoryText.substring(0, 30) + '...';
+        }
+        
+        await ticket.update({
+          chatbotSelectedSubcategory: subcategoryText
+        });
+        console.log(`[ProcessChatbotResponseMeta] Subcategoría guardada: ${subcategoryText}`);
+      }
     }
 
     // Cargar el siguiente mensaje del chatbot (replica wbotMessageListener.ts:956-969)

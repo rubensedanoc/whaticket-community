@@ -91,6 +91,9 @@ class Ticket extends Model<Ticket> {
   @Column
   chatbotSelectedCategory: string;
 
+  @Column
+  chatbotSelectedSubcategory: string;
+
   @ForeignKey(() => User)
   @Column
   userId: number;

@@ -1366,6 +1366,8 @@ export const reportToExcel = async (
     t.createdAt as tcreatedAt,
     que.name as queuename,
     t.status as tstatus,
+    t.chatbotSelectedCategory as tchatbotSelectedCategory,
+    t.chatbotSelectedSubcategory as tchatbotSelectedSubcategory,
     m.id as mid,
     m.timestamp as mtimestamp,
     m.createdAt as mcreatedAt,
@@ -1501,6 +1503,8 @@ export const reportToExcel = async (
       ctnumber: ticketsClosed[ticketId][0].ctnumber,
       tcreatedAt: ticketsClosed[ticketId][0].tcreatedAt,
       queuename: ticketsClosed[ticketId][0].queuename,
+      tchatbotSelectedCategory: ticketsClosed[ticketId][0].tchatbotSelectedCategory,
+      tchatbotSelectedSubcategory: ticketsClosed[ticketId][0].tchatbotSelectedSubcategory,
       ...times
     });
   }
@@ -1535,6 +1539,8 @@ export const reportToExcel = async (
       ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
       tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
       queuename: ticketsPendingOpen[ticketId][0].queuename,
+      tchatbotSelectedCategory: ticketsPendingOpen[ticketId][0].tchatbotSelectedCategory,
+      tchatbotSelectedSubcategory: ticketsPendingOpen[ticketId][0].tchatbotSelectedSubcategory,
       ...times
     });
   }
