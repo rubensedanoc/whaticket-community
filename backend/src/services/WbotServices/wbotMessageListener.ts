@@ -67,13 +67,63 @@ export const getContactByIdSafely = async (
   contactId: string,
   msg?: WbotMessage
 ): Promise<WbotContact> => {
+  // PASO 0: Detectar si es un grupo (@g.us) y usar getChatById en lugar de getContactById
+  const isGroup = contactId.includes('@g.us');
+  
+  if (isGroup) {
+    try {
+      console.log(`[getContactByIdSafely] Grupo detectado (${contactId}), usando getChatById`);
+      const chat = await wbot.getChatById(contactId);
+      
+      // Convertir Chat a formato WbotContact compatible
+      const groupContact: any = {
+        id: chat.id,
+        number: chat.id.user,
+        pushname: chat.name,
+        name: chat.name,
+        isGroup: true,
+        isUser: false,
+        getProfilePicUrl: async () => {
+          try {
+            return await wbot.getProfilePicUrl(contactId);
+          } catch (err) {
+            return null;
+          }
+        }
+      };
+      
+      console.log(`[getContactByIdSafely] ✅ Grupo obtenido exitosamente: ${chat.name}`);
+      return groupContact as WbotContact;
+    } catch (err) {
+      console.log(`[getContactByIdSafely] ⚠️ getChatById falló para grupo ${contactId}, usando fallback:`, err.message);
+      
+      // Fallback para grupos que no se pueden obtener
+      const number = contactId.split('@')[0];
+      const mockGroupContact: any = {
+        id: {
+          _serialized: contactId,
+          user: number,
+          server: 'g.us'
+        },
+        number: number,
+        pushname: `Grupo ${number}`,
+        name: `Grupo ${number}`,
+        isGroup: true,
+        isUser: false,
+        getProfilePicUrl: async () => null
+      };
+      
+      return mockGroupContact as WbotContact;
+    }
+  }
+  
+  // PASO 1: Para contactos normales (@c.us), intentar getContactById
   try {
-    // PASO 1: Intentar getContactById primero (funciona para contactos normales @c.us)
     const contact = await wbot.getContactById(contactId);
     return contact; // ✅ Retorna contacto real si es @c.us
   } catch (err) {
     // PASO 2: Solo llega aquí si getContactById falla (contactos LID @lid)
-    console.log(`[getContactByIdSafely] getContactById failed for ${contactId}, using fallback`);
+    console.log(`[getContactByIdSafely] getContactById failed for ${contactId}, using fallback (probablemente LID)`);
     
     // Extract number from contact ID
     const number = contactId.split('@')[0];
@@ -96,8 +146,8 @@ export const getContactByIdSafely = async (
       number: number,
       pushname: name,
       name: name,
-      isGroup: contactId.includes('@g.us'),
-      isUser: !contactId.includes('@g.us'),
+      isGroup: false,
+      isUser: true,
       getProfilePicUrl: async () => null
     };
     
