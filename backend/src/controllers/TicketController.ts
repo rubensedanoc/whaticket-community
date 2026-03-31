@@ -45,6 +45,7 @@ type IndexQuery = {
   clientelicenciaEtapaIds: string;
   ticketGroupType: TicketGroupType;
   ticketUsersIds: string;
+  accountManagerIds: string;
   viewSource: string;
   impersonatedUserId?: string; // NUEVO: ID del usuario a impersonar
   waitingTimeRanges: string; // ✅ Nuevo
@@ -77,6 +78,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     marketingCampaignIds: marketingCampaignIdsStringified,
     typeIds: typeIdsStringified,
     ticketUsersIds: ticketUsersIdsStringified,
+    accountManagerIds: accountManagerIdsStringified,
     showOnlyMyGroups: showOnlyMyGroupsStringified,
     categoryId: categoryIdStringified,
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
@@ -91,6 +93,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let marketingCampaignIds: number[] = [];
   let queueIds: number[] = [];
   let ticketUsersIds: number[] = [];
+  let accountManagerIds: number[] = [];
   let whatsappIds: number[] = [];
   let typeIds: string[] = [];
   let showOnlyMyGroups: boolean = false;
@@ -116,6 +119,11 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     ticketUsersIds = JSON.parse(ticketUsersIdsStringified);
     // Filtrar valores null para evitar SQL inválido
     ticketUsersIds = ticketUsersIds.filter(id => id !== null && id !== undefined);
+  }
+
+  if (accountManagerIdsStringified) {
+    accountManagerIds = JSON.parse(accountManagerIdsStringified);
+    accountManagerIds = accountManagerIds.filter(id => id !== null && id !== undefined);
   }
 
   if (marketingCampaignIdsStringified) {
@@ -173,6 +181,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       whatsappIds,
       queueIds,
       ticketUsersIds,
+      accountManagerIds,
       marketingCampaignIds,
       typeIds,
       showOnlyMyGroups,
@@ -248,6 +257,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     queueIds: queueIdsStringified,
     marketingCampaignIds: marketingCampaignIdsStringified,
     typeIds: typeIdsStringified,
+    accountManagerIds: accountManagerIdsStringified,
     showOnlyMyGroups: showOnlyMyGroupsStringified,
     categoryId: categoryIdStringified,
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
@@ -306,6 +316,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
 
   let marketingCampaignIds: number[] = [];
   let queueIds: number[] = [];
+  let accountManagerIds: number[] = [];
   let whatsappIds: number[] = [];
   let typeIds: string[] = [];
   let showOnlyMyGroups: boolean = false;
@@ -362,6 +373,10 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified).filter((id: number) => id !== null && id !== undefined);
   }
 
+  if (accountManagerIdsStringified) {
+    accountManagerIds = JSON.parse(accountManagerIdsStringified).filter((id: number) => id !== null && id !== undefined);
+  }
+
   // ✅ Parsear waitingTimeRanges
   if (waitingTimeRangesStringified) {
     waitingTimeRanges = JSON.parse(waitingTimeRangesStringified);
@@ -392,6 +407,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       userId,
       whatsappIds,
       queueIds,
+      accountManagerIds,
       marketingCampaignIds,
       typeIds,
       showOnlyMyGroups,

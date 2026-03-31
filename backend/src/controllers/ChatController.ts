@@ -9,6 +9,7 @@ export const getPendingChats = async (
     whatsappIds: whatsappIdsString,
     queueIds: queueIdsString,
     userIds: userIdsString,
+    accountManagerIds: accountManagerIdsString,
     status: statusString,
     waitingTimeRanges: waitingTimeRangesString,
     limit: limitString,
@@ -18,6 +19,7 @@ export const getPendingChats = async (
   let whatsappIds: number[] = [];
   let queueIds: number[] = [];
   let userIds: number[] = [];
+  let accountManagerIds: number[] = [];
   let status: string[] = ["open", "pending"];
   let waitingTimeRanges: string[] = [];
   let limit = 100;
@@ -44,6 +46,14 @@ export const getPendingChats = async (
       userIds = JSON.parse(userIdsString as string);
     } catch (e) {
       userIds = [parseInt(userIdsString as string, 10)];
+    }
+  }
+
+  if (accountManagerIdsString) {
+    try {
+      accountManagerIds = JSON.parse(accountManagerIdsString as string);
+    } catch (e) {
+      accountManagerIds = [parseInt(accountManagerIdsString as string, 10)];
     }
   }
 
@@ -75,6 +85,7 @@ export const getPendingChats = async (
     whatsappIds,
     queueIds,
     userIds,
+    accountManagerIds,
     status,
     waitingTimeRanges,
     limit,

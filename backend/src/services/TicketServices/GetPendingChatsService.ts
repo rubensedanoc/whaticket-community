@@ -9,6 +9,7 @@ interface Request {
   whatsappIds?: number[];
   queueIds?: number[];
   userIds?: number[];
+  accountManagerIds?: number[];
   status?: string[];
   waitingTimeRanges?: string[];
   limit?: number;
@@ -29,6 +30,8 @@ interface PendingChat {
   queueColor: string | null;
   userId: number | null;
   userName: string | null;
+  accountManagerId: number | null;
+  accountManagerName: string | null;
   whatsappId: number;
   whatsappName: string;
   isGroup: boolean;
@@ -61,6 +64,7 @@ const GetPendingChatsService = async ({
   whatsappIds = [],
   queueIds = [],
   userIds = [],
+  accountManagerIds = [],
   status = ["open", "pending"],
   waitingTimeRanges = [],
   limit = 100,
@@ -109,6 +113,21 @@ const GetPendingChatsService = async ({
 
   if (isGroup !== undefined) {
     whereCondition.isGroup = isGroup;
+  }
+
+  if (accountManagerIds.length > 0) {
+    const hasNull = accountManagerIds.includes(null as any);
+    if (hasNull) {
+      whereCondition[Op.or] = [
+        ...(whereCondition[Op.or] || []),
+        { accountManagerId: { [Op.in]: accountManagerIds.filter(id => id !== null) } },
+        { accountManagerId: null }
+      ];
+    } else {
+      whereCondition.accountManagerId = {
+        [Op.in]: accountManagerIds
+      };
+    }
   }
 
   if (waitingTimeRanges.length > 0) {
@@ -165,6 +184,12 @@ const GetPendingChatsService = async ({
         attributes: ["id", "name"]
       },
       {
+        model: User,
+        as: "accountManager",
+        attributes: ["id", "name"],
+        required: false
+      },
+      {
         model: Whatsapp,
         as: "whatsapp",
         attributes: ["id", "name"]
@@ -194,6 +219,8 @@ const GetPendingChatsService = async ({
       queueColor: ticket.queue?.color || null,
       userId: ticket.userId,
       userName: ticket.user?.name || null,
+      accountManagerId: ticket.accountManagerId,
+      accountManagerName: ticket.accountManager?.name || null,
       whatsappId: ticket.whatsappId,
       whatsappName: ticket.whatsapp?.name || "",
       isGroup: ticket.isGroup,

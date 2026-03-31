@@ -23,6 +23,7 @@ interface TicketData {
   beenWaitingSinceTimestamp?: number | null;
   lastMessage?: string;
   updateSiblingsCategories?: boolean;
+  accountManagerId?: number | null;
 }
 
 interface Request {
@@ -55,7 +56,8 @@ const UpdateTicketService = async ({
     wasSentToZapier,
     beenWaitingSinceTimestamp,
     lastMessage,
-    updateSiblingsCategories = false
+    updateSiblingsCategories = false,
+    accountManagerId
   } = ticketData;
 
   const ticket = await ShowTicketService(ticketId, true);
@@ -63,6 +65,11 @@ const UpdateTicketService = async ({
 
   if (status && status === 'open' && ticket.status === 'open') {
     throw new AppError("ERR_TICKET_ALREADY_OPEN");
+  }
+
+  // Validar que accountManagerId solo se asigne a grupos
+  if (accountManagerId !== undefined && !ticket.isGroup) {
+    throw new AppError("ERR_ACCOUNT_MANAGER_ONLY_FOR_GROUPS");
   }
 
   const oldStatus = ticket.status;
@@ -101,7 +108,8 @@ const UpdateTicketService = async ({
     marketingCampaignId,
     ...(wasSentToZapier && { wasSentToZapier }),
     beenWaitingSinceTimestamp,
-    lastMessage
+    lastMessage,
+    ...(accountManagerId !== undefined && { accountManagerId })
   });
 
   if (whatsappId) {

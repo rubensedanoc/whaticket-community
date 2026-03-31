@@ -37,6 +37,12 @@ const ShowTicketService = async (
     },
     {
       model: User,
+      as: "accountManager",
+      attributes: ["id", "name"],
+      required: false
+    },
+    {
+      model: User,
       as: "helpUsers",
       required: false
     },

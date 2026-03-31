@@ -28,6 +28,7 @@ interface Request {
   userId: string;
   whatsappIds: Array<number>;
   queueIds: Array<number>;
+  accountManagerIds?: Array<number>;
   marketingCampaignIds: Array<number>;
   typeIds: Array<string>; // Incluido para compatibilidad
   showOnlyMyGroups: boolean; // Incluido por compatibilidad
@@ -69,6 +70,7 @@ const buildSpecialWhereCondition = ({
   status,
   whatsappIds,
   queueIds,
+  accountManagerIds,
   marketingCampaignIds,
   typeIds,
   showOnlyMyGroups,
@@ -353,6 +355,17 @@ const buildSpecialWhereCondition = ({
     });
   }
 
+  // Filtrado por Account Manager
+  if (accountManagerIds?.length) {
+    (finalCondition[Op.and] as any[]).push({
+      accountManagerId: {
+        [Op.in]: accountManagerIds.includes(null)
+          ? [...accountManagerIds.filter(id => id !== null), null]
+          : accountManagerIds
+      }
+    });
+  }
+
   // Filtrado por Whatsapp
   // Para "my-department": NO filtrar por conexión (ver tickets transferidos de otras conexiones)
   // Para "no-response" y "other-departments": SÍ filtrar por conexión
@@ -593,6 +606,12 @@ const buildSpecialIncludeCondition = ({
       model: User,
       as: "user",
       attributes: ["id", "name"]
+    },
+    {
+      model: User,
+      as: "accountManager",
+      attributes: ["id", "name"],
+      required: false
     },
     {
       model: User,
