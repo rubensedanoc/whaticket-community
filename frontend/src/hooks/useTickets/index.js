@@ -44,6 +44,7 @@ const useTickets = ({
       status,
       queueIds,
       ticketUsersIds,
+      accountManagerIds,
       categoryId,
       showOnlyWaitingTickets,
       advancedList,

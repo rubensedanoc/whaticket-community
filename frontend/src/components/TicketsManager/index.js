@@ -710,7 +710,9 @@ const TicketsManager = () => {
             <UsersSelect
               selectedIds={selectedAccountManagerIds}
               onChange={(values) => {
+                console.log("[ACCOUNT MANAGER FILTER] Valores seleccionados:", values);
                 const filteredValues = values.filter(id => id !== null && id !== undefined);
+                console.log("[ACCOUNT MANAGER FILTER] Valores filtrados:", filteredValues);
                 localStorage.setItem(
                   "AccountManagerIds",
                   JSON.stringify(filteredValues)
