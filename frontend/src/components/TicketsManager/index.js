@@ -740,23 +740,6 @@ const TicketsManager = () => {
             />
           )}
           {/* - USER SELECT */}
-          {/* ACCOUNT MANAGER SELECT */}
-          {user.profile === "admin" && tab !== "grouped" && (
-            <UsersSelect
-              selectedIds={selectedAccountManagerIds}
-              onChange={(values) => {
-                const filteredValues = values.filter(id => id !== null && id !== undefined);
-                localStorage.setItem(
-                  "AccountManagerIds",
-                  JSON.stringify(filteredValues)
-                );
-                setSelectedAccountManagerIds(filteredValues);
-              }}
-              chips={false}
-              badgeColor={"primary"}
-            />
-          )}
-          {/* - ACCOUNT MANAGER SELECT */}
           {/* WAITING TIME SELECT */}
           <WaitingTimeSelect
             style={{ marginLeft: 6 }}
