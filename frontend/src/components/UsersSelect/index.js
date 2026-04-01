@@ -68,7 +68,7 @@ const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeCol
       max={99999}
       invisible={selectedIds.length === 0 || chips}
     >
-      <div style={chips ? { marginTop: 6 } : { width: 120 }}>
+      <div style={chips ? { marginTop: 6 } : { width: 180 }}>
         <FormControl fullWidth margin="dense" variant="outlined">
           {chips && <InputLabel>{label}</InputLabel>}
           <Select
