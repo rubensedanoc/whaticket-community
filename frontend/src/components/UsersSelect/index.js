@@ -20,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeColor }) => {
+const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeColor, label = "Usuarios" }) => {
   const classes = useStyles();
   const [users, setUsers] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -70,10 +70,10 @@ const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeCol
     >
       <div style={chips ? { marginTop: 6 } : { width: 120 }}>
         <FormControl fullWidth margin="dense" variant="outlined">
-          {chips && <InputLabel>Usuarios</InputLabel>}
+          {chips && <InputLabel>{label}</InputLabel>}
           <Select
             multiple
-            label={chips ? "Usuarios" : undefined}
+            label={chips ? label : undefined}
             displayEmpty={!chips}
             value={selectedIds}
             onChange={handleChange}
@@ -113,7 +113,7 @@ const UsersSelect = ({ selectedIds, onChange, onLoadData, chips = true, badgeCol
                     })}
                 </div>
               ) : (
-                "Usuarios"
+                label
               )
             }
           >

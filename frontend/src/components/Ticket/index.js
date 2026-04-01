@@ -121,6 +121,7 @@ const Ticket = () => {
   const [marketingCampaigns, setMarketingCampaigns] = useState([]);
   const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
   const [clientelicenciaId, setClientelicenciaId] = useState(null);
+  const [users, setUsers] = useState([]);
 
   async function searchForMicroServiceData(contactNumber) {
     try {
@@ -147,6 +148,9 @@ const Ticket = () => {
     (async () => {
       const { data: marketingCampaigns } = await api.get("/marketingCampaigns");
       setMarketingCampaigns(marketingCampaigns);
+      
+      const { data: usersData } = await api.get("/users");
+      setUsers(usersData.users);
     })();
   }, []);
 
@@ -383,6 +387,48 @@ const Ticket = () => {
                 ))}
               </Select>
             </FormControl>
+
+            {/* Account Manager Select - Solo para grupos */}
+            {ticket.isGroup && (
+              <FormControl margin="dense" variant="outlined" style={{ minWidth: 200 }}>
+                <InputLabel>Ejecutivo de Cuenta</InputLabel>
+                <Select
+                  labelWidth={140}
+                  value={ticket.accountManagerId || ""}
+                  onChange={async (e) => {
+                    try {
+                      await api.put(`/tickets/${ticket.id}`, {
+                        accountManagerId: e.target.value || null,
+                      });
+                      toast.success("Ejecutivo de cuenta actualizado correctamente.");
+                    } catch (err) {
+                      console.log(err);
+                      toastError(err);
+                    }
+                  }}
+                  MenuProps={{
+                    anchorOrigin: {
+                      vertical: "bottom",
+                      horizontal: "left",
+                    },
+                    transformOrigin: {
+                      vertical: "top",
+                      horizontal: "left",
+                    },
+                    getContentAnchorEl: null,
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>Sin asignar</em>
+                  </MenuItem>
+                  {users.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
 
             {/* <Button
               size="small"
