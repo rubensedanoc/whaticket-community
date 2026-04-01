@@ -95,6 +95,13 @@ class Ticket extends Model<Ticket> {
   @BelongsTo(() => User)
   user: User;
 
+  @ForeignKey(() => User)
+  @Column
+  accountManagerId: number;
+
+  @BelongsTo(() => User, "accountManagerId")
+  accountManager: User;
+
   @ForeignKey(() => MarketingCampaign)
   @Column
   marketingCampaignId: number;
