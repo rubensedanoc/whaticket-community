@@ -255,6 +255,7 @@ const TicketsList = (props) => {
     selectedMarketingCampaignIds,
     selectedTypeIds,
     selectedTicketUsersIds,
+    selectedAccountManagerIds,
     selectedWaitingTimeRanges,
     style,
     showOnlyMyGroups,
@@ -305,6 +306,7 @@ const TicketsList = (props) => {
     JSON.stringify(selectedMarketingCampaignIds),
     JSON.stringify(selectedTypeIds),
     JSON.stringify(selectedTicketUsersIds),
+    JSON.stringify(selectedAccountManagerIds),
     // ✅ AHORA SÍ incluir selectedWaitingTimeRanges porque afecta la query al backend
     JSON.stringify(selectedWaitingTimeRanges),
     showOnlyWaitingTickets,
@@ -323,6 +325,7 @@ const TicketsList = (props) => {
     marketingCampaignIds: JSON.stringify(selectedMarketingCampaignIds),
     typeIds: JSON.stringify(selectedTypeIds),
     ticketUsersIds: JSON.stringify(selectedTicketUsersIds),
+    accountManagerIds: JSON.stringify(selectedAccountManagerIds),
     showOnlyMyGroups,
     showOnlyWaitingTickets,
     ...(category && { categoryId: category.id }),

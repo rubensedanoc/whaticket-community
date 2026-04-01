@@ -20,9 +20,10 @@ const useTickets = ({
   clientelicenciaEtapaIds,
   advancedList = false,
   ticketUsersIds,
+  accountManagerIds,
   viewSource = null,
   impersonatedUserId,
-  waitingTimeRanges // ✅ Nuevo parámetro
+  waitingTimeRanges
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -81,6 +82,7 @@ const useTickets = ({
                 whatsappIds,
                 queueIds,
                 ticketUsersIds,
+                accountManagerIds,
                 marketingCampaignIds,
                 typeIds,
                 showOnlyMyGroups,
@@ -90,7 +92,8 @@ const useTickets = ({
                 clientelicenciaEtapaIds,
                 ticketGroupType: advancedList,
                 viewSource,
-                impersonatedUserId
+                impersonatedUserId,
+                waitingTimeRanges: JSON.stringify(waitingTimeRanges)
               },
               signal // ✅ Pasar signal para cancelación
             });
@@ -111,6 +114,7 @@ const useTickets = ({
                 whatsappIds,
                 queueIds,
                 ticketUsersIds,
+                accountManagerIds,
                 marketingCampaignIds,
                 typeIds,
                 showOnlyMyGroups,
@@ -118,10 +122,8 @@ const useTickets = ({
                 showOnlyWaitingTickets,
                 filterByUserQueue,
                 clientelicenciaEtapaIds,
-                filterByUserQueue,
-                clientelicenciaEtapaIds,
                 viewSource,
-                waitingTimeRanges: JSON.stringify(waitingTimeRanges) // ✅ Nuevo param para backend
+                waitingTimeRanges: JSON.stringify(waitingTimeRanges)
               },
               signal // ✅ Pasar signal para cancelación
             });
