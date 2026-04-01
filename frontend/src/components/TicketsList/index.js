@@ -273,6 +273,8 @@ const TicketsList = (props) => {
     impersonatedUserId
   } = props;
 
+  console.log("[TicketsList] RENDER - selectedAccountManagerIds:", selectedAccountManagerIds);
+
   const classes = useStyles();
   const { user } = useContext(AuthContext);
   const { reconnect } = useContext(ReloadDataBecauseSocketContext);
@@ -314,6 +316,8 @@ const TicketsList = (props) => {
     impersonatedUserId
   ]);
 
+  console.log("[TicketsList] Llamando useTickets con accountManagerIds:", JSON.stringify(selectedAccountManagerIds));
+  
   const { tickets, hasMore, loading, count, triggerReload } = useTickets({
     pageNumber,
     searchParam,

@@ -203,6 +203,11 @@ const TicketsManager = () => {
   
   const [notificationsCount, setNotificationsCount] = useState(null);
 
+  // DEBUG: Monitorear cambios en selectedAccountManagerIds
+  useEffect(() => {
+    console.log("[TicketsManager] selectedAccountManagerIds cambió a:", selectedAccountManagerIds);
+  }, [selectedAccountManagerIds]);
+
   const [selectedClientelicenciaEtapaIds, setSelectedClientelicenciaEtapaIds] = useState([]);
   const [canImpersonate, setCanImpersonate] = useState(false);
   
