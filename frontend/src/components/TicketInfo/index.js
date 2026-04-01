@@ -18,6 +18,13 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
             {!ticket.isGroup && ticket.user && `Asignado: ${ticket.user.name}`}
           </div>
           <div>
+            {ticket.isGroup && ticket.accountManager && (
+              <div>
+                Ejecutivo de Cuenta: {ticket.accountManager.name}
+              </div>
+            )}
+          </div>
+          <div>
             {ticket.isGroup && ticket.participantUsers?.length > 0 && (
               <div>
                 Participando:{" "}

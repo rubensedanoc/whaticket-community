@@ -26,6 +26,7 @@ interface Request {
   whatsappIds: Array<number>;
   queueIds: Array<number>;
   ticketUsersIds: Array<number>;
+  accountManagerIds?: Array<number>;
   marketingCampaignIds: Array<number>;
   typeIds: Array<string>;
   showOnlyMyGroups: boolean;
@@ -53,6 +54,7 @@ const buildWhereCondition = async ({
   typeIds,
   queueIds,
   ticketUsersIds,
+  accountManagerIds,
   marketingCampaignIds,
   whatsappIds,
   categoryId,
@@ -439,6 +441,27 @@ const buildWhereCondition = async ({
         ]
       };
     }
+    // ✅ Filtro de Account Manager
+    if (accountManagerIds?.length) {
+      const hasNull = accountManagerIds.includes(null as any);
+      if (hasNull) {
+        baseCondition = {
+          ...baseCondition,
+          [Op.or]: [
+            ...(baseCondition[Op.or] || []),
+            { accountManagerId: { [Op.in]: accountManagerIds.filter(id => id !== null) } },
+            { accountManagerId: null }
+          ]
+        };
+      } else {
+        baseCondition = {
+          ...baseCondition,
+          accountManagerId: {
+            [Op.in]: accountManagerIds
+          }
+        };
+      }
+    }
     if (marketingCampaignIds?.length) {
       baseCondition = {
         ...baseCondition,
@@ -554,6 +577,12 @@ const buildIncludeCondition = ({
       model: User,
       as: "user",
       attributes: ["id", "name"]
+    },
+    {
+      model: User,
+      as: "accountManager",
+      attributes: ["id", "name"],
+      required: false
     },
     {
       model: User,

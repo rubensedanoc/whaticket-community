@@ -68,6 +68,9 @@ class User extends Model<User> {
   @HasMany(() => Ticket)
   tickets: Ticket[];
 
+  @HasMany(() => Ticket, "accountManagerId")
+  managedGroupTickets: Ticket[];
+
   @BelongsToMany(() => Queue, () => UserQueue)
   queues: Queue[];
 

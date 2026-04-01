@@ -198,6 +198,7 @@ const TicketsManager = () => {
   const [currentUserId, _] = useState([user.id]);
   const [users, setUsers] = useState([]);
   const [selectedTicketUsersIds, setSelectedTicketUsersIds] = useState([]);
+  const [selectedAccountManagerIds, setSelectedAccountManagerIds] = useState([]);
   const [selectedWaitingTimeRanges, setSelectedWaitingTimeRanges] = useState([]);
   
   const [notificationsCount, setNotificationsCount] = useState(null);
@@ -307,6 +308,11 @@ const TicketsManager = () => {
     localStorage.getItem("TicketUsersIds") &&
       setSelectedTicketUsersIds(
         JSON.parse(localStorage.getItem("TicketUsersIds")).filter(id => id !== null && id !== undefined)
+      );
+
+    localStorage.getItem("AccountManagerIds") &&
+      setSelectedAccountManagerIds(
+        JSON.parse(localStorage.getItem("AccountManagerIds")).filter(id => id !== null && id !== undefined)
       );
 
     localStorage.getItem("WaitingTimeRanges") &&
@@ -716,6 +722,23 @@ const TicketsManager = () => {
             />
           )}
           {/* - USER SELECT */}
+          {/* ACCOUNT MANAGER SELECT */}
+          {user.profile === "admin" && tab !== "grouped" && (
+            <UsersSelect
+              selectedIds={selectedAccountManagerIds}
+              onChange={(values) => {
+                const filteredValues = values.filter(id => id !== null && id !== undefined);
+                localStorage.setItem(
+                  "AccountManagerIds",
+                  JSON.stringify(filteredValues)
+                );
+                setSelectedAccountManagerIds(filteredValues);
+              }}
+              chips={false}
+              badgeColor={"primary"}
+            />
+          )}
+          {/* - ACCOUNT MANAGER SELECT */}
           {/* WAITING TIME SELECT */}
           <WaitingTimeSelect
             style={{ marginLeft: 6 }}
@@ -1296,6 +1319,7 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               selectedTicketUsersIds={selectedTicketUsersIds}
+              selectedAccountManagerIds={selectedAccountManagerIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               ticketsType={
@@ -1320,6 +1344,7 @@ const TicketsManager = () => {
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
               // selectedTicketUsersIds={selectedTic  ketUsersIds}
+              selectedAccountManagerIds={selectedAccountManagerIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1522,6 +1547,7 @@ const TicketsManager = () => {
           selectedWhatsappIds={user.profile === "admin" ? selectedWhatsappIds : []}
           selectedQueueIds={selectedQueueIds}
           selectedTicketUsersIds={selectedTicketUsersIds}
+          selectedAccountManagerIds={selectedAccountManagerIds}
           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
           selectedMarketingCampaignIds={selectedMarketingCampaignIds}
           columnsWidth={columnsWidth}
