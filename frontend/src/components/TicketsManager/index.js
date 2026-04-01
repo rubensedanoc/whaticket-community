@@ -1405,6 +1405,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedAccountManagerIds={selectedAccountManagerIds}
                           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1439,6 +1440,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedAccountManagerIds={selectedAccountManagerIds}
                           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1475,6 +1477,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedAccountManagerIds={selectedAccountManagerIds}
                           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1509,6 +1512,7 @@ const TicketsManager = () => {
                           selectedWhatsappIds={selectedWhatsappIds}
                           selectedQueueIds={selectedQueueIds}
                           selectedTicketUsersIds={selectedTicketUsersIds}
+                          selectedAccountManagerIds={selectedAccountManagerIds}
                           selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                           selectedMarketingCampaignIds={
                             selectedMarketingCampaignIds
@@ -1707,6 +1711,7 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              selectedAccountManagerIds={selectedAccountManagerIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1730,6 +1735,7 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              selectedAccountManagerIds={selectedAccountManagerIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -1753,6 +1759,7 @@ const TicketsManager = () => {
               }
               selectedWhatsappIds={selectedWhatsappIds}
               selectedQueueIds={selectedQueueIds}
+              selectedAccountManagerIds={selectedAccountManagerIds}
               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
               selectedMarketingCampaignIds={selectedMarketingCampaignIds}
               showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -2287,6 +2294,7 @@ const TicketsManager = () => {
                       selectedWhatsappIds={whatsappIdsForGeneral}
                       selectedQueueIds={cleanQueueIds}
                       selectedTicketUsersIds={selectedTicketUsersIds}
+                      selectedAccountManagerIds={selectedAccountManagerIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                       showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -2310,6 +2318,7 @@ const TicketsManager = () => {
                       selectedWhatsappIds={whatsappIdsForGeneral}
                       selectedQueueIds={cleanQueueIds}
                       selectedTicketUsersIds={selectedTicketUsersIds}
+                      selectedAccountManagerIds={selectedAccountManagerIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                       showOnlyWaitingTickets={showOnlyWaitingTickets}
@@ -2327,6 +2336,7 @@ const TicketsManager = () => {
                       selectedWhatsappIds={whatsappIdsForGeneral}
                       selectedQueueIds={cleanQueueIds}
                       selectedTicketUsersIds={selectedTicketUsersIds}
+                      selectedAccountManagerIds={selectedAccountManagerIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                       ticketsType={"closed"}
