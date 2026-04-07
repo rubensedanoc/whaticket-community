@@ -109,6 +109,10 @@ class Whatsapp extends Model<Whatsapp> {
   @Column
   lastWebhookReceivedAt: Date;
 
+  @AllowNull
+  @Column
+  chatbotIdentifier: string;
+
   @CreatedAt
   createdAt: Date;
 

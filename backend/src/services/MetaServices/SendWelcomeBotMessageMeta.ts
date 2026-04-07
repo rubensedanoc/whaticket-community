@@ -16,7 +16,7 @@ interface InteractiveListRow {
 
 const formatInteractiveListOptionsAsText = (rows: InteractiveListRow[]): string => {
   if (!rows || rows.length === 0) return "";
-  
+
   const optionsText = rows.map((row) => {
     const prefix = row.label || row.id;
     if (row.description) {
@@ -24,7 +24,7 @@ const formatInteractiveListOptionsAsText = (rows: InteractiveListRow[]): string 
     }
     return `${prefix}. ${row.title}`;
   }).join("\n");
-  
+
   return `\n\n${optionsText}`;
 };
 
@@ -44,7 +44,7 @@ const SendWelcomeBotMessageMeta = async ({
 
     const welcomeBot = await ChatbotMessage.findOne({
       where: {
-        identifier: "soporte",
+        identifier: whatsapp.chatbotIdentifier || "soporte",
         isActive: true,
         wasDeleted: false
       },
@@ -77,14 +77,14 @@ const SendWelcomeBotMessageMeta = async ({
 
     if (welcomeBot.hasSubOptions && welcomeBot.chatbotOptions && welcomeBot.chatbotOptions.length > 0) {
       console.log(`[SendWelcomeBotMessageMeta] Enviando lista interactiva con ${welcomeBot.chatbotOptions.length} opciones`);
-      
+
       const rows = welcomeBot.chatbotOptions.map(option => {
         const fullText = option.title.trim();
-        
+
         // Detectar si hay dos puntos para separar título y descripción
         if (fullText.includes(':')) {
           const [beforeColon, afterColon] = fullText.split(':').map(s => s.trim());
-          
+
           return {
             id: option.id.toString(),
             title: beforeColon.substring(0, 24),
@@ -92,7 +92,7 @@ const SendWelcomeBotMessageMeta = async ({
             label: option.label
           };
         }
-        
+
         // Si no hay dos puntos y el texto es corto, solo título
         if (fullText.length <= 24) {
           return {
@@ -101,7 +101,7 @@ const SendWelcomeBotMessageMeta = async ({
             label: option.label
           };
         }
-        
+
         // Si es largo sin dos puntos, cortar en 24 y poner el resto en descripción
         return {
           id: option.id.toString(),
@@ -130,9 +130,9 @@ const SendWelcomeBotMessageMeta = async ({
       message = `\u200e${welcomeBot.value}${optionsText}`;
     } else if (welcomeBot.mediaType === "image" && welcomeBot.mediaUrl) {
       console.log(`[SendWelcomeBotMessageMeta] Enviando imagen con caption`);
-      
+
       message = `\u200e${welcomeBot.value}`;
-      
+
       const uploadResult = await client.uploadMedia(
         welcomeBot.mediaUrl,
         "image/jpeg"
@@ -147,9 +147,9 @@ const SendWelcomeBotMessageMeta = async ({
       messageId = response.messages[0].id;
     } else {
       console.log(`[SendWelcomeBotMessageMeta] Enviando mensaje de texto`);
-      
+
       message = `\u200e${welcomeBot.value}`;
-      
+
       const response = await client.sendText({
         to: contact.number,
         body: message
