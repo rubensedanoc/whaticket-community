@@ -362,6 +362,9 @@ const Reports = () => {
             QUINTAL: row.quintalHours,
             "PRIMERA RESPUESTA": row.firstResponseMessage,
             ...extraData,
+            "CATEGORÍA OPCIÓN BOT": row.tchatbotSelectedCategory || "",
+            "SUBCATEGORÍA OPCIÓN BOT": row.tchatbotSelectedSubcategory || "",
+            "COMENTARIO DE CIERRE": row.closeComment || "",
           };
         });
 

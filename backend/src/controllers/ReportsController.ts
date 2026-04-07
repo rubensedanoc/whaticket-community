@@ -1366,6 +1366,8 @@ export const reportToExcel = async (
     t.createdAt as tcreatedAt,
     que.name as queuename,
     t.status as tstatus,
+    t.chatbotSelectedCategory as tchatbotSelectedCategory,
+    t.chatbotSelectedSubcategory as tchatbotSelectedSubcategory,
     m.id as mid,
     m.timestamp as mtimestamp,
     m.createdAt as mcreatedAt,
@@ -1501,6 +1503,8 @@ export const reportToExcel = async (
       ctnumber: ticketsClosed[ticketId][0].ctnumber,
       tcreatedAt: ticketsClosed[ticketId][0].tcreatedAt,
       queuename: ticketsClosed[ticketId][0].queuename,
+      tchatbotSelectedCategory: ticketsClosed[ticketId][0].tchatbotSelectedCategory,
+      tchatbotSelectedSubcategory: ticketsClosed[ticketId][0].tchatbotSelectedSubcategory,
       ...times
     });
   }
@@ -1535,6 +1539,8 @@ export const reportToExcel = async (
       ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
       tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
       queuename: ticketsPendingOpen[ticketId][0].queuename,
+      tchatbotSelectedCategory: ticketsPendingOpen[ticketId][0].tchatbotSelectedCategory,
+      tchatbotSelectedSubcategory: ticketsPendingOpen[ticketId][0].tchatbotSelectedSubcategory,
       ...times
     });
   }
@@ -1609,6 +1615,49 @@ export const reportToExcel = async (
       } catch (error) {
         console.log("--- Error in searchIfNumbersAreExclusive", error);
       }
+    }
+  }
+
+  // Extraer comentarios de cierre de los mensajes privados
+  if (ticketListFinal.length > 0) {
+    const ticketIds = ticketListFinal.map(t => t.tid).join(",");
+    
+    const closeCommentMessages: any[] = await Message.sequelize.query(
+      `SELECT 
+        m.ticketId,
+        m.body,
+        m.createdAt
+      FROM Messages m
+      WHERE 
+        m.ticketId IN (${ticketIds})
+        AND m.isPrivate = 1
+        AND m.body LIKE '%*resolvió* la conversación con el *comentario*:%'
+      ORDER BY m.createdAt DESC`,
+      {
+        type: QueryTypes.SELECT
+      }
+    );
+
+    // Función auxiliar para extraer el comentario del mensaje
+    const extractCloseComment = (messageBody: string): string | null => {
+      const match = messageBody.match(/\*resolvió\* la conversación con el \*comentario\*:\s*(.+)/);
+      return match ? match[1].trim() : null;
+    };
+
+    // Agrupar por ticketId y tomar solo el más reciente
+    const closeCommentsByTicket = closeCommentMessages.reduce((acc: any, msg: any) => {
+      if (!acc[msg.ticketId]) {
+        const comment = extractCloseComment(msg.body);
+        if (comment) {
+          acc[msg.ticketId] = comment;
+        }
+      }
+      return acc;
+    }, {});
+
+    // Agregar los comentarios a ticketListFinal
+    for (const ticket of ticketListFinal) {
+      ticket.closeComment = closeCommentsByTicket[ticket.tid] || null;
     }
   }
 
