@@ -339,7 +339,7 @@ const Reports = () => {
             });
           }
 
-          return {
+          const baseData = {
             "N. DE TICKET": row.tid,
             CREACIÓN_FECHA: format(new Date(row.tcreatedAt), "dd-MM-yyyy"),
             CREACIÓN_HORA: format(new Date(row.tcreatedAt), "HH:mm"),
@@ -362,10 +362,14 @@ const Reports = () => {
             QUINTAL: row.quintalHours,
             "PRIMERA RESPUESTA": row.firstResponseMessage,
             ...extraData,
-            "CATEGORÍA OPCIÓN BOT": row.tchatbotSelectedCategory || "",
-            "SUBCATEGORÍA OPCIÓN BOT": row.tchatbotSelectedSubcategory || "",
-            "COMENTARIO DE CIERRE": row.closeComment || "",
           };
+
+          // Agregar campos del chatbot y comentario de cierre después de extraData
+          baseData["CATEGORÍA OPCIÓN BOT"] = row.tchatbotSelectedCategory || "";
+          baseData["SUBCATEGORÍA OPCIÓN BOT"] = row.tchatbotSelectedSubcategory || "";
+          baseData["COMENTARIO DE CIERRE"] = row.closeComment || "";
+
+          return baseData;
         });
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
