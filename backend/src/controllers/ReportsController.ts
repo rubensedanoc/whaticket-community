@@ -1618,6 +1618,49 @@ export const reportToExcel = async (
     }
   }
 
+  // Extraer comentarios de cierre de los mensajes privados
+  if (ticketListFinal.length > 0) {
+    const ticketIds = ticketListFinal.map(t => t.tid).join(",");
+    
+    const closeCommentMessages: any[] = await Message.sequelize.query(
+      `SELECT 
+        m.ticketId,
+        m.body,
+        m.createdAt
+      FROM Messages m
+      WHERE 
+        m.ticketId IN (${ticketIds})
+        AND m.isPrivate = 1
+        AND m.body LIKE '%*resolvió* la conversación con el *comentario*:%'
+      ORDER BY m.createdAt DESC`,
+      {
+        type: QueryTypes.SELECT
+      }
+    );
+
+    // Función auxiliar para extraer el comentario del mensaje
+    const extractCloseComment = (messageBody: string): string | null => {
+      const match = messageBody.match(/\*resolvió\* la conversación con el \*comentario\*:\s*(.+)/);
+      return match ? match[1].trim() : null;
+    };
+
+    // Agrupar por ticketId y tomar solo el más reciente
+    const closeCommentsByTicket = closeCommentMessages.reduce((acc: any, msg: any) => {
+      if (!acc[msg.ticketId]) {
+        const comment = extractCloseComment(msg.body);
+        if (comment) {
+          acc[msg.ticketId] = comment;
+        }
+      }
+      return acc;
+    }, {});
+
+    // Agregar los comentarios a ticketListFinal
+    for (const ticket of ticketListFinal) {
+      ticket.closeComment = closeCommentsByTicket[ticket.tid] || null;
+    }
+  }
+
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
     // ticketListFind,
