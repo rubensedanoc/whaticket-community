@@ -25,11 +25,13 @@ export interface ContactData {
 interface Request {
   contactData: ContactData;
   contactId: string;
+  skipTrazaSync?: boolean;
 }
 
 const UpdateContactService = async ({
   contactData,
-  contactId
+  contactId,
+  skipTrazaSync = false
 }: Request): Promise<Contact> => {
   const { email, name, number, extraInfo, domain, isCompanyMember, countryId, isExclusive, traza_clientelicencia_id, traza_clientelicencia_currentetapaid } =
     contactData;
@@ -132,7 +134,7 @@ const UpdateContactService = async ({
     ]
   });
 
-  if (traza_clientelicencia_id) {
+  if (traza_clientelicencia_id && !skipTrazaSync) {
     try {
       SearchContactInformationFromTrazaService({
         contactId: contact.id

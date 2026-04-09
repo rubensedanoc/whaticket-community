@@ -65,7 +65,7 @@ const SearchContactInformationFromTrazaService = async ({
       traza_clientelicencia_currentetapaid: next_traza_clientelicencia_currentetapaid,
     }
 
-    UpdateContactService({ contactId: contactId + "", contactData });
+    UpdateContactService({ contactId: contactId + "", contactData, skipTrazaSync: true });
 
     const ticketsToUpdate = await Ticket.findAll({
       where: {
