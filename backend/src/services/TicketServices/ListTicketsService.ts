@@ -401,8 +401,63 @@ const buildWhereCondition = async ({
         ]
       };
     }
-    // ✅ Filtro de usuarios: Solo aplicar en tickets "en proceso" (open), NO en "sin respuesta" (pending)
-    if (ticketUsersIds?.length && status === "open") {
+    // ✅ Filtro combinado: Usuarios + Ejecutivo de Cuenta
+    // Cuando AMBOS filtros están activos → OR (mostrar tickets del usuario O donde es ejecutivo)
+    // Cuando solo uno está activo → se aplica individualmente
+    const hasUserFilter = ticketUsersIds?.length && status === "open";
+    const hasAccountManagerFilter = accountManagerIds?.length;
+
+    if (hasUserFilter && hasAccountManagerFilter) {
+      // ✅ MODO OR: Mostrar tickets donde userId coincida O accountManagerId coincida
+      const userConditions: any[] = [
+        { userId: { [Op.in]: ticketUsersIds } },
+        {
+          id: {
+            [Op.in]: Sequelize.literal(
+              `(SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` IN (${ticketUsersIds.join(",")}))`
+            )
+          }
+        },
+        Sequelize.literal(
+          `EXISTS (
+            SELECT 1
+            FROM \`TicketParticipantUsers\`
+            WHERE \`TicketParticipantUsers\`.\`ticketId\`  = \`Ticket\`.\`id\`
+            AND \`TicketParticipantUsers\`.\`userId\` IN (${ticketUsersIds.join(",")})
+          )`
+        ),
+        {
+          [Op.and]: [
+            { isGroup: true },
+            { whatsappId: { [Op.in]: userWhatsappsId } }
+          ]
+        }
+      ];
+
+      const accountManagerConditions: any[] = [];
+      const hasNull = accountManagerIds.includes(null as any);
+      const nonNullIds = accountManagerIds.filter((id: any) => id !== null);
+      if (nonNullIds.length) {
+        accountManagerConditions.push({ accountManagerId: { [Op.in]: nonNullIds } });
+      }
+      if (hasNull) {
+        accountManagerConditions.push({ accountManagerId: null });
+      }
+
+      baseCondition = {
+        ...baseCondition,
+        [Op.and]: [
+          ...(baseCondition[Op.and] || []),
+          {
+            [Op.or]: [
+              ...userConditions,
+              ...accountManagerConditions
+            ]
+          }
+        ]
+      };
+    } else if (hasUserFilter) {
+      // Solo filtro de usuarios activo
       baseCondition = {
         ...baseCondition,
         [Op.and]: [
@@ -429,7 +484,6 @@ const buildWhereCondition = async ({
                   AND \`TicketParticipantUsers\`.\`userId\` IN (${ticketUsersIds.join(",")})
                 )`
               ),
-              // ✅ FIX: Permitir ver tickets GRUPALES de mis conexiones (bypaseando filtro de usuario)
               {
                 [Op.and]: [
                   { isGroup: true },
@@ -440,11 +494,10 @@ const buildWhereCondition = async ({
           }
         ]
       };
-    }
-    // ✅ Filtro de Account Manager
-    if (accountManagerIds?.length) {
+    } else if (hasAccountManagerFilter) {
+      // Solo filtro de ejecutivo activo
       const hasNull = accountManagerIds.includes(null as any);
-      const nonNullIds = accountManagerIds.filter(id => id !== null);
+      const nonNullIds = accountManagerIds.filter((id: any) => id !== null);
       if (hasNull) {
         baseCondition = {
           ...baseCondition,
