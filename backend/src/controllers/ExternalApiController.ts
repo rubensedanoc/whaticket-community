@@ -22,6 +22,7 @@ import SendExternalWhatsAppImageMessage from "../services/WbotServices/SendExter
 import SendExternalWhatsAppMessage from "../services/WbotServices/SendExternalWhatsAppMessage";
 import FindGroupByNameService from "../services/WbotServices/FindGroupByNameService";
 import SendMessageToTicketService from "../services/WbotServices/SendMessageToTicketService";
+import FixGroupNamesService from "../services/ContactServices/FixGroupNamesService";
 import {
   verifyContact,
   verifyMessage
@@ -1509,6 +1510,22 @@ export const sendMessageToTicket = async (
       success: false,
       error: "INTERNAL_ERROR",
       message: `Error interno del servidor: ${error.message}`
+    });
+  }
+};
+
+export const fixGroupNames = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const result = await FixGroupNamesService();
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('[fixGroupNames] Error:', error);
+    return res.status(500).json({
+      error: 'Error al corregir nombres de grupos',
+      message: error.message
     });
   }
 };

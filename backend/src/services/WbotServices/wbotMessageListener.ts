@@ -75,12 +75,22 @@ export const getContactByIdSafely = async (
       console.log(`[getContactByIdSafely] Grupo detectado (${contactId}), usando getChatById`);
       const chat = await wbot.getChatById(contactId);
       
+      // Extraer número del grupo de forma segura
+      let groupNumber = chat.id?.user || chat.id?._serialized?.split('@')[0] || contactId.split('@')[0];
+      let groupName = chat.name || `Grupo ${groupNumber}`;
+      
+      console.log(`[getContactByIdSafely] Grupo obtenido - ID: ${contactId}, Nombre: ${groupName}`);
+      
       // Convertir Chat a formato WbotContact compatible
       const groupContact: any = {
-        id: chat.id,
-        number: chat.id.user,
-        pushname: chat.name,
-        name: chat.name,
+        id: chat.id || {
+          _serialized: contactId,
+          user: groupNumber,
+          server: 'g.us'
+        },
+        number: groupNumber,
+        pushname: groupName,
+        name: groupName,
         isGroup: true,
         isUser: false,
         getProfilePicUrl: async () => {
@@ -92,13 +102,23 @@ export const getContactByIdSafely = async (
         }
       };
       
-      console.log(`[getContactByIdSafely] ✅ Grupo obtenido exitosamente: ${chat.name}`);
+      console.log(`[getContactByIdSafely] ✅ Grupo obtenido exitosamente: ${groupName}`);
       return groupContact as WbotContact;
     } catch (err) {
       console.log(`[getContactByIdSafely] ⚠️ getChatById falló para grupo ${contactId}, usando fallback:`, err.message);
       
       // Fallback para grupos que no se pueden obtener
       const number = contactId.split('@')[0];
+      
+      // Intentar obtener nombre del mensaje si está disponible
+      let groupName = `Grupo ${number}`;
+      if (msg) {
+        const msgData = (msg as any)._data;
+        groupName = msgData?.chat?.name || msgData?.notifyName || groupName;
+      }
+      
+      console.log(`[getContactByIdSafely] ⚠️ Usando fallback para grupo ${contactId} - Nombre: ${groupName}`);
+      
       const mockGroupContact: any = {
         id: {
           _serialized: contactId,
@@ -106,8 +126,8 @@ export const getContactByIdSafely = async (
           server: 'g.us'
         },
         number: number,
-        pushname: `Grupo ${number}`,
-        name: `Grupo ${number}`,
+        pushname: groupName,
+        name: groupName,
         isGroup: true,
         isUser: false,
         getProfilePicUrl: async () => null
@@ -222,7 +242,17 @@ export const verifyContact = async (
     contactData.profilePicUrl = profilePicUrl;
   }
 
-  const contact = CreateOrUpdateContactService(contactData);
+  const contact = await CreateOrUpdateContactService(contactData);
+
+  // Corrección automática de grupos con nombres genéricos
+  // Si es un grupo existente con nombre "Grupo {número}", intentar actualizar
+  if (contact && contact.isGroup && contact.name && contact.name.startsWith('Grupo ')) {
+    const realName = msgContact.name || msgContact.pushname;
+    if (realName && !realName.startsWith('Grupo ') && realName !== contact.name) {
+      console.log(`[verifyContact] Actualizando nombre de grupo: "${contact.name}" -> "${realName}"`);
+      await contact.update({ name: realName });
+    }
+  }
 
   return contact;
 };

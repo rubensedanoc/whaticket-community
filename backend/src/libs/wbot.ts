@@ -109,43 +109,64 @@ export const searchForUnSaveMessages = async ({
             });
 
           if (wppMessagesFoundInTimeInterval.length > 0) {
-            const wppMessagesFoundInTimeIntervalThatAlreadySave =
-              await Message.findAll({
-                where: {
-                  id: {
-                    [Op.in]: wppMessagesFoundInTimeInterval.map(
-                      msg => msg.id.id
-                    )
-                  }
-                }
-              });
+            // Filtrar mensajes con estructura de ID válida
+            const validMessages = wppMessagesFoundInTimeInterval.filter(
+              msg => msg?.id?.id
+            );
 
-            // queremos solo los que no hemos filtrado
-            wppMessagesFoundInTimeInterval =
-              wppMessagesFoundInTimeInterval.filter(
+            if (validMessages.length === 0) {
+              // Si no hay mensajes válidos, continuar con el siguiente chat
+              // @ts-ignore
+              chat.myProperty_FoundMessagesLength = 0;
+              // @ts-ignore
+              chat.myProperty_FoundMessages = [];
+            } else {
+              const wppMessagesFoundInTimeIntervalThatAlreadySave =
+                await Message.findAll({
+                  where: {
+                    id: {
+                      [Op.in]: validMessages.map(msg => msg.id.id)
+                    }
+                  }
+                });
+
+              // queremos solo los que no hemos filtrado
+              wppMessagesFoundInTimeInterval = validMessages.filter(
                 msg =>
+                  msg?.id?.id &&
                   !wppMessagesFoundInTimeIntervalThatAlreadySave.find(
                     msgSaved => msgSaved.id === msg.id.id
-                  ) && isValidMsg(msg)
+                  ) &&
+                  isValidMsg(msg)
               );
 
-            for (const msg of wppMessagesFoundInTimeInterval) {
-              await handleMessage({ msg, wbot });
+              for (const msg of wppMessagesFoundInTimeInterval) {
+                await handleMessage({ msg, wbot });
+              }
+
+              // @ts-ignore
+              chat.myProperty_FoundMessagesLength =
+                wppMessagesFoundInTimeInterval.length;
+
+              // @ts-ignore
+              chat.myProperty_FoundMessages = wppMessagesFoundInTimeInterval.map(
+                msg => msg.body
+              );
             }
           }
-
-          // @ts-ignore
-          chat.myProperty_FoundMessagesLength =
-            wppMessagesFoundInTimeInterval.length;
-
-          // @ts-ignore
-          chat.myProperty_FoundMessages = wppMessagesFoundInTimeInterval.map(
-            msg => msg.body
-          );
         } catch (error) {
           response.logs.push(`ERROR - evaluteChats ${Date.now()}`);
-          response.logs.push(error);
-          response.error = error;
+          response.logs.push({
+            errorName: error?.name || 'UnknownError',
+            errorMessage: error?.message || 'No error message',
+            errorStack: error?.stack?.split('\n').slice(0, 3) || [],
+            chatId: chat?.id?._serialized || 'unknown',
+            chatName: chat?.name || 'unknown',
+            isGroup: chat?.isGroup || false
+          });
+          if (!response.error) {
+            response.error = error;
+          }
         }
       })
     );

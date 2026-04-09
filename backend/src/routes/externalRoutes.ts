@@ -62,4 +62,9 @@ externalRoutes.post(
   ExternalApiController.sendMessageToTicket
 );
 
+externalRoutes.post(
+  "/fixGroupNames",
+  ExternalApiController.fixGroupNames
+);
+
 export default externalRoutes;
