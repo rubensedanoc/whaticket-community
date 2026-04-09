@@ -217,6 +217,7 @@ const useTickets = ({
     whatsappIds,
     queueIds,
     ticketUsersIds,
+    accountManagerIds,
     marketingCampaignIds,
     typeIds,
     showOnlyMyGroups,

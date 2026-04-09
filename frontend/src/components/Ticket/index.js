@@ -149,7 +149,9 @@ const Ticket = () => {
       const { data: marketingCampaigns } = await api.get("/marketingCampaigns");
       setMarketingCampaigns(marketingCampaigns);
       
-      const { data: usersData } = await api.get("/users");
+      const { data: usersData } = await api.get("/users", {
+        params: { withPagination: false },
+      });
       setUsers(usersData.users);
     })();
   }, []);
@@ -397,9 +399,11 @@ const Ticket = () => {
                   value={ticket.accountManagerId || ""}
                   onChange={async (e) => {
                     try {
+                      const newValue = e.target.value || null;
                       await api.put(`/tickets/${ticket.id}`, {
-                        accountManagerId: e.target.value || null,
+                        accountManagerId: newValue,
                       });
+                      setTicket(prev => ({ ...prev, accountManagerId: newValue }));
                       toast.success("Ejecutivo de cuenta actualizado correctamente.");
                     } catch (err) {
                       console.log(err);

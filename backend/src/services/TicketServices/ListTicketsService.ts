@@ -444,13 +444,18 @@ const buildWhereCondition = async ({
     // ✅ Filtro de Account Manager
     if (accountManagerIds?.length) {
       const hasNull = accountManagerIds.includes(null as any);
+      const nonNullIds = accountManagerIds.filter(id => id !== null);
       if (hasNull) {
         baseCondition = {
           ...baseCondition,
-          [Op.or]: [
-            ...(baseCondition[Op.or] || []),
-            { accountManagerId: { [Op.in]: accountManagerIds.filter(id => id !== null) } },
-            { accountManagerId: null }
+          [Op.and]: [
+            ...(baseCondition[Op.and] || []),
+            {
+              [Op.or]: [
+                ...(nonNullIds.length ? [{ accountManagerId: { [Op.in]: nonNullIds } }] : []),
+                { accountManagerId: null }
+              ]
+            }
           ]
         };
       } else {
