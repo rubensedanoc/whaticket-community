@@ -14,6 +14,28 @@ const TicketInfo = ({ contact, ticket, onClick, microServiceData }) => {
       subheader={
         <>
           <div>{`Conexión: ${ticket?.whatsapp?.name}`}</div>
+          {ticket.contact?.traza_clientelicencia_currentetapaid != null && (
+            <div>
+              Etapa:{" "}
+              <Chip
+                size="small"
+                label={(() => {
+                  switch (ticket.contact?.traza_clientelicencia_currentetapaid) {
+                    case 1: return "Insp. técnica";
+                    case 2: return "Config. plataforma";
+                    case 3: return "Config. equipos";
+                    case 4: return "Cap. op y mantenimiento";
+                    case 5: return "Alta";
+                    case 6: return "Onboarding";
+                    case 7: return "Alta FE";
+                    case 8: return "Monitoreo";
+                    default: return "Sin Etapa";
+                  }
+                })()}
+                style={{ fontSize: "0.7rem", height: 20 }}
+              />
+            </div>
+          )}
           <div>
             {!ticket.isGroup && ticket.user && `Asignado: ${ticket.user.name}`}
           </div>

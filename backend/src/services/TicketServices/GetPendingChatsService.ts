@@ -171,7 +171,7 @@ const GetPendingChatsService = async ({
       {
         model: Contact,
         as: "contact",
-        attributes: ["id", "name", "number"]
+        attributes: ["id", "name", "number", "traza_clientelicencia_currentetapaid"]
       },
       {
         model: Queue,
@@ -209,6 +209,7 @@ const GetPendingChatsService = async ({
       ticketId: ticket.id,
       contactName: ticket.contact?.name || "Sin nombre",
       contactNumber: ticket.contact?.number || "",
+      contactEtapaId: (ticket.contact as any)?.traza_clientelicencia_currentetapaid || null,
       lastMessage: ticket.lastMessage || "",
       lastMessageAt: ticket.updatedAt,
       updatedAt: ticket.updatedAt,

@@ -405,7 +405,7 @@ const buildWhereCondition = async ({
     // Cuando AMBOS filtros están activos → OR (mostrar tickets del usuario O donde es ejecutivo)
     // Cuando solo uno está activo → se aplica individualmente
     const hasUserFilter = ticketUsersIds?.length && status === "open";
-    const hasAccountManagerFilter = accountManagerIds?.length;
+    const hasAccountManagerFilter = accountManagerIds?.length && status === "open";
 
     if (hasUserFilter && hasAccountManagerFilter) {
       // ✅ MODO OR: Mostrar tickets donde userId coincida O accountManagerId coincida
