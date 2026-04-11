@@ -12,9 +12,15 @@ const ReportProactiveBotResultService = async ({
 }: ReportProactiveBotResultParams): Promise<void> => {
   try {
     const externalApiUrl = process.env.EXTERNAL_API_RESULT_URL;
+    const enableReporting = process.env.ENABLE_PROACTIVE_BOT_REPORTING === 'true';
 
     if (!externalApiUrl) {
       console.warn('[ReportProactiveBotResultService] EXTERNAL_API_RESULT_URL no configurada, saltando reporte');
+      return;
+    }
+
+    if (!enableReporting) {
+      console.log('[ReportProactiveBotResultService] Reporte deshabilitado por flag ENABLE_PROACTIVE_BOT_REPORTING');
       return;
     }
 
