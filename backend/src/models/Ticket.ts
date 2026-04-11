@@ -89,6 +89,9 @@ class Ticket extends Model<Ticket> {
   chatbotFinishedAt: Date;
 
   @Column
+  lastBotMessageAt: Date;
+
+  @Column
   chatbotSelectedCategory: string;
 
   @Column

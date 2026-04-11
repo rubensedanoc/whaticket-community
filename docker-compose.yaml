@@ -33,6 +33,9 @@ services:
       - META_ACCESS_TOKEN=${META_ACCESS_TOKEN}
       - META_INITIAL_TEMPLATE_NAME=${META_INITIAL_TEMPLATE_NAME:-reengagement_message}
       - META_REENGAGEMENT_TEMPLATE_NAME=${META_REENGAGEMENT_TEMPLATE_NAME:-reengagement_message}
+      - PROACTIVE_BOT_TEMPLATE_NAME=${PROACTIVE_BOT_TEMPLATE_NAME:-encuesta_inactividad}
+      - EXTERNAL_API_RESULT_URL=${EXTERNAL_API_RESULT_URL}
+      - PROACTIVE_BOT_SEND_DELAY_MS=${PROACTIVE_BOT_SEND_DELAY_MS}
       # ARGS (CHROMIUN)
       - CHROME_ARGS_CHROMIUN=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --single-process --disable-gpu
 

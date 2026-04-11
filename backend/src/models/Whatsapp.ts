@@ -113,6 +113,11 @@ class Whatsapp extends Model<Whatsapp> {
   @Column
   chatbotIdentifier: string;
 
+  @Default('reactive')
+  @AllowNull(false)
+  @Column(DataType.ENUM('reactive', 'proactive'))
+  executionType: 'reactive' | 'proactive';
+
   @CreatedAt
   createdAt: Date;
 
