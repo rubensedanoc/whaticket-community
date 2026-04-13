@@ -136,7 +136,7 @@ const SendInactivityBotMessageMeta = async ({
         const ticket = await Ticket.create({
           contactId: contact.id,
           whatsappId: whatsapp.id,
-          status: 'open',
+          status: 'pending',
           chatbotMessageIdentifier: whatsapp.chatbotIdentifier,
           chatbotMessageLastStep: null,
           chatbotFinishedAt: null,
