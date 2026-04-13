@@ -1,11 +1,11 @@
 import * as Sentry from "@sentry/node";
-import Ticket from "../../models/Ticket";
-import Contact from "../../models/Contact";
-import Whatsapp from "../../models/Whatsapp";
-import Message from "../../models/Message";
-import ProactiveBotSession from "../../models/ProactiveBotSession";
-import { MetaApiClient } from "../../clients/MetaApiClient";
-import ChatbotResponseHelper from "./Chatbot/ChatbotResponseHelper";
+import Ticket from "../../../models/Ticket";
+import Contact from "../../../models/Contact";
+import Whatsapp from "../../../models/Whatsapp";
+import Message from "../../../models/Message";
+import ProactiveBotSession from "../../../models/ProactiveBotSession";
+import { MetaApiClient } from "../../../clients/MetaApiClient";
+import ChatbotResponseHelper from "./ChatbotResponseHelper";
 import ReportProactiveBotResultService from "./ReportProactiveBotResultService";
 
 interface HandleProactiveBotValidationParams {

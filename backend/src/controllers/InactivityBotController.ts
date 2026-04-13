@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import SendInactivityBotMessageMeta from "../services/MetaServices/SendInactivityBotMessageMeta";
+import SendInactivityBotMessageMeta from "../services/MetaServices/Chatbot/SendInactivityBotMessageMeta";
 
 export const triggerInactivityBot = async (req: Request, res: Response): Promise<Response> => {
   try {

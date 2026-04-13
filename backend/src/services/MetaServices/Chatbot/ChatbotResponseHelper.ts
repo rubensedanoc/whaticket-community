@@ -132,6 +132,46 @@ class ChatbotResponseHelper {
   }
 
   /**
+   * Envía mensaje de sesión expirada por timeout
+   */
+  async sendTimeoutMessage(ticket: Ticket, contact: Contact, whatsapp: Whatsapp): Promise<void> {
+    try {
+      console.log(`[ChatbotResponseHelper] Enviando mensaje de timeout para ticket ${ticket.id}`);
+
+      const message = "⏱️ Tu sesión ha expirado por inactividad. Si necesitas ayuda, escríbeme de nuevo y con gusto te atenderé. 😊";
+
+      const client = new MetaApiClient({
+        phoneNumberId: whatsapp.phoneNumberId,
+        accessToken: whatsapp.metaAccessToken
+      });
+
+      const response = await client.sendText({
+        to: contact.number,
+        body: message
+      });
+
+      const messageId = response.messages[0].id;
+
+      const timeoutMessage = await this.saveMessageInDB(
+        messageId,
+        ticket,
+        contact,
+        message,
+        "chat",
+        "timeout"
+      );
+
+      this.emitSocketEvent(timeoutMessage, ticket, contact);
+
+      console.log(`[ChatbotResponseHelper] Mensaje de sesión expirada enviado para ticket ${ticket.id}`);
+    } catch (error) {
+      console.error(`[ChatbotResponseHelper] Error enviando mensaje de timeout:`, error);
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
    * Envía el mensaje raíz del chatbot por identifier
    * @param identifier - Identifier específico a enviar (opcional, por defecto usa whatsapp.chatbotIdentifier)
    */
@@ -216,7 +256,7 @@ class ChatbotResponseHelper {
 
       // Actualizar ticket
       await ticket.update({
-        chatbotMessageIdentifier: whatsapp.chatbotIdentifier,
+        chatbotMessageIdentifier: targetIdentifier,
         chatbotMessageLastStep: chatbotMessage.identifier,
         lastBotMessageAt: new Date()
       });

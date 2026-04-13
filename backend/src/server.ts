@@ -402,17 +402,16 @@ cron.schedule('0 * * * *', async () => {
 });
 
 // CRON FOR CHECKING EXPIRED CHATBOT SESSIONS
-// Every 5 minute
-cron.schedule('*/5 * * * *', async () => {
+// Verificar tickets con chatbot de inactividad expirado - cada 1 minuto para detección rápida
+cron.schedule('*/1 * * * *', async () => {
   const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
-  await CheckExpiredChatbotSessions();
+  await CheckExpiredChatbotSessions('inactividad');
 });
 
-//Verificar tickets de bot proactivo expirados (basado en lastBotMessageAt)
-// Ejecutar cada 1 minuto para detección rápida de timeouts
-cron.schedule('*/1 * * * *', async () => {
-  const CheckExpiredProactiveBotTickets = (await import("./services/CronJobs/CheckExpiredProactiveBotTickets")).default;
-  await CheckExpiredProactiveBotTickets();
+// Verificar tickets con chatbot de soporte expirado - cada 5 minutos
+cron.schedule('*/5 * * * *', async () => {
+  const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
+  await CheckExpiredChatbotSessions('soporte');
 });
 
 // Every minute of every hour of the day

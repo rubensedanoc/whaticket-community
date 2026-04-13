@@ -1,11 +1,11 @@
 import * as Sentry from "@sentry/node";
-import ChatbotMessage from "../../models/ChatbotMessage";
-import Whatsapp from "../../models/Whatsapp";
-import ProactiveBotSession from "../../models/ProactiveBotSession";
-import { MetaApiClient } from "../../clients/MetaApiClient";
-import Ticket from "../../models/Ticket";
-import Message from "../../models/Message";
-import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
+import ChatbotMessage from "../../../models/ChatbotMessage";
+import Whatsapp from "../../../models/Whatsapp";
+import ProactiveBotSession from "../../../models/ProactiveBotSession";
+import { MetaApiClient } from "../../../clients/MetaApiClient";
+import Ticket from "../../../models/Ticket";
+import Message from "../../../models/Message";
+import CreateOrUpdateContactService from "../../ContactServices/CreateOrUpdateContactService";
 
 interface SendInactivityBotMessageMetaParams {
   numbers: string[];
@@ -152,7 +152,7 @@ const SendInactivityBotMessageMeta = async ({
           id: messageId,
           ticketId: ticket.id,
           contactId: contact.id,
-          body: rootChatbotMessage.value, // Texto de la plantilla
+          body: `[Plantilla] ${process.env.PROACTIVE_BOT_TEMPLATE_NAME || 'encuesta_inactividad'}`,
           fromMe: true,
           mediaType: "chat",
           read: true,

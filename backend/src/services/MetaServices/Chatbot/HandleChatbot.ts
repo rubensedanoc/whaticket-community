@@ -2,7 +2,7 @@ import Ticket from "../../../models/Ticket";
 import Contact from "../../../models/Contact";
 import Whatsapp from "../../../models/Whatsapp";
 import HandleReactiveBot from "./HandleReactiveBot";
-import HandleProactiveBot from "../HandleProactiveBot";
+import HandleProactiveBot from "./HandleProactiveBot";
 
 interface HandleChatbotParams {
   ticket: Ticket;
@@ -73,7 +73,10 @@ class HandleChatbot {
    * Determina el tipo de bot basado en el whatsapp y ticket
    */
   private determineBotType(whatsapp: Whatsapp, ticket: Ticket): 'proactive' | 'reactive' | 'none' {
-    if (whatsapp.executionType == 'proactive' && ticket.chatbotMessageIdentifier == whatsapp.chatbotIdentifier && ticket.chatbotFinishedAt == null) {
+    const isMainFlow = ticket.chatbotMessageIdentifier == whatsapp.chatbotIdentifier;
+    const isFeedbackFlow = ticket.chatbotMessageIdentifier?.includes('_feedback');
+    
+    if (whatsapp.executionType == 'proactive' && (isMainFlow || isFeedbackFlow)) {
       return 'proactive';
     }
 
