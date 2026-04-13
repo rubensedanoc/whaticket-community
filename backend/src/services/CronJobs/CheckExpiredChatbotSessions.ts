@@ -83,8 +83,14 @@ const CheckExpiredChatbotSessions = async (chatbotIdentifier?: string): Promise<
 
     for (const ticket of expiredTickets) {
       try {
+        // No enviar si es bot proactivo sin respuesta a plantilla: evita baneos de Meta por enviar texto libre sin ventana de 24h
+        const shouldSendTimeout = !(
+          ticket.whatsapp.executionType === 'proactive' &&
+          ticket.chatbotMessageLastStep === null
+        );
+
         // Enviar mensaje de timeout solo para Meta API
-        if (ticket.whatsapp.apiType === "meta-api") {
+        if (ticket.whatsapp.apiType === "meta-api" && shouldSendTimeout) {
           await ChatbotResponseHelper.sendTimeoutMessage(
             ticket,
             ticket.contact,
