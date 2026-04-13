@@ -62,8 +62,8 @@ const processQueue = async () => {
     try {
       console.log(`[wbot-queue] 🔍 Buscando conexión para número: ${message.fromNumber}`);
       
-      // Buscar conexión activa (CONNECTED o PAIRING)
-      const fromWpp = await Whatsapp.findOne({
+      // Buscar conexión activa (CONNECTED o PAIRING) para el número asignado
+      let fromWpp = await Whatsapp.findOne({
         where: {
           number: message.fromNumber,
           status: ["CONNECTED", "PAIRING"]
@@ -71,8 +71,27 @@ const processQueue = async () => {
         order: [['id', 'DESC']]
       });
 
+      // FALLBACK: Si el número asignado no está disponible, buscar cualquier número activo
       if (!fromWpp) {
-        console.error(`[wbot-queue] ❌ No se encontró conexión activa para: ${message.fromNumber}`);
+        console.log(`[wbot-queue] ⚠️ Número asignado ${message.fromNumber} no disponible, buscando fallback...`);
+        
+        fromWpp = await Whatsapp.findOne({
+          where: {
+            status: ["CONNECTED", "PAIRING"]
+          },
+          order: [['id', 'DESC']]
+        });
+        
+        if (fromWpp) {
+          console.log(`[wbot-queue] ✅ Usando fallback: ${fromWpp.number} (ID: ${fromWpp.id}, Nombre: ${fromWpp.name})`);
+        }
+      } else {
+        console.log(`[wbot-queue] ✅ Conexión encontrada - ID: ${fromWpp.id}, Nombre: ${fromWpp.name}, Estado: ${fromWpp.status}`);
+      }
+
+      // Si aún no hay ninguna conexión activa disponible, marcar como failed
+      if (!fromWpp) {
+        console.error(`[wbot-queue] ❌ No hay ninguna conexión activa disponible`);
         
         // Debug: mostrar todas las conexiones disponibles
         const allConnections = await Whatsapp.findAll({
@@ -84,8 +103,6 @@ const processQueue = async () => {
         await message.sendMessageRequest.save();
         continue;
       }
-      
-      console.log(`[wbot-queue] ✅ Conexión encontrada - ID: ${fromWpp.id}, Nombre: ${fromWpp.name}, Estado: ${fromWpp.status}`);
 
       const wbot = getWbot(fromWpp.id);
 
