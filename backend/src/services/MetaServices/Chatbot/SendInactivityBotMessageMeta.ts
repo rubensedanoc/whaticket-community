@@ -108,7 +108,7 @@ const SendInactivityBotMessageMeta = async ({
           where: {
             contactId: contact.id,
             whatsappId: whatsapp.id,
-            status: 'open'
+            status: ['open', 'pending']
           }
         });
 
