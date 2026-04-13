@@ -143,14 +143,37 @@ const processQueue = async () => {
         }
       }
 
-      // Enviar mensaje
+      // Obtener el ID correcto del destinatario (soporta @c.us antiguo y @lid nuevo)
+      console.log(`[wbot-queue] 🔍 Obteniendo ID correcto para: ${message.toNumber}`);
+      
+      let destinationId: string;
+      try {
+        const numberId = await wbot.getNumberId(`${message.toNumber}@c.us`);
+        
+        if (numberId) {
+          // Usar el ID obtenido (puede ser @c.us o @lid)
+          destinationId = numberId._serialized;
+          console.log(`[wbot-queue] ✅ ID obtenido con getNumberId: ${destinationId}`);
+        } else {
+          // Fallback: usar formato tradicional @c.us para números antiguos
+          destinationId = `${message.toNumber}@c.us`;
+          console.log(`[wbot-queue] ⚠️ getNumberId retornó null, usando formato tradicional: ${destinationId}`);
+        }
+      } catch (error: any) {
+        // Si getNumberId falla, usar formato tradicional como fallback
+        destinationId = `${message.toNumber}@c.us`;
+        console.log(`[wbot-queue] ⚠️ Error en getNumberId, usando formato tradicional: ${destinationId}`);
+        console.log(`[wbot-queue] Error detalle:`, error?.message || error);
+      }
+
+      // Enviar mensaje usando el ID correcto
       if (message.mediaUrl) {
         const media = await MessageMedia.fromUrl(message.mediaUrl);
-        await wbot.sendMessage(`${message.toNumber}@c.us`, media, {
+        await wbot.sendMessage(destinationId, media, {
           caption: message.message
         });
       } else {
-        await wbot.sendMessage(`${message.toNumber}@c.us`, message.message);
+        await wbot.sendMessage(destinationId, message.message);
       }
 
       message.sendMessageRequest.status = 'sent';
