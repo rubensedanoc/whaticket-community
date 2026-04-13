@@ -71,22 +71,39 @@ const processQueue = async () => {
         order: [['id', 'DESC']]
       });
 
-      // FALLBACK: Si el número asignado no está disponible, buscar cualquier número activo
+      // Verificar que la sesión wbot esté inicializada
+      if (fromWpp) {
+        const wbotTest = getWbot(fromWpp.id);
+        if (!(wbotTest as any)?.info) {
+          console.log(`[wbot-queue] ⚠️ Conexión ${fromWpp.number} (ID: ${fromWpp.id}) no tiene sesión inicializada`);
+          fromWpp = null;
+        } else {
+          console.log(`[wbot-queue] ✅ Conexión encontrada - ID: ${fromWpp.id}, Nombre: ${fromWpp.name}, Estado: ${fromWpp.status}`);
+        }
+      }
+
+      // FALLBACK: Si el número asignado no está disponible, buscar cualquier número activo con sesión inicializada
       if (!fromWpp) {
         console.log(`[wbot-queue] ⚠️ Número asignado ${message.fromNumber} no disponible, buscando fallback...`);
         
-        fromWpp = await Whatsapp.findOne({
+        const allActiveConnections = await Whatsapp.findAll({
           where: {
             status: ["CONNECTED", "PAIRING"]
           },
           order: [['id', 'DESC']]
         });
         
-        if (fromWpp) {
-          console.log(`[wbot-queue] ✅ Usando fallback: ${fromWpp.number} (ID: ${fromWpp.id}, Nombre: ${fromWpp.name})`);
+        // Buscar la primera conexión con sesión inicializada
+        for (const conn of allActiveConnections) {
+          const wbotTest = getWbot(conn.id);
+          if ((wbotTest as any)?.info) {
+            fromWpp = conn;
+            console.log(`[wbot-queue] ✅ Usando fallback: ${fromWpp.number} (ID: ${fromWpp.id}, Nombre: ${fromWpp.name})`);
+            break;
+          } else {
+            console.log(`[wbot-queue] ⏭️ Saltando conexión ${conn.number} (ID: ${conn.id}) - sesión no inicializada`);
+          }
         }
-      } else {
-        console.log(`[wbot-queue] ✅ Conexión encontrada - ID: ${fromWpp.id}, Nombre: ${fromWpp.name}, Estado: ${fromWpp.status}`);
       }
 
       // Si aún no hay ninguna conexión activa disponible, marcar como failed
@@ -105,6 +122,14 @@ const processQueue = async () => {
       }
 
       const wbot = getWbot(fromWpp.id);
+
+      // Verificar que la sesión esté completamente inicializada
+      if (!(wbot as any)?.info) {
+        console.error(`[wbot-queue] ❌ Sesión de WhatsApp ID ${fromWpp.id} no está completamente inicializada (falta info)`);
+        message.sendMessageRequest.status = 'failed';
+        await message.sendMessageRequest.save();
+        continue;
+      }
 
       // Aplicar parches si es necesario (NO BLOQUEAR si falla)
       if ((wbot as any)?.pupPage) {
@@ -148,7 +173,7 @@ export const addMessageToQueue = async ({
   message,
   mediaUrl = null
 }: {
-  fromNumber: string;
+  fromNumber?: string;
   toNumber: string;
   message: string;
   mediaUrl?: string | null;
@@ -157,19 +182,36 @@ export const addMessageToQueue = async ({
   let data = null;
 
   // Validaciones
-  if (!fromNumber || !toNumber || !message) {
-    mensajes.push('Faltan datos necesarios para enviar el mensaje');
+  if (!toNumber || !message) {
+    mensajes.push('Faltan datos necesarios para enviar el mensaje (toNumber y message son requeridos)');
     return { mensajes, data };
   }
 
-  // Validar que sean strings antes de usar replace
-  if (typeof fromNumber !== 'string' || typeof toNumber !== 'string') {
-    mensajes.push('Los números deben ser strings válidos');
+  // Validar que toNumber sea string antes de usar replace
+  if (typeof toNumber !== 'string') {
+    mensajes.push('El número de destino debe ser un string válido');
     return { mensajes, data };
   }
 
-  if (isNaN(Number(fromNumber.replace(/\D/g, ''))) || isNaN(Number(toNumber.replace(/\D/g, '')))) {
-    mensajes.push('Números de teléfono inválidos');
+  // Normalizar fromNumber: tratar string vacío como undefined
+  if (fromNumber === '') {
+    fromNumber = undefined;
+  }
+
+  // Validar fromNumber solo si se proporciona y no está vacío
+  if (fromNumber && typeof fromNumber !== 'string') {
+    mensajes.push('El número de origen debe ser un string válido');
+    return { mensajes, data };
+  }
+
+  // Validar formato de números
+  if (isNaN(Number(toNumber.replace(/\D/g, '')))) {
+    mensajes.push('Número de teléfono de destino inválido');
+    return { mensajes, data };
+  }
+
+  if (fromNumber && isNaN(Number(fromNumber.replace(/\D/g, '')))) {
+    mensajes.push('Número de teléfono de origen inválido');
     return { mensajes, data };
   }
 
@@ -177,11 +219,15 @@ export const addMessageToQueue = async ({
     // Limpiar números
     toNumber = toNumber.replace(/\D/g, '').trim();
     
-    // Usar número alternado en vez del fromNumber que viene del PHP
-    const originalFromNumber = fromNumber;
-    fromNumber = getNextNumber();
+    // Si no se proporciona fromNumber o está vacío, usar el sistema de alternancia
+    const originalFromNumber = fromNumber || 'auto';
+    fromNumber = fromNumber ? fromNumber.replace(/\D/g, '').trim() : getNextNumber();
     
-    console.log(`[wbot-queue] 🔄 Alternancia: ${originalFromNumber} → ${fromNumber} (índice actual: ${alternationState.currentIndex})`);
+    if (originalFromNumber === 'auto') {
+      console.log(`[wbot-queue] 🔄 Número seleccionado automáticamente: ${fromNumber} (índice actual: ${alternationState.currentIndex})`);
+    } else {
+      console.log(`[wbot-queue] 🔄 Alternancia: ${originalFromNumber} → ${fromNumber} (índice actual: ${alternationState.currentIndex})`);
+    }
 
     const sendMessageRequest = await SendMessageRequest.create({
       fromNumber,
