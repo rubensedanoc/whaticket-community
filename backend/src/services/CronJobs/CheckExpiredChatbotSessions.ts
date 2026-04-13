@@ -19,17 +19,45 @@ const CheckExpiredChatbotSessions = async (chatbotIdentifier?: string): Promise<
   const botLabel = chatbotIdentifier ? ` (${chatbotIdentifier})` : '';
 
   try {
-    // Buscar tickets con chatbot activo
-    const ticketsWithActiveBot = await Ticket.findAll({
+    // Buscar configuración del chatbot primero (evita N+1 queries)
+    const chatbotMessage = await ChatbotMessage.findOne({
+      where: {
+        ...(chatbotIdentifier && { identifier: chatbotIdentifier }),
+        isActive: true,
+        wasDeleted: false
+      }
+    });
+
+    if (!chatbotMessage || !chatbotMessage.timeToWaitInMinutes) {
+      return;
+    }
+
+    // Calcular tiempo de expiración
+    const validTime = subMinutes(new Date(), chatbotMessage.timeToWaitInMinutes);
+
+    // Buscar tickets que pueden haber expirado (query optimizada)
+    const expiredTickets = await Ticket.findAll({
       where: {
         chatbotMessageIdentifier: {
-          [Op.ne]: null  // Tiene chatbot asociado
+          [Op.ne]: null
         },
-        chatbotFinishedAt: null,  // Chatbot no ha terminado
-        userId: null,  // Sin agente asignado
+        chatbotFinishedAt: null,
+        userId: null,
         status: {
           [Op.or]: ["pending", "open"]
-        }
+        },
+        [Op.or]: [
+          {
+            lastBotMessageAt: {
+              [Op.lt]: validTime
+            }
+          },
+          {
+            updatedAt: {
+              [Op.lt]: validTime
+            }
+          }
+        ]
       },
       include: [
         {
@@ -45,71 +73,54 @@ const CheckExpiredChatbotSessions = async (chatbotIdentifier?: string): Promise<
             where: { chatbotIdentifier }
           })
         }
-      ]
+      ],
+      order: [['lastBotMessageAt', 'ASC']],
+      limit: 100
     });
 
     let expiredCount = 0;
     let errorCount = 0;
 
-    for (const ticket of ticketsWithActiveBot) {
+    for (const ticket of expiredTickets) {
       try {
-        // Buscar configuración del chatbot RAÍZ (el timeout está configurado en el raíz, no en las opciones)
-        const chatbotMessage = await ChatbotMessage.findOne({
-          where: {
-            identifier: ticket.chatbotMessageIdentifier,
-            isActive: true,
-            wasDeleted: false
-          }
+        // Enviar mensaje de timeout solo para Meta API
+        if (ticket.whatsapp.apiType === "meta-api") {
+          await ChatbotResponseHelper.sendTimeoutMessage(
+            ticket,
+            ticket.contact,
+            ticket.whatsapp
+          );
+        }
+
+        // Finalizar chatbot y cerrar ticket
+        await ticket.update({
+          chatbotMessageLastStep: null,
+          chatbotFinishedAt: new Date(),
+          status: "closed"
         });
 
-        if (!chatbotMessage || !chatbotMessage.timeToWaitInMinutes) {
-          continue;
-        }
+        // Si es bot proactivo, actualizar sesión y reportar
+        const proactiveSession = await ProactiveBotSession.findOne({
+          where: { ticketId: ticket.id, status: 'ACTIVE' }
+        });
 
-        // Calcular tiempo de expiración
-        const validTime = subMinutes(new Date(), chatbotMessage.timeToWaitInMinutes);
-        const lastActivityTime = ticket.lastBotMessageAt || ticket.updatedAt;
+        if (proactiveSession) {
+          const timeoutType = ticket.chatbotMessageLastStep === null ? 'NO_RESPONSE' : 'TIMEOUT';
+          const statusMessage = timeoutType === 'NO_RESPONSE'
+            ? 'Usuario no respondió a la plantilla'
+            : 'Sesión expirada por inactividad';
 
-        if (new Date(lastActivityTime) < validTime) {
-          // Enviar mensaje de timeout solo para Meta API
-          if (ticket.whatsapp.apiType === "meta-api") {
-            await ChatbotResponseHelper.sendTimeoutMessage(
-              ticket,
-              ticket.contact,
-              ticket.whatsapp
-            );
-          }
-
-          // Finalizar chatbot y cerrar ticket
-          await ticket.update({
-            chatbotMessageLastStep: null,
-            chatbotFinishedAt: new Date(),
-            status: "closed"
+          await proactiveSession.update({
+            status: timeoutType,
+            completedAt: new Date(),
+            userResponsesHistory: proactiveSession.userResponsesHistory +
+              `\n[${new Date().toISOString()}] ${statusMessage}`
           });
 
-          // Si es bot proactivo, actualizar sesión y reportar
-          const proactiveSession = await ProactiveBotSession.findOne({
-            where: { ticketId: ticket.id, status: 'ACTIVE' }
-          });
-
-          if (proactiveSession) {
-            const timeoutType = ticket.chatbotMessageLastStep === null ? 'NO_RESPONSE' : 'TIMEOUT';
-            const statusMessage = timeoutType === 'NO_RESPONSE'
-              ? 'Usuario no respondió a la plantilla'
-              : 'Sesión expirada por inactividad';
-
-            await proactiveSession.update({
-              status: timeoutType,
-              completedAt: new Date(),
-              userResponsesHistory: proactiveSession.userResponsesHistory +
-                `\n[${new Date().toISOString()}] ${statusMessage}`
-            });
-
-            await ReportProactiveBotResultService({ session: proactiveSession });
-          }
-
-          expiredCount++;
+          await ReportProactiveBotResultService({ session: proactiveSession });
         }
+
+        expiredCount++;
       } catch (error) {
         errorCount++;
         logger.error(`CRON CheckExpiredChatbotSessions - Error ticket ${ticket.id}:`, error);
