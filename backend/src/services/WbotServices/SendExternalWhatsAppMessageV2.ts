@@ -106,14 +106,15 @@ const processQueue = async () => {
 
       const wbot = getWbot(fromWpp.id);
 
-      // Aplicar parches si es necesario
+      // Aplicar parches si es necesario (NO BLOQUEAR si falla)
       if ((wbot as any)?.pupPage) {
-        const patched = await applyPatchesToWbot(wbot as any);
-        if (!patched) {
-          console.error('[wbot-queue] Falló aplicación de parches para whatsappId:', fromWpp.id);
-          message.sendMessageRequest.status = 'failed';
-          await message.sendMessageRequest.save();
-          continue;
+        try {
+          const patched = await applyPatchesToWbot(wbot as any);
+          if (!patched) {
+            console.warn('[wbot-queue] ⚠️ No se pudieron aplicar parches, continuando sin ellos...');
+          }
+        } catch (error) {
+          console.warn('[wbot-queue] ⚠️ Error aplicando parches, continuando sin ellos:', error);
         }
       }
 
@@ -158,10 +159,18 @@ export const addMessageToQueue = async ({
   // Validaciones
   if (!fromNumber || !toNumber || !message) {
     mensajes.push('Faltan datos necesarios para enviar el mensaje');
+    return { mensajes, data };
+  }
+
+  // Validar que sean strings antes de usar replace
+  if (typeof fromNumber !== 'string' || typeof toNumber !== 'string') {
+    mensajes.push('Los números deben ser strings válidos');
+    return { mensajes, data };
   }
 
   if (isNaN(Number(fromNumber.replace(/\D/g, ''))) || isNaN(Number(toNumber.replace(/\D/g, '')))) {
     mensajes.push('Números de teléfono inválidos');
+    return { mensajes, data };
   }
 
   if (!mensajes.length) {
