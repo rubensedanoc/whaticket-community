@@ -86,10 +86,10 @@ export interface MetaWebhookMessage {
   document?: MetaDocumentObject;
   sticker?: MetaStickerObject;
   interactive?: MetaInteractiveObject;
+  button?: MetaButtonObject;
   // TODO: Agregar cuando se necesiten
   // location?: MetaLocationObject;
   // contacts?: MetaContactObject[];
-  // button?: MetaButtonObject;
   // reaction?: MetaReactionObject;
   // Contexto (si es respuesta o reenviado)
   context?: MetaContextObject;
@@ -151,6 +151,12 @@ export interface MetaListReply {
   id: string;
   title: string;
   description?: string;
+}
+
+// Botón de plantilla (quick reply)
+export interface MetaButtonObject {
+  payload: string;
+  text: string;
 }
 
 // Contexto (mensaje reenviado o respuesta)

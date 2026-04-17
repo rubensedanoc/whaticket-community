@@ -29,6 +29,7 @@ import conversationIAEvalutaionsRoutes from "./conversationIAEvalutaionsRoutes";
 import metaWebhookRoutes from "./metaWebhookRoutes";
 import metaTestRoutes from "./metaTestRoutes";
 import metaGroupRoutes from "./metaGroupRoutes";
+import inactivityBotRoutes from "./inactivityBotRoutes";
 
 const routes = Router();
 
@@ -61,5 +62,6 @@ routes.use(conversationIAEvalutaionsRoutes);
 routes.use(metaWebhookRoutes);
 routes.use("/meta-test", metaTestRoutes);
 routes.use(metaGroupRoutes);
+routes.use("/api", inactivityBotRoutes);
 
 export default routes;

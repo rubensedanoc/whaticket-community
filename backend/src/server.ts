@@ -155,7 +155,7 @@ cron.schedule("*/30 * * * *", async () => {
       err
     );
     Sentry.captureException(err);
-    
+
     sendGoogleChatError({
       service: "CRON searchForUnSaveMessages",
       error: "Error crítico en CRON",
@@ -392,7 +392,7 @@ cron.schedule('0 * * * *', async () => {
       error
     );
     Sentry.captureException(error);
-    
+
     sendGoogleChatError({
       service: "CRON searchForExclusiveNumbers",
       error: "Error en CRON de números exclusivos",
@@ -402,10 +402,16 @@ cron.schedule('0 * * * *', async () => {
 });
 
 // CRON FOR CHECKING EXPIRED CHATBOT SESSIONS
-// Every 5 minute
+// Verificar tickets con chatbot de inactividad expirado - cada 3 horas
+cron.schedule('0 */3 * * *', async () => {
+  const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
+  await CheckExpiredChatbotSessions('inactividad');
+});
+
+// Verificar tickets con chatbot de soporte expirado - cada 5 minutos
 cron.schedule('*/5 * * * *', async () => {
   const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
-  await CheckExpiredChatbotSessions();
+  await CheckExpiredChatbotSessions('soporte');
 });
 
 // Every minute of every hour of the day

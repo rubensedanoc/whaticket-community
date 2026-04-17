@@ -40,6 +40,12 @@ export const appendNavigationRows = async (
     return rows;
   }
 
+  // Si las opciones son terminales (no tienen subopciones), no agregar navegación
+  const optionsAreTerminal = currentNode.chatbotOptions?.every(opt => !opt.hasSubOptions);
+  if (optionsAreTerminal) {
+    return rows;
+  }
+
   // Verificar si el padre del nodo actual es el raíz
   const parentIsRoot = !currentNode.fatherChatbotOptionId
     ? true

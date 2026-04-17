@@ -10,8 +10,7 @@ import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
 import { MetaWebhookMessage, MetaWebhookPayload } from "../../types/meta/MetaWebhookTypes";
 import DownloadMetaMedia from "./DownloadMetaMedia";
-import SendWelcomeBotMessageMeta from "./SendWelcomeBotMessageMeta";
-import ProcessChatbotResponseMeta from "./ProcessChatbotResponseMeta";
+import HandleChatbot from "./Chatbot/HandleChatbot";
 
 interface HandleMetaWebhookMessageParams {
   payload: MetaWebhookPayload;
@@ -124,7 +123,7 @@ const setupTicket = async (
   // Asignar departamento si no tiene uno
   if (!ticket.queueId && whatsapp.queues && whatsapp.queues.length > 0) {
     console.log(`[HandleMetaWebhookMessage] Asignando departamento al ticket ${ticket.id}...`);
-    
+
     try {
       await UpdateTicketService({
         ticketData: { queueId: whatsapp.queues[0].id },
@@ -149,44 +148,26 @@ const setupTicket = async (
 };
 
 /**
- * Maneja todo el flujo del chatbot: bienvenida y procesamiento de respuestas
+ * Maneja todo el flujo del chatbot
  */
 const handleChatbot = async (
   ticket: Ticket,
   messageBody: string,
+  buttonPayload: string,
   contact: Contact,
   whatsapp: Whatsapp,
   shouldSkipBot: boolean,
   selectedOptionId?: string
 ): Promise<void> => {
-  if (shouldSkipBot) return;
-
-  // Disparar bot de bienvenida si es necesario
-  if (!ticket.chatbotMessageIdentifier && !ticket.chatbotFinishedAt) {
-    console.log(`[HandleMetaWebhookMessage] Disparando bot de bienvenida para ticket ${ticket.id}`);
-    SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
-      console.error("[HandleMetaWebhookMessage] Error enviando bot de bienvenida:", err);
-    });
-  } else if (ticket.chatbotFinishedAt && !ticket.userId) {
-    console.log(`[HandleMetaWebhookMessage] Bot ya terminó para ticket ${ticket.id}`);
-  }
-
-  // Procesar respuesta del chatbot si el ticket está en modo bot
-  if (ticket.chatbotMessageIdentifier) {
-    console.log(`[HandleMetaWebhookMessage] Procesando respuesta del chatbot para ticket ${ticket.id}`);
-    try {
-      await ProcessChatbotResponseMeta({
-        ticket,
-        userMessage: messageBody,
-        contact,
-        whatsapp,
-        selectedOptionId
-      });
-      console.log(`[HandleMetaWebhookMessage] Respuesta del chatbot procesada exitosamente`);
-    } catch (err) {
-      console.error("[HandleMetaWebhookMessage] Error procesando chatbot:", err);
-    }
-  }
+  await HandleChatbot.execute({
+    ticket,
+    messageBody,
+    buttonPayload,
+    contact,
+    whatsapp,
+    shouldSkipBot,
+    selectedOptionId
+  });
 };
 
 /**
@@ -343,7 +324,7 @@ const processMessage = async (
     // ========================================
     const tempMessageBody = getMessageBody(message);
     const activationKeywords = ['iniciar', 'inicio'];
-    const shouldActivateBot = activationKeywords.some(keyword => 
+    const shouldActivateBot = activationKeywords.some(keyword =>
       tempMessageBody.toLowerCase().trim() === keyword
     );
 
@@ -351,15 +332,15 @@ const processMessage = async (
 
     if (shouldActivateBot) {
       console.log(`[PRUEBA BOT META] Detectada palabra clave: "${tempMessageBody}"`);
-      
+
       // Cerrar ticket actual si existe y está abierto
       if (ticket.status !== 'closed') {
         await ticket.update({ status: 'closed' });
         console.log(`[PRUEBA BOT META] Ticket ${ticket.id} cerrado`);
       }
-      
+
       // Crear nuevo ticket con chatbot activado
-      const chatbotIdentifier = 'soporte';
+      const chatbotIdentifier = whatsapp.chatbotIdentifier || 'soporte';
       ticket = await Ticket.create({
         contactId: groupContact ? groupContact.id : contact.id,
         status: "pending",
@@ -369,9 +350,9 @@ const processMessage = async (
         lastMessageTimestamp: parseInt(message.timestamp),
         chatbotMessageIdentifier: chatbotIdentifier
       });
-      
+
       console.log(`[PRUEBA BOT META] Nuevo ticket ${ticket.id} creado con bot activado (identifier: ${chatbotIdentifier})`);
-      
+
       // Marcar para NO procesar el mensaje "iniciar" como respuesta del chatbot
       skipChatbotProcessing = true;
     }
@@ -382,18 +363,13 @@ const processMessage = async (
     const { shouldSkipBot } = await setupTicket(ticket, whatsapp, isGroup);
     const { newMessage, messageBody } = await saveUserMessage(message, ticket, contact, whatsapp);
     const selectedOptionId = getSelectedOptionId(message);
-    
+    const buttonPayload = getButtonPayload(message);
+
     // Solo procesar chatbot si NO acabamos de activarlo con palabra clave
     if (!skipChatbotProcessing) {
-      await handleChatbot(ticket, messageBody, contact, whatsapp, shouldSkipBot, selectedOptionId);
-    } else {
-      // Enviar solo el mensaje de bienvenida
-      console.log(`[PRUEBA BOT META] Enviando mensaje de bienvenida inicial`);
-      SendWelcomeBotMessageMeta({ ticket, contact, whatsapp }).catch(err => {
-        console.error("[PRUEBA BOT META] Error enviando bot de bienvenida:", err);
-      });
+      await handleChatbot(ticket, messageBody, buttonPayload, contact, whatsapp, shouldSkipBot, selectedOptionId);
     }
-    
+
     await emitSocketEvents(ticket, newMessage, contact);
 
   } catch (err) {
@@ -409,6 +385,8 @@ const getMessageBody = (message: MetaWebhookMessage): string => {
   switch (message.type) {
     case "text":
       return message.text?.body || "";
+    case "button":
+      return message.button?.text || message.button?.payload || "";
     case "interactive":
       if (message.interactive?.type === "list_reply") {
         return message.interactive.list_reply?.title || "";
@@ -445,6 +423,16 @@ const getSelectedOptionId = (message: MetaWebhookMessage): string | undefined =>
     }
   }
   return undefined;
+};
+
+/**
+ * Extrae el payload del botón de una plantilla
+ */
+const getButtonPayload = (message: MetaWebhookMessage): string => {
+  if (message.type === "button" && message.button?.payload) {
+    return message.button.payload;
+  }
+  return "";
 };
 
 /**
