@@ -33,21 +33,31 @@ const fetchWbotMessagesGraduallyUpToATimestamp = async ({
   limit?: number;
   timestamp: number;
 }): Promise<WbotMessage[]> => {
-  const chatMessages = await wbotChat.fetchMessages({ limit });
+  try {
+    const chatMessages = await wbotChat.fetchMessages({ limit });
 
-  const msgBeforeTimestampFound = chatMessages.find(
-    msg => msg.timestamp <= timestamp
-  );
+    const msgBeforeTimestampFound = chatMessages.find(
+      msg => msg.timestamp <= timestamp
+    );
 
-  if (!msgBeforeTimestampFound && limit < 1000) {
-    return fetchWbotMessagesGraduallyUpToATimestamp({
-      wbotChat,
-      limit: limit + 20,
-      timestamp
-    });
+    if (!msgBeforeTimestampFound && limit < 1000) {
+      return fetchWbotMessagesGraduallyUpToATimestamp({
+        wbotChat,
+        limit: limit + 20,
+        timestamp
+      });
+    }
+
+    return chatMessages.filter(msg => msg.timestamp > timestamp);
+  } catch (error) {
+    // Error común: "Cannot read properties of undefined (reading 'waitForChatLoading')"
+    // Esto ocurre cuando WhatsApp Web actualiza su código y whatsapp-web.js no está sincronizado
+    logger.warn(
+      `[fetchWbotMessages] Error fetching messages for chat ${wbotChat.id?._serialized || 'unknown'}: ${error.message}`
+    );
+    // Retornar array vacío para que el proceso continúe con otros chats
+    return [];
   }
-
-  return chatMessages.filter(msg => msg.timestamp > timestamp);
 };
 
 export const searchForUnSaveMessages = async ({
@@ -379,6 +389,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
                 throw e;
               }
             };
+            
+            // Marcar que los parches fueron aplicados exitosamente
+            window.__whaticket_patch_applied = true;
           `);
           logger.info(`Session: ${sessionName} - WhatsApp Web patches applied successfully (sendSeen + getChat)`);
         } catch (patchError) {
