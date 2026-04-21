@@ -50,9 +50,11 @@ cron.schedule("*/30 * * * *", async () => {
       `[${new Date().toISOString()}] CRON - Total whatsapps: ${whatsapps.length}`
     );
 
-    whatsapps = whatsapps.filter(whatsapp => whatsapp.status === "CONNECTED");
+    // Filtrar por estados válidos que permiten operaciones
+    const validStatuses = ['CONNECTED', 'PAIRING', 'OPENING'];
+    whatsapps = whatsapps.filter(whatsapp => validStatuses.includes(whatsapp.status));
     logger.info(
-      `[${new Date().toISOString()}] CRON - Connected whatsapps: ${whatsapps.length} - IDs: [${whatsapps.map(w => w.id).join(', ')}]`
+      `[${new Date().toISOString()}] CRON - Active whatsapps (${validStatuses.join('/')}): ${whatsapps.length} - IDs: [${whatsapps.map(w => w.id).join(', ')}]`
     );
 
     let processedCount = 0;

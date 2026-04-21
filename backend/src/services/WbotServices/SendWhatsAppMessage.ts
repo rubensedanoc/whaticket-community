@@ -71,11 +71,58 @@ const SendWhatsAppMessage = async ({
     console.log("[SendWhatsAppMessage] Wbot info existe:", !!wbot.info);
     console.log("[SendWhatsAppMessage] Wbot pupPage existe:", !!wbot.pupPage);
     
+    // VALIDACIÓN 1: Verificar estado de conexión
     try {
       const wbotState = await wbot.getState();
       console.log("[SendWhatsAppMessage] Estado de la conexión:", wbotState);
+      
+      // Lista de estados válidos para enviar mensajes
+      const validStates = ['CONNECTED', 'PAIRING', 'OPENING'];
+      
+      if (!validStates.includes(wbotState)) {
+        throw new AppError(
+          `ERR_WAPP_NOT_READY: WhatsApp ID ${ticket.whatsappId} está en estado ${wbotState}. ` +
+          `Estados válidos: ${validStates.join(', ')}. Por favor reconecte.`,
+          400
+        );
+      }
+      
+      console.log(`[SendWhatsAppMessage] ✓ Estado válido: ${wbotState}`);
     } catch (stateErr) {
+      if (stateErr.message?.includes('ERR_WAPP_NOT_READY')) {
+        throw stateErr;
+      }
       console.log("[SendWhatsAppMessage] WARNING: No se pudo obtener estado:", stateErr.message);
+      // Si no se puede obtener el estado, continuar con precaución
+    }
+
+    // VALIDACIÓN 2: Verificar que los parches están aplicados
+    if (wbot?.pupPage && !wbot.pupPage.isClosed()) {
+      try {
+        const patchStatus = await wbot.pupPage.evaluate(() => {
+          return {
+            applied: !!(window as any).__whaticket_patch_applied,
+            wwebjsExists: typeof (window as any).WWebJS !== 'undefined',
+            getChatExists: typeof (window as any).WWebJS?.getChat === 'function'
+          };
+        });
+        
+        if (!patchStatus.applied || !patchStatus.wwebjsExists || !patchStatus.getChatExists) {
+          console.error(`[SendWhatsAppMessage] Patches not applied for WhatsApp ${ticket.whatsappId}`, patchStatus);
+          throw new AppError(
+            `ERR_WAPP_PATCHES_NOT_APPLIED: WhatsApp ID ${ticket.whatsappId} no está completamente inicializado. Por favor reconecte.`,
+            500
+          );
+        }
+        
+        console.log("[SendWhatsAppMessage] ✓ Patches validated OK");
+      } catch (validationErr) {
+        if (validationErr.message?.includes('ERR_WAPP_PATCHES_NOT_APPLIED')) {
+          throw validationErr;
+        }
+        console.error(`[SendWhatsAppMessage] Could not validate patches:`, validationErr.message);
+        // Si la validación falla por otro motivo (ej: página cerrada), continuar con precaución
+      }
     }
 
     const bodyFormated = formatBody(body, ticket.contact);

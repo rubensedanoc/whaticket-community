@@ -30,6 +30,22 @@ const SetTicketMessagesAsRead = async (ticket: Ticket): Promise<void> => {
       return;
     }
     
+    // Verificar estado antes de sendSeen
+    try {
+      const wbotState = await wbot.getState();
+      const validStates = ['CONNECTED', 'PAIRING', 'OPENING'];
+      
+      if (!validStates.includes(wbotState)) {
+        logger.warn(
+          `[SetTicketMessagesAsRead] Cannot send seen - invalid state ${wbotState} for ticketId ${ticket.id}`
+        );
+        return; // No lanzar error, solo no marcar como leído
+      }
+    } catch (stateErr) {
+      logger.warn(`[SetTicketMessagesAsRead] Could not get state:`, stateErr.message);
+      // Continuar de todas formas
+    }
+    
     try {
       const chatId = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
       await wbot.sendSeen(chatId);

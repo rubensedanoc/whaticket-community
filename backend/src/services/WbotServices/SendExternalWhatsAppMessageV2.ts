@@ -131,6 +131,24 @@ const processQueue = async () => {
         continue;
       }
 
+      // Verificar estado de conexión
+      try {
+        const wbotState = await wbot.getState();
+        const validStates = ['CONNECTED', 'PAIRING', 'OPENING'];
+
+        if (!validStates.includes(wbotState)) {
+          console.error(`[wbot-queue] ❌ WhatsApp ${fromWpp.id} en estado inválido: ${wbotState}. Estados válidos: ${validStates.join(', ')}`);
+          message.sendMessageRequest.status = 'failed';
+          await message.sendMessageRequest.save();
+          continue;
+        }
+        
+        console.log(`[wbot-queue] ✓ Estado válido: ${wbotState}`);
+      } catch (stateErr) {
+        console.warn(`[wbot-queue] ⚠️ No se pudo verificar estado para WhatsApp ${fromWpp.id}:`, stateErr.message);
+        // Continuar con precaución
+      }
+
       // Aplicar parches si es necesario (NO BLOQUEAR si falla)
       if ((wbot as any)?.pupPage) {
         try {
