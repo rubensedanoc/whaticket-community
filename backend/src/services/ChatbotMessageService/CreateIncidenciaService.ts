@@ -139,9 +139,9 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
     if (error instanceof BusinessError) {
       errorMessage = error.message;
     } else if (error instanceof TimeoutError) {
-      errorMessage = "El servicio de incidencias está tardando en responder. Por favor intenta más tarde.";
+      errorMessage = "El servicio de incidencias está tardando en responder";
     } else if (error instanceof ApiError) {
-      errorMessage = "Error de comunicación con el servicio de incidencias. Por favor intenta más tarde.";
+      errorMessage = "Error de comunicación con el servicio de incidencias";
     }
 
     // Reportar a Sentry

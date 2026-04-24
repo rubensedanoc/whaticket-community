@@ -700,7 +700,7 @@ class ChatbotResponseHelper {
         // Finalizar bot
         await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date()});
       } else {
-        const errorMessage = `❌ ${result.error || "No fue posible registrar tu solicitud en este momento."}\n\nPor favor intenta más tarde o contacta a un asesor.`;
+        const errorMessage = `Lo sentimos, no fue posible registrar tu incidencia${result.error ? ": " + result.error : ""} por este medio. Nuestras más sinceras disculpas por el inconveniente.\n\nUn asesor te atenderá lo más pronto posible para ayudarte con tu solicitud. 💙`;
 
         const response = await client.sendText({ to: contact.number, body: errorMessage });
 
@@ -715,6 +715,9 @@ class ChatbotResponseHelper {
         );
 
         this.emitSocketEvent(botMessage, ticket, contact);
+
+        // Finalizar bot
+        await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date()});
       }
 
       return true;
