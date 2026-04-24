@@ -198,6 +198,87 @@ class ChatbotResponseHelper {
   }
 
   /**
+   * Envía mensajes de paciencia cuando el cliente espera atención después de que el bot finalizó
+   * Lógica basada en intervalos de tiempo (5 min) en lugar de contar mensajes
+   */
+  async sendPatienceMessage(ticket: Ticket, contact: Contact, whatsapp: Whatsapp): Promise<void> {
+    try {
+      console.log(`[ChatbotResponseHelper] Evaluando mensaje de paciencia para ticket ${ticket.id}`);
+
+      // Verificar que no hayamos alcanzado el límite de mensajes de paciencia
+      const currentPatienceCount = ticket.patienceMessageCount || 0;
+      if (currentPatienceCount >= 3) {
+        console.log(`[ChatbotResponseHelper] Límite de mensajes de paciencia alcanzado (${currentPatienceCount}/3) para ticket ${ticket.id}`);
+        return;
+      }
+
+      const now = new Date();
+      const fiveMinutesInMs = 5 * 60 * 1000;
+
+      // Determinar desde cuándo calcular el intervalo
+      let timeSinceLastEvent: number;
+      let referenceTime: Date;
+
+      if (ticket.lastPatienceMessageAt) {
+        // Si ya enviamos mensajes de paciencia, calcular desde el último mensaje de paciencia
+        referenceTime = new Date(ticket.lastPatienceMessageAt);
+        timeSinceLastEvent = now.getTime() - referenceTime.getTime();
+        console.log(`[ChatbotResponseHelper] Tiempo desde último mensaje de paciencia: ${Math.floor(timeSinceLastEvent / 1000 / 60)} min`);
+      } else {
+        // Si es el primer mensaje de paciencia, calcular desde que el bot finalizó
+        referenceTime = new Date(ticket.chatbotFinishedAt);
+        timeSinceLastEvent = now.getTime() - referenceTime.getTime();
+        console.log(`[ChatbotResponseHelper] Tiempo desde bot finalizó: ${Math.floor(timeSinceLastEvent / 1000 / 60)} min`);
+      }
+
+      // Verificar si han pasado al menos 5 minutos
+      if (timeSinceLastEvent < fiveMinutesInMs) {
+        console.log(`[ChatbotResponseHelper] No han pasado 5 min desde último evento (${Math.floor(timeSinceLastEvent / 1000 / 60)} min)`);
+        return;
+      }
+
+      // Definir mensajes de paciencia según el contador
+      const patienceMessages = [
+        "⏳ Entendemos tu urgencia. Muy pronto te atenderá un asesor.",
+        "🙏 Nuestras disculpas por la espera. Estás en la cola de atención, lo atenderemos apenas se desocupe un asesor.",
+        "💙 Agradecemos tu paciencia. Tu solicitud es importante para nosotros, te atenderemos lo más pronto posible."
+      ];
+
+      const messageToSend = patienceMessages[currentPatienceCount];
+
+      console.log(`[ChatbotResponseHelper] Enviando mensaje de paciencia ${currentPatienceCount + 1}/3 para ticket ${ticket.id}`);
+
+      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+
+      const response = await client.sendText({ to: contact.number, body: messageToSend });
+
+      const messageId = response.messages[0].id;
+
+      const patienceMessage = await this.saveMessageInDB(
+        messageId,
+        ticket,
+        contact,
+        messageToSend,
+        "chat",
+        "patience"
+      );
+
+      this.emitSocketEvent(patienceMessage, ticket, contact);
+
+      // Actualizar contadores
+      await ticket.update({ 
+        patienceMessageCount: currentPatienceCount + 1,
+        lastPatienceMessageAt: now
+      });
+
+      console.log(`[ChatbotResponseHelper] Mensaje de paciencia ${currentPatienceCount + 1}/3 enviado para ticket ${ticket.id}`);
+    } catch (error) {
+      console.error(`[ChatbotResponseHelper] Error enviando mensaje de paciencia:`, error);
+      Sentry.captureException(error);
+    }
+  }
+
+  /**
    * Envía el mensaje raíz del chatbot por identifier
    * @param identifier - Identifier específico a enviar (opcional, por defecto usa whatsapp.chatbotIdentifier)
    */

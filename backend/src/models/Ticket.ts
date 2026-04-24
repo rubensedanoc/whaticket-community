@@ -106,6 +106,12 @@ class Ticket extends Model<Ticket> {
   @Column
   incidenciaLastAttemptAt: Date;
 
+  @Column
+  patienceMessageCount: number;
+
+  @Column
+  lastPatienceMessageAt: Date;
+
   @ForeignKey(() => User)
   @Column
   userId: number;

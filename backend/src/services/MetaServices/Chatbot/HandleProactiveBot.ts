@@ -28,6 +28,12 @@ const HandleProactiveBot = async ({
   whatsapp
 }: HandleProactiveBotValidationParams): Promise<void> => {
   try {
+    // Validar si el bot ya finalizó (permitir interacción humana)
+    if (ticket.chatbotFinishedAt) {
+      console.log(`[HandleProactiveBot] Bot ya finalizado el ${ticket.chatbotFinishedAt}, permitiendo interacción humana`);
+      return;
+    }
+
     console.log(`[HandleProactiveBotValidation] Procesando bot proactivo - Step: ${ticket.chatbotMessageLastStep}`);
 
     // CASO A: Usuario está navegando el bot principal (aceptó continuar)
