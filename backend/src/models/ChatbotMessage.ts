@@ -53,6 +53,10 @@ class ChatbotMessage extends Model<ChatbotMessage> {
   @Column
   hasSubOptions: boolean;
 
+  @Default(false)
+  @Column
+  flujoConIncidencia: boolean;
+
   @ForeignKey(() => ChatbotMessage)
   @Column
   fatherChatbotOptionId: number;

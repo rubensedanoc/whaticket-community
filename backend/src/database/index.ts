@@ -41,6 +41,7 @@ import ConversationIAEvalutaion from "../models/ConversationIAEvalutaion";
 import ConversationIAQuestions from "../models/ConversationIAQuestions";
 import WhatsappCountry from "../models/WhatsappCountry";
 import ProactiveBotSession from "../models/ProactiveBotSession";
+import IncidenciaLog from "../models/IncidenciaLog";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -90,7 +91,8 @@ const models = [
   ConversationIAEvalutaion,
   ConversationIAQuestions,
   WhatsappCountry,
-  ProactiveBotSession
+  ProactiveBotSession,
+  IncidenciaLog
 ];
 
 sequelize.addModels(models);

@@ -9,9 +9,19 @@ import { emitEvent } from "../../../libs/emitEvent";
 import {
   NAV_BACK_ID,
   NAV_HOME_ID,
+  INCIDENCIA_CONFIRM_ID,
+  INCIDENCIA_CANCEL_ID,
+  INCIDENCIA_CONFIRMATION_OPTIONS,
   appendNavigationRows,
   resolveNavigationTarget
 } from "../../ChatbotMessageService/ChatbotNavigationHelper";
+import CreateIncidenciaService from "../../ChatbotMessageService/CreateIncidenciaService";
+
+interface PathNode {
+  id: number;
+  title: string;
+  timestamp: string;
+}
 
 interface ProcessUserResponseParams {
   ticket: Ticket;
@@ -27,6 +37,24 @@ interface InteractiveListRow {
   description?: string;
   label?: string;
 }
+
+const buildIncidenciaPath = (existingPathJson: string | null, newNode: ChatbotMessage): PathNode[] => {
+  let path: PathNode[] = [];
+  if (existingPathJson) {
+    try {
+      path = JSON.parse(existingPathJson);
+    } catch (error) {
+      console.error("[ChatbotResponseHelper] Error parsing existingPathJson:", error);
+      path = [];
+    }
+  }
+  path.push({
+    id: newNode.id,
+    title: newNode.title,
+    timestamp: new Date().toISOString()
+  });
+  return path;
+};
 
 /**
  * Helper con métodos genéricos para procesamiento de respuestas de chatbot
@@ -75,14 +103,15 @@ class ChatbotResponseHelper {
         return;
       }
 
+      // PUNTO 1: Manejar confirmación de incidencia
+      if (await this.handleIncidenciaConfirmation(ticket, selectedOptionId, chatbotMessageReplied, whatsapp, contact)) {
+        return;
+      }
+
       // Si no hay opciones, finalizar bot
       if (!chatbotMessageReplied.chatbotOptions || chatbotMessageReplied.chatbotOptions.length === 0) {
         console.log("[ChatbotResponseHelper] No hay opciones disponibles, finalizando chatbot");
-        await ticket.update({
-          chatbotMessageLastStep: null,
-          chatbotFinishedAt: new Date(),
-          lastBotMessageAt: new Date()
-        });
+        await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date() });
         return;
       }
 
@@ -93,6 +122,9 @@ class ChatbotResponseHelper {
         await this.sendErrorMessage(chatbotMessageReplied, ticket, contact, whatsapp);
         return;
       }
+
+      // PUNTO 2: Manejar flujo de incidencias
+      await this.handleIncidenciaFlow(ticket, chooseOption, chatbotMessageReplied);
 
       // Guardar categoría/subcategoría
       await this.saveCategory(ticket, chooseOption, chatbotMessageReplied);
@@ -121,7 +153,7 @@ class ChatbotResponseHelper {
       await this.sendMessage(contact, nextChatbotMessage, whatsapp, ticket);
 
       // Actualizar ticket
-      await this.updateTicketAfterResponse(ticket, nextChatbotMessage);
+      await this.updateTicketAfterResponse(ticket, nextChatbotMessage, contact, whatsapp);
 
       console.log(`[ChatbotResponseHelper] Respuesta procesada exitosamente para ticket ${ticket.id}`);
     } catch (error) {
@@ -140,15 +172,9 @@ class ChatbotResponseHelper {
 
       const message = "⏱️ Tu sesión ha expirado por inactividad. Si necesitas ayuda, escríbeme de nuevo y con gusto te atenderé. 😊";
 
-      const client = new MetaApiClient({
-        phoneNumberId: whatsapp.phoneNumberId,
-        accessToken: whatsapp.metaAccessToken
-      });
+      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
 
-      const response = await client.sendText({
-        to: contact.number,
-        body: message
-      });
+      const response = await client.sendText({ to: contact.number, body: message });
 
       const messageId = response.messages[0].id;
 
@@ -203,10 +229,7 @@ class ChatbotResponseHelper {
         return;
       }
 
-      const client = new MetaApiClient({
-        phoneNumberId: whatsapp.phoneNumberId,
-        accessToken: whatsapp.metaAccessToken
-      });
+      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
 
       let messageId: string;
       let messageBody: string;
@@ -255,11 +278,7 @@ class ChatbotResponseHelper {
       this.emitSocketEvent(botMessage, ticket, contact);
 
       // Actualizar ticket
-      await ticket.update({
-        chatbotMessageIdentifier: targetIdentifier,
-        chatbotMessageLastStep: chatbotMessage.identifier,
-        lastBotMessageAt: new Date()
-      });
+      await ticket.update({ chatbotMessageIdentifier: targetIdentifier, chatbotMessageLastStep: chatbotMessage.identifier, lastBotMessageAt: new Date() });
 
       console.log(`[ChatbotResponseHelper] Mensaje raíz enviado para ticket ${ticket.id}`);
     } catch (error) {
@@ -285,6 +304,12 @@ class ChatbotResponseHelper {
 
       console.log(`[ChatbotResponseHelper] Navegación detectada: "${navAction}" desde ${currentIdentifier}`);
 
+      // Limpiar pathJson de incidencia al navegar a home
+      if (selectedOptionId === NAV_HOME_ID && ticket.incidenciaPathJson) {
+        console.log(`[ChatbotResponseHelper] Limpiando pathJson de incidencia al navegar a home`);
+        await ticket.update({ incidenciaPathJson: null });
+      }
+
       const navResult = await resolveNavigationTarget(navAction, currentIdentifier, ticket.chatbotMessageIdentifier);
 
       if (navResult) {
@@ -292,9 +317,8 @@ class ChatbotResponseHelper {
 
         await ticket.update({ chatbotMessageLastStep: newLastStep });
 
-        if (targetNode.hasSubOptions && targetNode.chatbotOptions && targetNode.chatbotOptions.length > 0) {
+        if (targetNode.hasSubOptions && targetNode.chatbotOptions && targetNode.chatbotOptions.length > 0)
           await this.sendMessage(contact, targetNode, whatsapp, ticket);
-        }
 
         console.log(`[ChatbotResponseHelper] Navegación completada a: ${navResult.targetNode.identifier}`);
         return true;
@@ -316,9 +340,7 @@ class ChatbotResponseHelper {
 
     if (selectedOptionId) {
       console.log(`[ChatbotResponseHelper] Buscando opción por ID: ${selectedOptionId}`);
-      chooseOption = chatbotMessageReplied.chatbotOptions?.find(co =>
-        co.id.toString() === selectedOptionId
-      );
+      chooseOption = chatbotMessageReplied.chatbotOptions?.find(co => co.id.toString() === selectedOptionId);
     } else {
       console.log(`[ChatbotResponseHelper] Mensaje de texto libre recibido, no se busca coincidencia por label`);
     }
@@ -381,11 +403,8 @@ class ChatbotResponseHelper {
     contact: Contact,
     whatsapp: Whatsapp
   ): Promise<void> {
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
 
+    const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
     const errorBodyText = `❌ Lo siento, no entendí tu respuesta.\n\nPor favor, selecciona una de las siguientes opciones:`;
 
     const rows = this.formatInteractiveListRows(chatbotMessageReplied.chatbotOptions || []);
@@ -548,19 +567,25 @@ class ChatbotResponseHelper {
   /**
    * Actualiza ticket después de procesar respuesta
    */
-  private async updateTicketAfterResponse(ticket: Ticket, nextChatbotMessage: ChatbotMessage): Promise<void> {
+  private async   updateTicketAfterResponse(
+    ticket: Ticket,
+    nextChatbotMessage: ChatbotMessage,
+    contact: Contact,
+    whatsapp: Whatsapp
+  ): Promise<void> {
     if (!nextChatbotMessage.hasSubOptions || !nextChatbotMessage.chatbotOptions || nextChatbotMessage.chatbotOptions.length === 0) {
       console.log(`[ChatbotResponseHelper] Bot terminó (sin más opciones), finalizando`);
-      await ticket.update({
-        chatbotMessageLastStep: null,
-        chatbotFinishedAt: new Date(),
-        lastBotMessageAt: new Date()
-      });
+
+      // PUNTO 3: Si hay pathJson, mostrar confirmación de incidencia en vez de finalizar
+      if (ticket.incidenciaPathJson) {
+        console.log(`[ChatbotResponseHelper] Detectado pathJson de incidencia, mostrando confirmación`);
+        await this.sendIncidenciaConfirmation(ticket, nextChatbotMessage, contact, whatsapp);
+        return;
+      }
+
+      await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date()});
     } else {
-      await ticket.update({
-        chatbotMessageLastStep: nextChatbotMessage.identifier,
-        lastBotMessageAt: new Date()
-      });
+      await ticket.update({ chatbotMessageLastStep: nextChatbotMessage.identifier, lastBotMessageAt: new Date() });
     }
   }
 
@@ -609,6 +634,165 @@ class ChatbotResponseHelper {
     }).join("\n");
 
     return `\n\n${optionsText}`;
+  }
+
+  /**
+   * Maneja confirmación de incidencia
+   * Intercepta respuestas a los botones de confirmación
+   */
+  private async handleIncidenciaConfirmation(
+    ticket: Ticket,
+    selectedOptionId: string | undefined,
+    chatbotMessageReplied: ChatbotMessage,
+    whatsapp: Whatsapp,
+    contact: Contact
+  ): Promise<boolean> {
+    if (!selectedOptionId) return false;
+
+    if (selectedOptionId === INCIDENCIA_CANCEL_ID) {
+      console.log(`[ChatbotResponseHelper] Usuario canceló incidencia, limpiando pathJson`);
+
+      // Limpiar completamente pathJson de incidencia
+      await ticket.update({ incidenciaPathJson: null });
+
+      // Navegar back (similar a handleNavigation)
+      const navResult = await resolveNavigationTarget(
+        "back",
+        ticket.chatbotMessageLastStep || ticket.chatbotMessageIdentifier,
+        ticket.chatbotMessageIdentifier
+      );
+
+      if (navResult) {
+        await ticket.update({ chatbotMessageLastStep: navResult.newLastStep });
+
+        if (navResult.targetNode.hasSubOptions && navResult.targetNode.chatbotOptions && navResult.targetNode.chatbotOptions.length > 0) {
+          await this.sendMessage(contact, navResult.targetNode, whatsapp, ticket);
+        }
+      }
+
+      return true;
+    }
+
+    if (selectedOptionId === INCIDENCIA_CONFIRM_ID) {
+      console.log(`[ChatbotResponseHelper] Usuario confirmó incidencia, llamando CreateIncidenciaService`);
+
+      const result = await CreateIncidenciaService({ ticket, contact, whatsapp });
+
+      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+
+      if (result.success && result.incidenciaId) {
+        const message = `✅ Tu solicitud fue registrada con el número de incidencia *${result.incidenciaId}*.\n\nUn asesor se comunicará contigo al número desde el cual estás escribiendo lo más pronto posible.`;
+
+        const response = await client.sendText({ to: contact.number, body: message });
+
+        const messageId = response.messages[0].id;
+        const botMessage = await this.saveMessageInDB(
+          messageId,
+          ticket,
+          contact,
+          message,
+          "chat",
+          chatbotMessageReplied.identifier
+        );
+
+        this.emitSocketEvent(botMessage, ticket, contact);
+
+        // Finalizar bot
+        await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date()});
+      } else {
+        const errorMessage = `❌ ${result.error || "No fue posible registrar tu solicitud en este momento."}\n\nPor favor intenta más tarde o contacta a un asesor.`;
+
+        const response = await client.sendText({ to: contact.number, body: errorMessage });
+
+        const messageId = response.messages[0].id;
+        const botMessage = await this.saveMessageInDB(
+          messageId,
+          ticket,
+          contact,
+          errorMessage,
+          "chat",
+          chatbotMessageReplied.identifier
+        );
+
+        this.emitSocketEvent(botMessage, ticket, contact);
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   *  Maneja el flujo de incidencias
+   * Inicia o acumula el pathJson según corresponda
+   */
+  private async handleIncidenciaFlow(
+    ticket: Ticket,
+    chooseOption: ChatbotMessage,
+    chatbotMessageReplied: ChatbotMessage
+  ): Promise<void> {
+    try {
+      // Verificar si el nodo seleccionado tiene flujoConIncidencia activado
+      if (!chooseOption.flujoConIncidencia) {
+        console.log(`[ChatbotResponseHelper] Nodo seleccionado (${chooseOption.id}) no tiene flujo de incidencia`);
+        return;
+      }
+
+      // Si pathJson no existe, iniciarlo
+      if (!ticket.incidenciaPathJson) {
+        console.log(`[ChatbotResponseHelper] Iniciando pathJson de incidencia con nodo ${chooseOption.id}`);
+        const path = buildIncidenciaPath(null, chooseOption);
+        await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
+      } else {
+        // Si pathJson existe, acumular nodo actual
+        console.log(`[ChatbotResponseHelper] Acumulando nodo ${chooseOption.id} en pathJson de incidencia`);
+        const path = buildIncidenciaPath(ticket.incidenciaPathJson, chooseOption);
+        await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
+      }
+    } catch (error) {
+      console.error(`[ChatbotResponseHelper] Error en handleIncidenciaFlow:`, error);
+      Sentry.captureException(error);
+    }
+  }
+
+  /**
+   * Envía lista de confirmación de incidencia
+   */
+  private async sendIncidenciaConfirmation(
+    ticket: Ticket,
+    chatbotMessageReplied: ChatbotMessage,
+    contact: Contact,
+    whatsapp: Whatsapp
+  ): Promise<void> {
+    const client = new MetaApiClient({
+      phoneNumberId: whatsapp.phoneNumberId,
+      accessToken: whatsapp.metaAccessToken
+    });
+
+    const message = `Vamos a registrar una incidencia.\n\n¿Confirmas el registro?`;
+
+    const response = await client.sendInteractiveList({
+      to: contact.number,
+      bodyText: message,
+      buttonText: "Opciones",
+      sections: [{
+        rows: INCIDENCIA_CONFIRMATION_OPTIONS
+      }]
+    });
+
+    const messageId = response.messages[0].id;
+    const optionsText = INCIDENCIA_CONFIRMATION_OPTIONS.map(opt => opt.title).join("\n");
+    const botMessage = await this.saveMessageInDB(
+      messageId,
+      ticket,
+      contact,
+      `${message}\n\n${optionsText}`,
+      "chat",
+      chatbotMessageReplied.identifier
+    );
+
+    this.emitSocketEvent(botMessage, ticket, contact);
   }
 }
 

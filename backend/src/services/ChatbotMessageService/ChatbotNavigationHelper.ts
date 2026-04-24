@@ -4,6 +4,17 @@ import ChatbotMessage from "../../models/ChatbotMessage";
 export const NAV_BACK_ID = "nav_back";
 export const NAV_HOME_ID = "nav_home";
 
+// IDs reservados para opciones de confirmación de incidencias
+export const INCIDENCIA_CONFIRM_ID = "incidencia_confirm";
+export const INCIDENCIA_CANCEL_ID = "incidencia_cancel";
+
+// Opciones de confirmación de incidencia (ID, título)
+export const INCIDENCIA_CONFIRMATION_OPTIONS = [
+  { id: INCIDENCIA_CONFIRM_ID, title: "✅ Confirmar incidencia" },
+  { id: INCIDENCIA_CANCEL_ID, title: "❌ Cancelar" },
+  { id: NAV_HOME_ID, title: "🏠 Menú principal" }
+];
+
 interface InteractiveListRow {
   id: string;
   title: string;

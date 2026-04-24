@@ -62,4 +62,14 @@ externalRoutes.post(
   ExternalApiController.sendMessageToTicket
 );
 
+externalRoutes.post(
+  "/incidencia/update-status",
+  ExternalApiController.IncidenciaStatus
+);
+
+externalRoutes.post(
+  "/incidencia/update-contact-domain",
+  ExternalApiController.UpdateContactDomain
+);
+
 export default externalRoutes;

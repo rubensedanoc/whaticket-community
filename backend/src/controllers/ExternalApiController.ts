@@ -30,6 +30,7 @@ import getUnixTimestamp from "../utils/getUnixTimestamp";
 import sleepPromise from "../utils/sleepPromise";
 import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
+import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import { emitEvent } from "../libs/emitEvent";
 import ContactClientelicencia from "../models/ContactClientelicencias";
@@ -1505,5 +1506,94 @@ export const sendMessageToTicket = async (
       message: `Error interno del servidor: ${error.message}`
     });
   }
+};
+
+export const IncidenciaStatus = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+
+  const { incidenciaId, estado } = req.body;
+
+  const apiKey = req.headers["x-billing-api-key"] as string;
+  if (apiKey !== process.env.BILLING_WEBHOOK_API_KEY) throw new AppError("Invalid API key", 401);
+
+  if (!incidenciaId) throw new AppError("Missing required field: incidenciaId", 400);
+
+  if (!estado) throw new AppError("Missing required field: estado", 400);
+
+  const closingStates = ["RESUELTO", "CLOSED", "CERRADO", "SOLUCIONADO"];
+
+  // Verificar si el estado es un estado de cierre
+  if (!closingStates.includes(estado.toUpperCase())) {
+    console.log("[ExternalApiController] ℹ️ Estado is not a closing state, no action taken:", estado);
+    return res.status(200).json({ message: "Estado is not a closing state, no action taken", estado });
+  }
+
+  const ticket = await Ticket.findOne({
+    where: {
+      incidenciaExternalId: incidenciaId
+    },
+    include: [
+      {
+        model: Whatsapp,
+        as: "whatsapp"
+      },
+      {
+        model: Contact,
+        as: "contact"
+      }
+    ]
+  });
+
+  if (!ticket) throw new AppError("Ticket not found", 404);
+
+  console.log(" ✅ Ticket found:", ticket.id);
+
+  if (ticket.status !== "closed") {
+    await ticket.update({ status: "closed" });
+    if (!ticket.isGroup && ticket.whatsapp?.farewellMessage)
+      await SendWhatsAppMessage({ body: formatBody(ticket.whatsapp.farewellMessage, ticket.contact), ticket });
+  }
+
+  return res.status(200).json({
+    message: "Ticket status updated to closed",
+    ticketId: ticket.id,
+    incidenciaId: ticket.incidenciaExternalId,
+    estado
+  });
+};
+
+export const UpdateContactDomain = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { number, domain } = req.body;
+
+  const apiKey = req.headers["x-billing-api-key"] as string;
+  if (apiKey !== process.env.BILLING_WEBHOOK_API_KEY) throw new AppError("Invalid API key", 401);
+
+  if (!number) throw new AppError("Missing required field: number", 400);
+
+  if (!domain) throw new AppError("Missing required field: domain", 400);
+
+  const contact = await Contact.findOne({
+    where: {
+      number
+    }
+  });
+
+  if (!contact) throw new AppError("Contact not found", 404);
+
+  await contact.update({
+    domain
+  });
+
+  return res.status(200).json({
+    message: "Contact domain updated successfully",
+    contactId: contact.id,
+    number: contact.number,
+    domain
+  });
 };
 
