@@ -5,6 +5,7 @@ import Whatsapp from "../../models/Whatsapp";
 import { IncidenciaClient, BusinessError, TimeoutError, ApiError } from "../../clients/IncidenciaClient";
 import { MetaApiClient } from "../../clients/MetaApiClient";
 import * as Sentry from "@sentry/node";
+import CheckDuplicateIncidenciaService from "./CheckDuplicateIncidenciaService";
 
 const COUNTRY_ID_MAPPER: Record<number, number> = {
   // Mapeo -> [ID_WhatMeta]: ID_Billing
@@ -81,6 +82,24 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
 
     // Actualizar lastAttemptAt
     await ticket.update({ incidenciaLastAttemptAt: now });
+
+    // Validar duplicados por dominio en intervalo de 15 minutos
+    if (contact.domain && ticket.incidenciaPathJson) {
+      const duplicateCheck = await CheckDuplicateIncidenciaService({
+        domain: contact.domain,
+        pathJson: ticket.incidenciaPathJson,
+        intervalMinutes: 15
+      });
+
+      if (duplicateCheck.isDuplicate) {
+        console.log(`[CreateIncidenciaService] Incidencia duplicada detectada para dominio ${contact.domain}`);
+        return {
+          success: false,
+          error: "DUPLICATE_INCIDENCIA",
+          incidenciaId: duplicateCheck.existingTicket?.incidenciaExternalId
+        };
+      }
+    }
 
     // Enviar mensaje de "Procesando..."
     const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });

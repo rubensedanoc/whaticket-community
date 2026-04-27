@@ -127,7 +127,7 @@ export class IncidenciaClient {
 
       setTimeout(() => {
         // 90% éxito, 10% error
-        if (Math.random() < 0.9) {
+        if (Math.random() < 0.99) {
           const mockId = `TEST-INC-${Date.now()}`;
           resolve(mockId);
         } else {

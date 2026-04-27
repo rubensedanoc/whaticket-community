@@ -831,6 +831,37 @@ class ChatbotResponseHelper {
 
         // Finalizar bot
         await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date()});
+      } else if (result.error === "DUPLICATE_INCIDENCIA") {
+        // Caso especial: incidencia duplicada detectada
+        console.log(`[ChatbotResponseHelper] Incidencia duplicada detectada, informando al usuario y cerrando ticket`);
+        
+        const message = `✅ Hemos detectado que este problema ya fue reportado recientemente desde tu local.\n\n🔍 La incidencia${
+          result.incidenciaId ? ` *${result.incidenciaId}*` : ""
+        } ya está siendo atendida por nuestro equipo de soporte.\n\n⏳ El problema se resolverá a la brevedad posible.\n\n💙 Gracias por tu comprensión y paciencia.`;
+
+        const response = await client.sendText({ to: contact.number, body: message });
+
+        const messageId = response.messages[0].id;
+        const botMessage = await this.saveMessageInDB(
+          messageId,
+          ticket,
+          contact,
+          message,
+          "chat",
+          chatbotMessageReplied.identifier
+        );
+
+        this.emitSocketEvent(botMessage, ticket, contact);
+
+        // Finalizar bot y cerrar ticket (será atendido desde el ticket original)
+        await ticket.update({ 
+          chatbotMessageLastStep: null, 
+          chatbotFinishedAt: new Date(), 
+          lastBotMessageAt: new Date(),
+          status: "closed"
+        });
+        
+        console.log(`[ChatbotResponseHelper] Ticket ${ticket.id} cerrado por incidencia duplicada`);
       } else {
         const errorMessage = `Lo sentimos, no fue posible registrar tu incidencia${result.error ? ": " + result.error : ""} por este medio. Nuestras más sinceras disculpas por el inconveniente.\n\nUn asesor te atenderá lo más pronto posible para ayudarte con tu solicitud. 💙`;
 
