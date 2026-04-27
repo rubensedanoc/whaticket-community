@@ -26,8 +26,9 @@ class HandleChatbot {
 
     const { ticket, messageBody, buttonPayload, contact, whatsapp, shouldSkipBot, selectedOptionId } = params;
 
-    // Validar si se debe omitir el bot
-    if (this.shouldSkip(shouldSkipBot, ticket.chatbotFinishedAt)) {
+    // Validar si se debe omitir el bot por shouldSkipBot
+    if (shouldSkipBot) {
+      console.log(`[HandleChatbot] shouldSkipBot es true, omitiendo`);
       return;
     }
 
@@ -52,22 +53,6 @@ class HandleChatbot {
     }
   }
 
-  /**
-   * Valida si se debe omitir el procesamiento del bot
-   */
-  private shouldSkip(shouldSkipBot: boolean, chatbotFinishedAt: Date | null): boolean {
-    if (shouldSkipBot) {
-      console.log(`[HandleChatbot] shouldSkipBot es true, omitiendo`);
-      return true;
-    }
-
-    if (chatbotFinishedAt) {
-      console.log(`[HandleChatbot] Bot ya finalizado el ${chatbotFinishedAt}, permitiendo interacción humana`);
-      return true;
-    }
-
-    return false;
-  }
 
   /**
    * Determina el tipo de bot basado en el whatsapp y ticket

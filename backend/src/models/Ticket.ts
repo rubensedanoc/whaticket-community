@@ -97,6 +97,21 @@ class Ticket extends Model<Ticket> {
   @Column
   chatbotSelectedSubcategory: string;
 
+  @Column
+  incidenciaPathJson: string;
+
+  @Column
+  incidenciaExternalId: string;
+
+  @Column
+  incidenciaLastAttemptAt: Date;
+
+  @Column
+  patienceMessageCount: number;
+
+  @Column
+  lastPatienceMessageAt: Date;
+
   @ForeignKey(() => User)
   @Column
   userId: number;
