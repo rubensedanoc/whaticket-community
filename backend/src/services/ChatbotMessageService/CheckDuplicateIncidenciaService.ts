@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import Ticket from "../../models/Ticket";
 import Contact from "../../models/Contact";
+import { DEFAULT_SUBDOMAIN } from "./CreateIncidenciaService";
 
 interface CheckDuplicateParams {
   domain: string;
@@ -39,6 +40,27 @@ const CheckDuplicateIncidenciaService = async (
 
   if (!domain || !pathJson) {
     console.log(`[CheckDuplicateIncidenciaService] Validación omitida: domain o pathJson vacío`);
+    return { isDuplicate: false };
+  }
+
+  // Extraer subdominio para validar si es específico
+  // Ej: "restaurantefestin.restaurant.pe" -> subdominio = "restaurantefestin"
+  // Ej: "restaurant.pe" -> subdominio = "" (sin subdominio específico)
+  let subdomain = "";
+  try {
+    const domainWithProtocol = domain.startsWith('http') ? domain : `https://${domain}`;
+    const url = new URL(domainWithProtocol);
+    const parts = url.hostname.split(".");
+    if (parts.length > 2) {
+      subdomain = parts.slice(0, -2).join(".");
+    }
+  } catch (error) {
+    console.error(`[CheckDuplicateIncidenciaService] Error extrayendo subdominio:`, error);
+  }
+
+  // Omitir validación si no hay subdominio específico (evitar falsos positivos)
+  if (!subdomain || subdomain === DEFAULT_SUBDOMAIN) {
+    console.log(`[CheckDuplicateIncidenciaService] Validación omitida: sin subdominio específico (domain="${domain}", subdomain="${subdomain}")`);
     return { isDuplicate: false };
   }
 

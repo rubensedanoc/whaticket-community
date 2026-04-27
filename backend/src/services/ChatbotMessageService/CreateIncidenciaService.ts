@@ -7,6 +7,10 @@ import { MetaApiClient } from "../../clients/MetaApiClient";
 import * as Sentry from "@sentry/node";
 import CheckDuplicateIncidenciaService from "./CheckDuplicateIncidenciaService";
 
+// Valores por defecto cuando no se puede extraer el dominio
+export const DEFAULT_DOMINIO = "restaurant.pe";
+export const DEFAULT_SUBDOMAIN = "demoperu";
+
 const COUNTRY_ID_MAPPER: Record<number, number> = {
   // Mapeo -> [ID_WhatMeta]: ID_Billing
   3: 5,   // Brazil
@@ -24,17 +28,17 @@ const COUNTRY_ID_MAPPER: Record<number, number> = {
 
 const formatIncidenciaDescripcion = (pathJson: string | null, externalSupportData: string | null): string => {
   let descripcion = "";
-  
+
   // Agregar datos externos de soporte si existen
   if (externalSupportData) {
     try {
       const supportData = JSON.parse(externalSupportData);
       const parts: string[] = [];
-      
+
       if (supportData.local) parts.push(`Local: ${supportData.local}`);
       if (supportData.caja) parts.push(`Caja: ${supportData.caja}`);
       if (supportData.usuario) parts.push(`Usuario: ${supportData.usuario}`);
-      
+
       if (parts.length > 0) {
         descripcion = parts.join(" | ") + "\n\n";
       }
@@ -42,7 +46,7 @@ const formatIncidenciaDescripcion = (pathJson: string | null, externalSupportDat
       console.error("[CreateIncidenciaService] Error parsing externalSupportData:", error);
     }
   }
-  
+
   // Agregar path del chatbot
   if (pathJson) {
     try {
@@ -53,7 +57,7 @@ const formatIncidenciaDescripcion = (pathJson: string | null, externalSupportDat
       console.error("[CreateIncidenciaService] Error parsing pathJson for description:", error);
     }
   }
-  
+
   return descripcion;
 };
 
@@ -110,14 +114,14 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
     const descripcion = formatIncidenciaDescripcion(ticket.incidenciaPathJson, ticket.externalSupportData);
 
     // Formato esperado: https://restaurantefestin.restaurant.pe
-    let suscripcion = "demoperu";
-    let dominio = "restaurant.pe";
+    let suscripcion = DEFAULT_SUBDOMAIN;
+    let dominio = DEFAULT_DOMINIO;
 
     if (contact.domain) {
       try {
         // Add protocol if missing
-        const domainWithProtocol = contact.domain.startsWith('http') 
-          ? contact.domain 
+        const domainWithProtocol = contact.domain.startsWith('http')
+          ? contact.domain
           : `https://${contact.domain}`;
         const url = new URL(domainWithProtocol);
         const hostname = url.hostname;
