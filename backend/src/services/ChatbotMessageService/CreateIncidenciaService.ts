@@ -21,15 +21,39 @@ const COUNTRY_ID_MAPPER: Record<number, number> = {
   18: 1   // Peru
 };
 
-const formatIncidenciaDescripcion = (pathJson: string | null): string => {
-  if (!pathJson) return "";
-  try {
-    const path = JSON.parse(pathJson);
-    return path.map((node: any) => node.title).join(" > ");
-  } catch (error) {
-    console.error("[CreateIncidenciaService] Error parsing pathJson for description:", error);
-    return "";
+const formatIncidenciaDescripcion = (pathJson: string | null, externalSupportData: string | null): string => {
+  let descripcion = "";
+  
+  // Agregar datos externos de soporte si existen
+  if (externalSupportData) {
+    try {
+      const supportData = JSON.parse(externalSupportData);
+      const parts: string[] = [];
+      
+      if (supportData.local) parts.push(`Local: ${supportData.local}`);
+      if (supportData.caja) parts.push(`Caja: ${supportData.caja}`);
+      if (supportData.usuario) parts.push(`Usuario: ${supportData.usuario}`);
+      
+      if (parts.length > 0) {
+        descripcion = parts.join(" | ") + "\n\n";
+      }
+    } catch (error) {
+      console.error("[CreateIncidenciaService] Error parsing externalSupportData:", error);
+    }
   }
+  
+  // Agregar path del chatbot
+  if (pathJson) {
+    try {
+      const path = JSON.parse(pathJson);
+      const pathTitles = path.map((node: any) => node.title).join(" > ");
+      descripcion += pathTitles;
+    } catch (error) {
+      console.error("[CreateIncidenciaService] Error parsing pathJson for description:", error);
+    }
+  }
+  
+  return descripcion;
 };
 
 interface CreateIncidenciaParams {
@@ -64,7 +88,7 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
 
     const billingCountryId = COUNTRY_ID_MAPPER[contact.countryId] || 1;
     const localId = "1";
-    const descripcion = formatIncidenciaDescripcion(ticket.incidenciaPathJson);
+    const descripcion = formatIncidenciaDescripcion(ticket.incidenciaPathJson, ticket.externalSupportData);
 
     // Formato esperado: https://restaurantefestin.restaurant.pe
     let suscripcion = "demoperu";
@@ -72,7 +96,11 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
 
     if (contact.domain) {
       try {
-        const url = new URL(contact.domain);
+        // Add protocol if missing
+        const domainWithProtocol = contact.domain.startsWith('http') 
+          ? contact.domain 
+          : `https://${contact.domain}`;
+        const url = new URL(domainWithProtocol);
         const hostname = url.hostname;
         const parts = hostname.split(".");
         if (parts.length >= 2) {

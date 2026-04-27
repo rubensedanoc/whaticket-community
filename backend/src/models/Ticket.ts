@@ -112,6 +112,9 @@ class Ticket extends Model<Ticket> {
   @Column
   lastPatienceMessageAt: Date;
 
+  @Column
+  externalSupportData: string;
+
   @ForeignKey(() => User)
   @Column
   userId: number;

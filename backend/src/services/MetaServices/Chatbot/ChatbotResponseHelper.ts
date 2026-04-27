@@ -38,6 +38,57 @@ interface InteractiveListRow {
   label?: string;
 }
 
+export interface ExternalSupportData {
+  dominio?: string;
+  local?: string;
+  caja?: string;
+  usuario?: string;
+}
+
+/**
+ * Extrae datos del mensaje predeterminado de RestPe Mobile
+ */
+export const extractSupportData = (messageBody: string): ExternalSupportData | null => {
+  const supportPattern = /Hola, estoy experimentando un inconveniente con la aplicación Restaurant\.pe Mobile/i;
+
+  if (!supportPattern.test(messageBody)) return null;
+
+  const data: ExternalSupportData = {};
+
+  // Match "Dominio: xxx" (first occurrence in "Detalles del local:" section)
+  const dominioMatch = messageBody.match(/Detalles del local:[\s\S]*?Dominio:\s*([^\n]+)/i);
+  if (dominioMatch) data.dominio = dominioMatch[1].trim();
+
+  // Match "Local: xxx" (standalone line, not "Detalles del local:")
+  const localMatch = messageBody.match(/^Local:\s*([^\n]+)/im);
+  if (localMatch) data.local = localMatch[1].trim();
+
+  const cajaMatch = messageBody.match(/Caja:\s*([^\n]+)/i);
+  if (cajaMatch) data.caja = cajaMatch[1].trim();
+
+  const usuarioMatch = messageBody.match(/Usuario:\s*([^\n]+)/i);
+  if (usuarioMatch) data.usuario = usuarioMatch[1].trim();
+
+  return Object.keys(data).length > 0 ? data : null;
+};
+
+/**
+ * Valida que el dominio tenga un formato válido
+ */
+export const isValidDomain = (domain: string): boolean => {
+  if (!domain) return false;
+
+  try {
+    const url = new URL(domain.startsWith('http') ? domain : `https://${domain}`);
+    const hostname = url.hostname;
+
+    const domainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?(\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?)*\.[a-zA-Z]{2,}$/;
+    return domainPattern.test(hostname);
+  } catch {
+    return false;
+  }
+};
+
 const buildIncidenciaPath = (existingPathJson: string | null, newNode: ChatbotMessage): PathNode[] => {
   let path: PathNode[] = [];
   if (existingPathJson) {
@@ -266,7 +317,7 @@ class ChatbotResponseHelper {
       this.emitSocketEvent(patienceMessage, ticket, contact);
 
       // Actualizar contadores
-      await ticket.update({ 
+      await ticket.update({
         patienceMessageCount: currentPatienceCount + 1,
         lastPatienceMessageAt: now
       });
@@ -817,22 +868,21 @@ class ChatbotResponseHelper {
     chatbotMessageReplied: ChatbotMessage
   ): Promise<void> {
     try {
-      // Verificar si el nodo seleccionado tiene flujoConIncidencia activado
-      if (!chooseOption.flujoConIncidencia) {
-        console.log(`[ChatbotResponseHelper] Nodo seleccionado (${chooseOption.id}) no tiene flujo de incidencia`);
+      // Si pathJson ya existe, agregar nodo actual (flujo ya iniciado)
+      if (ticket.incidenciaPathJson) {
+        console.log(`[ChatbotResponseHelper] Acumulando nodo ${chooseOption.id} en pathJson de incidencia`);
+        const path = buildIncidenciaPath(ticket.incidenciaPathJson, chooseOption);
+        await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
         return;
       }
 
-      // Si pathJson no existe, iniciarlo
-      if (!ticket.incidenciaPathJson) {
+      // Si pathJson no existe, verificar si este nodo inicia el flujo de incidencia
+      if (chooseOption.flujoConIncidencia) {
         console.log(`[ChatbotResponseHelper] Iniciando pathJson de incidencia con nodo ${chooseOption.id}`);
         const path = buildIncidenciaPath(null, chooseOption);
         await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
       } else {
-        // Si pathJson existe, acumular nodo actual
-        console.log(`[ChatbotResponseHelper] Acumulando nodo ${chooseOption.id} en pathJson de incidencia`);
-        const path = buildIncidenciaPath(ticket.incidenciaPathJson, chooseOption);
-        await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
+        console.log(`[ChatbotResponseHelper] Nodo seleccionado (${chooseOption.id}) no tiene flujo de incidencia y pathJson no existe`);
       }
     } catch (error) {
       console.error(`[ChatbotResponseHelper] Error en handleIncidenciaFlow:`, error);
