@@ -1650,11 +1650,37 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
         }
 
         if (freshWpp.webhook) {
-
-          if (msg.from) {
-            // @ts-ignore
-            msg.fromNumber = msg.from.replace(/\D/g, "");
+          // Inicializar fromNumber y from
+          let fromNumber = msg.from ? msg.from.replace(/\D/g, "") : "";
+          let from = msg.from;
+          
+          // Detectar si es un LID
+          const isLid = msg.from && msg.from.endsWith('@lid');
+          
+          if (isLid) {
+            try {
+              // Obtener el contacto real para extraer el número
+              const contact = await msg.getContact();
+              
+              // Extraer número real del contacto
+              const realNumber = contact.id?.user || contact.number;
+              
+              if (realNumber) {
+                fromNumber = realNumber;
+                from = `${realNumber}@c.us`;
+                console.log(`[WEBHOOK] LID detectado, reemplazado con número real: ${realNumber}`);
+              }
+            } catch (error) {
+              console.log(`[WEBHOOK] Error obteniendo contacto para LID: ${msg.from}`, error);
+              // Si falla, continuar con los valores originales
+            }
           }
+          
+          // Asignar al objeto msg
+          // @ts-ignore
+          msg.fromNumber = fromNumber;
+          // @ts-ignore
+          msg.from = from;
 
           if (msg.to) {
             // @ts-ignore
