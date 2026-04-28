@@ -1667,7 +1667,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
               
               if (realNumber) {
                 fromNumber = realNumber;
-                from = `${realNumber}@c.us`;
+                from = realNumber;
                 console.log(`[WEBHOOK] LID detectado, reemplazado con número real: ${realNumber}`);
               }
             } catch (error) {
