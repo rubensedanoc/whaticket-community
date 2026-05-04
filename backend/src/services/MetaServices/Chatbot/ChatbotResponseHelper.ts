@@ -38,6 +38,57 @@ interface InteractiveListRow {
   label?: string;
 }
 
+export interface ExternalSupportData {
+  dominio?: string;
+  local?: string;
+  caja?: string;
+  usuario?: string;
+}
+
+/**
+ * Extrae datos del mensaje predeterminado de RestPe Mobile
+ */
+export const extractSupportData = (messageBody: string): ExternalSupportData | null => {
+  const supportPattern = /Hola, estoy experimentando un inconveniente con la aplicación Restaurant\.pe Mobile/i;
+
+  if (!supportPattern.test(messageBody)) return null;
+
+  const data: ExternalSupportData = {};
+
+  // Match "Dominio: xxx" (first occurrence in "Detalles del local:" section)
+  const dominioMatch = messageBody.match(/Detalles del local:[\s\S]*?Dominio:\s*([^\n]+)/i);
+  if (dominioMatch) data.dominio = dominioMatch[1].trim();
+
+  // Match "Local: xxx" (standalone line, not "Detalles del local:")
+  const localMatch = messageBody.match(/^Local:\s*([^\n]+)/im);
+  if (localMatch) data.local = localMatch[1].trim();
+
+  const cajaMatch = messageBody.match(/Caja:\s*([^\n]+)/i);
+  if (cajaMatch) data.caja = cajaMatch[1].trim();
+
+  const usuarioMatch = messageBody.match(/Usuario:\s*([^\n]+)/i);
+  if (usuarioMatch) data.usuario = usuarioMatch[1].trim();
+
+  return Object.keys(data).length > 0 ? data : null;
+};
+
+/**
+ * Valida que el dominio tenga un formato válido
+ */
+export const isValidDomain = (domain: string): boolean => {
+  if (!domain) return false;
+
+  try {
+    const url = new URL(domain.startsWith('http') ? domain : `https://${domain}`);
+    const hostname = url.hostname;
+
+    const domainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?(\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?)*\.[a-zA-Z]{2,}$/;
+    return domainPattern.test(hostname);
+  } catch {
+    return false;
+  }
+};
+
 const buildIncidenciaPath = (existingPathJson: string | null, newNode: ChatbotMessage): PathNode[] => {
   let path: PathNode[] = [];
   if (existingPathJson) {
@@ -266,7 +317,7 @@ class ChatbotResponseHelper {
       this.emitSocketEvent(patienceMessage, ticket, contact);
 
       // Actualizar contadores
-      await ticket.update({ 
+      await ticket.update({
         patienceMessageCount: currentPatienceCount + 1,
         lastPatienceMessageAt: now
       });
@@ -780,6 +831,37 @@ class ChatbotResponseHelper {
 
         // Finalizar bot
         await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date()});
+      } else if (result.error === "DUPLICATE_INCIDENCIA") {
+        // Caso especial: incidencia duplicada detectada
+        console.log(`[ChatbotResponseHelper] Incidencia duplicada detectada, informando al usuario y cerrando ticket`);
+        
+        const message = `✅ Hemos detectado que este problema ya fue reportado recientemente desde tu local.\n\n🔍 La incidencia${
+          result.incidenciaId ? ` *${result.incidenciaId}*` : ""
+        } ya está siendo atendida por nuestro equipo de soporte.\n\n⏳ El problema se resolverá a la brevedad posible.\n\n💙 Gracias por tu comprensión y paciencia.`;
+
+        const response = await client.sendText({ to: contact.number, body: message });
+
+        const messageId = response.messages[0].id;
+        const botMessage = await this.saveMessageInDB(
+          messageId,
+          ticket,
+          contact,
+          message,
+          "chat",
+          chatbotMessageReplied.identifier
+        );
+
+        this.emitSocketEvent(botMessage, ticket, contact);
+
+        // Finalizar bot y cerrar ticket (será atendido desde el ticket original)
+        await ticket.update({ 
+          chatbotMessageLastStep: null, 
+          chatbotFinishedAt: new Date(), 
+          lastBotMessageAt: new Date(),
+          status: "closed"
+        });
+        
+        console.log(`[ChatbotResponseHelper] Ticket ${ticket.id} cerrado por incidencia duplicada`);
       } else {
         const errorMessage = `Lo sentimos, no fue posible registrar tu incidencia${result.error ? ": " + result.error : ""} por este medio. Nuestras más sinceras disculpas por el inconveniente.\n\nUn asesor te atenderá lo más pronto posible para ayudarte con tu solicitud. 💙`;
 
@@ -817,22 +899,21 @@ class ChatbotResponseHelper {
     chatbotMessageReplied: ChatbotMessage
   ): Promise<void> {
     try {
-      // Verificar si el nodo seleccionado tiene flujoConIncidencia activado
-      if (!chooseOption.flujoConIncidencia) {
-        console.log(`[ChatbotResponseHelper] Nodo seleccionado (${chooseOption.id}) no tiene flujo de incidencia`);
+      // Si pathJson ya existe, agregar nodo actual (flujo ya iniciado)
+      if (ticket.incidenciaPathJson) {
+        console.log(`[ChatbotResponseHelper] Acumulando nodo ${chooseOption.id} en pathJson de incidencia`);
+        const path = buildIncidenciaPath(ticket.incidenciaPathJson, chooseOption);
+        await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
         return;
       }
 
-      // Si pathJson no existe, iniciarlo
-      if (!ticket.incidenciaPathJson) {
+      // Si pathJson no existe, verificar si este nodo inicia el flujo de incidencia
+      if (chooseOption.flujoConIncidencia) {
         console.log(`[ChatbotResponseHelper] Iniciando pathJson de incidencia con nodo ${chooseOption.id}`);
         const path = buildIncidenciaPath(null, chooseOption);
         await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
       } else {
-        // Si pathJson existe, acumular nodo actual
-        console.log(`[ChatbotResponseHelper] Acumulando nodo ${chooseOption.id} en pathJson de incidencia`);
-        const path = buildIncidenciaPath(ticket.incidenciaPathJson, chooseOption);
-        await ticket.update({ incidenciaPathJson: JSON.stringify(path) });
+        console.log(`[ChatbotResponseHelper] Nodo seleccionado (${chooseOption.id}) no tiene flujo de incidencia y pathJson no existe`);
       }
     } catch (error) {
       console.error(`[ChatbotResponseHelper] Error en handleIncidenciaFlow:`, error);
