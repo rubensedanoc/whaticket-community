@@ -592,6 +592,7 @@ export const getClientTimeWaitingForTickets = async (tickets: Ticket[]) => {
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}))
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateLastMessageCS,
       MIN(CASE
@@ -601,6 +602,7 @@ export const getClientTimeWaitingForTickets = async (tickets: Ticket[]) => {
             AND (m.fromMe = 1
             OR c.isCompanyMember = '1'
             OR c.number IN (${whatasappListIDS}) )
+            AND t.userId IS NOT NULL
           THEN m.timestamp
           END) as dateFirstMessageCS
     FROM Tickets t
@@ -800,6 +802,7 @@ export const reportHistory = async (
         AND (m.fromMe = 1
         OR c.isCompanyMember = '1'
         OR c.number IN (${whatasappListIDS}))
+        AND t.userId IS NOT NULL
       THEN m.timestamp
       END) as dateLastMessageCS,
     MIN(CASE
@@ -809,6 +812,7 @@ export const reportHistory = async (
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}) )
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateFirstMessageCS
   FROM Tickets t
@@ -1089,18 +1093,21 @@ export const reportHistoryWithDateRange = async (
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}) )
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateFirstMessageCS,
   (
       SELECT MIN(m_inner.timestamp)
       FROM Messages m_inner
       LEFT JOIN Contacts c_inner ON m_inner.contactId = c_inner.id
+      LEFT JOIN Tickets t_inner ON m_inner.ticketId = t_inner.id
       WHERE
         m_inner.ticketId = t.id
         AND m_inner.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
         AND (m_inner.fromMe = 1
         OR c_inner.isCompanyMember = '1'
         OR c_inner.number IN (${whatasappListIDS}))
+        AND t_inner.userId IS NOT NULL
         AND m_inner.timestamp > (
           SELECT MIN(mcs.timestamp)
           FROM Messages mcs
@@ -1119,6 +1126,7 @@ export const reportHistoryWithDateRange = async (
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}))
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateLastMessageCS,
     MIN(CASE
