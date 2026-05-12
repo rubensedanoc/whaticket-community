@@ -1628,7 +1628,7 @@ export const reportToExcel = async (
               contactUpdates.push(
                 Contact.update(
                   { domain: entry.link_dominio },
-                  { where: { id: ticket.ctid } }
+                  { where: { number } }
                 )
               );
             }
