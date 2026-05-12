@@ -1615,17 +1615,17 @@ export const reportToExcel = async (
 
         const data = await response.json();
 
-        console.log("--- microservicio keys:", Object.keys(data.data || {}));
-        console.log("--- ticketListFinal numbers:", ticketListFinal.filter(t => !t.tisGroup).map(t => t.ctnumber));
-        console.log("--- microservicio data completa:", JSON.stringify(data.data, null, 2));
-
         for (const number in data.data) {
-          if (ticketListFinal.find(t => t.ctnumber === number)) {
-            ticketListFinal.find(t => t.ctnumber === number).microserviceData =
-              Array.isArray(data.data[number]) && data.data[number].length > 0
-                ? data.data[number][0]
-                : data.data[number];
-          }
+          const microserviceValue =
+            Array.isArray(data.data[number]) && data.data[number].length > 0
+              ? data.data[number][0]
+              : data.data[number];
+
+          ticketListFinal
+            .filter(t => t.ctnumber === number)
+            .forEach(t => {
+              t.microserviceData = microserviceValue;
+            });
         }
       } catch (error) {
         console.log("--- Error in searchIfNumbersAreExclusive", error);
