@@ -1389,6 +1389,7 @@ export const reportToExcel = async (
     ct.id as ctid,
     ct.name as ctname,
     ct.number as ctnumber,
+    ct.domain as ctdomain,
     w.id as wid,
     w.name as wname,
     ctc.name as ctcname
