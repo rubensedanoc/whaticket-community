@@ -1615,6 +1615,29 @@ export const reportToExcel = async (
 
         const data = await response.json();
 
+        // Persistir link_dominio en Contacts.domain si no lo tiene guardado
+        const contactUpdates: any[] = [];
+        for (const number in data.data) {
+          const entry = Array.isArray(data.data[number]) && data.data[number].length > 0
+            ? data.data[number][0]
+            : data.data[number];
+
+          if (entry?.link_dominio) {
+            const ticket = ticketListFinal.find(t => t.ctnumber === number);
+            if (ticket && !ticket.ctdomain) {
+              contactUpdates.push(
+                Contact.update(
+                  { domain: entry.link_dominio },
+                  { where: { id: ticket.ctid } }
+                )
+              );
+            }
+          }
+        }
+        if (contactUpdates.length > 0) {
+          await Promise.all(contactUpdates);
+        }
+
         for (const number in data.data) {
           const microserviceValue =
             Array.isArray(data.data[number]) && data.data[number].length > 0
