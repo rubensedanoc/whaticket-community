@@ -1509,6 +1509,7 @@ export const reportToExcel = async (
       tisGroup: ticketsClosed[ticketId][0].tisGroup,
       ctcname: ticketsClosed[ticketId][0].ctcname,
       ctnumber: ticketsClosed[ticketId][0].ctnumber,
+      ctdomain: ticketsClosed[ticketId][0].ctdomain,
       tcreatedAt: ticketsClosed[ticketId][0].tcreatedAt,
       queuename: ticketsClosed[ticketId][0].queuename,
       tchatbotSelectedCategory: ticketsClosed[ticketId][0].tchatbotSelectedCategory,
@@ -1545,6 +1546,7 @@ export const reportToExcel = async (
       tisGroup: ticketsPendingOpen[ticketId][0].tisGroup,
       ctcname: ticketsPendingOpen[ticketId][0].ctcname,
       ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
+      ctdomain: ticketsPendingOpen[ticketId][0].ctdomain,
       tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
       queuename: ticketsPendingOpen[ticketId][0].queuename,
       tchatbotSelectedCategory: ticketsPendingOpen[ticketId][0].tchatbotSelectedCategory,
@@ -1622,6 +1624,16 @@ export const reportToExcel = async (
         }
       } catch (error) {
         console.log("--- Error in searchIfNumbersAreExclusive", error);
+      }
+    }
+
+    // Fallback: usar ct.domain local cuando el microservicio no devuelve link_dominio
+    for (const ticket of ticketListFinal) {
+      if (!ticket.ctdomain) continue;
+      if (!ticket.microserviceData) {
+        ticket.microserviceData = { link_dominio: ticket.ctdomain };
+      } else if (!ticket.microserviceData.link_dominio) {
+        ticket.microserviceData.link_dominio = ticket.ctdomain;
       }
     }
   }
