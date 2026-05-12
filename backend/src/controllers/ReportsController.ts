@@ -764,7 +764,7 @@ export const reportHistory = async (
           AND (m.isPrivate IS NULL OR m.isPrivate != '1')
           AND m.fromMe != 1
           AND (c.isCompanyMember IS NULL OR c.isCompanyMember != '1')
-          AND (c.number NOT IN (${whatasappListIDS}) OR ${whatasappListIDS} = '')
+          AND c.number NOT IN (${whatasappListIDS})
         THEN m.timestamp
         END) as dateFirstMessageClient,
     MIN(
