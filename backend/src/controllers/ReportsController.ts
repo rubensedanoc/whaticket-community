@@ -1615,6 +1615,9 @@ export const reportToExcel = async (
 
         const data = await response.json();
 
+        console.log("--- microservicio keys:", Object.keys(data.data || {}));
+        console.log("--- ticketListFinal numbers:", ticketListFinal.filter(t => !t.tisGroup).map(t => t.ctnumber));
+
         for (const number in data.data) {
           if (ticketListFinal.find(t => t.ctnumber === number)) {
             ticketListFinal.find(t => t.ctnumber === number).microserviceData =
