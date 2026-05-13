@@ -9,6 +9,7 @@ interface QueuedMessage {
   message: string;
   sendMessageRequest: SendMessageRequest;
   mediaUrl?: string | null;
+  selectionMode: "explicit" | "thread-pin" | "round-robin";
 }
 
 interface QueueConfig {
@@ -21,21 +22,143 @@ const queueState = {
   processing: false,
   lastSentTimestamp: 0,
   config: {
-    delayBetweenMessages: 30000 // 30 segundos entre cada mensaje
+    delayBetweenMessages: 45000 // 45 segundos entre cada mensaje
   } as QueueConfig
 };
 
-// Estado de alternancia de números
+const ELIGIBLE_CONNECTION_STATES = ["CONNECTED", "PAIRING"];
+
+// Estado de alternancia y anclaje por número destino
 const alternationState = {
-  numbers: ['51985001690', '51985002996'], // <-- Configura aquí los números de WhatsApp conectados
-  currentIndex: 0
+  currentIndex: 0,
+  pinnedConnectionsByNumber: new Map<string, string>()
 };
 
-// Función para obtener el siguiente número en alternancia
-const getNextNumber = (): string => {
-  const number = alternationState.numbers[alternationState.currentIndex];
-  alternationState.currentIndex = (alternationState.currentIndex + 1) % alternationState.numbers.length;
-  return number;
+const normalizePhoneNumber = (phoneNumber: string): string => {
+  return phoneNumber.replace(/\D/g, "").trim();
+};
+
+const getInitializedConnectionByNumber = async (
+  fromNumber: string
+): Promise<Whatsapp | null> => {
+  const normalizedFromNumber = normalizePhoneNumber(fromNumber);
+
+  const connection = await Whatsapp.findOne({
+    where: {
+      number: normalizedFromNumber,
+      status: ELIGIBLE_CONNECTION_STATES
+    },
+    order: [["id", "DESC"]]
+  });
+
+  if (!connection) {
+    console.log(
+      `[wbot-queue] ⚠️ Conexión ${normalizedFromNumber} descartada: no está en ${ELIGIBLE_CONNECTION_STATES.join(", ")}`
+    );
+    return null;
+  }
+
+  const wbot = getWbot(connection.id);
+  if (!(wbot as any)?.info) {
+    console.log(
+      `[wbot-queue] ⚠️ Conexión ${normalizedFromNumber} descartada: sesión no inicializada`
+    );
+    return null;
+  }
+
+  return connection;
+};
+
+const getEligibleConnections = async (): Promise<Whatsapp[]> => {
+  const activeConnections = await Whatsapp.findAll({
+    where: {
+      status: ELIGIBLE_CONNECTION_STATES
+    },
+    order: [["id", "ASC"]]
+  });
+
+  const eligibleConnections: Whatsapp[] = [];
+
+  for (const connection of activeConnections) {
+    const validatedConnection = await getInitializedConnectionByNumber(
+      connection.number
+    );
+
+    if (validatedConnection) {
+      eligibleConnections.push(validatedConnection);
+    }
+  }
+
+  return eligibleConnections;
+};
+
+const getNextConnection = (connections: Whatsapp[]): Whatsapp => {
+  const nextIndex = alternationState.currentIndex % connections.length;
+  const selectedConnection = connections[nextIndex];
+
+  alternationState.currentIndex = (nextIndex + 1) % connections.length;
+
+  return selectedConnection;
+};
+
+const resolveOutgoingConnection = async ({
+  toNumber,
+  fromNumber
+}: {
+  toNumber: string;
+  fromNumber?: string;
+}): Promise<{
+  selectedFromNumber: string | null;
+  selectionMode: "explicit" | "thread-pin" | "round-robin";
+}> => {
+  if (fromNumber) {
+    const normalizedFromNumber = normalizePhoneNumber(fromNumber);
+    alternationState.pinnedConnectionsByNumber.set(toNumber, normalizedFromNumber);
+
+    console.log(
+      `[wbot-queue] 📌 Conexión explícita fijada para ${toNumber}: ${normalizedFromNumber}`
+    );
+
+    return {
+      selectedFromNumber: normalizedFromNumber,
+      selectionMode: "explicit"
+    };
+  }
+
+  const pinnedFromNumber = alternationState.pinnedConnectionsByNumber.get(toNumber);
+  if (pinnedFromNumber) {
+    console.log(
+      `[wbot-queue] 🔒 Reutilizando conexión del hilo para ${toNumber}: ${pinnedFromNumber}`
+    );
+
+    return {
+      selectedFromNumber: pinnedFromNumber,
+      selectionMode: "thread-pin"
+    };
+  }
+
+  const eligibleConnections = await getEligibleConnections();
+  if (!eligibleConnections.length) {
+    console.log("[wbot-queue] ❌ No hay conexiones elegibles para alternancia");
+    return {
+      selectedFromNumber: null,
+      selectionMode: "round-robin"
+    };
+  }
+
+  const selectedConnection = getNextConnection(eligibleConnections);
+  const normalizedFromNumber = normalizePhoneNumber(selectedConnection.number);
+
+  alternationState.pinnedConnectionsByNumber.set(toNumber, normalizedFromNumber);
+
+  console.log(
+    `[wbot-queue] 🔄 Primer contacto ${toNumber} asignado a ${normalizedFromNumber} (siguiente índice: ${alternationState.currentIndex})`
+  );
+
+  return {
+    selectedFromNumber: normalizedFromNumber,
+    selectionMode: "round-robin"
+  };
 };
 
 const delay = (ms: number): Promise<void> => {
@@ -60,63 +183,26 @@ const processQueue = async () => {
     if (!message) continue;
 
     try {
-      console.log(`[wbot-queue] 🔍 Buscando conexión para número: ${message.fromNumber}`);
-      
-      // Buscar conexión activa (CONNECTED o PAIRING) para el número asignado
-      let fromWpp = await Whatsapp.findOne({
-        where: {
-          number: message.fromNumber,
-          status: ["CONNECTED", "PAIRING"]
-        },
-        order: [['id', 'DESC']]
-      });
+      console.log(
+        `[wbot-queue] 🔍 Validando conexión ${message.fromNumber} para ${message.toNumber} (${message.selectionMode})`
+      );
 
-      // Verificar que la sesión wbot esté inicializada
-      if (fromWpp) {
-        const wbotTest = getWbot(fromWpp.id);
-        if (!(wbotTest as any)?.info) {
-          console.log(`[wbot-queue] ⚠️ Conexión ${fromWpp.number} (ID: ${fromWpp.id}) no tiene sesión inicializada`);
-          fromWpp = null;
-        } else {
-          console.log(`[wbot-queue] ✅ Conexión encontrada - ID: ${fromWpp.id}, Nombre: ${fromWpp.name}, Estado: ${fromWpp.status}`);
-        }
-      }
+      const fromWpp = await getInitializedConnectionByNumber(message.fromNumber);
 
-      // FALLBACK: Si el número asignado no está disponible, buscar cualquier número activo con sesión inicializada
       if (!fromWpp) {
-        console.log(`[wbot-queue] ⚠️ Número asignado ${message.fromNumber} no disponible, buscando fallback...`);
-        
-        const allActiveConnections = await Whatsapp.findAll({
-          where: {
-            status: ["CONNECTED", "PAIRING"]
-          },
-          order: [['id', 'DESC']]
-        });
-        
-        // Buscar la primera conexión con sesión inicializada
-        for (const conn of allActiveConnections) {
-          const wbotTest = getWbot(conn.id);
-          if ((wbotTest as any)?.info) {
-            fromWpp = conn;
-            console.log(`[wbot-queue] ✅ Usando fallback: ${fromWpp.number} (ID: ${fromWpp.id}, Nombre: ${fromWpp.name})`);
-            break;
-          } else {
-            console.log(`[wbot-queue] ⏭️ Saltando conexión ${conn.number} (ID: ${conn.id}) - sesión no inicializada`);
-          }
-        }
-      }
+        console.error(
+          `[wbot-queue] ❌ La conexión ${message.fromNumber} ya no está disponible para ${message.toNumber}. No se cambia de conexión dentro del hilo.`
+        );
 
-      // Si aún no hay ninguna conexión activa disponible, marcar como failed
-      if (!fromWpp) {
-        console.error(`[wbot-queue] ❌ No hay ninguna conexión activa disponible`);
-        
-        // Debug: mostrar todas las conexiones disponibles
         const allConnections = await Whatsapp.findAll({
-          attributes: ['id', 'name', 'number', 'status']
+          attributes: ["id", "name", "number", "status"]
         });
-        console.error('[wbot-queue] 📋 Conexiones disponibles en DB:', JSON.stringify(allConnections, null, 2));
-        
-        message.sendMessageRequest.status = 'failed';
+        console.error(
+          "[wbot-queue] 📋 Conexiones disponibles en DB:",
+          JSON.stringify(allConnections, null, 2)
+        );
+
+        message.sendMessageRequest.status = "failed";
         await message.sendMessageRequest.save();
         continue;
       }
@@ -134,7 +220,7 @@ const processQueue = async () => {
       // Verificar estado de conexión
       try {
         const wbotState = await wbot.getState();
-        const validStates = ['CONNECTED', 'PAIRING', 'OPENING'];
+        const validStates = ["CONNECTED", "PAIRING", "OPENING"];
 
         if (!validStates.includes(wbotState)) {
           console.error(`[wbot-queue] ❌ WhatsApp ${fromWpp.id} en estado inválido: ${wbotState}. Estados válidos: ${validStates.join(', ')}`);
@@ -258,17 +344,20 @@ export const addMessageToQueue = async ({
 
   if (!mensajes.length) {
     // Limpiar números
-    toNumber = toNumber.replace(/\D/g, '').trim();
-    
-    // Si no se proporciona fromNumber o está vacío, usar el sistema de alternancia
-    const originalFromNumber = fromNumber || 'auto';
-    fromNumber = fromNumber ? fromNumber.replace(/\D/g, '').trim() : getNextNumber();
-    
-    if (originalFromNumber === 'auto') {
-      console.log(`[wbot-queue] 🔄 Número seleccionado automáticamente: ${fromNumber} (índice actual: ${alternationState.currentIndex})`);
-    } else {
-      console.log(`[wbot-queue] 🔄 Alternancia: ${originalFromNumber} → ${fromNumber} (índice actual: ${alternationState.currentIndex})`);
+    toNumber = normalizePhoneNumber(toNumber);
+    fromNumber = fromNumber ? normalizePhoneNumber(fromNumber) : undefined;
+
+    const resolvedConnection = await resolveOutgoingConnection({
+      toNumber,
+      fromNumber
+    });
+
+    if (!resolvedConnection.selectedFromNumber) {
+      mensajes.push('No hay conexiones elegibles disponibles para este envío');
+      return { mensajes, data };
     }
+
+    fromNumber = resolvedConnection.selectedFromNumber;
 
     const sendMessageRequest = await SendMessageRequest.create({
       fromNumber,
@@ -276,7 +365,14 @@ export const addMessageToQueue = async ({
       message,
     });
 
-    queueState.queue.push({ fromNumber, toNumber, message, mediaUrl, sendMessageRequest });
+    queueState.queue.push({
+      fromNumber,
+      toNumber,
+      message,
+      mediaUrl,
+      sendMessageRequest,
+      selectionMode: resolvedConnection.selectionMode
+    });
     console.log(`[wbot-queue] 📨 Mensaje agregado a la cola. Total en cola: ${queueState.queue.length}`);
 
     if (!queueState.processing) {
