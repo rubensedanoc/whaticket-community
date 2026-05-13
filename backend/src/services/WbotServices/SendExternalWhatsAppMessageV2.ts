@@ -101,6 +101,22 @@ const getNextConnection = (connections: Whatsapp[]): Whatsapp => {
   return selectedConnection;
 };
 
+const getFallbackConnection = async (
+  excludedFromNumber?: string
+): Promise<Whatsapp | null> => {
+  const eligibleConnections = await getEligibleConnections();
+
+  const fallbackConnection = eligibleConnections.find(connection => {
+    if (!excludedFromNumber) {
+      return true;
+    }
+
+    return normalizePhoneNumber(connection.number) !== excludedFromNumber;
+  });
+
+  return fallbackConnection || null;
+};
+
 const resolveOutgoingConnection = async ({
   toNumber,
   fromNumber
@@ -190,6 +206,27 @@ const processQueue = async () => {
       const fromWpp = await getInitializedConnectionByNumber(message.fromNumber);
 
       if (!fromWpp) {
+        if (message.selectionMode !== "thread-pin") {
+          const fallbackConnection = await getFallbackConnection(message.fromNumber);
+
+          if (fallbackConnection) {
+            const fallbackFromNumber = normalizePhoneNumber(fallbackConnection.number);
+
+            console.warn(
+              `[wbot-queue] 🔁 La conexión ${message.fromNumber} no está disponible para ${message.toNumber}. Se usará fallback ${fallbackFromNumber} (${message.selectionMode}).`
+            );
+
+            message.fromNumber = fallbackFromNumber;
+            alternationState.pinnedConnectionsByNumber.set(
+              message.toNumber,
+              fallbackFromNumber
+            );
+
+            queueState.queue.unshift(message);
+            continue;
+          }
+        }
+
         console.error(
           `[wbot-queue] ❌ La conexión ${message.fromNumber} ya no está disponible para ${message.toNumber}. No se cambia de conexión dentro del hilo.`
         );
