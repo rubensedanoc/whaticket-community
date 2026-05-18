@@ -376,7 +376,7 @@ export const send = async (req: Request, res: Response): Promise<void> => {
 
                 setTimeout(() => {
                   resolve(null);
-                }, 1500);
+                }, 15000);
               } catch (error) {
                 reject(error);
               }
