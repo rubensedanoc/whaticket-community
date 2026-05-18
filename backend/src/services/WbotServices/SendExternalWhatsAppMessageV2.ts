@@ -9,7 +9,7 @@ interface QueuedMessage {
   message: string;
   sendMessageRequest: SendMessageRequest;
   mediaUrl?: string | null;
-  selectionMode: "explicit" | "thread-pin" | "round-robin";
+  selectionMode: "round-robin";
 }
 
 interface QueueConfig {
@@ -28,10 +28,9 @@ const queueState = {
 
 const ELIGIBLE_CONNECTION_STATES = ["CONNECTED", "PAIRING"];
 
-// Estado de alternancia y anclaje por número destino
+// Estado de alternancia global
 const alternationState = {
-  currentIndex: 0,
-  pinnedConnectionsByNumber: new Map<string, string>()
+  currentIndex: 0
 };
 
 const normalizePhoneNumber = (phoneNumber: string): string => {
@@ -118,39 +117,17 @@ const getFallbackConnection = async (
 };
 
 const resolveOutgoingConnection = async ({
-  toNumber,
   fromNumber
 }: {
-  toNumber: string;
   fromNumber?: string;
 }): Promise<{
   selectedFromNumber: string | null;
-  selectionMode: "explicit" | "thread-pin" | "round-robin";
+  selectionMode: "round-robin";
 }> => {
   if (fromNumber) {
-    const normalizedFromNumber = normalizePhoneNumber(fromNumber);
-    alternationState.pinnedConnectionsByNumber.set(toNumber, normalizedFromNumber);
-
     console.log(
-      `[wbot-queue] 📌 Conexión explícita fijada para ${toNumber}: ${normalizedFromNumber}`
+      `[wbot-queue] ℹ️ fromNumber ${normalizePhoneNumber(fromNumber)} recibido, pero este flujo usa alternancia automática.`
     );
-
-    return {
-      selectedFromNumber: normalizedFromNumber,
-      selectionMode: "explicit"
-    };
-  }
-
-  const pinnedFromNumber = alternationState.pinnedConnectionsByNumber.get(toNumber);
-  if (pinnedFromNumber) {
-    console.log(
-      `[wbot-queue] 🔒 Reutilizando conexión del hilo para ${toNumber}: ${pinnedFromNumber}`
-    );
-
-    return {
-      selectedFromNumber: pinnedFromNumber,
-      selectionMode: "thread-pin"
-    };
   }
 
   const eligibleConnections = await getEligibleConnections();
@@ -165,10 +142,8 @@ const resolveOutgoingConnection = async ({
   const selectedConnection = getNextConnection(eligibleConnections);
   const normalizedFromNumber = normalizePhoneNumber(selectedConnection.number);
 
-  alternationState.pinnedConnectionsByNumber.set(toNumber, normalizedFromNumber);
-
   console.log(
-    `[wbot-queue] 🔄 Primer contacto ${toNumber} asignado a ${normalizedFromNumber} (siguiente índice: ${alternationState.currentIndex})`
+    `[wbot-queue] 🔄 Conexión seleccionada por alternancia: ${normalizedFromNumber} (siguiente índice: ${alternationState.currentIndex})`
   );
 
   return {
@@ -206,29 +181,23 @@ const processQueue = async () => {
       const fromWpp = await getInitializedConnectionByNumber(message.fromNumber);
 
       if (!fromWpp) {
-        if (message.selectionMode !== "thread-pin") {
-          const fallbackConnection = await getFallbackConnection(message.fromNumber);
+        const fallbackConnection = await getFallbackConnection(message.fromNumber);
 
-          if (fallbackConnection) {
-            const fallbackFromNumber = normalizePhoneNumber(fallbackConnection.number);
+        if (fallbackConnection) {
+          const fallbackFromNumber = normalizePhoneNumber(fallbackConnection.number);
 
-            console.warn(
-              `[wbot-queue] 🔁 La conexión ${message.fromNumber} no está disponible para ${message.toNumber}. Se usará fallback ${fallbackFromNumber} (${message.selectionMode}).`
-            );
+          console.warn(
+            `[wbot-queue] 🔁 La conexión ${message.fromNumber} no está disponible para ${message.toNumber}. Se usará fallback ${fallbackFromNumber}.`
+          );
 
-            message.fromNumber = fallbackFromNumber;
-            alternationState.pinnedConnectionsByNumber.set(
-              message.toNumber,
-              fallbackFromNumber
-            );
+          message.fromNumber = fallbackFromNumber;
 
-            queueState.queue.unshift(message);
-            continue;
-          }
+          queueState.queue.unshift(message);
+          continue;
         }
 
         console.error(
-          `[wbot-queue] ❌ La conexión ${message.fromNumber} ya no está disponible para ${message.toNumber}. No se cambia de conexión dentro del hilo.`
+          `[wbot-queue] ❌ La conexión ${message.fromNumber} ya no está disponible para ${message.toNumber} y no hay fallback elegible.`
         );
 
         const allConnections = await Whatsapp.findAll({
@@ -362,21 +331,18 @@ export const addMessageToQueue = async ({
     fromNumber = undefined;
   }
 
-  // Validar fromNumber solo si se proporciona y no está vacío
-  if (fromNumber && typeof fromNumber !== 'string') {
-    mensajes.push('El número de origen debe ser un string válido');
-    return { mensajes, data };
-  }
-
   // Validar formato de números
   if (isNaN(Number(toNumber.replace(/\D/g, '')))) {
     mensajes.push('Número de teléfono de destino inválido');
     return { mensajes, data };
   }
 
-  if (fromNumber && isNaN(Number(fromNumber.replace(/\D/g, '')))) {
-    mensajes.push('Número de teléfono de origen inválido');
-    return { mensajes, data };
+  if (fromNumber && typeof fromNumber !== 'string') {
+    console.warn('[wbot-queue] ⚠️ fromNumber recibido con tipo inválido; será ignorado por alternancia automática.');
+    fromNumber = undefined;
+  } else if (fromNumber && isNaN(Number(fromNumber.replace(/\D/g, '')))) {
+    console.warn('[wbot-queue] ⚠️ fromNumber recibido con formato inválido; será ignorado por alternancia automática.');
+    fromNumber = undefined;
   }
 
   if (!mensajes.length) {
@@ -385,7 +351,6 @@ export const addMessageToQueue = async ({
     fromNumber = fromNumber ? normalizePhoneNumber(fromNumber) : undefined;
 
     const resolvedConnection = await resolveOutgoingConnection({
-      toNumber,
       fromNumber
     });
 
