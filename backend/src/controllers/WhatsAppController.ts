@@ -7,6 +7,7 @@ import DeleteWhatsAppService from "../services/WhatsappService/DeleteWhatsAppSer
 import ListWhatsAppsService from "../services/WhatsappService/ListWhatsAppsService";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateWhatsAppService from "../services/WhatsappService/UpdateWhatsAppService";
+import ImportConnectionMessagesService from "../services/WbotServices/ImportConnectionMessagesService";
 
 interface WhatsappData {
   name: string;
@@ -162,4 +163,21 @@ export const remove = async (
   // });
 
   return res.status(200).json({ message: "Whatsapp deleted." });
+};
+
+export const importMessages = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { whatsappId } = req.params;
+  const { timeIntervalInHours } = req.body;
+
+  const result = await ImportConnectionMessagesService({
+    whatsappId: +whatsappId,
+    timeIntervalInHours: timeIntervalInHours
+      ? Number(timeIntervalInHours)
+      : undefined
+  });
+
+  return res.status(200).json(result);
 };

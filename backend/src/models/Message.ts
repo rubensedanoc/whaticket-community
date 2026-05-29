@@ -10,6 +10,7 @@ import {
   Table,
   UpdatedAt
 } from "sequelize-typescript";
+import { getStoragePublicUrl } from "../services/StorageService";
 import Contact from "./Contact";
 import Ticket from "./Ticket";
 
@@ -36,12 +37,7 @@ class Message extends Model<Message> {
 
   @Column(DataType.STRING)
   get mediaUrl(): string | null {
-    if (this.getDataValue("mediaUrl")) {
-      return `${process.env.BACKEND_URL}:${
-        process.env.PROXY_PORT
-      }/public/${this.getDataValue("mediaUrl")}`;
-    }
-    return null;
+    return getStoragePublicUrl(this.getDataValue("mediaUrl"));
   }
 
   @Column

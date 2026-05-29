@@ -7,6 +7,7 @@ import "reflect-metadata";
 import "./bootstrap";
 
 import uploadConfig from "./config/upload";
+import { isLocalStorage } from "./config/storage";
 import "./database";
 import AppError from "./errors/AppError";
 import { logCollectorMiddleware } from "./middleware/logCollectorMiddleware";
@@ -29,7 +30,11 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 app.use(Sentry.Handlers.requestHandler());
-app.use("/public", express.static(uploadConfig.directory));
+
+if (isLocalStorage) {
+  app.use("/public", express.static(uploadConfig.directory));
+}
+
 app.use(logCollectorMiddleware);
 app.use(routes);
 

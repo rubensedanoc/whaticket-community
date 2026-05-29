@@ -20,16 +20,20 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   let userQueueIds = [];
 
-  userQueueIds = (
-    await User.findByPk(req.user.id, {
+  if (filterByUserQueue || markByUserQueue) {
+    const user = await User.findByPk(req.user.id, {
       include: [
         {
           model: Queue,
           as: "queues"
         }
       ]
-    })
-  ).queues.map(queue => queue.id);
+    });
+    
+    if (user && user.queues && user.queues.length > 0) {
+      userQueueIds = user.queues.map(queue => queue.id);
+    }
+  }
 
   let categories = await ListCategorysService({
     queueIds: filterByUserQueue ? userQueueIds : []

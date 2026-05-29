@@ -52,7 +52,7 @@ const useStyles = makeStyles((theme) => ({
   appBar: {
     zIndex: theme.zIndex.drawer + 1,
     // background: "#31FB48",
-    background: "#3b82f6",
+    background: "#000000",
     color: "#fff",
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
@@ -250,7 +250,7 @@ const LoggedInLayout = ({ children }) => {
               noWrap
               className={classes.title}
             >
-              WhatRestaurant
+              Meta Restaurant
             </Typography>
             <img src={`/ollita2.png`} alt="logo" style={{ width: "26px" }} />
             <div

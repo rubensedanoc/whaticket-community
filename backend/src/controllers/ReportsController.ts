@@ -592,6 +592,7 @@ export const getClientTimeWaitingForTickets = async (tickets: Ticket[]) => {
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}))
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateLastMessageCS,
       MIN(CASE
@@ -601,6 +602,7 @@ export const getClientTimeWaitingForTickets = async (tickets: Ticket[]) => {
             AND (m.fromMe = 1
             OR c.isCompanyMember = '1'
             OR c.number IN (${whatasappListIDS}) )
+            AND t.userId IS NOT NULL
           THEN m.timestamp
           END) as dateFirstMessageCS
     FROM Tickets t
@@ -716,9 +718,12 @@ export const reportHistory = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -742,6 +747,10 @@ export const reportHistory = async (
   whatasappListIDS = whatasappListIDS
     .map(whatasapp => `'${whatasapp.number}'`)
     .join(",");
+  
+  if (!whatasappListIDS || whatasappListIDS.trim() === '') {
+    whatasappListIDS = "''";
+  }
 
   const sql = `SELECT
     t.id,
@@ -793,6 +802,7 @@ export const reportHistory = async (
         AND (m.fromMe = 1
         OR c.isCompanyMember = '1'
         OR c.number IN (${whatasappListIDS}))
+        AND t.userId IS NOT NULL
       THEN m.timestamp
       END) as dateLastMessageCS,
     MIN(CASE
@@ -802,6 +812,7 @@ export const reportHistory = async (
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}) )
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateFirstMessageCS
   FROM Tickets t
@@ -827,21 +838,16 @@ export const reportHistory = async (
    */
 
   const timesQuintalWaitingResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
 
   const ticketsCount = {
@@ -1041,9 +1047,12 @@ export const reportHistoryWithDateRange = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -1056,6 +1065,10 @@ export const reportHistoryWithDateRange = async (
   whatasappListIDS = whatasappListIDS
     .map(whatasapp => `'${whatasapp.number}'`)
     .join(",");
+  
+  if (!whatasappListIDS || whatasappListIDS.trim() === '') {
+    whatasappListIDS = "''";
+  }
 
   const sql = `SELECT
     t.id,
@@ -1080,18 +1093,21 @@ export const reportHistoryWithDateRange = async (
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}) )
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateFirstMessageCS,
   (
       SELECT MIN(m_inner.timestamp)
       FROM Messages m_inner
       LEFT JOIN Contacts c_inner ON m_inner.contactId = c_inner.id
+      LEFT JOIN Tickets t_inner ON m_inner.ticketId = t_inner.id
       WHERE
         m_inner.ticketId = t.id
         AND m_inner.body NOT LIKE CONCAT(UNHEX('E2808E'), '%')
         AND (m_inner.fromMe = 1
         OR c_inner.isCompanyMember = '1'
         OR c_inner.number IN (${whatasappListIDS}))
+        AND t_inner.userId IS NOT NULL
         AND m_inner.timestamp > (
           SELECT MIN(mcs.timestamp)
           FROM Messages mcs
@@ -1110,6 +1126,7 @@ export const reportHistoryWithDateRange = async (
           AND (m.fromMe = 1
           OR c.isCompanyMember = '1'
           OR c.number IN (${whatasappListIDS}))
+          AND t.userId IS NOT NULL
         THEN m.timestamp
         END) as dateLastMessageCS,
     MIN(CASE
@@ -1164,21 +1181,16 @@ export const reportHistoryWithDateRange = async (
    * Los agrupos por para obtener los mensajes del ticket
    */
   const timesQuintalResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
   const ticketsCreated = { count: 0, ticketIds: [] };
   const ticketsClosed = { count: 0, ticketIds: [] };
@@ -1318,7 +1330,6 @@ export const reportToExcel = async (
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
   let sqlWhereAdd = `
-      t.status != 'pending' AND
       ( t.chatbotMessageIdentifier IS NULL || (t.chatbotMessageIdentifier IS NOT NULL AND ( t.chatbotMessageLastStep IS NOT NULL OR t.userId ) ) ) AND
       (ct.isCompanyMember = 0 or ct.isCompanyMember is null) AND
       t.createdAt between '${formatDateToMySQL(fromDateAsString)}' AND '${formatDateToMySQL(toDateAsString)}'
@@ -1329,7 +1340,20 @@ export const reportToExcel = async (
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
   }
   if (selectedQueueIds && selectedQueueIds.length > 0) {
-    sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    if (!selectedQueueIds.includes(null)) {
+      sqlWhereAdd += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWhereAdd += ` AND t.queueId IS NULL`;
+      } else {
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
+      }
+    }
   }
   logsTime.push(`Whatasappnew-inicio: ${Date()}`);
   let whatasappListIDS: any[] = await Whatsapp.sequelize.query(
@@ -1339,6 +1363,10 @@ export const reportToExcel = async (
   logsTime.push(`Whatasappnew-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+  
+  if (!whatasappListIDS || whatasappListIDS.length === 0) {
+    whatasappListIDS = ['""'];
+  }
 
   const sql = `SELECT
     t.id as tid,
@@ -1346,6 +1374,8 @@ export const reportToExcel = async (
     t.createdAt as tcreatedAt,
     que.name as queuename,
     t.status as tstatus,
+    t.chatbotSelectedCategory as tchatbotSelectedCategory,
+    t.chatbotSelectedSubcategory as tchatbotSelectedSubcategory,
     m.id as mid,
     m.timestamp as mtimestamp,
     m.createdAt as mcreatedAt,
@@ -1359,6 +1389,7 @@ export const reportToExcel = async (
     ct.id as ctid,
     ct.name as ctname,
     ct.number as ctnumber,
+    ct.domain as ctdomain,
     w.id as wid,
     w.name as wname,
     ctc.name as ctcname
@@ -1479,8 +1510,11 @@ export const reportToExcel = async (
       tisGroup: ticketsClosed[ticketId][0].tisGroup,
       ctcname: ticketsClosed[ticketId][0].ctcname,
       ctnumber: ticketsClosed[ticketId][0].ctnumber,
+      ctdomain: ticketsClosed[ticketId][0].ctdomain,
       tcreatedAt: ticketsClosed[ticketId][0].tcreatedAt,
       queuename: ticketsClosed[ticketId][0].queuename,
+      tchatbotSelectedCategory: ticketsClosed[ticketId][0].tchatbotSelectedCategory,
+      tchatbotSelectedSubcategory: ticketsClosed[ticketId][0].tchatbotSelectedSubcategory,
       ...times
     });
   }
@@ -1513,8 +1547,11 @@ export const reportToExcel = async (
       tisGroup: ticketsPendingOpen[ticketId][0].tisGroup,
       ctcname: ticketsPendingOpen[ticketId][0].ctcname,
       ctnumber: ticketsPendingOpen[ticketId][0].ctnumber,
+      ctdomain: ticketsPendingOpen[ticketId][0].ctdomain,
       tcreatedAt: ticketsPendingOpen[ticketId][0].tcreatedAt,
       queuename: ticketsPendingOpen[ticketId][0].queuename,
+      tchatbotSelectedCategory: ticketsPendingOpen[ticketId][0].tchatbotSelectedCategory,
+      tchatbotSelectedSubcategory: ticketsPendingOpen[ticketId][0].tchatbotSelectedSubcategory,
       ...times
     });
   }
@@ -1578,15 +1615,97 @@ export const reportToExcel = async (
 
         const data = await response.json();
 
+        // Persistir link_dominio en Contacts.domain si no lo tiene guardado
+        const contactUpdates: any[] = [];
         for (const number in data.data) {
-          if (ticketListFinal.find(t => t.ctnumber === number)) {
-            ticketListFinal.find(t => t.ctnumber === number).microserviceData =
-              data.data[number];
+          const entry = Array.isArray(data.data[number]) && data.data[number].length > 0
+            ? data.data[number][0]
+            : data.data[number];
+
+          if (entry?.link_dominio) {
+            const ticket = ticketListFinal.find(t => t.ctnumber === number);
+            if (ticket && !ticket.ctdomain) {
+              contactUpdates.push(
+                Contact.update(
+                  { domain: entry.link_dominio },
+                  { where: { number } }
+                )
+              );
+            }
           }
+        }
+        if (contactUpdates.length > 0) {
+          await Promise.all(contactUpdates);
+        }
+
+        for (const number in data.data) {
+          const microserviceValue =
+            Array.isArray(data.data[number]) && data.data[number].length > 0
+              ? data.data[number][0]
+              : data.data[number];
+
+          ticketListFinal
+            .filter(t => t.ctnumber === number)
+            .forEach(t => {
+              t.microserviceData = microserviceValue;
+            });
         }
       } catch (error) {
         console.log("--- Error in searchIfNumbersAreExclusive", error);
       }
+    }
+
+    // Fallback: usar ct.domain local cuando el microservicio no devuelve link_dominio
+    for (const ticket of ticketListFinal) {
+      if (!ticket.ctdomain) continue;
+      if (!ticket.microserviceData) {
+        ticket.microserviceData = { link_dominio: ticket.ctdomain };
+      } else if (!ticket.microserviceData.link_dominio) {
+        ticket.microserviceData.link_dominio = ticket.ctdomain;
+      }
+    }
+  }
+
+  // Extraer comentarios de cierre de los mensajes privados
+  if (ticketListFinal.length > 0) {
+    const ticketIds = ticketListFinal.map(t => t.tid).join(",");
+    
+    const closeCommentMessages: any[] = await Message.sequelize.query(
+      `SELECT 
+        m.ticketId,
+        m.body,
+        m.createdAt
+      FROM Messages m
+      WHERE 
+        m.ticketId IN (${ticketIds})
+        AND m.isPrivate = 1
+        AND m.body LIKE '%*resolvió* la conversación con el *comentario*:%'
+      ORDER BY m.createdAt DESC`,
+      {
+        type: QueryTypes.SELECT
+      }
+    );
+
+    // Función auxiliar para extraer el comentario del mensaje
+    const extractCloseComment = (messageBody: string): string | null => {
+      const match = messageBody.match(/\*resolvió\* la conversación con el \*comentario\*:\s*(.+)/);
+      return match ? match[1].trim() : null;
+    };
+
+    // Agrupar por ticketId y tomar solo el más reciente
+    const closeCommentsByTicket = closeCommentMessages.reduce((acc: any, msg: any) => {
+      if (!acc[msg.ticketId]) {
+        const comment = extractCloseComment(msg.body);
+        if (comment) {
+          acc[msg.ticketId] = comment;
+        }
+      }
+      return acc;
+    }, {});
+
+    // Agregar los comentarios a ticketListFinal
+    for (const ticket of ticketListFinal) {
+      ticket.closeComment = closeCommentsByTicket[ticket.tid] || null;
     }
   }
 
@@ -1623,9 +1742,12 @@ export const reportToExcelForIA = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -1640,6 +1762,10 @@ export const reportToExcelForIA = async (
   logsTime.push(`Whatasappnew-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+  
+  if (!whatasappListIDS || whatasappListIDS.length === 0) {
+    whatasappListIDS = ['""'];
+  }
 
   const sql = `SELECT
     t.id as tid,
@@ -1839,9 +1965,12 @@ export const reportToUsers = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -1878,9 +2007,22 @@ export const reportToUsers = async (
       name: usersListFind[userId][0].name
     };
   }
+  // Add entry for tickets without assigned users
+  usersListAll["sin_asignar"] = {
+    ticketCount: 0,
+    ticketClosedCount: 0,
+    ticketOpenCount: 0,
+    timeWaitingCount: 0,
+    timeWaitingSecounds: 0,
+    name: "Sin asignar"
+  };
   logsTime.push(`usersfind-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
+  
+  if (!whatasappListIDS || whatasappListIDS.length === 0) {
+    whatasappListIDS = ['""'];
+  }
 
   const sql = `SELECT
     t.id as tid,
@@ -1932,39 +2074,29 @@ export const reportToUsers = async (
    * Agrupar en ram por ticketID
    */
   const timesQuintalResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
 
   const timesQuintalWaitingResponse = [
-    { label: "0 - 1 Horas", min: 0, max: 1, count: 0, ticketIds: [] },
-    { label: "1 - 2 Horas", min: 1, max: 2, count: 0, ticketIds: [] },
-    { label: "2 - 3 Horas", min: 2, max: 3, count: 0, ticketIds: [] },
-    { label: "3 - 4 Horas", min: 3, max: 4, count: 0, ticketIds: [] },
-    { label: "4 - 5 Horas", min: 4, max: 5, count: 0, ticketIds: [] },
-    { label: "0 - 5 Horas", min: 0, max: 5, count: 0, ticketIds: [] },
-    { label: "5 - 10 Horas", min: 5, max: 10, count: 0, ticketIds: [] },
-    { label: "10 - 15 Horas", min: 10, max: 15, count: 0, ticketIds: [] },
-    { label: "15 - 20 Horas", min: 15, max: 20, count: 0, ticketIds: [] },
-    { label: "20 - 24 Horas", min: 20, max: 24, count: 0, ticketIds: [] },
-    { label: "0 - 24 Horas", min: 0, max: 24, count: 0, ticketIds: [] },
-    { label: "1 - 2 dias", min: 24, max: 48, count: 0, ticketIds: [] },
-    { label: "2 - 3 dias", min: 48, max: 72, count: 0, ticketIds: [] },
-    { label: "3 - 4 dias", min: 72, max: 96, count: 0, ticketIds: [] },
-    { label: "4 - x dias", min: 96, max: -1, count: 0, ticketIds: [] }
+    { label: "0-30 min", min: 0, max: 0.5, count: 0, ticketIds: [] },
+    { label: "30-60 min", min: 0.5, max: 1, count: 0, ticketIds: [] },
+    { label: "1-2h", min: 1, max: 2, count: 0, ticketIds: [] },
+    { label: "2-4h", min: 2, max: 4, count: 0, ticketIds: [] },
+    { label: "4-8h", min: 4, max: 8, count: 0, ticketIds: [] },
+    { label: "8-16h", min: 8, max: 16, count: 0, ticketIds: [] },
+    { label: "16h-1d (OK)", min: 16, max: 24, count: 0, ticketIds: [] },
+    { label: "1-2d (Regular)", min: 24, max: 48, count: 0, ticketIds: [] },
+    { label: "2-3d (Malo)", min: 48, max: 72, count: 0, ticketIds: [] },
+    { label: "+3d (Pésimo)", min: 72, max: -1, count: 0, ticketIds: [] }
   ];
 
   let ticketsClosed: any = ticketListFind.filter(
@@ -2029,6 +2161,9 @@ export const reportToUsers = async (
     if (ticketUserID !== null && usersListAll?.[ticketUserID] !== null) {
       usersListAll[ticketUserID].ticketCount += 1;
       usersListAll[ticketUserID].ticketClosedCount += 1;
+    } else if (ticketUserID === null) {
+      usersListAll["sin_asignar"].ticketCount += 1;
+      usersListAll["sin_asignar"].ticketClosedCount += 1;
     }
   }
 
@@ -2091,8 +2226,76 @@ export const reportToUsers = async (
       usersListAll[ticketUserID].timeWaitingSecounds += timeWaitingSecounds;
       usersListAll[ticketUserID].ticketCount += 1;
       usersListAll[ticketUserID].ticketOpenCount += 1;
+    } else if (ticketUserID === null) {
+      usersListAll["sin_asignar"].timeWaitingCount += timeWaitingCount;
+      usersListAll["sin_asignar"].timeWaitingSecounds += timeWaitingSecounds;
+      usersListAll["sin_asignar"].ticketCount += 1;
+      usersListAll["sin_asignar"].ticketOpenCount += 1;
     }
   }
+  
+  // Count pending tickets without assigned user (Sin asignar)
+  let sqlWherePending = `t.status = 'pending' and t.userId IS NULL and t.isGroup = 0 and t.createdAt between '${formatDateToMySQL(
+    fromDateAsString
+  )}' and '${formatDateToMySQL(toDateAsString)}' `;
+  
+  if (selectedWhatsappIds.length > 0) {
+    sqlWherePending += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
+  }
+  if (selectedCountryIds.length > 0) {
+    sqlWherePending += ` AND ct.countryId IN (${selectedCountryIds.join(",")}) `;
+  }
+  if (selectedQueueIds.length > 0) {
+    if (!selectedQueueIds.includes(null)) {
+      sqlWherePending += ` AND t.queueId IN (${selectedQueueIds.join(",")}) `;
+    } else {
+      if (selectedQueueIds.length === 1) {
+        sqlWherePending += ` AND t.queueId IS NULL`;
+      } else {
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWherePending += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWherePending += ` AND t.queueId IS NULL`;
+        }
+      }
+    }
+  }
+  
+  const sqlPending = `SELECT COUNT(DISTINCT t.id) as count
+  FROM Tickets t
+  LEFT JOIN Contacts ct ON t.contactId = ct.id
+  WHERE ${sqlWherePending}`;
+  
+  const pendingUnassignedResult: any = await Ticket.sequelize.query(sqlPending, {
+    type: QueryTypes.SELECT
+  });
+  
+  const pendingUnassignedCount = pendingUnassignedResult[0]?.count || 0;
+  usersListAll["sin_asignar"].ticketCount += parseInt(pendingUnassignedCount);
+  usersListAll["sin_asignar"].ticketOpenCount += parseInt(pendingUnassignedCount);
+  
+  // Calcular totales
+  const totals = {
+    ticketCount: 0,
+    ticketClosedCount: 0,
+    ticketOpenCount: 0,
+    timeWaitingCount: 0,
+    timeWaitingSecounds: 0,
+    name: "TOTAL"
+  };
+  
+  Object.keys(usersListAll).forEach(userId => {
+    const user = usersListAll[userId];
+    totals.ticketCount += user.ticketCount || 0;
+    totals.ticketClosedCount += user.ticketClosedCount || 0;
+    totals.ticketOpenCount += user.ticketOpenCount || 0;
+    totals.timeWaitingCount += user.timeWaitingCount || 0;
+    totals.timeWaitingSecounds += user.timeWaitingSecounds || 0;
+  });
+  
+  usersListAll["total"] = totals;
+  
   logsTime.push(`asignacion-fin: ${Date()}`);
   return res.status(200).json({
     usersListAll,
@@ -2258,9 +2461,12 @@ export const getTicketsDistributionByStages = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }
@@ -2816,9 +3022,12 @@ export const getTicketsDistributionByStages = async (
       if (selectedQueueIds.length === 1) {
         sqlWhereAdd2 += ` AND t.queueId IS NULL`;
       } else {
-        sqlWhereAdd2 += ` AND (t.queueId IN (${selectedQueueIds
-          .filter(q => q !== null)
-          .join(",")}) OR t.queueId IS NULL)`;
+        const filteredQueueIds = selectedQueueIds.filter(q => q !== null);
+        if (filteredQueueIds.length > 0) {
+          sqlWhereAdd2 += ` AND (t.queueId IN (${filteredQueueIds.join(",")}) OR t.queueId IS NULL)`;
+        } else {
+          sqlWhereAdd2 += ` AND t.queueId IS NULL`;
+        }
       }
     }
   }

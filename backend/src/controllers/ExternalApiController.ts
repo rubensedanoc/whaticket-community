@@ -19,7 +19,9 @@ import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTi
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import SendApiChatbotMessage from "../services/WbotServices/SendApiChatbotMessage";
 import SendExternalWhatsAppImageMessage from "../services/WbotServices/SendExternalWhatsAppImageMessage";
-import SendExternalWhatsAppMessage from "../services/WbotServices/SendExternalWhatsAppMessage";
+import SendExternalWhatsAppMessage from "../services/ExternalServices/SendExternalWhatsAppMessage";
+import FindGroupByNameService from "../services/WbotServices/FindGroupByNameService";
+import SendMessageToTicketService from "../services/WbotServices/SendMessageToTicketService";
 import {
   verifyContact,
   verifyMessage
@@ -28,6 +30,7 @@ import getUnixTimestamp from "../utils/getUnixTimestamp";
 import sleepPromise from "../utils/sleepPromise";
 import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
+import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import { emitEvent } from "../libs/emitEvent";
 import ContactClientelicencia from "../models/ContactClientelicencias";
@@ -39,7 +42,11 @@ import utc from "dayjs/plugin/utc";
 import Country from "../models/Country";
 import WhatsappCountry from "../models/WhatsappCountry";
 import Queue from "../models/Queue";
-import { addMessageToQueue } from "../services/WbotServices/SendExternalWhatsAppMessageV2";
+import { addMessageToQueue } from "../services/ExternalServices/SendExternalWhatsAppMessageV2";
+import {
+  persistBufferFile,
+  resolveStoredFileToLocalPath
+} from "../services/StorageService";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -178,8 +185,14 @@ export const sendMakeMessaginCampaign = async (
   });
 
   const excelName = `${messagingCampaign.name}-${Date.now()}.xlsx`;
-
-  await workbook.xlsx.writeFile("public/" + excelName);
+  const excelBuffer = await workbook.xlsx.writeBuffer();
+  const storedExcelKey = await persistBufferFile({
+    buffer: Buffer.from(excelBuffer as any),
+    originalName: excelName,
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    prefix: "campaigns"
+  });
 
   console.log("Excel creado");
   console.log("messagingCampaign", messagingCampaign);
@@ -189,7 +202,7 @@ export const sendMakeMessaginCampaign = async (
     messagingCampaignId: messagingCampaign.id,
     startTimestamp: (Date.now() / 1000) | 0,
     whatsappId: whatsapp.id,
-    excelUrl: excelName
+    excelUrl: storedExcelKey
   });
 
   await messagingCampaign.reload();
@@ -320,20 +333,31 @@ export const sendMarketingCampaignIntro = async (
   }
 
   contacto_numero = contacto_numero.replace(/\D/g, "");
+  req.myLog(`Número limpio: ${contacto_numero}`);
 
   const countryId = await getCountryIdOfNumber(contacto_numero);
+  req.myLog(`Country ID detectado: ${countryId}`);
 
   let whatsapp = null;
 
   if (whatsapp_number) {
+    // Normalizar el número de WhatsApp (eliminar + y otros caracteres)
+    const normalizedWhatsappNumber = whatsapp_number.replace(/\D/g, "");
+    req.myLog(`Buscando WhatsApp por número: ${whatsapp_number} (normalizado: ${normalizedWhatsappNumber})`);
     whatsapp = await Whatsapp.findOne({
       where: {
-        number: whatsapp_number
+        number: normalizedWhatsappNumber
       }
     });
+    if (whatsapp) {
+      req.myLog(`WhatsApp encontrado por número: ID ${whatsapp.id}, Nombre: ${whatsapp.name}`);
+    } else {
+      req.myLog(`No se encontró WhatsApp con número: ${whatsapp_number}`);
+    }
   }
 
   if (!whatsapp) {
+    req.myLog(`Buscando WhatsApp por país (countryId: ${countryId})`);
     whatsapp = await Whatsapp.findOne({
       include: [
         {
@@ -347,7 +371,14 @@ export const sendMarketingCampaignIntro = async (
       ]
     });
 
+    if (whatsapp) {
+      req.myLog(`WhatsApp encontrado por país: ID ${whatsapp.id}, Nombre: ${whatsapp.name}`);
+    } else {
+      req.myLog(`No se encontró WhatsApp para countryId: ${countryId}`);
+    }
+
     if (!whatsapp) {
+      req.myLog(`Usando WhatsApp por defecto (isDefault: true)`);
       whatsapp = await Whatsapp.findOne({
         where: {
           isDefault: true
@@ -358,6 +389,8 @@ export const sendMarketingCampaignIntro = async (
           "No se encontró un Whatsapp para el pais de este lead ni uno por defecto",
           400
         );
+      } else {
+        req.myLog(`WhatsApp por defecto encontrado: ID ${whatsapp.id}, Nombre: ${whatsapp.name}`);
       }
     }
   }
@@ -456,26 +489,29 @@ export const sendMarketingCampaignIntro = async (
     } else {
       try {
         req.myLog("mensaje multimedia");
-        const newMedia = MessageMedia.fromFilePath(
-          `public/${messageToSend.mediaUrl.split("/").pop()}`
+        const { localPath, cleanup } = await resolveStoredFileToLocalPath(
+          messageToSend.getDataValue("mediaUrl")
         );
 
-        let mediaOptions: MessageSendOptions = {
-          sendAudioAsVoice: true
-        };
+        try {
+          const newMedia = MessageMedia.fromFilePath(localPath);
 
-        if (
-          newMedia.mimetype.startsWith("image/") &&
-          !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
-        ) {
-          mediaOptions["sendMediaAsDocument"] = true;
+          let mediaOptions: MessageSendOptions = {
+            sendAudioAsVoice: true
+          };
+
+          if (
+            newMedia.mimetype.startsWith("image/") &&
+            !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
+          ) {
+            mediaOptions["sendMediaAsDocument"] = true;
+          }
+
+          await wbot.sendMessage(`${contacto_numero}@c.us`, newMedia, mediaOptions);
+
+        } finally {
+          await cleanup();
         }
-
-        const msg = await wbot.sendMessage(
-          `${contacto_numero}@c.us`,
-          newMedia,
-          mediaOptions
-        );
 
         await sleepPromise(1500);
       } catch (error) {
@@ -1325,3 +1361,239 @@ export const getUpdatedTickets = async (
     data
   });
 };
+
+export const findGroupByName = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  console.log("=".repeat(80));
+  console.log("[ExternalApiController] 📞 CALL FOR findGroupByName");
+  console.log("[ExternalApiController] Body:", JSON.stringify(req.body, null, 2));
+  console.log("=".repeat(80));
+
+  const { groupName, whatsappId } = req.body;
+
+  // Validaciones
+  if (!groupName || groupName.trim().length === 0) {
+    console.log("[ExternalApiController] ❌ groupName vacío");
+    return res.status(400).json({
+      success: false,
+      error: "MISSING_GROUP_NAME",
+      message: "El campo 'groupName' es requerido y no puede estar vacío"
+    });
+  }
+
+  if (!whatsappId || typeof whatsappId !== "number") {
+    console.log("[ExternalApiController] ❌ whatsappId inválido:", whatsappId);
+    return res.status(400).json({
+      success: false,
+      error: "INVALID_WHATSAPP_ID",
+      message: "El campo 'whatsappId' es requerido y debe ser un número"
+    });
+  }
+
+  console.log("[ExternalApiController] ✅ Validaciones pasadas, llamando al servicio...");
+
+  try {
+    const result = await FindGroupByNameService({
+      groupName,
+      whatsappId
+    });
+
+    console.log("[ExternalApiController] 📊 Resultado del servicio:", result.success ? "SUCCESS" : "FAILED");
+
+    if (!result.success) {
+      let statusCode = 500;
+
+      if (result.error === "WHATSAPP_NOT_FOUND") {
+        statusCode = 404;
+      } else if (result.error === "WHATSAPP_DISCONNECTED") {
+        statusCode = 503;
+      } else if (result.error === "GROUP_NOT_FOUND") {
+        statusCode = 404;
+      }
+
+      console.log("[ExternalApiController] ⚠️ Retornando error con código:", statusCode);
+      return res.status(statusCode).json(result);
+    }
+
+    console.log("[ExternalApiController] ✅ Retornando respuesta exitosa");
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.log("[ExternalApiController] ❌ ERROR CAPTURADO:");
+    console.log("[ExternalApiController] Error:", error.message);
+    console.log("[ExternalApiController] Stack:", error.stack);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_ERROR",
+      message: `Error interno del servidor: ${error.message}`
+    });
+  }
+};
+
+export const sendMessageToTicket = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  console.log("=".repeat(80));
+  console.log("[ExternalApiController] 📞 CALL FOR sendMessageToTicket");
+  console.log("[ExternalApiController] Body:", JSON.stringify(req.body, null, 2));
+  console.log("=".repeat(80));
+
+  const { ticketId, message, calendarEvent, calendarEvents } = req.body;
+
+  // Normalizar calendarEvent: si viene como array (calendarEvents), tomar el primero
+  let normalizedCalendarEvent = calendarEvent;
+  if (!normalizedCalendarEvent && calendarEvents && Array.isArray(calendarEvents) && calendarEvents.length > 0) {
+    normalizedCalendarEvent = calendarEvents[0];
+    console.log("[ExternalApiController] 📋 calendarEvents detectado como array, usando el primer evento");
+  }
+
+  // Validaciones
+  if (!ticketId || typeof ticketId !== "number") {
+    console.log("[ExternalApiController] ❌ ticketId inválido:", ticketId);
+    return res.status(400).json({
+      success: false,
+      error: "INVALID_TICKET_ID",
+      message: "El campo 'ticketId' es requerido y debe ser un número"
+    });
+  }
+
+  if (!message || message.trim().length === 0) {
+    console.log("[ExternalApiController] ❌ message vacío");
+    return res.status(400).json({
+      success: false,
+      error: "MISSING_MESSAGE",
+      message: "El campo 'message' es requerido y no puede estar vacío"
+    });
+  }
+
+  console.log("[ExternalApiController] ✅ Validaciones pasadas, llamando al servicio...");
+
+  try {
+    const result = await SendMessageToTicketService({
+      ticketId,
+      message,
+      calendarEvent: normalizedCalendarEvent
+    });
+
+    console.log("[ExternalApiController] 📊 Resultado del servicio:", result.success ? "SUCCESS" : "FAILED");
+
+    if (!result.success) {
+      let statusCode = 500;
+
+      if (result.error === "TICKET_NOT_FOUND") {
+        statusCode = 404;
+      }
+
+      console.log("[ExternalApiController] ⚠️ Retornando error con código:", statusCode);
+      return res.status(statusCode).json(result);
+    }
+
+    console.log("[ExternalApiController] ✅ Retornando respuesta exitosa");
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.log("[ExternalApiController] ❌ ERROR CAPTURADO:");
+    console.log("[ExternalApiController] Error:", error.message);
+    console.log("[ExternalApiController] Stack:", error.stack);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_ERROR",
+      message: `Error interno del servidor: ${error.message}`
+    });
+  }
+};
+
+export const IncidenciaStatus = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+
+  const { incidenciaId, estado } = req.body;
+
+  const apiKey = req.headers["x-billing-api-key"] as string;
+  if (apiKey !== process.env.BILLING_WEBHOOK_API_KEY) throw new AppError("Invalid API key", 401);
+
+  if (!incidenciaId) throw new AppError("Missing required field: incidenciaId", 400);
+
+  if (!estado) throw new AppError("Missing required field: estado", 400);
+
+  const closingStates = ["RESUELTO", "CLOSED", "CERRADO", "SOLUCIONADO"];
+
+  // Verificar si el estado es un estado de cierre
+  if (!closingStates.includes(estado.toUpperCase())) {
+    console.log("[ExternalApiController] ℹ️ Estado is not a closing state, no action taken:", estado);
+    return res.status(200).json({ message: "Estado is not a closing state, no action taken", estado });
+  }
+
+  const ticket = await Ticket.findOne({
+    where: {
+      incidenciaExternalId: incidenciaId
+    },
+    include: [
+      {
+        model: Whatsapp,
+        as: "whatsapp"
+      },
+      {
+        model: Contact,
+        as: "contact"
+      }
+    ]
+  });
+
+  if (!ticket) throw new AppError("Ticket not found", 404);
+
+  console.log(" ✅ Ticket found:", ticket.id);
+
+  if (ticket.status !== "closed") {
+    await ticket.update({ status: "closed" });
+    if (!ticket.isGroup && ticket.whatsapp?.farewellMessage)
+      await SendWhatsAppMessage({ body: formatBody(ticket.whatsapp.farewellMessage, ticket.contact), ticket });
+  }
+
+  return res.status(200).json({
+    message: "Ticket status updated to closed",
+    ticketId: ticket.id,
+    incidenciaId: ticket.incidenciaExternalId,
+    estado
+  });
+};
+
+export const UpdateContactDomain = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { number, domain } = req.body;
+
+  const apiKey = req.headers["x-billing-api-key"] as string;
+  if (apiKey !== process.env.BILLING_WEBHOOK_API_KEY) throw new AppError("Invalid API key", 401);
+
+  if (!number) throw new AppError("Missing required field: number", 400);
+
+  if (!domain) throw new AppError("Missing required field: domain", 400);
+
+  const contact = await Contact.findOne({
+    where: {
+      number
+    }
+  });
+
+  if (!contact) throw new AppError("Contact not found", 404);
+
+  await contact.update({
+    domain
+  });
+
+  return res.status(200).json({
+    message: "Contact domain updated successfully",
+    contactId: contact.id,
+    number: contact.number,
+    domain
+  });
+};
+

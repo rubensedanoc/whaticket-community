@@ -8,6 +8,7 @@ import {
   Table,
   UpdatedAt
 } from "sequelize-typescript";
+import { getStoragePublicUrl } from "../services/StorageService";
 import MarketingCampaign from "./MarketingCampaign";
 import MarketingMessagingCampaign from "./MarketingMessagingCampaigns";
 
@@ -28,12 +29,7 @@ class MarketingCampaignAutomaticMessage extends Model<MarketingCampaignAutomatic
 
   @Column
   get mediaUrl(): string | null {
-    if (this.getDataValue("mediaUrl")) {
-      return `${process.env.BACKEND_URL}:${
-        process.env.PROXY_PORT
-      }/public/${this.getDataValue("mediaUrl")}`;
-    }
-    return null;
+    return getStoragePublicUrl(this.getDataValue("mediaUrl"));
   }
 
   @ForeignKey(() => MarketingCampaign)

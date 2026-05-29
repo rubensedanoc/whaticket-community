@@ -19,6 +19,7 @@ import Ticket from "../models/Ticket";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
 import GetContactService from "../services/ContactServices/GetContactService";
+import GetDefaultWhatsApp from "../helpers/GetDefaultWhatsApp";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
@@ -26,6 +27,7 @@ import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import { getClientTimeWaitingForTickets } from "./ReportsController";
 import GetContactByNumberService from "../services/ContactServices/GetContactByNumberService";
 import RemoveContactClientelicenciaService from "../services/ContactServices/RemoveContactClientelicenciaService";
+import SyncAttentionTypesService from "../services/ContactServices/SyncAttentionTypesService";
 
 type IndexQuery = {
   searchParam: string;
@@ -97,10 +99,27 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message);
   }
 
-  await CheckIsValidContact(newContact.number);
-  const validNumber: any = await CheckContactNumber(newContact.number);
+  let validNumber = newContact.number;
+  let profilePicUrl = "";
 
-  const profilePicUrl = await GetProfilePicUrl(validNumber);
+  try {
+    const userId = parseInt(req.user.id);
+    const defaultWhatsapp = await GetDefaultWhatsApp(userId);
+    const apiType = defaultWhatsapp.apiType || "whatsapp-web.js";
+
+    console.log(`[ContactController.store] Using WhatsApp for user ${userId}: ${defaultWhatsapp.name} (apiType: ${apiType})`);
+
+    if (apiType === "whatsapp-web.js") {
+      await CheckIsValidContact(newContact.number);
+      const checkedNumber: any = await CheckContactNumber(newContact.number);
+      validNumber = checkedNumber;
+      profilePicUrl = await GetProfilePicUrl(validNumber);
+    } else {
+      console.log("[ContactController.store] Meta API detected - skipping wbot validation");
+    }
+  } catch (error: any) {
+    console.log("[ContactController.store] Error validating with wbot, continuing without validation:", error.message);
+  }
 
   let name = newContact.name;
   let number = validNumber;
@@ -783,4 +802,31 @@ export const getNumberGroupsByContactId = async (
   }
 
   return res.status(200).json({ registerGroups, notRegisterGroups });
+};
+
+export const syncAttentionTypes = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { mode, limit, batchSize } = req.body;
+
+    const result = await SyncAttentionTypesService({
+      mode: mode || "missing",
+      limit: limit || 2500,
+      batchSize: batchSize || 100,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Sincronización completada",
+      result,
+    });
+  } catch (error: any) {
+    console.error("Error en sincronización:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Error desconocido",
+    });
+  }
 };

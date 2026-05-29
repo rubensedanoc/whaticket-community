@@ -6,6 +6,8 @@ import { makeStyles } from "@material-ui/core/styles";
 import { MoreVert, Replay } from "@material-ui/icons";
 
 import GroupAddIcon from "@material-ui/icons/GroupAdd";
+import HelpOutlineIcon from "@material-ui/icons/HelpOutline";
+import PanToolIcon from "@material-ui/icons/PanTool";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
@@ -235,7 +237,11 @@ const TicketActionButtons = ({ ticket }) => {
                   <Button
                     size="small"
                     variant="contained"
-                    color="default"
+                    style={{
+                      backgroundColor: "#ff9800",
+                      color: "white",
+                    }}
+                    startIcon={<HelpOutlineIcon />}
                     onClick={() => setAskForHelpTicketModalOpen(true)}
                   >
                     Pedir apoyo
@@ -245,16 +251,56 @@ const TicketActionButtons = ({ ticket }) => {
 
               {ticket.helpUsers?.find((hu) => hu.id === user?.id) && (
                 <>
+                  {ticket.userId !== user?.id && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      style={{
+                        backgroundColor: "#4caf50",
+                        color: "white",
+                      }}
+                      startIcon={<PanToolIcon />}
+                      onClick={async () => {
+                        try {
+                          // Guardar el userId original antes de tomar el apoyo
+                          const originalUserId = ticket.userId;
+                          
+                          await api.put(`/tickets/${ticket.id}`, {
+                            userId: user?.id,
+                            privateNote: originalUserId ? `ORIGINAL_USER:${originalUserId}` : null,
+                          });
+
+                          await api.post(`/privateMessages/${ticket.id}`, {
+                            body: `${user?.name} *tomó el apoyo* de la conversación`,
+                          });
+                        } catch (err) {
+                          toastError(err);
+                        }
+                      }}
+                    >
+                      Tomar apoyo
+                    </Button>
+                  )}
+
                   <Button
                     size="small"
                     variant="contained"
                     color="default"
                     onClick={async () => {
                       try {
+                        // Restaurar el userId original si existe
+                        let userIdToRestore = null;
+                        if (ticket.privateNote && ticket.privateNote.startsWith('ORIGINAL_USER:')) {
+                          const originalUserIdStr = ticket.privateNote.replace('ORIGINAL_USER:', '');
+                          userIdToRestore = parseInt(originalUserIdStr);
+                        }
+
                         await api.put(`/tickets/${ticket.id}`, {
                           helpUsersIds: ticket.helpUsers
                             .filter((hu) => hu.id !== user?.id)
                             .map((pu) => pu.id),
+                          userId: userIdToRestore,
+                          privateNote: null, // Limpiar la nota privada
                         });
 
                         await api.post(`/privateMessages/${ticket.id}`, {

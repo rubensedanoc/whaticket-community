@@ -1,14 +1,13 @@
 import * as Sentry from "@sentry/node";
-import { MessageContent, Message as WbotMessage } from "whatsapp-web.js";
 import AppError from "../../errors/AppError";
-
 import { debounce } from "../../helpers/Debounce";
-import { getWbot } from "../../libs/wbot";
 import SendMessageRequest from "../../models/SendMessageRequest";
 import Whatsapp from "../../models/Whatsapp";
 import NotifyViaWppService from "../ExtraServices/NotifyViaWppService";
+import { MetaApiClient } from "../../clients/MetaApiClient";
+import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 
-const SendExternalWhatsAppMessage = async ({
+const SendExternalWhatsAppMessageMeta = async ({
   fromNumber,
   toNumber,
   message,
@@ -17,13 +16,13 @@ const SendExternalWhatsAppMessage = async ({
 }: {
   fromNumber: string;
   toNumber: string;
-  message: MessageContent;
+  message: string;
   createRegisterInDb?: boolean;
   registerInDb?: SendMessageRequest;
 }) => {
   const result: {
     wasOk: boolean;
-    data: WbotMessage;
+    data: MetaApiSuccessResponse;
     logs: string[];
     errors: string[];
   } = {
@@ -48,7 +47,16 @@ const SendExternalWhatsAppMessage = async ({
       throw new AppError("ERR_WAPP_NOT_FOUND");
     }
 
-    const wbot = getWbot(fromWpp.id);
+    // Validar credenciales Meta API
+    if (!fromWpp.phoneNumberId || !fromWpp.metaAccessToken) {
+      throw new AppError("ERR_META_CREDENTIALS_NOT_CONFIGURED");
+    }
+
+    // Crear cliente Meta API
+    const client = new MetaApiClient({
+      phoneNumberId: fromWpp.phoneNumberId,
+      accessToken: fromWpp.metaAccessToken
+    });
 
     if (createRegisterInDb) {
       result.logs.push(
@@ -63,7 +71,10 @@ const SendExternalWhatsAppMessage = async ({
     }
 
     result.logs.push(`-- INICIO sendMessage --- ${Date.now() / 1000}`);
-    const sentMessage = await wbot.sendMessage(`${toNumber}@c.us`, message);
+    const sentMessage = await client.sendText({
+      to: toNumber,
+      body: message
+    });
     result.logs.push(`-- FIN sendMessage --- ${Date.now() / 1000}`);
 
     if (registerInDb) {
@@ -79,8 +90,8 @@ const SendExternalWhatsAppMessage = async ({
 
     result.data = sentMessage;
   } catch (error) {
-    console.log("Error en SendExternalWhatsAppMessage", error);
-    Sentry.captureException("Error en SendExternalWhatsAppMessage", {
+    console.log("Error en SendExternalWhatsAppMessageMeta", error);
+    Sentry.captureException("Error en SendExternalWhatsAppMessageMeta", {
       extra: error
     });
 
@@ -114,4 +125,4 @@ const SendExternalWhatsAppMessage = async ({
   return result;
 };
 
-export default SendExternalWhatsAppMessage;
+export default SendExternalWhatsAppMessageMeta;

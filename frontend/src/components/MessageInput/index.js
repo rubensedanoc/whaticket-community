@@ -352,6 +352,7 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
     setShowEmoji(false);
     setLoading(false);
     setReplyingMessage(null);
+    inputRef.current.focus();
   };
 
   const handleStartRecording = async () => {

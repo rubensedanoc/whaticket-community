@@ -82,6 +82,7 @@ export const searchForUnSaveMessages = async ({
     let chats = await wbot.getChats();
 
     response.logs.push(`END - wbot.getChats ${Date.now()}`);
+    response.logs.push(`Total chats found: ${chats?.length || 0}`);
 
     // filter chats with last message in the last x hours
     let last8HoursChats = chats.filter(chat =>
@@ -222,7 +223,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           executablePath: process.env.CHROME_BIN || undefined,
           // @ts-ignore
           browserWSEndpoint: process.env.CHROME_WS || undefined,
-          args: args.split(" ")
+          args: args.split(" "),
+          // @ts-ignore - protocolTimeout exists in whatsapp-web.js but TS definitions are outdated
+          protocolTimeout: 300000 // 5 minutos para operaciones pesadas como getChats()
       }
       });
 
@@ -342,16 +345,16 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
                 // Intentar obtener el chat de forma normal
                 const chat = await originalGetChat.call(this, chatId, options);
                 if (chat) return chat;
-                
+
                 // Si no se encuentra, intentar desde Store
                 const chatFromStore = window.Store.Chat.get(chatId);
                 if (chatFromStore) return chatFromStore;
-                
+
                 // Si aún no existe, buscarlo de forma más robusta
                 const allChats = window.Store.Chat.getModelsArray();
                 const foundChat = allChats.find(c => c.id && c.id._serialized === chatId);
                 if (foundChat) return foundChat;
-                
+
                 throw new Error('Chat not found: ' + chatId);
               } catch (e) {
                 console.error('Error in patched getChat for chatId:', chatId, e);

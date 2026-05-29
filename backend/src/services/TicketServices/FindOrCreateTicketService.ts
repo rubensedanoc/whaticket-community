@@ -77,7 +77,6 @@ const FindOrCreateTicketService = async (props: {
       ticket = await Ticket.create({
         contactId: groupContact ? groupContact.id : contact.id,
         status:
-          chatbotMessageIdentifier ||
           messagingCampaignId ||
           marketingMessagingCampaignId
             ? "closed"
@@ -140,7 +139,6 @@ const FindOrCreateTicketService = async (props: {
         ticket = await Ticket.create({
           contactId: groupContact ? groupContact.id : contact.id,
           status:
-            chatbotMessageIdentifier ||
             messagingCampaignId ||
             marketingMessagingCampaignId
               ? "closed"
@@ -268,12 +266,12 @@ const findTicket = async ({
     ]
   });
 
-  logs.push(`--- Found ticket 1: ${ticket ? ticket : "N/A"}`);
+  logs.push(`--- Found ticket 1: ${ticket ? ticket.id : "N/A"}`);
 
   // if ticket exists, update his unreadMessages
   if (ticket) {
     await ticket.update({
-      unreadMessages,
+      ...(unreadMessages !== undefined && { unreadMessages }),
       ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
         lastMessageTimestamp
       }),
@@ -332,7 +330,7 @@ const findTicket = async ({
       await ticket.update({
         status: "open",
         // userId: null,
-        unreadMessages,
+        ...(unreadMessages !== undefined && { unreadMessages }),
         ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
           lastMessageTimestamp
         })
@@ -340,7 +338,7 @@ const findTicket = async ({
     }
   }
 
-  logs.push(`--- Found ticket 2: ${ticket ? ticket : "N/A"}`);
+  logs.push(`--- Found ticket 2: ${ticket ? ticket.id : "N/A"}`);
 
   // if ticket not exists and groupContact is falsy, find a ticket updated in the last 2 hours from the contact and from the whatsappId
   // if this time the ticket exists, update his status to pending and set his userId to null and update his unreadMessages
@@ -364,7 +362,7 @@ const findTicket = async ({
       order: [["updatedAt", "DESC"]]
     });
 
-    logs.push(`--- Found ticket 3: ${ticket ? ticket : "N/A"}`);
+    logs.push(`--- Found ticket 3: ${ticket ? ticket.id : "N/A"}`);
 
     if (
       ticket &&
@@ -394,61 +392,49 @@ const findTicket = async ({
       !ticket.messagingCampaignId &&
       !ticket.marketingMessagingCampaignId
     ) {
-      const twoHoursAgo = subHours(new Date(), 2);
-      const fiveMinutesAgo = subMinutes(new Date(), 5);
+      if (ticket.status === "closed") {
+        // Verificar si el ticket tuvo chatbot
+        if (ticket.chatbotMessageIdentifier) {
+          // CASO A: Ticket CON chatbot
+          // Si tuvo chatbot, SIEMPRE crear nuevo ticket (sin importar tiempo)
+          logs.push(`--- Ticket with chatbot is closed, creating new ticket. ID: ${ticket.id}, chatbotIdentifier: ${ticket.chatbotMessageIdentifier}`);
+          ticket = null;
+        } else {
+          // CASO B: Ticket SIN chatbot (conversación normal)
+          // Aplicar ventana de reapertura de 15 minutos
+          const fifteenMinutesAgo = subMinutes(new Date(), 15);
 
-      let validTime = twoHoursAgo;
-
-      // si no estamos en la app comercial
-      if (process.env.APP_PURPOSE !== "comercial") {
-        // validamos si es el area de soporte tecnico
-        if (ticket.queueId && ticket.queueId === 10) {
-          // bajamos el valid time a 5 minutos
-          validTime = fiveMinutesAgo;
-        }
-      }
-
-      if (ticket.chatbotMessageIdentifier && !ticket.userId) {
-        const chatbotMessage = await ChatbotMessage.findOne({
-          where: {
-            identifier: ticket.chatbotMessageIdentifier,
-            isActive: true,
-            wasDeleted: false
+          if (new Date(ticket.updatedAt) < fifteenMinutesAgo) {
+            // Cerrado hace más de 15 minutos → Crear nuevo ticket
+            logs.push(`--- Normal ticket closed >15 min ago, creating new ticket. ID: ${ticket.id}, updatedAt: ${ticket.updatedAt}`);
+            ticket = null;
+          } else {
+            // Cerrado hace menos de 15 minutos → Reabrir mismo ticket
+            logs.push(`--- Normal ticket closed <15 min ago, will reopen. ID: ${ticket.id}, updatedAt: ${ticket.updatedAt}`);
+            // ticket se mantiene, se reabrirá abajo
           }
-        });
-
-        if (chatbotMessage && chatbotMessage.timeToWaitInMinutes) {
-          validTime = subMinutes(
-            new Date(),
-            chatbotMessage.timeToWaitInMinutes
-          );
         }
-      } else {
-        // console.log(
-        //   "xxx Ticket antiguo no tiene chatbotMessageIdentifier o ya ha tenido usuario se va a usar el validTime de 2 horas"
-        // );
-      }
-
-      if (new Date(ticket.updatedAt) < validTime) {
-        logs.push(`--- Ignore ticket 2 ${new Date(ticket.updatedAt).toISOString()} < ${validTime.toISOString()}`);
-        ticket = null;
       }
     }
 
     if (ticket) {
       const oldStatus = ticket.status;
 
+      // Determinar el nuevo status
+      let newStatus = undefined;
+      if ((!ticket.messagingCampaignId && !ticket.marketingMessagingCampaignId) || !msgFromMe) {
+        if (oldStatus === "closed") {
+          // Si el ticket estaba cerrado y se está reabriendo (dentro de 15 min), ponerlo en "open"
+          newStatus = "open";
+        } else {
+          // Para otros casos, usar la lógica original
+          newStatus = !ticket.userId ? "pending" : "open";
+        }
+      }
+
       await ticket.update({
-        status:
-          (!ticket.messagingCampaignId &&
-            !ticket.marketingMessagingCampaignId) ||
-          !msgFromMe
-            ? !ticket.userId
-              ? "pending"
-              : "open"
-            : undefined,
-        // userId: null,
-        unreadMessages,
+        status: newStatus,
+        ...(unreadMessages !== undefined && { unreadMessages }),
         ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
           lastMessageTimestamp
         }),

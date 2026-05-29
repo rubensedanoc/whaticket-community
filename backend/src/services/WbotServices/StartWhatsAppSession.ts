@@ -4,13 +4,31 @@ import { initWbot } from "../../libs/wbot";
 import SendMessageRequest from "../../models/SendMessageRequest";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
-import SendExternalWhatsAppMessage from "./SendExternalWhatsAppMessage";
+import SendExternalWhatsAppMessageWbot from "./SendExternalWhatsAppMessageWbot";
 import { wbotMessageListener } from "./wbotMessageListener";
 import wbotMonitor from "./wbotMonitor";
+import { sendGoogleChatError } from "../../helpers/SendGoogleChatLog";
 
 export const StartWhatsAppSession = async (
   whatsapp: Whatsapp
 ): Promise<void> => {
+  const apiType = whatsapp.apiType || "whatsapp-web.js";
+
+  if (apiType === "meta-api") {
+    logger.info(`Skipping WhatsApp Web session for ${whatsapp.name} (apiType: meta-api)`);
+    await whatsapp.update({ status: "CONNECTED" });
+    emitEvent({
+      event: {
+        name: "whatsappSession",
+        data: {
+          action: "update",
+          session: whatsapp
+        }
+      }
+    });
+    return;
+  }
+
   await whatsapp.update({ status: "OPENING" });
 
   // const io = getIO();
@@ -49,7 +67,7 @@ export const StartWhatsAppSession = async (
 
       // for (const failedRequest of failedSendMessageRequest) {
       //   try {
-      //     await SendExternalWhatsAppMessage({
+      //     await SendExternalWhatsAppMessageWbot({
       //       fromNumber: failedRequest.fromNumber,
       //       toNumber: failedRequest.toNumber,
       //       message: failedRequest.message,
@@ -61,5 +79,12 @@ export const StartWhatsAppSession = async (
     }
   } catch (err) {
     logger.error(err);
+    
+    sendGoogleChatError({
+      service: "StartWhatsAppSession",
+      error: `Fallo al inicializar sesión: ${whatsapp.name}`,
+      details: err?.message || err?.toString(),
+      whatsappId: whatsapp.id
+    });
   }
 };

@@ -36,6 +36,7 @@ interface Request {
   viewSource?: string;
   ticketsType?: string;
   profile?: string;
+  waitingTimeRanges?: string[]; // ✅ Nuevo parámetro
 }
 
 interface Response {
@@ -64,7 +65,8 @@ const buildWhereCondition = async ({
   clientelicenciaEtapaIds,
   viewSource,
   ticketsType,
-  profile
+  profile,
+  waitingTimeRanges
 }: Request): Promise<Filterable["where"]> => {
   
   // Inicio de buildWhereCondition
@@ -188,24 +190,111 @@ const buildWhereCondition = async ({
     };
   }
 
-  // ✅ FIX: Evitar repetición de tickets entre "Sin respuesta" y "En proceso"
-  // - showOnlyWaitingTickets=true → Solo tickets SIN RESPUESTA (beenWaitingSinceTimestamp NOT NULL)
-  // - showOnlyWaitingTickets=false + status=open → Solo tickets EN PROCESO (beenWaitingSinceTimestamp IS NULL)
+  // ============================================================
+  // LÓGICA ESPECIAL PARA GRUPOS EN VISTA GENERAL
+  // ============================================================
+  // Para grupos, la distribución entre columnas se basa en PARTICIPACIÓN:
+  // - "Sin Atención" (pending) = Grupos OPEN donde el usuario NO participa
+  // - "En Proceso" (open) = Grupos OPEN donde el usuario SÍ participa
+  // ============================================================
+  const isOnlyGroups = typeIds?.length === 1 && typeIds[0] === "group";
+  
+  if (isOnlyGroups && (status === "pending" || status === "open")) {
+    // Para grupos, siempre buscamos status "open" (los grupos casi nunca están en pending)
+    baseCondition = { ...baseCondition, status: "open" };
+    
+    if (status === "pending") {
+      // "Sin Atención": Grupos donde el usuario NO participa
+      (baseCondition as any)[Op.and] = [
+        ...((baseCondition as any)[Op.and] || []),
+        Sequelize.literal(
+          `NOT EXISTS (
+            SELECT 1 FROM \`TicketParticipantUsers\` 
+            WHERE \`TicketParticipantUsers\`.\`ticketId\` = \`Ticket\`.\`id\` 
+            AND \`TicketParticipantUsers\`.\`userId\` = ${userId}
+          )`
+        )
+      ];
+    } else if (status === "open") {
+      // "En Proceso": Grupos donde el usuario SÍ participa
+      (baseCondition as any)[Op.and] = [
+        ...((baseCondition as any)[Op.and] || []),
+        Sequelize.literal(
+          `EXISTS (
+            SELECT 1 FROM \`TicketParticipantUsers\` 
+            WHERE \`TicketParticipantUsers\`.\`ticketId\` = \`Ticket\`.\`id\` 
+            AND \`TicketParticipantUsers\`.\`userId\` = ${userId}
+          )`
+        )
+      ];
+    }
+  }
+
+  // ✅ Filtro por rango de tiempo de espera (Backend)
+  if (waitingTimeRanges && waitingTimeRanges.length > 0) {
+    const timeConditions: any[] = [];
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+
+    waitingTimeRanges.forEach((range) => {
+      // Formato esperado: "0-30", "30-60", "4320+"
+      if (range.includes("+")) {
+        // Caso "mayor que" (ej: 4320+)
+        const minMinutes = parseInt(range.replace("+", ""), 10);
+        if (!isNaN(minMinutes)) {
+          // Si lleva esperando X minutos, su timestamp es MENOR que (ahora - X)
+          const maxTimestamp = nowInSeconds - (minMinutes * 60);
+          timeConditions.push({
+            beenWaitingSinceTimestamp: {
+              [Op.lte]: maxTimestamp,
+              [Op.not]: null
+            }
+          });
+        }
+      } else {
+        // Caso rango (ej: 0-30)
+        const parts = range.split("-");
+        if (parts.length === 2) {
+          const minMinutes = parseInt(parts[0], 10);
+          const maxMinutes = parseInt(parts[1], 10);
+          
+          if (!isNaN(minMinutes) && !isNaN(maxMinutes)) {
+            // Rango de tiempo de espera: [min, max)
+            // Timestamp debe estar entre (ahora - max) y (ahora - min)
+            const minTimestamp = nowInSeconds - (maxMinutes * 60); // Límite inferior de timestamp (más antiguo)
+            const maxTimestamp = nowInSeconds - (minMinutes * 60); // Límite superior de timestamp (más reciente)
+            
+            timeConditions.push({
+              beenWaitingSinceTimestamp: {
+                [Op.gte]: minTimestamp,
+                [Op.lt]: maxTimestamp,
+                [Op.not]: null
+              }
+            });
+          }
+        }
+      }
+    });
+
+    if (timeConditions.length > 0) {
+      baseCondition = {
+        ...baseCondition,
+        [Op.or]: timeConditions
+      };
+    }
+  }
+
+  // ✅ Filtro "Solo sin respuesta" (manual, sin separación automática)
+  // Cuando el filtro está ACTIVADO: Solo muestra tickets donde el cliente escribió último
+  // Cuando el filtro está DESACTIVADO: Muestra todos los tickets (sin filtrar por tiempo de espera)
   if (showOnlyWaitingTickets) {
-    // Mostrar solo tickets "sin respuesta"
     baseCondition = {
       ...baseCondition,
       beenWaitingSinceTimestamp: {
         [Op.not]: null
       }
     };
-  } else if (status === "open") {
-    // Mostrar solo tickets "en proceso" (excluir los "sin respuesta")
-    baseCondition = {
-      ...baseCondition,
-      beenWaitingSinceTimestamp: null
-    };
   }
+  // NO filtrar automáticamente por beenWaitingSinceTimestamp cuando el filtro está desactivado
 
   if (clientelicenciaEtapaIds.length) {
     baseCondition = {
@@ -218,8 +307,16 @@ const buildWhereCondition = async ({
     };
   }
 
+  // Forzar privacidad si es open/pending y no es admin
+  const forcePrivacy = (status === "open" || status === "pending") && profile !== "admin";
+
   // si solo estoy viendo mis individuales abiertos o pendientes, entonces muestro los tickets que tengan mi userId o en los que este ayudando
-  if (showAll !== "true" && typeIds[0] === "individual" && (status === "open" || status === "pending")) {
+  // si solo estoy viendo mis individuales abiertos o pendientes, o si SE FUERZA PRIVACIDAD
+  if (
+    (showAll !== "true" || forcePrivacy) &&
+    (typeIds[0] === "individual" || forcePrivacy) &&
+    (status === "open" || status === "pending")
+  ) {
     baseCondition = {
       ...baseCondition,
       [Op.and]: [
@@ -233,6 +330,20 @@ const buildWhereCondition = async ({
                   `(SELECT \`ticketId\` FROM \`TicketHelpUsers\` WHERE \`userId\` = ${userId})`
                 )
               }
+            },
+            {
+              id: {
+                [Op.in]: Sequelize.literal(
+                  `(SELECT \`ticketId\` FROM \`TicketParticipantUsers\` WHERE \`userId\` = ${userId})`
+                )
+              }
+            },
+            // ✅ FIX: Mostrar GRUPOS de mis conexiones (aunque no participe)
+            {
+              [Op.and]: [
+                { isGroup: true },
+                { whatsappId: { [Op.in]: userWhatsappsId } }
+              ]
             },
             // Para pending, tambien incluir tickets sin asignar (userId: null)
             ...(status === "pending" ? [{ userId: null }] : []),
@@ -263,16 +374,33 @@ const buildWhereCondition = async ({
     )
   ) {
     if (queueIds?.length) {
+      const queueFilter = queueIds.includes(null)
+        ? { [Op.or]: [queueIds.filter(id => id !== null), null] }
+        : { [Op.in]: queueIds };
+
       baseCondition = {
         ...baseCondition,
-        queueId: {
-          [Op.or]: queueIds.includes(null)
-            ? [queueIds.filter(id => id !== null), null]
-            : [queueIds]
-        }
+        [Op.and]: [
+          ...(baseCondition[Op.and] || []),
+          {
+            [Op.or]: [
+              { queueId: queueFilter },
+              // ✅ FIX: Permitir ver tickets asignados a mí (aunque no esté en la cola)
+              { userId },
+              // ✅ FIX: Permitir ver GRUPOS de mis conexiones (aunque no esté en la cola)
+              {
+                [Op.and]: [
+                  { isGroup: true },
+                  { whatsappId: { [Op.in]: userWhatsappsId } }
+                ]
+              }
+            ]
+          }
+        ]
       };
     }
-    if (ticketUsersIds?.length) {
+    // ✅ Filtro de usuarios: Solo aplicar en tickets "en proceso" (open), NO en "sin respuesta" (pending)
+    if (ticketUsersIds?.length && status === "open") {
       baseCondition = {
         ...baseCondition,
         [Op.and]: [
@@ -298,7 +426,14 @@ const buildWhereCondition = async ({
                   WHERE \`TicketParticipantUsers\`.\`ticketId\`  = \`Ticket\`.\`id\`
                   AND \`TicketParticipantUsers\`.\`userId\` IN (${ticketUsersIds.join(",")})
                 )`
-              )
+              ),
+              // ✅ FIX: Permitir ver tickets GRUPALES de mis conexiones (bypaseando filtro de usuario)
+              {
+                [Op.and]: [
+                  { isGroup: true },
+                  { whatsappId: { [Op.in]: userWhatsappsId } }
+                ]
+              }
             ]
           }
         ]
@@ -317,9 +452,15 @@ const buildWhereCondition = async ({
     if (whatsappIds?.length) {
       baseCondition = {
         ...baseCondition,
-        whatsappId: {
-          [Op.or]: whatsappIds
-        }
+        [Op.and]: [
+          ...(baseCondition[Op.and] || []),
+          {
+            [Op.or]: [
+              { whatsappId: { [Op.in]: whatsappIds } },
+              { userId } // ✅ FIX: Mostrar siempre tickets asignados al usuario actual
+            ]
+          }
+        ]
       };
     }
   }
@@ -367,8 +508,10 @@ const buildIncludeCondition = ({
         "isCompanyMember",
         "isExclusive",
         "traza_clientelicencia_id",
-        "traza_clientelicencia_currentetapaid"
+        "traza_clientelicencia_currentetapaid",
+        "attentionType"
       ],
+
       include: [
         {
           model: ContactClientelicencias,
@@ -518,7 +661,7 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const user = await User.findByPk(+request.userId, {
-    attributes: ["id"],
+    attributes: ["name", "id", "profile", "whatsappId"],
     include: [
       {
         model: Whatsapp,
@@ -530,6 +673,13 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   });
 
   request.userWhatsappsId = user.userWhatsapps.map(whatsapp => whatsapp.id);
+  
+  // ✅ FIX: Fallback a columna legado whatsappId si existe
+  if (user.whatsappId && !request.userWhatsappsId.includes(user.whatsappId)) {
+    request.userWhatsappsId.push(user.whatsappId);
+  }
+
+
   request.profile = user.profile;
 
   // Construcción de WHERE
@@ -538,7 +688,7 @@ const ListTicketsService = async (request: Request): Promise<Response> => {
   let includeCondition = buildIncludeCondition(request);
   let includeConditionForCount = buildIncludeConditionForCount(request);
 
-  const limit = 20;
+  const limit = 10;
   const offset = limit * (+pageNumber - 1);
 
   // Ejecutando Ticket.findAll

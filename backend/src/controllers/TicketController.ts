@@ -20,7 +20,8 @@ import getAndSetBeenWaitingSinceTimestampTicketService from "../services/TicketS
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
-import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import MigrateTicketsWithoutQueueService from "../services/TicketServices/MigrateTicketsWithoutQueueService";
+import SendWhatsAppMessage from "../services/MessageServices/SendWhatsAppMessage";
 import { verifyContact } from "../services/WbotServices/wbotMessageListener";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import Notification from "../models/Notification";
@@ -47,6 +48,7 @@ type IndexQuery = {
   ticketUsersIds: string;
   viewSource: string;
   impersonatedUserId?: string; // NUEVO: ID del usuario a impersonar
+  waitingTimeRanges: string; // ✅ Nuevo
 };
 
 interface TicketData {
@@ -81,7 +83,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showOnlyWaitingTickets: showOnlyWaitingTicketsStringified,
     filterByUserQueue: filterByUserQueueStringified,
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
-    viewSource
+    viewSource,
+    waitingTimeRanges: waitingTimeRangesStringified // ✅ Nuevo
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -96,6 +99,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let showOnlyWaitingTickets: boolean = false;
   let filterByUserQueue: boolean = false;
   let clientelicenciaEtapaIds: number[] = [];
+  let waitingTimeRanges: string[] = []; // ✅ Nuevo
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -139,6 +143,11 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified);
   }
 
+  // ✅ Parsear waitingTimeRanges
+  if (waitingTimeRangesStringified) {
+    waitingTimeRanges = JSON.parse(waitingTimeRangesStringified);
+  }
+
   // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
   if (filterByUserQueue && queueIds.length === 0) {
     const userWithQueues = await User.findByPk(req.user.id, {
@@ -171,8 +180,23 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       categoryId,
       showOnlyWaitingTickets,
       clientelicenciaEtapaIds,
-      viewSource
+      viewSource,
+      waitingTimeRanges // ✅ Pasar al servicio
     });
+
+  //Para tickets "pending" con beenWaitingSinceTimestamp null, calcular ahora
+  // Cubre tickets viejos o creados antes del fix de Meta
+  if (status === "pending") {
+    const ticketsWithoutTimestamp = tickets.filter(t => !t.beenWaitingSinceTimestamp);
+    if (ticketsWithoutTimestamp.length > 0) {
+      await getAndSetBeenWaitingSinceTimestampTicketService(ticketsWithoutTimestamp);
+      // Reflejar los valores recién calculados en el array original
+      ticketsWithoutTimestamp.forEach(updated => {
+        const original = tickets.find(t => t.id === updated.id);
+        if (original) original.beenWaitingSinceTimestamp = updated.beenWaitingSinceTimestamp;
+      });
+    }
+  }
 
   let ticketsToSend = tickets; // Inicializamos con la lista original
 
@@ -246,7 +270,8 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
     ticketGroupType,
     viewSource,
-    impersonatedUserId // NUEVO: ID del usuario a impersonar (opcional)
+    impersonatedUserId, // NUEVO: ID del usuario a impersonar (opcional)
+    waitingTimeRanges: waitingTimeRangesStringified // ✅ Nuevo
   } = req.query as IndexQuery;
 
   // ⚠️ CRÍTICO: Por defecto usar el userId real (funciona como siempre)
@@ -303,6 +328,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
   let showOnlyWaitingTickets: boolean = false;
   let filterByUserQueue: boolean = false;
   let clientelicenciaEtapaIds: number[] = [];
+  let waitingTimeRanges: string[] = []; // ✅ Nuevo
 
   if (typeIdsStringified) {
     typeIds = JSON.parse(typeIdsStringified);
@@ -351,6 +377,11 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     clientelicenciaEtapaIds = JSON.parse(clientelicenciaEtapaIdsStringified).filter((id: number) => id !== null && id !== undefined);
   }
 
+  // ✅ Parsear waitingTimeRanges
+  if (waitingTimeRangesStringified) {
+    waitingTimeRanges = JSON.parse(waitingTimeRangesStringified);
+  }
+
   // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
   if (filterByUserQueue && queueIds.length === 0) {
     const userWithQueues = await User.findByPk(req.user.id, {
@@ -384,8 +415,22 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       clientelicenciaEtapaIds,
       ticketGroupType,
       viewSource,
-      forceUserIdFilter: isImpersonationActive // Solo forzar si impersonación fue exitosa
+      forceUserIdFilter: isImpersonationActive, // Solo forzar si impersonación fue exitosa
+      waitingTimeRanges // ✅ Pasar al servicio
     });
+
+  // Para tickets "pending" sin beenWaitingSinceTimestamp, calcular ahora
+  // En advancedIndex los tickets pueden ser pending aunque status param sea otro
+  {
+    const pendingWithoutTimestamp = tickets.filter(t => t.status === "pending" && !t.beenWaitingSinceTimestamp);
+    if (pendingWithoutTimestamp.length > 0) {
+      await getAndSetBeenWaitingSinceTimestampTicketService(pendingWithoutTimestamp);
+      pendingWithoutTimestamp.forEach(updated => {
+        const original = tickets.find(t => t.id === updated.id);
+        if (original) original.beenWaitingSinceTimestamp = updated.beenWaitingSinceTimestamp;
+      });
+    }
+  }
 
   let ticketsToSend = tickets; // Inicializamos con la lista original
 
@@ -797,4 +842,17 @@ export const getAndSetBeenWaitingSinceTimestampToAllTheTickets = async (
     firstId: tickets[0].id,
     lastId: tickets[tickets.length - 1].id
   });
+};
+
+export const migrateTicketsWithoutQueue = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  if (req.user.profile !== "admin") {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const result = await MigrateTicketsWithoutQueueService();
+
+  return res.status(200).json(result);
 };

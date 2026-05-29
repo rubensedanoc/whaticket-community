@@ -5,8 +5,7 @@ import * as ReportsController from "../controllers/ReportsController";
 
 const reportsRoutes = Router();
 
-// ⚠️ REPORTES COMENTADOS - Alto consumo de CPU/DB
-// reportsRoutes.get("/generalReport", isAuth, ReportsController.generalReport);
+reportsRoutes.get("/generalReport", isAuth, ReportsController.generalReport);
 
 reportsRoutes.get(
   "/getOpenOrPendingTicketsWithLastMessages",
@@ -20,27 +19,31 @@ reportsRoutes.get(
   ReportsController.getATicketsList
 );
 
-// reportsRoutes.get("/reportHistory", ReportsController.reportHistory);
-// reportsRoutes.get(
-//   "/reportHistoryWithDateRange",
-//   ReportsController.reportHistoryWithDateRange
-// );
-// reportsRoutes.get("/reportToExcel", ReportsController.reportToExcel);
-// reportsRoutes.get("/reportToExcelForIA", ReportsController.reportToExcelForIA);
-// reportsRoutes.get("/reportToUsers", ReportsController.reportToUsers);
-// reportsRoutes.get(
-//   "/chatbotMessagesReportToExcel",
-//   ReportsController.chatbotMessagesReportToExcel
-// );
+reportsRoutes.get("/reportHistory", isAuth, ReportsController.reportHistory);
+reportsRoutes.get(
+  "/reportHistoryWithDateRange",
+  isAuth,
+  ReportsController.reportHistoryWithDateRange
+);
+reportsRoutes.get("/reportToExcel", isAuth, ReportsController.reportToExcel);
+reportsRoutes.get("/reportToExcelForIA", isAuth, ReportsController.reportToExcelForIA);
+reportsRoutes.get("/reportToUsers", isAuth, ReportsController.reportToUsers);
+reportsRoutes.get(
+  "/chatbotMessagesReportToExcel",
+  isAuth,
+  ReportsController.chatbotMessagesReportToExcel
+);
 
 // ----------------- comercial reports page
-// reportsRoutes.get(
-//   "/getTicketsDistributionByStages",
-//   ReportsController.getTicketsDistributionByStages
-// );
-// reportsRoutes.get(
-//   "/getTicketsDistributionByStagesForExcel",
-//   ReportsController.getTicketsDistributionByStagesForExcel
-// );
+reportsRoutes.get(
+  "/getTicketsDistributionByStages",
+  isAuth,
+  ReportsController.getTicketsDistributionByStages
+);
+reportsRoutes.get(
+  "/getTicketsDistributionByStagesForExcel",
+  isAuth,
+  ReportsController.getTicketsDistributionByStagesForExcel
+);
 
 export default reportsRoutes;

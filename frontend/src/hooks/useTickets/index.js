@@ -21,7 +21,8 @@ const useTickets = ({
   advancedList = false,
   ticketUsersIds,
   viewSource = null,
-  impersonatedUserId
+  impersonatedUserId,
+  waitingTimeRanges // ✅ Nuevo parámetro
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -60,14 +61,8 @@ const useTickets = ({
     const signal = abortControllerRef.current.signal;
 
     setLoading(true);
-    const delayDebounceFn = setTimeout(() => {
-      // ✅ Prevenir consultas simultáneas
-      if (isFetchingRef.current) {
-        console.log(`[useTickets] ⚠️ Consulta ya en progreso, ignorando nueva petición [${requestId}]`);
-        return;
-      }
 
-      const fetchTickets = async () => {
+    const fetchTickets = async () => {
         try {
           console.time(`[useTickets] ⏱️ fetchTickets [${requestId}]`);
           console.log(`[useTickets] 🔄 Iniciando fetchTickets [${requestId}]`);
@@ -123,7 +118,10 @@ const useTickets = ({
                 showOnlyWaitingTickets,
                 filterByUserQueue,
                 clientelicenciaEtapaIds,
-                viewSource
+                filterByUserQueue,
+                clientelicenciaEtapaIds,
+                viewSource,
+                waitingTimeRanges: JSON.stringify(waitingTimeRanges) // ✅ Nuevo param para backend
               },
               signal // ✅ Pasar signal para cancelación
             });
@@ -201,10 +199,8 @@ const useTickets = ({
       };
 
       fetchTickets();
-    }, 500);
     
     return () => {
-      clearTimeout(delayDebounceFn);
       // ✅ Cancelar request si el componente se desmonta o cambian los params
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -224,7 +220,8 @@ const useTickets = ({
     showOnlyWaitingTickets,
     reload,
     clientelicenciaEtapaIds,
-    impersonatedUserId
+    impersonatedUserId,
+    JSON.stringify(waitingTimeRanges) // ✅ Dependencia para recargar si cambia el filtro
   ]);
 
   const triggerReload = () => {

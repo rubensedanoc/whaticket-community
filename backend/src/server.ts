@@ -18,6 +18,7 @@ import CheckSettingsHelper from "./helpers/CheckSettings";
 import ConversationIAEvalutaion from "./models/ConversationIAEvalutaion";
 import ContactClientelicencia from "./models/ContactClientelicencias";
 import AnalizeTicketToCreateAConversationIAEvaluationService from "./services/ConversationIAEvalutaion/AnalizeTicketToCreateAConversationIAEvaluationService";
+import { sendGoogleChatError } from "./helpers/SendGoogleChatLog";
 
 const server = app.listen(process.env.PORT, () => {
   const memUsage = process.memoryUsage();
@@ -29,8 +30,13 @@ const server = app.listen(process.env.PORT, () => {
 logger.info(`[${new Date().toISOString()}] Initializing Socket.IO`);
 initIO();
 
-logger.info(`[${new Date().toISOString()}] Starting all WhatsApp sessions`);
-StartAllWhatsAppsSessions();
+// Feature flag para skip WhatsApp initialization (útil para desarrollo sin Puppeteer)
+if (process.env.SKIP_WHATSAPP_INIT !== "true") {
+  logger.info(`[${new Date().toISOString()}] Starting all WhatsApp sessions`);
+  StartAllWhatsAppsSessions();
+} else {
+  logger.warn(`[${new Date().toISOString()}] SKIP_WHATSAPP_INIT=true - WhatsApp sessions NOT started`);
+}
 
 logger.info(`[${new Date().toISOString()}] Configuring graceful shutdown`);
 gracefulShutdown(server);
@@ -39,7 +45,7 @@ gracefulShutdown(server);
 cron.schedule("*/30 * * * *", async () => {
   const cronStartTime = Date.now();
   const memBefore = process.memoryUsage();
-  
+
   logger.info(
     `[${new Date().toISOString()}] CRON START searchForUnSaveMessages - heap: ${Math.round(memBefore.heapUsed / 1024 / 1024)}MB`
   );
@@ -55,6 +61,12 @@ cron.schedule("*/30 * * * *", async () => {
       `[${new Date().toISOString()}] CRON - Connected whatsapps: ${whatsapps.length} - IDs: [${whatsapps.map(w => w.id).join(', ')}]`
     );
 
+    // Filtrar solo WhatsApps tipo Puppeteer (Meta API no necesita este CRON)
+    whatsapps = whatsapps.filter(whatsapp => !whatsapp.apiType || whatsapp.apiType === "whatsapp-web.js");
+    logger.info(
+      `[${new Date().toISOString()}] CRON - Puppeteer whatsapps to process: ${whatsapps.length}`
+    );
+
     let processedCount = 0;
     let errorCount = 0;
     let totalMessages = 0;
@@ -65,7 +77,7 @@ cron.schedule("*/30 * * * *", async () => {
         logger.info(
           `[${new Date().toISOString()}] CRON - Processing whatsapp ${processedCount + 1}/${whatsapps.length} - ID: ${whatsapp.id} - name: ${whatsapp.name}`
         );
-        
+
         // VALIDACIÓN CRÍTICA: Verificar que la sesión wbot exista antes de usarla
         let wbot;
         try {
@@ -98,7 +110,7 @@ cron.schedule("*/30 * * * *", async () => {
         }
 
         const whatsappElapsed = Date.now() - whatsappStartTime;
-        
+
         if (searchForUnSaveMessagesResult.error) {
           errorCount++;
           logger.error(
@@ -116,7 +128,7 @@ cron.schedule("*/30 * * * *", async () => {
           `[${new Date().toISOString()}] searchForUnSaveMessagesResult (${whatsapp.name}): `,
           searchForUnSaveMessagesResult
         );
-        
+
         processedCount++;
       } catch (err) {
         errorCount++;
@@ -128,11 +140,11 @@ cron.schedule("*/30 * * * *", async () => {
         Sentry.captureException(err);
       }
     }
-    
+
     const cronElapsed = Date.now() - cronStartTime;
     const memAfter = process.memoryUsage();
     const memDiff = Math.round((memAfter.heapUsed - memBefore.heapUsed) / 1024 / 1024);
-    
+
     logger.info(
       `[${new Date().toISOString()}] CRON END searchForUnSaveMessages - processed: ${processedCount}/${whatsapps.length} - errors: ${errorCount} - totalMessages: ${totalMessages} - elapsed: ${cronElapsed}ms - memDiff: ${memDiff}MB`
     );
@@ -143,6 +155,12 @@ cron.schedule("*/30 * * * *", async () => {
       err
     );
     Sentry.captureException(err);
+
+    sendGoogleChatError({
+      service: "CRON searchForUnSaveMessages",
+      error: "Error crítico en CRON",
+      details: `${err?.message || err?.toString()} - Tiempo: ${cronElapsed}ms`
+    });
   }
 });
 
@@ -320,7 +338,7 @@ cron.schedule("*/30 * * * *", async () => {
 cron.schedule('0 * * * *', async () => {
   const cronStartTime = Date.now();
   logger.info(`[${new Date().toISOString()}] CRON START searchForExclusiveNumbers`);
-  
+
   try {
     // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
     const response = await fetch(
@@ -345,7 +363,7 @@ cron.schedule('0 * * * *', async () => {
     if (typeof data.data === "object") {
 
       const exclusiveNumbers = Object.keys(data.data).map(number => number.replace(/\D/g, "")).filter(number => number.length > 6);
-      
+
       logger.info(
         `[${new Date().toISOString()}] CRON searchForExclusiveNumbers - found ${exclusiveNumbers.length} exclusive numbers`
       );
@@ -362,7 +380,7 @@ cron.schedule('0 * * * *', async () => {
       );
 
     }
-    
+
     const cronElapsed = Date.now() - cronStartTime;
     logger.info(
       `[${new Date().toISOString()}] CRON END searchForExclusiveNumbers - elapsed: ${cronElapsed}ms`
@@ -374,9 +392,27 @@ cron.schedule('0 * * * *', async () => {
       error
     );
     Sentry.captureException(error);
+
+    sendGoogleChatError({
+      service: "CRON searchForExclusiveNumbers",
+      error: "Error en CRON de números exclusivos",
+      details: `${error?.message || error?.toString()} - Tiempo: ${cronElapsed}ms`
+    });
   }
 });
 
+// CRON FOR CHECKING EXPIRED CHATBOT SESSIONS
+// Verificar tickets con chatbot de inactividad expirado - cada 3 horas
+cron.schedule('0 */3 * * *', async () => {
+  const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
+  await CheckExpiredChatbotSessions('inactividad');
+});
+
+// Verificar tickets con chatbot de soporte expirado - cada 5 minutos
+cron.schedule('*/5 * * * *', async () => {
+  const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
+  await CheckExpiredChatbotSessions('soporte');
+});
 
 // Every minute of every hour of the day
 // cron.schedule('0 * * * *', async () => {

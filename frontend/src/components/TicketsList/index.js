@@ -136,6 +136,12 @@ const useStyles = makeStyles((theme) => ({
 const reducer = (state, action) => {
   // console.log("REDUCER: ", action.type, action.payload);
 
+  // ✅ REPLACE_TICKETS: Para paginación - REEMPLAZA la lista completa
+  if (action.type === "REPLACE_TICKETS") {
+    return action.payload; // Reemplaza completamente los tickets
+  }
+
+  // ✅ LOAD_TICKETS: Para actualizaciones de sockets - ACUMULA/ACTUALIZA
   if (action.type === "LOAD_TICKETS") {
     const newTickets = action.payload;
 
@@ -299,6 +305,8 @@ const TicketsList = (props) => {
     JSON.stringify(selectedMarketingCampaignIds),
     JSON.stringify(selectedTypeIds),
     JSON.stringify(selectedTicketUsersIds),
+    // ✅ AHORA SÍ incluir selectedWaitingTimeRanges porque afecta la query al backend
+    JSON.stringify(selectedWaitingTimeRanges),
     showOnlyWaitingTickets,
     JSON.stringify(selectedClientelicenciaEtapaIds),
     impersonatedUserId
@@ -322,7 +330,8 @@ const TicketsList = (props) => {
     filterByUserQueue: true,
     advancedList,
     viewSource,
-    impersonatedUserId
+    impersonatedUserId,
+    waitingTimeRanges: selectedWaitingTimeRanges // ✅ Pasar filtro al backend
   });
 
   useEffect(() => {
@@ -331,7 +340,7 @@ const TicketsList = (props) => {
 
     (async () => {
       dispatch({
-        type: "LOAD_TICKETS",
+        type: "REPLACE_TICKETS", // ✅ Cambiado a REPLACE para paginación tradicional
         payload: tickets,
       });
     })();
@@ -356,6 +365,7 @@ const TicketsList = (props) => {
   //   }
   // }, [updatedCount]);
 
+
   // Helper: Verificar si ticket está en rango de tiempo seleccionado
   // useCallback para evitar recreación en cada render
   const isTicketInWaitingTimeRange = useCallback((ticket, ranges) => {
@@ -374,21 +384,18 @@ const TicketsList = (props) => {
       if (rangeId === "120-240") return waitingMinutes >= 120 && waitingMinutes < 240;
       if (rangeId === "240-480") return waitingMinutes >= 240 && waitingMinutes < 480;
       if (rangeId === "480-960") return waitingMinutes >= 480 && waitingMinutes < 960;
-      if (rangeId === "960+") return waitingMinutes >= 960;
+      if (rangeId === "960-1440") return waitingMinutes >= 960 && waitingMinutes < 1440;
+      if (rangeId === "1440-2880") return waitingMinutes >= 1440 && waitingMinutes < 2880;
+      if (rangeId === "2880-4320") return waitingMinutes >= 2880 && waitingMinutes < 4320;
+      if (rangeId === "4320+") return waitingMinutes >= 4320;
       return false;
     });
   }, []);
 
-  // Filtrar tickets por tiempo en render (useMemo para optimización)
-  const filteredTicketsList = useMemo(() => {
-    if (!selectedWaitingTimeRanges || selectedWaitingTimeRanges.length === 0) {
-      return ticketsList;
-    }
+  // ❌ Lógica de filtrado en cliente REMOVIDA
+  // Ahora el backend se encarga de filtrar, así que usamos ticketsList directamente
+  const filteredTicketsList = ticketsList; 
 
-    return ticketsList.filter(ticket => 
-      isTicketInWaitingTimeRange(ticket, selectedWaitingTimeRanges)
-    );
-  }, [ticketsList, selectedWaitingTimeRanges, isTicketInWaitingTimeRange]);
 
   useEffect(() => {
     const socket = openSocket();
@@ -512,13 +519,14 @@ const TicketsList = (props) => {
       //   }, ticket);
       // }
 
+      // ✅ Ahora verificamos si el ticket cumple con el rango de tiempo seleccionado
       const waitingTimeCondition = isTicketInWaitingTimeRange(ticket, selectedWaitingTimeRanges);
 
       const isConditionMet =
         noSearchParamCondition &&
         TypeCondition &&
         userCondition &&
-        waitingTimeCondition &&
+        waitingTimeCondition && // ✅ Agregar condición de tiempo
         (ignoreConditions ||
           (queueCondition &&
             whatsappCondition &&
@@ -697,7 +705,7 @@ const TicketsList = (props) => {
   ]);
 
   // ✅ PAGINACIÓN TRADICIONAL - Reemplaza scroll infinito
-  const ITEMS_PER_PAGE = 20;
+  const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(count / ITEMS_PER_PAGE);
 
   const handlePageChange = (newPage) => {
@@ -977,7 +985,7 @@ const TicketsList = (props) => {
 
         {ticketsType === "no-response" && (
           <>
-            <div>SIN RESPUESTA</div>
+            <div>SIN ATENCIÓN</div>
           </>
         )}
 

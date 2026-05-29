@@ -17,7 +17,6 @@ import messagingCampaignMessageRoutes from "./messagingCampaignMessageRoutes";
 import messagingCampaignRoutes from "./messagingCampaignRoutes";
 import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
-// ⚠️ REPORTES COMENTADOS - Alto consumo de CPU/DB
 import reportsRoutes from "./reports";
 import settingRoutes from "./settingRoutes";
 import ticketRoutes from "./ticketRoutes";
@@ -27,6 +26,10 @@ import whatsappSessionRoutes from "./whatsappSessionRoutes";
 import notificationRoutes from "./notificationRoutes";
 import conversationIAQuestionsRoutes from "./conversationIAQuestionsRoutes";
 import conversationIAEvalutaionsRoutes from "./conversationIAEvalutaionsRoutes";
+import metaWebhookRoutes from "./metaWebhookRoutes";
+import metaTestRoutes from "./metaTestRoutes";
+import metaGroupRoutes from "./metaGroupRoutes";
+import inactivityBotRoutes from "./inactivityBotRoutes";
 
 const routes = Router();
 
@@ -56,5 +59,9 @@ routes.use("/extra", extraRoutes);
 routes.use(notificationRoutes);
 routes.use(conversationIAQuestionsRoutes);
 routes.use(conversationIAEvalutaionsRoutes);
+routes.use(metaWebhookRoutes);
+routes.use("/meta-test", metaTestRoutes);
+routes.use(metaGroupRoutes);
+routes.use("/api", inactivityBotRoutes);
 
 export default routes;

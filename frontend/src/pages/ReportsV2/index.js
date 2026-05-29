@@ -320,7 +320,12 @@ const Reports = () => {
           let extraData = null;
 
           if (row.microserviceData) {
-            row.microserviceData.forEach((dynamicRow, index) => {
+            // Si es un array, tomar solo el primer elemento
+            const dataToProcess = Array.isArray(row.microserviceData) 
+              ? [row.microserviceData[0]] 
+              : [row.microserviceData];
+
+            dataToProcess.forEach((dynamicRow, index) => {
               // Para evitar conflictos, añadimos el índice como prefijo de los campos dinámicos
               const dynamicFields = Object.keys(dynamicRow).reduce(
                 (acc, key) => {
@@ -334,7 +339,7 @@ const Reports = () => {
             });
           }
 
-          return {
+          const baseData = {
             "N. DE TICKET": row.tid,
             CREACIÓN_FECHA: format(new Date(row.tcreatedAt), "dd-MM-yyyy"),
             CREACIÓN_HORA: format(new Date(row.tcreatedAt), "HH:mm"),
@@ -358,6 +363,13 @@ const Reports = () => {
             "PRIMERA RESPUESTA": row.firstResponseMessage,
             ...extraData,
           };
+
+          // Agregar campos del chatbot y comentario de cierre después de extraData
+          baseData["CATEGORÍA OPCIÓN BOT"] = row.tchatbotSelectedCategory || "";
+          baseData["SUBCATEGORÍA OPCIÓN BOT"] = row.tchatbotSelectedSubcategory || "";
+          baseData["COMENTARIO DE CIERRE"] = row.closeComment || "";
+
+          return baseData;
         });
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -609,7 +621,7 @@ const Reports = () => {
                 {/* {loading && <CircularProgress color="primary" size={25} />} */}
               </div>
             </div>
-            <ButtonWithSpinner
+            {/* <ButtonWithSpinner
               variant="contained"
               color="primary"
               onClick={() => {
@@ -623,204 +635,132 @@ const Reports = () => {
               loading={loadingReportHistory}
             >
               Actualizar
-            </ButtonWithSpinner>
+            </ButtonWithSpinner> */}
           </div>
         </MainHeader>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper className={classes.fixedHeightPaper}>
-              <Typography
-                component="h3"
-                variant="h6"
-                color="primary"
-                paragraph
-                style={{ display: "flex", justifyContent: "space-between" }}
+         <Grid item xs={12}>
+            <MainHeader>
+              <div
+                style={{
+                  display: "flex",
+                  marginTop: "1rem",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  alignItems: "center",
+                }}
               >
-                <span>Quintiles de espera actual</span>
-                <span style={{ color: "black" }}>
-                  Tickets Totales:{" "}
-                  {responseTimesData ? responseTimesData.length : 0}
-                </span>
-              </Typography>
-              <div style={{ flexGrow: 1 }}>
-                <Grid container spacing={3} style={{ fontSize: 18 }}>
-                  {responseTimes ? (
-                    <>
-                      <Grid item xs={4}>
-                        {responseTimes.slice(0, 5).map((range) => (
-                          <div key={range.label}>
-                            <span>{range.label}</span>
-                            {": "}
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              style={{ fontWeight: "bold" }}
-                              onClick={() => {
-                                setTicketListModalOpen(true);
-                                setTicketListModalTickets(range.ticketIds);
-                                setTicketListModalTitle(range.label);
-                              }}
-                            >
-                              {range.count}{" "}
-                              {range.count > 0 && (
-                                <span
-                                  style={{
-                                    color: "black",
-                                    fontSize: "12px",
-                                    display: "inline-block",
-                                    marginLeft: 5,
-                                  }}
-                                >
-                                  (
-                                  {Math.round(
-                                    (range.count * 100) /
-                                      responseTimes
-                                        .slice(0, 5)
-                                        .reduce(
-                                          (acc, range) => acc + range.count,
-                                          0
-                                        )
-                                  )}
-                                  %)
-                                </span>
-                              )}
-                            </IconButton>
-                          </div>
-                        ))}
+                <div style={{ display: "flex" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                    }}
+                  >
+                    <TextField
+                      id="date"
+                      label="Desde"
+                      type="datetime-local"
+                      variant="outlined"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className={classes.textField}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                    />
+                    <TextField
+                      id="date"
+                      label="Hasta"
+                      type="datetime-local"
+                      variant="outlined"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className={classes.textField}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                    />
+                    <div>
+                      {/* <UsersSelect
+                selectedUserIds={selectedUserIds}
+                onChange={(value) => {
+                  setSelectedUserIds(value);
+                }}
+              /> */}
+                    </div>
+                  </div>
+                </div>
 
-                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
-                          Porcentaje:{" "}
-                          {Math.round(
-                            (responseTimes
-                              .slice(0, 5)
-                              .reduce((acc, range) => acc + range.count, 0) *
-                              100) /
-                              responseTimesData.length
-                          )}
-                          %
-                        </div>
-                      </Grid>
-                      <Grid item xs={4}>
-                        {responseTimes.slice(5, 10).map((range, index) => (
-                          <div key={range.label}>
-                            <span>{range.label}</span>
-                            {": "}
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              style={{ fontWeight: "bold" }}
-                              onClick={() => {
-                                setTicketListModalOpen(true);
-                                setTicketListModalTickets(range.ticketIds);
-                                setTicketListModalTitle(range.label);
-                              }}
-                            >
-                              {range.count}{" "}
-                              {index !== 0 && range.count > 0 && (
-                                <span
-                                  style={{
-                                    color: "black",
-                                    fontSize: "12px",
-                                    display: "inline-block",
-                                    marginLeft: 5,
-                                  }}
-                                >
-                                  (
-                                  {Math.round(
-                                    (range.count * 100) /
-                                      responseTimes
-                                        .slice(6, 10)
-                                        .reduce(
-                                          (acc, range) => acc + range.count,
-                                          0
-                                        )
-                                  )}
-                                  %)
-                                </span>
-                              )}
-                            </IconButton>
-                          </div>
-                        ))}
-                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
-                          Porcentaje:{" "}
-                          {Math.round(
-                            (responseTimes
-                              .slice(6, 10)
-                              .reduce((acc, range) => acc + range.count, 0) *
-                              100) /
-                              responseTimesData.length
-                          )}
-                          %
-                        </div>
-                      </Grid>
-                      <Grid item xs={4}>
-                        {responseTimes.slice(10, 15).map((range, index) => (
-                          <div key={range.label}>
-                            <span>{range.label}</span>
-                            {": "}
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              style={{ fontWeight: "bold" }}
-                              onClick={() => {
-                                setTicketListModalOpen(true);
-                                setTicketListModalTickets(range.ticketIds);
-                                setTicketListModalTitle(range.label);
-                              }}
-                            >
-                              {range.count}
-                              {index !== 0 && range.count > 0 && (
-                                <span
-                                  style={{
-                                    color: "black",
-                                    fontSize: "12px",
-                                    display: "inline-block",
-                                    marginLeft: 5,
-                                  }}
-                                >
-                                  (
-                                  {Math.round(
-                                    (range.count * 100) /
-                                      responseTimes
-                                        .slice(11, 15)
-                                        .reduce(
-                                          (acc, range) => acc + range.count,
-                                          0
-                                        )
-                                  )}
-                                  %)
-                                </span>
-                              )}
-                            </IconButton>
-                          </div>
-                        ))}
-                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
-                          Porcentaje:{" "}
-                          {Math.round(
-                            (responseTimes
-                              .slice(11, 15)
-                              .reduce((acc, range) => acc + range.count, 0) *
-                              100) /
-                              responseTimesData.length
-                          )}
-                          %
-                        </div>
-                      </Grid>
-
-                      <TicketListModal
-                        modalOpen={ticketListModalOpen}
-                        onClose={() => setTicketListModalOpen(false)}
-                        title={ticketListModalTitle}
-                        tickets={ticketListModalTickets}
-                        newView={true}
-                      />
-                    </>
-                  ) : null}
-                </Grid>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "1rem",
+                  }}
+                >
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#2de241" }}
+                    onClick={() =>
+                      getReportToExcel({
+                        fromDate,
+                        toDate,
+                        selectedWhatsappIds,
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportToExcel}
+                  >
+                    Exportar a Excel
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#2de241" }}
+                    onClick={() =>
+                      reportToExcelForIA({
+                        fromDate,
+                        toDate,
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportToExcelIA}
+                  >
+                    IA Excel (by departamento)
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    style={{ color: "white", backgroundColor: "#ff9800" }}
+                    onClick={() =>
+                      reportOpenChats({
+                        selectedQueueIds,
+                      })
+                    }
+                    loading={loadingReportOpenChats}
+                  >
+                    Reporte de chats abiertos
+                  </ButtonWithSpinner>
+                  <ButtonWithSpinner
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      getReportHistoryWithDateRange({
+                        fromDate,
+                        toDate,
+                        selectedWhatsappIds,
+                        selectedCountryIds,
+                        selectedQueueIds,
+                      });
+                    }}
+                    loading={loadingReportHistoryWithDateRange}
+                  >
+                    Actualizar
+                  </ButtonWithSpinner>
+                </div>
               </div>
-            </Paper>
+            </MainHeader>
           </Grid>
-
+          
+        <Grid container spacing={3}>
           <Grid item xs={12}>
             <Paper className={classes.customFixedHeightPaper}>
               <Typography
@@ -1259,126 +1199,199 @@ const Reports = () => {
           </Grid>
 
           <Grid item xs={12}>
-            <MainHeader>
-              <div
-                style={{
-                  display: "flex",
-                  marginTop: "1rem",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  alignItems: "center",
-                }}
+            <Paper className={classes.fixedHeightPaper}>
+              <Typography
+                component="h3"
+                variant="h6"
+                color="primary"
+                paragraph
+                style={{ display: "flex", justifyContent: "space-between" }}
               >
-                <div style={{ display: "flex" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "1rem",
-                    }}
-                  >
-                    <TextField
-                      id="date"
-                      label="Desde"
-                      type="datetime-local"
-                      variant="outlined"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                      className={classes.textField}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                    />
-                    <TextField
-                      id="date"
-                      label="Hasta"
-                      type="datetime-local"
-                      variant="outlined"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                      className={classes.textField}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                    />
-                    <div>
-                      {/* <UsersSelect
-                selectedUserIds={selectedUserIds}
-                onChange={(value) => {
-                  setSelectedUserIds(value);
-                }}
-              /> */}
-                    </div>
-                  </div>
-                </div>
+                <span>Quintiles de espera actual (solo sin respuesta)</span>
+                <span style={{ color: "black" }}>
+                  Tickets Totales Sin Respuesta:{" "}
+                  {responseTimesData ? responseTimesData.length : 0}
+                </span>
+              </Typography>
+              <div style={{ flexGrow: 1 }}>
+                <Grid container spacing={3} style={{ fontSize: 18 }}>
+                  {responseTimes ? (
+                    <>
+                      <Grid item xs={4}>
+                        {responseTimes.slice(0, 4).map((range) => (
+                          <div key={range.label}>
+                            <span>{range.label}</span>
+                            {": "}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              style={{ fontWeight: "bold" }}
+                              onClick={() => {
+                                setTicketListModalOpen(true);
+                                setTicketListModalTickets(range.ticketIds);
+                                setTicketListModalTitle(range.label);
+                              }}
+                            >
+                              {range.count}{" "}
+                              {range.count > 0 && (
+                                <span
+                                  style={{
+                                    color: "black",
+                                    fontSize: "12px",
+                                    display: "inline-block",
+                                    marginLeft: 5,
+                                  }}
+                                >
+                                  (
+                                  {Math.round(
+                                    (range.count * 100) /
+                                      responseTimes
+                                        .slice(0, 4)
+                                        .reduce(
+                                          (acc, range) => acc + range.count,
+                                          0
+                                        )
+                                  )}
+                                  %)
+                                </span>
+                              )}
+                            </IconButton>
+                          </div>
+                        ))}
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "1rem",
-                  }}
-                >
-                  <ButtonWithSpinner
-                    variant="contained"
-                    style={{ color: "white", backgroundColor: "#2de241" }}
-                    onClick={() =>
-                      getReportToExcel({
-                        fromDate,
-                        toDate,
-                        selectedWhatsappIds,
-                        selectedQueueIds,
-                      })
-                    }
-                    loading={loadingReportToExcel}
-                  >
-                    Exportar a Excel
-                  </ButtonWithSpinner>
-                  <ButtonWithSpinner
-                    variant="contained"
-                    style={{ color: "white", backgroundColor: "#2de241" }}
-                    onClick={() =>
-                      reportToExcelForIA({
-                        fromDate,
-                        toDate,
-                        selectedQueueIds,
-                      })
-                    }
-                    loading={loadingReportToExcelIA}
-                  >
-                    IA Excel (by departamento)
-                  </ButtonWithSpinner>
-                  <ButtonWithSpinner
-                    variant="contained"
-                    style={{ color: "white", backgroundColor: "#ff9800" }}
-                    onClick={() =>
-                      reportOpenChats({
-                        selectedQueueIds,
-                      })
-                    }
-                    loading={loadingReportOpenChats}
-                  >
-                    Reporte de chats abiertos
-                  </ButtonWithSpinner>
-                  <ButtonWithSpinner
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                      getReportHistoryWithDateRange({
-                        fromDate,
-                        toDate,
-                        selectedWhatsappIds,
-                        selectedCountryIds,
-                        selectedQueueIds,
-                      });
-                    }}
-                    loading={loadingReportHistoryWithDateRange}
-                  >
-                    Actualizar
-                  </ButtonWithSpinner>
-                </div>
+                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
+                          Porcentaje:{" "}
+                          {Math.round(
+                            (responseTimes
+                              .slice(0, 4)
+                              .reduce((acc, range) => acc + range.count, 0) *
+                              100) /
+                              responseTimesData.length
+                          )}
+                          %
+                        </div>
+                      </Grid>
+                      <Grid item xs={4}>
+                        {responseTimes.slice(4, 7).map((range) => (
+                          <div key={range.label}>
+                            <span>{range.label}</span>
+                            {": "}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              style={{ fontWeight: "bold" }}
+                              onClick={() => {
+                                setTicketListModalOpen(true);
+                                setTicketListModalTickets(range.ticketIds);
+                                setTicketListModalTitle(range.label);
+                              }}
+                            >
+                              {range.count}{" "}
+                              {range.count > 0 && (
+                                <span
+                                  style={{
+                                    color: "black",
+                                    fontSize: "12px",
+                                    display: "inline-block",
+                                    marginLeft: 5,
+                                  }}
+                                >
+                                  (
+                                  {Math.round(
+                                    (range.count * 100) /
+                                      responseTimes
+                                        .slice(4, 7)
+                                        .reduce(
+                                          (acc, range) => acc + range.count,
+                                          0
+                                        )
+                                  )}
+                                  %)
+                                </span>
+                              )}
+                            </IconButton>
+                          </div>
+                        ))}
+                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
+                          Porcentaje:{" "}
+                          {Math.round(
+                            (responseTimes
+                              .slice(4, 7)
+                              .reduce((acc, range) => acc + range.count, 0) *
+                              100) /
+                              responseTimesData.length
+                          )}
+                          %
+                        </div>
+                      </Grid>
+                      <Grid item xs={4}>
+                        {responseTimes.slice(7, 10).map((range) => (
+                          <div key={range.label}>
+                            <span>{range.label}</span>
+                            {": "}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              style={{ fontWeight: "bold" }}
+                              onClick={() => {
+                                setTicketListModalOpen(true);
+                                setTicketListModalTickets(range.ticketIds);
+                                setTicketListModalTitle(range.label);
+                              }}
+                            >
+                              {range.count}
+                              {range.count > 0 && (
+                                <span
+                                  style={{
+                                    color: "black",
+                                    fontSize: "12px",
+                                    display: "inline-block",
+                                    marginLeft: 5,
+                                  }}
+                                >
+                                  (
+                                  {Math.round(
+                                    (range.count * 100) /
+                                      responseTimes
+                                        .slice(7, 10)
+                                        .reduce(
+                                          (acc, range) => acc + range.count,
+                                          0
+                                        )
+                                  )}
+                                  %)
+                                </span>
+                              )}
+                            </IconButton>
+                          </div>
+                        ))}
+                        <div style={{ fontWeight: "bold", marginTop: 5 }}>
+                          Porcentaje:{" "}
+                          {Math.round(
+                            (responseTimes
+                              .slice(7, 10)
+                              .reduce((acc, range) => acc + range.count, 0) *
+                              100) /
+                              responseTimesData.length
+                          )}
+                          %
+                        </div>
+                      </Grid>
+
+                      <TicketListModal
+                        modalOpen={ticketListModalOpen}
+                        onClose={() => setTicketListModalOpen(false)}
+                        title={ticketListModalTitle}
+                        tickets={ticketListModalTickets}
+                        newView={true}
+                      />
+                    </>
+                  ) : null}
+                </Grid>
               </div>
-            </MainHeader>
+            </Paper>
           </Grid>
+
 
           <Grid item xs={12}>
             <Paper className={classes.customFixedHeightPaper}>
@@ -1417,23 +1430,53 @@ const Reports = () => {
                 </TableHead>
                 <TableBody>
                   {reportsByUser.length > 0 ? (
-                    reportsByUser.map((report) => (
-                      <TableRow key={report.name}>
-                        <TableCell>{report.name}</TableCell>
-                        <TableCell>{report.ticketCount}</TableCell>
-                        <TableCell>{report.ticketOpenCount}</TableCell>
-                        <TableCell>{report.timeWaitingCount}</TableCell>
-                        <TableCell>
-                          {report.timeWaitingSecounds / report.timeWaitingCount
-                            ? segundosAHorasMinutos(
-                                report.timeWaitingSecounds /
-                                  report.timeWaitingCount
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell>{report.ticketClosedCount}</TableCell>
-                      </TableRow>
-                    ))
+                    <>
+                      {reportsByUser.filter(r => r.name !== "TOTAL").map((report) => (
+                        <TableRow key={report.name}>
+                          <TableCell>{report.name}</TableCell>
+                          <TableCell>{report.ticketCount}</TableCell>
+                          <TableCell>{report.ticketOpenCount}</TableCell>
+                          <TableCell>{report.timeWaitingCount}</TableCell>
+                          <TableCell>
+                            {report.timeWaitingSecounds / report.timeWaitingCount
+                              ? segundosAHorasMinutos(
+                                  report.timeWaitingSecounds /
+                                    report.timeWaitingCount
+                                )
+                              : "-"}
+                          </TableCell>
+                          <TableCell>{report.ticketClosedCount}</TableCell>
+                        </TableRow>
+                      ))}
+                      {reportsByUser.find(r => r.name === "TOTAL") && (
+                        <TableRow style={{ backgroundColor: "#f5f5f5" }}>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").name}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").ticketCount}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").ticketOpenCount}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").timeWaitingCount}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").timeWaitingSecounds / 
+                             reportsByUser.find(r => r.name === "TOTAL").timeWaitingCount
+                              ? segundosAHorasMinutos(
+                                  reportsByUser.find(r => r.name === "TOTAL").timeWaitingSecounds /
+                                    reportsByUser.find(r => r.name === "TOTAL").timeWaitingCount
+                                )
+                              : "-"}
+                          </TableCell>
+                          <TableCell style={{ fontWeight: "bold" }}>
+                            {reportsByUser.find(r => r.name === "TOTAL").ticketClosedCount}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   ) : (
                     <TableRow>
                       <TableCell colSpan={4}>Sin hay datos</TableCell>
@@ -1465,7 +1508,7 @@ const Reports = () => {
                   {closeQuintilesTimes ? (
                     <>
                       <Grid item xs={4}>
-                        {closeQuintilesTimes.slice(0, 5).map((range) => (
+                        {closeQuintilesTimes.slice(0, 4).map((range) => (
                           <div key={range.label}>
                             <span>{range.label}</span>
                             {": "}
@@ -1493,7 +1536,7 @@ const Reports = () => {
                                   {Math.round(
                                     (range.count * 100) /
                                       closeQuintilesTimes
-                                        .slice(0, 5)
+                                        .slice(0, 4)
                                         .reduce(
                                           (acc, range) => acc + range.count,
                                           0
@@ -1510,7 +1553,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (closeQuintilesTimes
-                              .slice(0, 5)
+                              .slice(0, 4)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount
@@ -1520,8 +1563,8 @@ const Reports = () => {
                       </Grid>
                       <Grid item xs={4}>
                         {closeQuintilesTimes
-                          .slice(5, 10)
-                          .map((range, index) => (
+                          .slice(4, 7)
+                          .map((range) => (
                             <div key={range.label}>
                               <span>{range.label}</span>
                               {": "}
@@ -1536,7 +1579,7 @@ const Reports = () => {
                                 }}
                               >
                                 {range.count}{" "}
-                                {index !== 0 && range.count > 0 && (
+                                {range.count > 0 && (
                                   <span
                                     style={{
                                       color: "black",
@@ -1549,7 +1592,7 @@ const Reports = () => {
                                     {Math.round(
                                       (range.count * 100) /
                                         closeQuintilesTimes
-                                          .slice(6, 10)
+                                          .slice(4, 7)
                                           .reduce(
                                             (acc, range) => acc + range.count,
                                             0
@@ -1565,7 +1608,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (closeQuintilesTimes
-                              .slice(6, 10)
+                              .slice(4, 7)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount
@@ -1575,8 +1618,8 @@ const Reports = () => {
                       </Grid>
                       <Grid item xs={4}>
                         {closeQuintilesTimes
-                          .slice(10, 15)
-                          .map((range, index) => (
+                          .slice(7, 10)
+                          .map((range) => (
                             <div key={range.label}>
                               <span>{range.label}</span>
                               {": "}
@@ -1591,7 +1634,7 @@ const Reports = () => {
                                 }}
                               >
                                 {range.count}
-                                {index !== 0 && range.count > 0 && (
+                                {range.count > 0 && (
                                   <span
                                     style={{
                                       color: "black",
@@ -1604,7 +1647,7 @@ const Reports = () => {
                                     {Math.round(
                                       (range.count * 100) /
                                         closeQuintilesTimes
-                                          .slice(11, 15)
+                                          .slice(7, 10)
                                           .reduce(
                                             (acc, range) => acc + range.count,
                                             0
@@ -1620,7 +1663,7 @@ const Reports = () => {
                           Porcentaje:{" "}
                           {Math.round(
                             (closeQuintilesTimes
-                              .slice(11, 15)
+                              .slice(7, 10)
                               .reduce((acc, range) => acc + range.count, 0) *
                               100) /
                               createdTicketsClosedInTheRangeTimeCount

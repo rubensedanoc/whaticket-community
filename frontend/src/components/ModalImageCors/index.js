@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 
 import ModalImage from "react-modal-image";
-import api from "../../services/api";
 
 const useStyles = makeStyles(theme => ({
 	messageMedia: {
@@ -22,18 +21,16 @@ const ModalImageCors = ({ imageUrl }) => {
 	const [blobUrl, setBlobUrl] = useState("");
 
 	useEffect(() => {
-		if (!imageUrl) return;
-		const fetchImage = async () => {
-			const { data, headers } = await api.get(imageUrl, {
-				responseType: "blob",
-			});
-			const url = window.URL.createObjectURL(
-				new Blob([data], { type: headers["content-type"] })
-			);
-			setBlobUrl(url);
+		if (!imageUrl) {
+			setBlobUrl("");
 			setFetching(false);
-		};
-		fetchImage();
+			return;
+		}
+
+		// Evita XHR para URLs externas (S3/CDN), que requiere CORS.
+		// Para mostrar imagen basta usar src directo.
+		setBlobUrl(imageUrl);
+		setFetching(false);
 	}, [imageUrl]);
 
 	return (

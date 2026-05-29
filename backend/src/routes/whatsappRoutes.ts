@@ -19,4 +19,10 @@ whatsappRoutes.delete(
   WhatsAppController.remove
 );
 
+whatsappRoutes.post(
+  "/whatsapp/:whatsappId/importMessages",
+  isAuth,
+  WhatsAppController.importMessages
+);
+
 export default whatsappRoutes;

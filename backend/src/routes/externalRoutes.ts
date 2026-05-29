@@ -52,4 +52,24 @@ externalRoutes.post(
   ExternalApiController.getUpdatedTickets
 );
 
+externalRoutes.post(
+  "/findGroupByName",
+  ExternalApiController.findGroupByName
+);
+
+externalRoutes.post(
+  "/sendMessageToTicket",
+  ExternalApiController.sendMessageToTicket
+);
+
+externalRoutes.post(
+  "/incidencia/update-status",
+  ExternalApiController.IncidenciaStatus
+);
+
+externalRoutes.post(
+  "/incidencia/update-contact-domain",
+  ExternalApiController.UpdateContactDomain
+);
+
 export default externalRoutes;

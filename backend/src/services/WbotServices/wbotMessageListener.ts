@@ -1,7 +1,4 @@
 import * as Sentry from "@sentry/node";
-import { writeFile } from "fs";
-import { join } from "path";
-import { promisify } from "util";
 
 import {
   Client,
@@ -46,13 +43,15 @@ import Notification from "../../models/Notification";
 import { NOTIFICATIONTYPES } from "../../constants";
 import Queue from "../../models/Queue";
 import ShowTicketService from "../TicketServices/ShowTicketService";
+import {
+  persistBufferFile,
+  resolveStoredFileToLocalPath
+} from "../StorageService";
 import ShowNotificationService from "../NotificationService/ShowNotificationService";
 
 interface Session extends Client {
   id?: number;
 }
-
-const writeFileAsync = promisify(writeFile);
 
 /**
  * Save or update the contact in the database (name, number, profilePicUrl)
@@ -205,7 +204,7 @@ function makeRandomId(length: number) {
 
 /**
  * Create a message in the database with the passed msg and update the ticket lastMessage
- * - download the media, and save it in the public folder
+ * - download the media and save it in configured storage (local/s3)
  */
 export const verifyMediaMessage = async (
   msg: WbotMessage,
@@ -220,6 +219,7 @@ export const verifyMediaMessage = async (
 
   if (media) {
     let randomId = makeRandomId(5);
+    let storageMediaKey = "";
 
     if (!media.filename) {
       const ext = media.mimetype.split("/")[1].split(";")[0];
@@ -234,11 +234,12 @@ export const verifyMediaMessage = async (
     }
 
     try {
-      await writeFileAsync(
-        join(__dirname, "..", "..", "..", "public", media.filename),
-        media.data,
-        "base64"
-      );
+      storageMediaKey = await persistBufferFile({
+        buffer: Buffer.from(media.data, "base64"),
+        originalName: media.filename,
+        mimeType: media.mimetype,
+        prefix: "messages"
+      });
     } catch (err) {
       Sentry.captureException(err);
       // @ts-ignore
@@ -249,10 +250,10 @@ export const verifyMediaMessage = async (
       id: msg.id.id,
       ticketId: ticket.id,
       contactId: msg.fromMe ? undefined : contact.id,
-      body: msg.body || media.filename,
+      body: msg.body || storageMediaKey || media.filename,
       fromMe: msg.fromMe,
       read: msg.fromMe,
-      mediaUrl: media.filename,
+      mediaUrl: storageMediaKey || media.filename,
       mediaType: media.mimetype.split("/")[0],
       quotedMsgId: quotedMsg?.id,
       timestamp: msg.timestamp,
@@ -261,7 +262,9 @@ export const verifyMediaMessage = async (
 
     if (updateTicketLastMessage) {
       if ((ticket.lastMessageTimestamp || 0) <= msg.timestamp) {
-        await ticket.update({ lastMessage: msg.body || media.filename });
+        await ticket.update({
+          lastMessage: msg.body || storageMediaKey || media.filename
+        });
       }
     }
     const newMessage = await CreateMessageService({ messageData, ticket });
@@ -306,7 +309,8 @@ export const verifyMessage = async ({
   isPrivate = false,
   updateTicketLastMessage = true,
   identifier = "",
-  shouldUpdateUserHadContact = true
+  shouldUpdateUserHadContact = true,
+  skipUnreadReset = false
 }: {
   msg: WbotMessage;
   ticket: Ticket;
@@ -315,6 +319,7 @@ export const verifyMessage = async ({
   updateTicketLastMessage?: boolean;
   identifier?: string;
   shouldUpdateUserHadContact?: boolean;
+  skipUnreadReset?: boolean;
 }) => {
   if (msg.type === "location") msg = prepareLocation(msg);
 
@@ -331,8 +336,34 @@ export const verifyMessage = async ({
     quotedMsgId: quotedMsg?.id,
     isPrivate,
     timestamp: msg.timestamp,
-    ...(identifier && { identifier })
+    identifier: skipUnreadReset ? "SKIP_UNREAD_RESET" : (identifier || undefined)
   };
+
+  if (skipUnreadReset) {
+    console.log(`[VERIFY] 🔒 Guardando mensaje con identifier: SKIP_UNREAD_RESET - ID: ${msg.id.id}`);
+  }
+
+  // Verificar si el mensaje ya existe en la base de datos para evitar duplicados
+  // Primero verificar por ID exacto
+  let existingMessage = await Message.findByPk(msg.id.id);
+  
+  // Si no existe por ID, verificar por criterios alternativos (mismo ticket, timestamp y body)
+  // Esto maneja el caso donde WhatsApp genera IDs diferentes para el mismo mensaje
+  if (!existingMessage) {
+    existingMessage = await Message.findOne({
+      where: {
+        ticketId: ticket.id,
+        timestamp: msg.timestamp,
+        body: msg.body,
+        fromMe: msg.fromMe
+      }
+    });
+  }
+  
+  if (existingMessage) {
+    console.log(`[VERIFY] ⚠️ Mensaje ya existe en BD - ID: ${existingMessage.id}, retornando mensaje existente`);
+    return existingMessage;
+  }
 
   if (updateTicketLastMessage) {
 
@@ -726,10 +757,10 @@ const handleMessage = async ({
 
     const whatsapp = await ShowWhatsAppService(wbot.id!);
 
+    const contact = await verifyContact(msgContact);
+
     // if i sent the message, unreadMessages = 0 otherwise unreadMessages = chat.unreadCount
     const unreadMessages = msg.fromMe ? 0 : chat.unreadCount;
-
-    const contact = await verifyContact(msgContact);
 
     // if the message is the conection farewell message, dont do anything
     if (
@@ -752,6 +783,17 @@ const handleMessage = async ({
       return;
     }
 
+    // Verificar si el mensaje ya existe con el flag SKIP_UNREAD_RESET
+    // Si existe, significa que ya fue procesado desde SendMessageToTicketService
+    // y NO debemos actualizar unreadMessages
+    const existingMsgWithFlag = await Message.findByPk(msg.id.id);
+    const shouldPreserveUnread = existingMsgWithFlag?.identifier === "SKIP_UNREAD_RESET";
+    
+    if (shouldPreserveUnread) {
+      console.log(`[LISTENER] 🔒 Mensaje con flag SKIP_UNREAD_RESET detectado - ID: ${msg.id.id}`);
+      console.log(`[LISTENER] 🔒 Preservando contador de mensajes no leídos`);
+    }
+    
     let ticket: Ticket | null;
 
     // Validamos primero si el mensaje puede pertenecer a un ticket ya existente
@@ -768,13 +810,65 @@ const handleMessage = async ({
       ticket = await FindOrCreateTicketService({
         contact,
         whatsappId: whatsapp.id,
-        unreadMessages,
+        unreadMessages: shouldPreserveUnread ? undefined : unreadMessages,
         groupContact,
         lastMessageTimestamp: msg.timestamp,
         msgFromMe: msg.fromMe,
         body: msg.body
       });
+    } else if (shouldPreserveUnread) {
+      // Si el ticket ya existe pero el mensaje tiene el flag, NO actualizar unreadMessages
+      // Solo actualizar si el mensaje es del cliente (no fromMe)
+      if (!msg.fromMe) {
+        await ticket.update({
+          unreadMessages: chat.unreadCount
+        });
+      }
+      // Si es fromMe con flag, NO hacer nada (preservar contador)
+    } else {
+      // Comportamiento normal: actualizar unreadMessages
+      await ticket.update({
+        unreadMessages
+      });
     }
+
+    // ========================================
+    // 🧪 TEMPORAL PARA PRUEBAS - INICIO
+    // Para remover: Eliminar todo este bloque
+    // ========================================
+    if (!msg.fromMe && ticket) {
+      const activationKeywords = ['iniciar', 'inicio'];
+      const shouldActivateBot = activationKeywords.some(keyword => 
+        msg.body.toLowerCase().trim() === keyword
+      );
+
+      if (shouldActivateBot) {
+        console.log(`[PRUEBA BOT] Detectada palabra clave: "${msg.body}"`);
+        
+        // Cerrar ticket actual si existe y está abierto
+        if (ticket.status !== 'closed') {
+          await ticket.update({ status: 'closed' });
+          console.log(`[PRUEBA BOT] Ticket ${ticket.id} cerrado`);
+        }
+        
+        // Crear nuevo ticket con chatbot activado
+        const chatbotIdentifier = 'soporte';
+        ticket = await Ticket.create({
+          contactId: groupContact ? groupContact.id : contact.id,
+          status: "pending",
+          isGroup: !!groupContact,
+          unreadMessages: shouldPreserveUnread ? undefined : unreadMessages,
+          whatsappId: whatsapp.id,
+          lastMessageTimestamp: msg.timestamp,
+          chatbotMessageIdentifier: chatbotIdentifier
+        });
+        
+        console.log(`[PRUEBA BOT] Nuevo ticket ${ticket.id} creado con bot activado (identifier: ${chatbotIdentifier})`);
+      }
+    }
+    // ========================================
+    // 🧪 TEMPORAL PARA PRUEBAS - FIN
+    // ========================================
 
     let incomingMessage: null | Message = null;
 
@@ -1094,9 +1188,18 @@ const handleMessage = async ({
 
               debouncedSentMessage();
             } else {
-              const newMedia = MessageMedia.fromFilePath(
-                `public/${messageToSend.mediaUrl.split("/").pop()}`
+              const { localPath, cleanup } = await resolveStoredFileToLocalPath(
+                messageToSend.getDataValue("mediaUrl")
               );
+
+              let newMedia: MessageMedia;
+
+              try {
+                newMedia = MessageMedia.fromFilePath(localPath);
+              } catch (error) {
+                await cleanup();
+                throw error;
+              }
 
               let mediaOptions: MessageSendOptions = {
                 sendAudioAsVoice: true
@@ -1111,11 +1214,11 @@ const handleMessage = async ({
 
               const debouncedSentMessage = debounce(
                 async () => {
-                  await wbot.sendMessage(
-                    `${contact.number}@c.us`,
-                    newMedia,
-                    mediaOptions
-                  );
+                  await wbot
+                    .sendMessage(`${contact.number}@c.us`, newMedia, mediaOptions)
+                    .finally(async () => {
+                      await cleanup();
+                    });
                 },
                 sleepTime,
                 ticket.id + messageToSend.id

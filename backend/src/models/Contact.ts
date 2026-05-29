@@ -4,6 +4,7 @@ import {
   BelongsTo,
   Column,
   CreatedAt,
+  DataType,
   Default,
   ForeignKey,
   HasMany,
@@ -82,6 +83,9 @@ class Contact extends Model<Contact> {
 
   @Column
   traza_clientelicencia_currentetapaid: number;
+
+  @Column(DataType.ENUM("HIGH_TOUCH", "LOW_TOUCH", "TECH_TOUCH"))
+  attentionType: string;
 }
 
 export default Contact;

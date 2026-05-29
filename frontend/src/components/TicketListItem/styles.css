@@ -7,3 +7,32 @@
 .clientelicenciaEtapa_chip .MuiChip-sizeSmall {
   height: 15px;  
 }
+
+/* Estilos para tickets con solicitud de apoyo */
+.ticket-needs-help {
+  background-color: rgba(255, 0, 0, 0.08) !important;
+  border-left: 4px solid #f44336 !important;
+  transition: all 0.3s ease;
+}
+
+.ticket-needs-help:hover {
+  background-color: rgba(255, 0, 0, 0.12) !important;
+}
+
+/* Animación de pulso para tickets con apoyo urgente */
+.ticket-needs-help-urgent {
+  background-color: rgba(255, 0, 0, 0.15) !important;
+  border-left: 4px solid #d32f2f !important;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { 
+    border-left-color: #f44336;
+    background-color: rgba(255, 0, 0, 0.15);
+  }
+  50% { 
+    border-left-color: #ff5252;
+    background-color: rgba(255, 0, 0, 0.20);
+  }
+}

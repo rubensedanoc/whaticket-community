@@ -5,6 +5,7 @@ import { emitEvent } from "../../libs/emitEvent";
 import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
 import { StartWhatsAppSession } from "./StartWhatsAppSession";
+import { sendGoogleChatError } from "../../helpers/SendGoogleChatLog";
 
 interface Session extends Client {
   id?: number;
@@ -63,6 +64,14 @@ const wbotMonitor = async (
 
     wbot.on("disconnected", async reason => {
       logger.info(`Disconnected session: ${sessionName}, reason: ${reason}`);
+      
+      sendGoogleChatError({
+        service: "wbotMonitor",
+        error: `Sesión desconectada: ${sessionName}`,
+        details: `Razón: ${reason}`,
+        whatsappId: whatsapp.id
+      });
+
       try {
         await whatsapp.update({ status: "OPENING", session: "" });
       } catch (err) {

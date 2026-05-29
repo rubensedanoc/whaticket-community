@@ -11,6 +11,10 @@ import MessagingCampaignShipmentNumber from "../models/MessagingCampaignShipment
 import Ticket from "../models/Ticket";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
+import {
+  persistMulterFile,
+  resolveStoredFileToLocalPath
+} from "../services/StorageService";
 import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTicketService";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import {
@@ -249,12 +253,14 @@ export const send = async (req: Request, res: Response): Promise<void> => {
     timesSent: messagingCampaign.timesSent + 1
   });
 
+  const storedExcelKey = await persistMulterFile(medias[0], "campaigns");
+
   const newMessagingCampaignShipment = await MessagingCampaignShipment.create({
     messagingCampaignId: messagingCampaign.id,
     startTimestamp: (Date.now() / 1000) | 0,
     whatsappId,
     userId: req.user.id,
-    excelUrl: medias[0].filename
+    excelUrl: storedExcelKey
   });
 
   await messagingCampaign.reload();
@@ -352,44 +358,50 @@ export const send = async (req: Request, res: Response): Promise<void> => {
               });
             });
           } else {
-            const newMedia = MessageMedia.fromFilePath(
-              `public/${messageToSend.mediaUrl.split("/").pop()}`
+            const { localPath, cleanup } = await resolveStoredFileToLocalPath(
+              messageToSend.getDataValue("mediaUrl")
             );
 
-            let mediaOptions: MessageSendOptions = {
-              sendAudioAsVoice: true
-            };
+            try {
+              const newMedia = MessageMedia.fromFilePath(localPath);
 
-            if (
-              newMedia.mimetype.startsWith("image/") &&
-              !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
-            ) {
-              mediaOptions["sendMediaAsDocument"] = true;
-            }
+              let mediaOptions: MessageSendOptions = {
+                sendAudioAsVoice: true
+              };
 
-            await new Promise(async (resolve, reject) => {
-              try {
-                msg = await wbot.sendMessage(
-                  `${numberObj.number}@c.us`,
-                  newMedia,
-                  mediaOptions
-                );
-
-                sentMessages.push(msg);
-
-                setTimeout(() => {
-                  resolve(null);
-                }, 1500);
-              } catch (error) {
-                reject(error);
+              if (
+                newMedia.mimetype.startsWith("image/") &&
+                !/^.*\.(jpe?g|png|gif)?$/i.exec(messageToSend.mediaUrl)
+              ) {
+                mediaOptions["sendMediaAsDocument"] = true;
               }
-            }).catch(error => {
-              result.errors.push(error.message);
-              result.numbersWithErrors.push({
-                number: numberObj.number,
-                error: error.message
+
+              await new Promise(async (resolve, reject) => {
+                try {
+                  msg = await wbot.sendMessage(
+                    `${numberObj.number}@c.us`,
+                    newMedia,
+                    mediaOptions
+                  );
+
+                  sentMessages.push(msg);
+
+                  setTimeout(() => {
+                    resolve(null);
+                  }, 1500);
+                } catch (error) {
+                  reject(error);
+                }
+              }).catch(error => {
+                result.errors.push(error.message);
+                result.numbersWithErrors.push({
+                  number: numberObj.number,
+                  error: error.message
+                });
               });
-            });
+            } finally {
+              await cleanup();
+            }
           }
         }
       } catch (error) {

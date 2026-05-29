@@ -21,7 +21,10 @@ const RANGES = [
   { id: "120-240", label: "2-4h", color: "#ff5722", icon: "🟠" },
   { id: "240-480", label: "4-8h", color: "#f44336", icon: "🔴" },
   { id: "480-960", label: "8-16h", color: "#d32f2f", icon: "🔴" },
-  { id: "960+", label: "+16h", color: "#757575", icon: "⚫" },
+  { id: "960-1440", label: "16h-1d (OK)", color: "#2196f3", icon: "🔵" },
+  { id: "1440-2880", label: "1-2d (Regular)", color: "#ff9800", icon: "🟠" },
+  { id: "2880-4320", label: "2-3d (Malo)", color: "#ff5722", icon: "🔴" },
+  { id: "4320+", label: "+3d (Pésimo)", color: "#000000", icon: "⚫" },
 ];
 
 const WaitingTimeSelect = ({ selectedRanges = [], onChange, style }) => {
@@ -77,7 +80,7 @@ const WaitingTimeSelect = ({ selectedRanges = [], onChange, style }) => {
                     size="small"
                     style={{
                       backgroundColor: r?.color,
-                      color: ["#d32f2f", "#f44336", "#ff5722", "#757575"].includes(r?.color) ? "#fff" : "#000",
+                      color: ["#d32f2f", "#f44336", "#ff5722", "#2196f3", "#000000"].includes(r?.color) ? "#fff" : "#000",
                     }}
                   />
                 );

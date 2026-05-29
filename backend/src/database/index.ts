@@ -40,6 +40,8 @@ import ContactClientelicencia from "../models/ContactClientelicencias";
 import ConversationIAEvalutaion from "../models/ConversationIAEvalutaion";
 import ConversationIAQuestions from "../models/ConversationIAQuestions";
 import WhatsappCountry from "../models/WhatsappCountry";
+import ProactiveBotSession from "../models/ProactiveBotSession";
+import IncidenciaLog from "../models/IncidenciaLog";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -88,7 +90,9 @@ const models = [
   ContactClientelicencia,
   ConversationIAEvalutaion,
   ConversationIAQuestions,
-  WhatsappCountry
+  WhatsappCountry,
+  ProactiveBotSession,
+  IncidenciaLog
 ];
 
 sequelize.addModels(models);

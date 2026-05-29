@@ -25,7 +25,22 @@ services:
       - PROXY_PORT=${PROXY_PORT:-8080}
       - SENTRY_DSN=${SENTRY_DSN:-http://dns.sentry.org}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-
+      - SKIP_WHATSAPP_INIT=${SKIP_WHATSAPP_INIT:-false}
+      - META_API_VERSION=${META_API_VERSION:-v22.0}
+      - META_API_BASE_URL=${META_API_BASE_URL:-https://graph.facebook.com}
+      - WEBHOOK_VERIFY_TOKEN=${WEBHOOK_VERIFY_TOKEN:-BARRATAYSTESTINIT022026}
+      - META_PHONE_NUMBER_ID=${META_PHONE_NUMBER_ID}
+      - META_ACCESS_TOKEN=${META_ACCESS_TOKEN}
+      - META_INITIAL_TEMPLATE_NAME=${META_INITIAL_TEMPLATE_NAME:-reengagement_message}
+      - META_REENGAGEMENT_TEMPLATE_NAME=${META_REENGAGEMENT_TEMPLATE_NAME:-reengagement_message}
+      - PROACTIVE_BOT_TEMPLATE_NAME=${PROACTIVE_BOT_TEMPLATE_NAME:-encuesta_inactividad}
+      - EXTERNAL_API_RESULT_URL=${EXTERNAL_API_RESULT_URL}
+      - PROACTIVE_BOT_SEND_DELAY_MS=${PROACTIVE_BOT_SEND_DELAY_MS}
+      - ENABLE_PROACTIVE_BOT_REPORTING=${ENABLE_PROACTIVE_BOT_REPORTING:-false}
+      - BILLING_INCIDENCIA_BASE_URL=${BILLING_INCIDENCIA_BASE_URL}
+      - BILLING_INCIDENCIA_TIMEOUT_MS=${BILLING_INCIDENCIA_TIMEOUT_MS:-15000}
+      - BILLING_WEBHOOK_API_KEY=${BILLING_WEBHOOK_API_KEY}
+      - BILLING_INCIDENCIA_TEST_MODE=${BILLING_INCIDENCIA_TEST_MODE:-true}
       # ARGS (CHROMIUN)
       - CHROME_ARGS_CHROMIUN=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --single-process --disable-gpu
 
@@ -34,6 +49,15 @@ services:
 
       - DOCKERFILE_PATH=${DOCKERFILE_PATH:-./Dockerfile}
       - APP_PURPOSE=${REACT_APP_PURPOSE}
+
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - S3_BUCKET=${S3_BUCKET:-my-s3-bucket}
+      - S3_BACKUP_PREFIX=${S3_BACKUP_PREFIX:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - GOOGLE_CHAT_WEBHOOK=${GOOGLE_CHAT_WEBHOOK}
     ports:
       - ${BACKEND_PORT:-8080}:3000
     volumes:
@@ -50,6 +74,8 @@ services:
     build:
       context: ./frontend
       dockerfile: ./Dockerfile
+      args:   
+      - REACT_APP_BACKEND_URL=${BACKEND_URL}
     environment:
       - URL_BACKEND=backend:3000
       - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8080}/
