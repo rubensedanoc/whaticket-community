@@ -21,6 +21,10 @@ import {
   verifyContact,
   verifyMessage
 } from "../services/WbotServices/wbotMessageListener";
+import Message from "../models/Message";
+import { MetaApiClient } from "../clients/MetaApiClient";
+import CreateOrUpdateContactService from "../services/ContactServices/CreateOrUpdateContactService";
+import sleepPromise from "../utils/sleepPromise";
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { marketingMessagingCampaignId } = req.params;
@@ -275,9 +279,122 @@ export const send = async (req: Request, res: Response): Promise<void> => {
     newMarketingMessagingCampaignShipment
   });
 
+  const whatsapp = await Whatsapp.findByPk(whatsappId);
+  const apiType = whatsapp?.apiType || "whatsapp-web.js";
+
   let shipmentCanceled = false;
 
   (async () => {
+    if (apiType === "meta-api") {
+      // Validate credentials
+      if (!whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
+        console.error("ERR_SEND_MARKETINGMESSAGINGCAMPAIGN_META — Credenciales Meta no configuradas para whatsappId:", whatsappId);
+        await newMarketingMessagingCampaignShipment.update({
+          endTimestamp: (Date.now() / 1000) | 0,
+          status: "error"
+        });
+        return;
+      }
+
+      const client = new MetaApiClient({
+        phoneNumberId: whatsapp.phoneNumberId,
+        accessToken: whatsapp.metaAccessToken
+      });
+
+      const messagesToSend = marketingMessagingCampaign.marketingCampaignAutomaticMessages;
+
+      for (const numberObj of numbersToSend) {
+        let numberFailed = false;
+
+        // verify if the shipment was canceled
+        const shipment = await MarketingMessagingCampaignShipment.findByPk(
+          newMarketingMessagingCampaignShipment.id
+        );
+
+        if (shipment.status === "canceled") {
+          shipmentCanceled = true;
+          break;
+        }
+
+        try {
+          // Extract bodyParameters from Excel columns (all keys except "number")
+          const bodyParameters = Object.keys(numberObj)
+            .filter(k => k !== "number")
+            .map(k => numberObj[k]?.toString() || "");
+
+          for (const messageToSend of messagesToSend) {
+            const templateName = messageToSend.body.trim();
+
+            const response = await client.sendTemplate({
+              to: numberObj.number,
+              templateName,
+              languageCode: "es",
+              ...(bodyParameters.length > 0 && { bodyParameters })
+            });
+
+            // Create contact
+            const contact = await CreateOrUpdateContactService({
+              name: numberObj.number,
+              number: numberObj.number,
+              isGroup: false,
+              email: ""
+            });
+
+            // Create ticket
+            const ticket = await FindOrCreateTicketService({
+              contact,
+              whatsappId: whatsapp.id,
+              unreadMessages: 0,
+              groupContact: undefined,
+              lastMessageTimestamp: Math.floor(Date.now() / 1000),
+              marketingMessagingCampaignId: marketingMessagingCampaign.id,
+              marketingCampaignId: marketingMessagingCampaign.marketingCampaignId,
+              marketingMessagingCampaignShipmentId: newMarketingMessagingCampaignShipment.id,
+              msgFromMe: true
+            });
+
+            // Persist message
+            await Message.create({
+              id: response.messages[0].id,
+              ticketId: ticket.id,
+              body: `[Template: ${templateName}]${bodyParameters.length ? ' - Vars: ' + bodyParameters.join(', ') : ''}`,
+              contactId: contact.id,
+              fromMe: true,
+              read: true,
+              mediaType: "template",
+              timestamp: Math.floor(Date.now() / 1000),
+              ack: 0
+            });
+
+            await sleepPromise(2000);
+          }
+        } catch (error) {
+          numberFailed = true;
+
+          result.ok = false;
+          console.log("--- Error en send (Meta)", error);
+          result.errors.push(error.message);
+          result.numbersWithErrors.push({
+            number: numberObj.number,
+            error: error.message
+          });
+        }
+
+        console.log(
+          "--- MarketingMessagingCampaignShipmentNumber: ",
+          newMarketingMessagingCampaignShipment
+        );
+
+        await MarketingMessagingCampaignShipmentNumber.create({
+          number: numberObj.number,
+          hadError: numberFailed,
+          marketingMessagingCampaignShipmentId:
+            newMarketingMessagingCampaignShipment.id
+        });
+
+        await sleepPromise(1500);
+      }
+    } else {
     for (const numberObj of numbersToSend) {
       let numberFailed = false;
 
@@ -424,6 +541,7 @@ export const send = async (req: Request, res: Response): Promise<void> => {
         marketingMessagingCampaignShipmentId:
           newMarketingMessagingCampaignShipment.id
       });
+    }
     }
 
     await newMarketingMessagingCampaignShipment.update({

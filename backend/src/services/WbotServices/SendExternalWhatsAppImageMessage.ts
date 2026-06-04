@@ -27,6 +27,16 @@ const SendExternalWhatsAppImageMessage = async ({
       throw new AppError("ERR_WAPP_NOT_FOUND");
     }
 
+    const apiType = fromWpp.apiType || "whatsapp-web.js";
+
+    if (apiType === "meta-api") {
+      throw new AppError(
+        "ERR_NO_META_SUPPORT: The sendImageMessage endpoint is not supported for Meta API connections. Meta requires an approved template. Use POST /external/sendTemplateMessage with headerImageUrl instead.",
+        400
+      );
+    }
+
+    // EXISTING WBOT CODE — COMPLETELY UNCHANGED
     const wbot = getWbot(fromWpp.id);
 
     const imageMedia = await MessageMedia.fromUrl(imageUrl);

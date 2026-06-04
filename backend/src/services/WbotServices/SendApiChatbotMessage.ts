@@ -54,6 +54,15 @@ const SendApiChatbotMessage = async ({
     const wpp = await Whatsapp.findOne({ where: { number: botNumber } });
     if (!wpp) throw new AppError("ERR_WAPP_NOT_FOUND");
 
+    const apiType = wpp.apiType || "whatsapp-web.js";
+
+    if (apiType === "meta-api") {
+      throw new AppError(
+        "ERR_NO_META_SUPPORT: The sendApiChatbotMessage endpoint is not supported for Meta API connections yet. Chatbot messages with dynamic variables, options, and media require template configuration that is not yet implemented for Meta. Use POST /external/sendTemplateMessage for template-based sending instead.",
+        400
+      );
+    }
+
     const wbot = getWbot(wpp.id);
     const chatbotMessage = await ChatbotMessage.findOne({
       where: {
