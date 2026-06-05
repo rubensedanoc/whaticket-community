@@ -108,6 +108,10 @@ const messages = {
         form: {
           name: "Nome",
           default: "Padrão",
+          apiType: "Tipo de API",
+          apiTypeDeprecated: "WhatsApp Web (QR/Puppeteer) não é mais permitido. Use Meta Cloud API.",
+          phoneNumberId: "Phone Number ID",
+          accessToken: "Access Token",
           farewellMessage: "Mensagem de despedida"
         },
         buttons: {

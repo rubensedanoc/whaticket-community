@@ -109,6 +109,10 @@ const messages = {
         form: {
           name: "Nombre",
           default: "Por Defecto",
+          apiType: "Tipo de API",
+          apiTypeDeprecated: "WhatsApp Web (QR/Puppeteer) ya no está permitido. Usá Meta Cloud API.",
+          phoneNumberId: "Phone Number ID",
+          accessToken: "Access Token",
         },
         buttons: {
           okAdd: "Agregar",

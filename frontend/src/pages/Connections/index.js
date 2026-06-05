@@ -214,6 +214,7 @@ const Connections = () => {
   };
 
   const renderActionButtons = (whatsApp, isAdmin) => {
+    if (whatsApp.apiType === "meta-api") return null;
     return (
       <>
         {whatsApp.status === "qrcode" && (
@@ -348,6 +349,8 @@ const Connections = () => {
                 {i18n.t("connections.table.name")}
               </TableCell>
               <TableCell align="center">Número</TableCell>
+              <TableCell align="center">Tipo</TableCell>
+              <TableCell align="center">Phone Number ID</TableCell>
               <TableCell align="center">
                 {i18n.t("connections.table.status")}
               </TableCell>
@@ -379,11 +382,24 @@ const Connections = () => {
                       <TableCell align="center">{whatsApp.name}</TableCell>
                       <TableCell align="center">{whatsApp.number}</TableCell>
                       <TableCell align="center">
+                        <Chip
+                          label={whatsApp.apiType === "meta-api" ? "Meta Cloud API" : "WhatsApp Web"}
+                          size="small"
+                          style={{
+                            backgroundColor: whatsApp.apiType === "meta-api" ? "#e3f2fd" : "#e8f5e9",
+                            color: whatsApp.apiType === "meta-api" ? "#1565c0" : "#2e7d32"
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        {whatsApp.apiType === "meta-api" && whatsApp.phoneNumberId ? whatsApp.phoneNumberId : "-"}
+                      </TableCell>
+                      <TableCell align="center">
                         {renderStatusToolTips(whatsApp)}
                       </TableCell>
                       <TableCell align="center">
                         {renderActionButtons(whatsApp, user?.id === 1)}
-                        {user?.id === 1 && (
+                        {user?.id === 1 && whatsApp.apiType !== "meta-api" && (
                           <Button
                             size="small"
                             variant="outlined"

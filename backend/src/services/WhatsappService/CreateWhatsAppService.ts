@@ -11,6 +11,7 @@ interface Request {
   farewellMessage?: string;
   status?: string;
   isDefault?: boolean;
+  apiType?: string;
 }
 
 interface Response {
@@ -24,7 +25,8 @@ const CreateWhatsAppService = async ({
   queueIds = [],
   greetingMessage,
   farewellMessage,
-  isDefault = false
+  isDefault = false,
+  apiType
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string()
@@ -69,13 +71,20 @@ const CreateWhatsAppService = async ({
     throw new AppError("ERR_WAPP_GREETING_REQUIRED");
   }
 
+  if (apiType === "whatsapp-web.js") {
+    throw new AppError("WhatsApp Web (QR/Puppeteer) is deprecated. Use Meta Cloud API.", 400);
+  }
+
+  const finalStatus = apiType === "meta-api" ? "CONNECTED" : status;
+
   const whatsapp = await Whatsapp.create(
     {
       name,
-      status,
+      status: finalStatus,
       greetingMessage,
       farewellMessage,
-      isDefault
+      isDefault,
+      apiType
     },
     { include: ["queues"] }
   );

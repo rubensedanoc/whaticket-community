@@ -14,6 +14,8 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  MenuItem,
+  Select,
   Switch,
   TextField,
 } from "@material-ui/core";
@@ -55,6 +57,7 @@ const SessionSchema = Yup.object().shape({
     .min(2, "Too Short!")
     .max(50, "Too Long!")
     .required("Required"),
+  apiType: Yup.string().required(),
 });
 
 const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
@@ -64,6 +67,10 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
     greetingMessage: "",
     farewellMessage: "",
     isDefault: false,
+    apiType: "whatsapp-web.js",
+    number: "",
+    phoneNumberId: "",
+    metaAccessToken: "",
   };
   const [whatsApp, setWhatsApp] = useState(initialState);
   const [selectedQueueIds, setSelectedQueueIds] = useState([]);
@@ -86,6 +93,11 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
   }, [whatsAppId]);
 
   const handleSaveWhatsApp = async (values) => {
+    if (values.apiType === "whatsapp-web.js") {
+      toast.error(i18n.t("whatsappModal.form.apiTypeDeprecated"));
+      return;
+    }
+
     const whatsappData = { ...values, queueIds: selectedQueueIds };
 
     try {
@@ -158,6 +170,54 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
                     label={i18n.t("whatsappModal.form.default")}
                   />
                 </div>
+                <div>
+                  <Field
+                    as={Select}
+                    label={i18n.t("whatsappModal.form.apiType")}
+                    name="apiType"
+                    fullWidth
+                    variant="outlined"
+                    margin="dense"
+                  >
+                    <MenuItem value="whatsapp-web.js">WhatsApp Web (QR/Puppeteer)</MenuItem>
+                    <MenuItem value="meta-api">Meta Cloud API</MenuItem>
+                  </Field>
+                </div>
+                {values.apiType === "meta-api" && (
+                  <>
+                    <div>
+                      <Field
+                        as={TextField}
+                        label="Número"
+                        name="number"
+                        fullWidth
+                        variant="outlined"
+                        margin="dense"
+                      />
+                    </div>
+                    <div>
+                      <Field
+                        as={TextField}
+                        label="Phone Number ID"
+                        name="phoneNumberId"
+                        fullWidth
+                        variant="outlined"
+                        margin="dense"
+                      />
+                    </div>
+                    <div>
+                      <Field
+                        as={TextField}
+                        label="Access Token"
+                        name="metaAccessToken"
+                        fullWidth
+                        variant="outlined"
+                        margin="dense"
+                        type="password"
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
                   <Field
                     as={TextField}
