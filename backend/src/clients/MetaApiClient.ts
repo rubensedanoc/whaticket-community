@@ -183,6 +183,26 @@ export class MetaApiClient {
   // ========== GROUPS ==========
 
   /**
+   * Fetch message templates from Meta
+   * GET /{phone-number-id}/message_templates?name=X&language=Y
+   */
+  async fetchTemplate(name: string, language: string): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      params.append("name", name);
+      params.append("language", language);
+
+      const response = await this.client.get(
+        `/${this.phoneNumberId}/message_templates?${params.toString()}`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
    * Crear un nuevo grupo
    * POST /<PHONE_NUMBER_ID>/groups
    */
@@ -436,4 +456,16 @@ export class MetaApiException extends Error {
     this.subcode = error.error_subcode;
     this.fbtrace_id = error.fbtrace_id;
   }
+}
+
+/**
+ * Create a MetaApiClient using the global token from .env
+ * Only phoneNumberId is per-number; token is per-app (shared across all numbers)
+ */
+export function createMetaClient(phoneNumberId: string): MetaApiClient {
+  const token = process.env.META_ACCESS_TOKEN;
+  if (!token) {
+    throw new Error("META_ACCESS_TOKEN debe estar configurado en .env");
+  }
+  return new MetaApiClient({ phoneNumberId, accessToken: token });
 }

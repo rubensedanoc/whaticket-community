@@ -4,7 +4,7 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import formatBody from "../../helpers/Mustache";
-import { MetaApiClient } from "../../clients/MetaApiClient";
+import { createMetaClient } from "../../clients/MetaApiClient";
 import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 import { emitEvent } from "../../libs/emitEvent";
 import CheckMetaConversationWindow from "../../helpers/CheckMetaConversationWindow";
@@ -43,10 +43,7 @@ const SendWhatsAppMessageMeta = async ({
     }
 
     // Crear cliente Meta API
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
+    const client = createMetaClient(whatsapp.phoneNumberId);
 
     // Formatear el cuerpo del mensaje
     const bodyFormated = formatBody(body, ticket.contact);

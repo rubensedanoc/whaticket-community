@@ -1,6 +1,6 @@
 import SendMessageRequest from "../../models/SendMessageRequest";
 import Whatsapp from "../../models/Whatsapp";
-import { MetaApiClient } from "../../clients/MetaApiClient";
+import { createMetaClient } from "../../clients/MetaApiClient";
 import path from "path";
 import fs from "fs";
 import axios from "axios";
@@ -76,10 +76,7 @@ const processQueueMeta = async () => {
       }
 
       // Crear cliente Meta API
-      const client = new MetaApiClient({
-        phoneNumberId: fromWpp.phoneNumberId,
-        accessToken: fromWpp.metaAccessToken
-      });
+      const client = createMetaClient(fromWpp.phoneNumberId);
 
       // Enviar mensaje
       if (message.mediaUrl) {

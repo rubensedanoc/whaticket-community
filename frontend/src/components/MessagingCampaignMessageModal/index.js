@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from "react";
-
-import { Field, Form, Formik } from "formik";
 import { toast } from "react-toastify";
-
-import { Box, FormHelperText } from "@material-ui/core";
 import Button from "@material-ui/core/Button";
 import CircularProgress from "@material-ui/core/CircularProgress";
-import { green } from "@material-ui/core/colors";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
@@ -17,269 +12,110 @@ import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import { makeStyles } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
-import { i18n } from "../../translate/i18n";
-
-import toastError from "../../errors/toastError";
+import Typography from "@material-ui/core/Typography";
 import api from "../../services/api";
+import toastError from "../../errors/toastError";
 
 const useStyles = makeStyles((theme) => ({
-  root: {
-    display: "flex",
-    flexWrap: "wrap",
-  },
-  textField: {
-    // marginRight: theme.spacing(1),
-    marginRight: 0,
-    marginBottom: "1rem",
-    flex: 1,
-  },
-
-  btnWrapper: {
-    position: "relative",
-  },
-
-  buttonProgress: {
-    color: green[500],
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginTop: -12,
-    marginLeft: -12,
-  },
-  formControl: {
-    margin: theme.spacing(1),
-    minWidth: 120,
-  },
-  colorAdorment: {
-    width: 20,
-    height: 20,
-  },
+  textField: { marginRight: 0, marginBottom: "0.5rem", flex: 1 },
+  previewBox: { background: "#f5f5f5", padding: theme.spacing(2), borderRadius: theme.spacing(1), marginTop: theme.spacing(1), marginBottom: theme.spacing(1) }
 }));
 
-const MessagingCampaignMessageModal = ({
-  open,
-  onClose,
-  messagingCampaignId,
-  messagingCampaignMessageId,
-}) => {
+const LANGUAGES = [
+  { code: "es", label: "Español" }, { code: "en", label: "Inglés" }, { code: "pt_BR", label: "Portugués" }
+];
+
+const MessagingCampaignMessageModal = ({ open, onClose, onSave, messagingCampaignId, messagingCampaignMessageId }) => {
   const classes = useStyles();
-
-  const initialState = {
-    order: 1,
-    body: "",
-    mediaType: "text",
-    mediaUrl: "",
-  };
-
-  const [messageCampaign, setMessagingCampaignMessageModal] =
-    useState(initialState);
+  const [message, setMessage] = useState({ order: 1, body: "" });
+  const [resolving, setResolving] = useState(false);
+  const [resolvedTemplate, setResolvedTemplate] = useState(null);
+  const [templateName, setTemplateName] = useState("");
+  const [templateLanguage, setTemplateLanguage] = useState("es");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    console.log("messagingCampaignMessageId", messagingCampaignMessageId);
-
+    if (!messagingCampaignMessageId) return;
     (async () => {
-      if (!messagingCampaignMessageId) return;
       try {
-        const { data } = await api.get(
-          `/messagingCampaignMessages/${messagingCampaignMessageId}`
-        );
-        setMessagingCampaignMessageModal((prevState) => {
-          return { ...prevState, ...data };
-        });
-      } catch (err) {
-        toastError(err);
-      }
-    })();
-    return () => {
-      setMessagingCampaignMessageModal(initialState);
-    };
-  }, [messagingCampaignMessageId, open]);
-
-  const handleClose = () => {
-    onClose();
-    setMessagingCampaignMessageModal(initialState);
-  };
-
-  const handleSaveMessagingCampaignMessageModal = async (values) => {
-    try {
-      values = {
-        ...values,
-        ...(messagingCampaignId && { messagingCampaignId }),
-      };
-      console.log("values to submit", values);
-
-      const formData = new FormData();
-
-      for (const key in values) {
-        if (Object.prototype.hasOwnProperty.call(values, key)) {
-          if (key === "file") {
-            formData.append("medias", values.file);
-          } else {
-            formData.append(key, values[key]);
-          }
+        const { data } = await api.get(`/messagingCampaignMessages/${messagingCampaignMessageId}`);
+        setMessage(data);
+        if (data.templatePayload) {
+          const tpl = typeof data.templatePayload === "string" ? JSON.parse(data.templatePayload) : data.templatePayload;
+          setResolvedTemplate(tpl);
+          setTemplateName(tpl.name || data.body || "");
+          setTemplateLanguage(tpl.language || "es");
         }
-      }
+      } catch (err) { toastError(err); }
+    })();
+  }, [messagingCampaignMessageId]);
 
-      if (messagingCampaignMessageId) {
-        await api.put(
-          `/messagingCampaignMessages/${messagingCampaignMessageId}`,
-          formData
-        );
-      } else {
-        // await api.post("/messageCampaign", values);
-        await api.post("/messagingCampaignMessages", formData);
-      }
-      toast.success("MessagingCampaignMessageModal saved successfully");
-      handleClose();
-    } catch (err) {
-      console.log(err);
-      toastError("Error saving MessagingCampaignMessageModal");
-    }
+  const handleResolve = async () => {
+    if (!templateName.trim()) { toast.error("Ingrese el nombre de la plantilla"); return; }
+    setResolving(true);
+    try {
+      const { data } = await api.post("/templates/resolve", { name: templateName.trim(), language: templateLanguage });
+      setResolvedTemplate(data);
+      toast.success("Plantilla verificada");
+    } catch (err) { toastError(err); setResolvedTemplate(null); }
+    finally { setResolving(false); }
   };
+
+  const handleSave = async () => {
+    if (!resolvedTemplate) { toast.error("Debe verificar la plantilla en Meta"); return; }
+    setSaving(true);
+    try {
+      const payload = { order: message.order, body: resolvedTemplate.name, mediaType: "text", templatePayload: resolvedTemplate, messagingCampaignId };
+      if (messagingCampaignMessageId) {
+        await api.put(`/messagingCampaignMessages/${messagingCampaignMessageId}`, payload);
+      } else {
+        await api.post("/messagingCampaignMessages", payload);
+      }
+      toast.success("Mensaje guardado");
+      if (onSave) onSave();
+      handleClose();
+    } catch (err) { toastError(err); }
+    finally { setSaving(false); }
+  };
+
+  const handleClose = () => { setMessage({ order: 1, body: "" }); setResolvedTemplate(null); setTemplateName(""); setTemplateLanguage("es"); onClose(); };
+  const getVarCount = (tpl) => Array.isArray(tpl?.variables) ? tpl.variables.length : 0;
 
   return (
-    <div className={classes.root}>
-      <Dialog open={open} onClose={handleClose} scroll="paper">
-        <DialogTitle>
-          {messagingCampaignMessageId
-            ? `Editar mensaje de campaña`
-            : `Crear mensaje de campaña`}
-        </DialogTitle>
-        <Formik
-          initialValues={messageCampaign}
-          enableReinitialize={true}
-          onSubmit={(values, actions) => {
-            console.log("values", values);
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{messagingCampaignMessageId ? "Editar mensaje" : "Nuevo mensaje"}</DialogTitle>
+      <DialogContent dividers>
+        <TextField label="Orden" type="number" value={message.order} onChange={e => setMessage({ ...message, order: +e.target.value })} variant="outlined" fullWidth size="small" className={classes.textField} />
 
-            setTimeout(() => {
-              handleSaveMessagingCampaignMessageModal(values);
-              actions.setSubmitting(false);
-            }, 400);
-          }}
-        >
-          {({
-            values,
-            handleChange,
-            handleBlur,
-            touched,
-            errors,
-            isSubmitting,
-            setFieldValue,
-          }) => (
-            <Form>
-              <DialogContent dividers>
-                {/* {JSON.stringify(values)} */}
-                <Field
-                  as={TextField}
-                  label={"Orden"}
-                  type="number"
-                  fullWidth
-                  autoFocus
-                  name="order"
-                  error={touched.order && Boolean(errors.order)}
-                  helperText={touched.order && errors.order}
-                  variant="outlined"
-                  className={classes.textField}
-                  style={{ marginBottom: "2rem" }}
-                />
+        <TextField label="Nombre de la plantilla" value={templateName} onChange={e => setTemplateName(e.target.value)} variant="outlined" fullWidth size="small" className={classes.textField} placeholder="Ej: bienvenida_cliente" />
 
-                <FormControl
-                  variant="outlined"
-                  error={touched.mediaType && Boolean(errors.mediaType)}
-                  className={classes.textField}
-                  style={{
-                    width: "100%",
-                  }}
-                >
-                  <InputLabel id="mediaType-label">Tipo de mensaje</InputLabel>
-                  <Select
-                    labelId="mediaType-label"
-                    id="mediaType"
-                    name="mediaType"
-                    value={values.mediaType}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    label="Tipo de mensaje"
-                  >
-                    <MenuItem dense value={"text"}>
-                      Texto
-                    </MenuItem>
-                    <MenuItem dense value={"file"}>
-                      Archivo (imagen, video, audio)
-                    </MenuItem>
-                  </Select>
-                  {touched.mediaType && errors.mediaType ? (
-                    <>{errors.mediaType}</>
-                  ) : null}
-                </FormControl>
+        <FormControl variant="outlined" fullWidth size="small" className={classes.textField}>
+          <InputLabel>Idioma</InputLabel>
+          <Select value={templateLanguage} onChange={e => setTemplateLanguage(e.target.value)} label="Idioma">
+            {LANGUAGES.map(l => <MenuItem dense key={l.code} value={l.code}>{l.label}</MenuItem>)}
+          </Select>
+        </FormControl>
 
-                {values.mediaType === "text" && (
-                  <Field
-                    as={TextField}
-                    label={"Texto"}
-                    multiline
-                    minRows={3}
-                    fullWidth
-                    autoFocus
-                    name="body"
-                    error={touched.body && Boolean(errors.body)}
-                    helperText={touched.body && errors.body}
-                    variant="outlined"
-                    className={classes.textField}
-                    style={{ marginBottom: "2rem" }}
-                  />
-                )}
+        <Button variant="outlined" color="primary" onClick={handleResolve} disabled={resolving || !templateName.trim()} fullWidth>
+          {resolving ? <CircularProgress size={20} /> : "Buscar en Meta"}
+        </Button>
 
-                {values.mediaType === "file" && (
-                  <Box margin="normal">
-                    <input
-                      id="file"
-                      name="file"
-                      type="file"
-                      onChange={(event) => {
-                        // Establece el archivo en los valores de Formik
-                        setFieldValue("file", event.currentTarget.files[0]);
-                      }}
-                      style={{ display: "block", marginBottom: "8px" }}
-                    />
-                    {touched.file && errors.file ? (
-                      <FormHelperText error>{errors.file}</FormHelperText>
-                    ) : null}
-                  </Box>
-                )}
-              </DialogContent>
-              <DialogActions>
-                <Button
-                  onClick={handleClose}
-                  color="secondary"
-                  disabled={isSubmitting}
-                  variant="outlined"
-                >
-                  {i18n.t("queueModal.buttons.cancel")}
-                </Button>
-                <Button
-                  type="submit"
-                  color="primary"
-                  disabled={isSubmitting}
-                  variant="contained"
-                  className={classes.btnWrapper}
-                >
-                  {messagingCampaignMessageId
-                    ? `${i18n.t("queueModal.buttons.okEdit")}`
-                    : `${i18n.t("queueModal.buttons.okAdd")}`}
-                  {isSubmitting && (
-                    <CircularProgress
-                      size={24}
-                      className={classes.buttonProgress}
-                    />
-                  )}
-                </Button>
-              </DialogActions>
-            </Form>
-          )}
-        </Formik>
-      </Dialog>
-    </div>
+        {resolvedTemplate && (
+          <div className={classes.previewBox}>
+            <Typography variant="body2"><strong>Nombre:</strong> {resolvedTemplate.name}</Typography>
+            <Typography variant="body2"><strong>Header:</strong> {resolvedTemplate.headerType}</Typography>
+            <Typography variant="body2"><strong>Variables:</strong> {getVarCount(resolvedTemplate)}</Typography>
+            <Typography variant="body2" style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{resolvedTemplate.bodyText}</Typography>
+          </div>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} color="secondary" variant="outlined">Cancelar</Button>
+        <Button onClick={handleSave} color="primary" variant="contained" disabled={saving || !resolvedTemplate}>
+          {saving ? <CircularProgress size={20} /> : "Guardar"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

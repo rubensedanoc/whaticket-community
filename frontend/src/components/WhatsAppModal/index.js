@@ -70,7 +70,6 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
     apiType: "whatsapp-web.js",
     number: "",
     phoneNumberId: "",
-    metaAccessToken: "",
   };
   const [whatsApp, setWhatsApp] = useState(initialState);
   const [selectedQueueIds, setSelectedQueueIds] = useState([]);
@@ -203,17 +202,6 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
                         fullWidth
                         variant="outlined"
                         margin="dense"
-                      />
-                    </div>
-                    <div>
-                      <Field
-                        as={TextField}
-                        label="Access Token"
-                        name="metaAccessToken"
-                        fullWidth
-                        variant="outlined"
-                        margin="dense"
-                        type="password"
                       />
                     </div>
                   </>

@@ -4,7 +4,7 @@ import Contact from "../../../models/Contact";
 import Message from "../../../models/Message";
 import Ticket from "../../../models/Ticket";
 import Whatsapp from "../../../models/Whatsapp";
-import { MetaApiClient } from "../../../clients/MetaApiClient";
+import { createMetaClient } from "../../../clients/MetaApiClient";
 import { emitEvent } from "../../../libs/emitEvent";
 import {
   NAV_BACK_ID,
@@ -223,7 +223,7 @@ class ChatbotResponseHelper {
 
       const message = "⏱️ Tu sesión ha expirado por inactividad. Si necesitas ayuda, escríbeme de nuevo y con gusto te atenderé. 😊";
 
-      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+      const client = createMetaClient(whatsapp.phoneNumberId);
 
       const response = await client.sendText({ to: contact.number, body: message });
 
@@ -299,7 +299,7 @@ class ChatbotResponseHelper {
 
       console.log(`[ChatbotResponseHelper] Enviando mensaje de paciencia ${currentPatienceCount + 1}/3 para ticket ${ticket.id}`);
 
-      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+      const client = createMetaClient(whatsapp.phoneNumberId);
 
       const response = await client.sendText({ to: contact.number, body: messageToSend });
 
@@ -361,7 +361,7 @@ class ChatbotResponseHelper {
         return;
       }
 
-      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+      const client = createMetaClient(whatsapp.phoneNumberId);
 
       let messageId: string;
       let messageBody: string;
@@ -536,7 +536,7 @@ class ChatbotResponseHelper {
     whatsapp: Whatsapp
   ): Promise<void> {
 
-    const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+    const client = createMetaClient(whatsapp.phoneNumberId);
     const errorBodyText = `❌ Lo siento, no entendí tu respuesta.\n\nPor favor, selecciona una de las siguientes opciones:`;
 
     const rows = this.formatInteractiveListRows(chatbotMessageReplied.chatbotOptions || []);
@@ -581,10 +581,7 @@ class ChatbotResponseHelper {
     whatsapp: Whatsapp,
     ticket: Ticket
   ): Promise<void> {
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
+    const client = createMetaClient(whatsapp.phoneNumberId);
 
     let messageId: string;
     let messageBody: string;
@@ -810,7 +807,7 @@ class ChatbotResponseHelper {
 
       const result = await CreateIncidenciaService({ ticket, contact, whatsapp });
 
-      const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+      const client = createMetaClient(whatsapp.phoneNumberId);
 
       if (result.success && result.incidenciaId) {
         const message = `✅ Tu solicitud fue registrada con el número de incidencia *${result.incidenciaId}*.\n\nUn asesor se comunicará contigo al número desde el cual estás escribiendo lo más pronto posible.`;
@@ -930,10 +927,7 @@ class ChatbotResponseHelper {
     contact: Contact,
     whatsapp: Whatsapp
   ): Promise<void> {
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
+    const client = createMetaClient(whatsapp.phoneNumberId);
 
     const message = `Vamos a registrar una incidencia.\n\n¿Confirmas el registro?`;
 

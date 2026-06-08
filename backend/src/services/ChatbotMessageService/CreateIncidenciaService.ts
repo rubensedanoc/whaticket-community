@@ -3,7 +3,7 @@ import IncidenciaLog from "../../models/IncidenciaLog";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { IncidenciaClient, BusinessError, TimeoutError, ApiError } from "../../clients/IncidenciaClient";
-import { MetaApiClient } from "../../clients/MetaApiClient";
+import { createMetaClient } from "../../clients/MetaApiClient";
 import * as Sentry from "@sentry/node";
 import CheckDuplicateIncidenciaService from "./CheckDuplicateIncidenciaService";
 
@@ -106,7 +106,7 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
     }
 
     // Enviar mensaje de "Procesando..."
-    const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
+    const client = createMetaClient(whatsapp.phoneNumberId);
     await client.sendText({ to: contact.number, body: "⏳ Registrando tu solicitud, por favor espera..." });
 
     const billingCountryId = COUNTRY_ID_MAPPER[contact.countryId] || 1;

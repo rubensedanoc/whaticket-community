@@ -30,6 +30,7 @@ import metaWebhookRoutes from "./metaWebhookRoutes";
 import metaTestRoutes from "./metaTestRoutes";
 import metaGroupRoutes from "./metaGroupRoutes";
 import inactivityBotRoutes from "./inactivityBotRoutes";
+import templateRoutes from "./templateRoutes";
 
 const routes = Router();
 
@@ -63,5 +64,6 @@ routes.use(metaWebhookRoutes);
 routes.use("/meta-test", metaTestRoutes);
 routes.use(metaGroupRoutes);
 routes.use("/api", inactivityBotRoutes);
+routes.use(templateRoutes);
 
 export default routes;

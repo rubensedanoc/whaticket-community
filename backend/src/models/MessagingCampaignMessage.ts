@@ -3,6 +3,7 @@ import {
   BelongsTo,
   Column,
   CreatedAt,
+  DataType,
   ForeignKey,
   Model,
   PrimaryKey,
@@ -32,6 +33,9 @@ class MessagingCampaignMessage extends Model<MessagingCampaignMessage> {
   get mediaUrl(): string | null {
     return getStoragePublicUrl(this.getDataValue("mediaUrl"));
   }
+
+  @Column(DataType.JSON)
+  templatePayload: object;
 
   @ForeignKey(() => MessagingCampaign)
   @Column

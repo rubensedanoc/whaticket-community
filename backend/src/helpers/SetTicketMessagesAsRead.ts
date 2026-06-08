@@ -4,7 +4,7 @@ import Ticket from "../models/Ticket";
 import Whatsapp from "../models/Whatsapp";
 import { logger } from "../utils/logger";
 import GetTicketWbot from "./GetTicketWbot";
-import { MetaApiClient } from "../clients/MetaApiClient";
+import { createMetaClient } from "../clients/MetaApiClient";
 
 const SetTicketMessagesAsRead = async (ticket: Ticket): Promise<void> => {
   // console.log("--- SetTicketMessagesAsRead ticketId:", ticket.id);
@@ -52,10 +52,7 @@ const SetTicketMessagesAsRead = async (ticket: Ticket): Promise<void> => {
         return;
       }
 
-      const client = new MetaApiClient({
-        phoneNumberId: whatsapp.phoneNumberId,
-        accessToken: whatsapp.metaAccessToken
-      });
+      const client = createMetaClient(whatsapp.phoneNumberId);
 
       // Marcar mensaje como leído usando Meta API
       await client.markMessageAsRead(lastIncomingMessage.id);

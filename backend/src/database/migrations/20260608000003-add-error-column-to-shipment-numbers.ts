@@ -1,0 +1,18 @@
+import { QueryInterface, DataTypes } from "sequelize";
+
+module.exports = {
+  up: async (queryInterface: QueryInterface) => {
+    const tableDescription: any = await queryInterface.describeTable("MarketingMessagingCampaignShipmentNumbers");
+
+    if (!tableDescription.error) {
+      await queryInterface.addColumn("MarketingMessagingCampaignShipmentNumbers", "error", {
+        type: DataTypes.TEXT,
+        allowNull: true
+      });
+    }
+  },
+
+  down: async (queryInterface: QueryInterface) => {
+    await queryInterface.removeColumn("MarketingMessagingCampaignShipmentNumbers", "error");
+  }
+};

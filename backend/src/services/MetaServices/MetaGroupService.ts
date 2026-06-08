@@ -1,7 +1,7 @@
 import Whatsapp from "../../models/Whatsapp";
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
-import { MetaApiClient } from "../../clients/MetaApiClient";
+import { createMetaClient } from "../../clients/MetaApiClient";
 import {
   CreateGroupParams,
   CreateGroupResult,
@@ -42,10 +42,7 @@ export const CreateMetaGroup = async (params: CreateGroupParams): Promise<Create
     throw new Error(`WhatsApp ${whatsapp.name} no es de tipo Meta API`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   // Crear grupo en Meta API
   console.log(`[CreateMetaGroup] Creando grupo: ${subject}`);
@@ -106,10 +103,7 @@ export const GetGroupInviteLink = async (params: GroupInviteLinkParams): Promise
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   const response = await client.getGroupInviteLink(groupId);
   const inviteLink = response.invite_link;
@@ -135,10 +129,7 @@ export const ResetGroupInviteLink = async (params: GroupInviteLinkParams): Promi
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   // Restablecer invite link (revoca el anterior)
   const response = await client.resetGroupInviteLink(groupId);
@@ -165,10 +156,7 @@ export const GetGroupInfo = async (params: GroupInfoParams): Promise<GroupInfoRe
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   const fields = [
     'subject',
@@ -209,10 +197,7 @@ export const GetJoinRequests = async (params: JoinRequestParams): Promise<JoinRe
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   const response = await client.getJoinRequests(groupId);
 
@@ -240,10 +225,7 @@ export const ApproveJoinRequests = async (params: ManageJoinRequestsParams): Pro
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   const response = await client.approveJoinRequests(groupId, joinRequestIds);
 
@@ -270,10 +252,7 @@ export const RejectJoinRequests = async (params: ManageJoinRequestsParams): Prom
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   const response = await client.rejectJoinRequests(groupId, joinRequestIds);
 
@@ -301,10 +280,7 @@ export const RemoveGroupParticipants = async (params: RemoveParticipantsParams):
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   await client.removeGroupParticipants(groupId, participants);
 
@@ -326,10 +302,7 @@ export const UpdateGroupSettings = async (params: UpdateGroupSettingsParams): Pr
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   // Actualizar en Meta API
   const settings: any = {};
@@ -375,10 +348,7 @@ export const DeleteMetaGroup = async (params: DeleteGroupParams): Promise<Delete
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   // Eliminar grupo en Meta API
   await client.deleteGroup(groupId);
@@ -413,10 +383,7 @@ export const GetActiveGroups = async (params: GetActiveGroupsParams): Promise<an
     throw new Error(`WhatsApp con ID ${whatsappId} no encontrado`);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
-  });
+  const client = createMetaClient(whatsapp.phoneNumberId);
 
   const response = await client.getActiveGroups(limit, after, before);
 

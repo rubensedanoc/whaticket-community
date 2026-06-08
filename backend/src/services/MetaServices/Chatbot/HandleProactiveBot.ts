@@ -4,7 +4,7 @@ import Contact from "../../../models/Contact";
 import Whatsapp from "../../../models/Whatsapp";
 import Message from "../../../models/Message";
 import ProactiveBotSession from "../../../models/ProactiveBotSession";
-import { MetaApiClient } from "../../../clients/MetaApiClient";
+import { createMetaClient } from "../../../clients/MetaApiClient";
 import ChatbotResponseHelper from "./ChatbotResponseHelper";
 import ReportProactiveBotResultService from "./ReportProactiveBotResultService";
 
@@ -186,10 +186,7 @@ const HandleProactiveBot = async ({
         // Si no existe el nodo de feedback, enviar mensaje simple y cerrar
         console.warn(`[HandleProactiveBotValidation] No se encontró nodo de feedback, usando mensaje simple`);
 
-        const client = new MetaApiClient({
-          phoneNumberId: whatsapp.phoneNumberId,
-          accessToken: whatsapp.metaAccessToken
-        });
+        const client = createMetaClient(whatsapp.phoneNumberId);
 
         const closeMessage = 'Gracias por tu tiempo. ¡Hasta pronto! 👋';
         const response = await client.sendText({

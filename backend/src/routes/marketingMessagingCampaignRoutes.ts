@@ -49,4 +49,10 @@ marketingMessagingCampaignRoutes.post(
   MarketingMessagingCampaignController.cancel
 );
 
+marketingMessagingCampaignRoutes.get(
+  "/marketingMessagingCampaign/shipment/:shipmentId/status",
+  isAuth,
+  MarketingMessagingCampaignController.shipmentStatus
+);
+
 export default marketingMessagingCampaignRoutes;

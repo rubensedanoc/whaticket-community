@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/node";
 import ChatbotMessage from "../../../models/ChatbotMessage";
 import Whatsapp from "../../../models/Whatsapp";
 import ProactiveBotSession from "../../../models/ProactiveBotSession";
-import { MetaApiClient } from "../../../clients/MetaApiClient";
+import { createMetaClient } from "../../../clients/MetaApiClient";
 import Ticket from "../../../models/Ticket";
 import Message from "../../../models/Message";
 import CreateOrUpdateContactService from "../../ContactServices/CreateOrUpdateContactService";
@@ -78,10 +78,7 @@ const SendInactivityBotMessageMeta = async ({
     console.log(`[SendInactivityBotMessageMeta] Usando plantilla estándar de validación: encuesta_inactividad`);
 
     // 5. Crear cliente Meta API
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
+    const client = createMetaClient(whatsapp.phoneNumberId);
 
     // 6. Procesar cada número
     const delayBetweenMessages = parseInt(process.env.PROACTIVE_BOT_SEND_DELAY_MS || '20000');

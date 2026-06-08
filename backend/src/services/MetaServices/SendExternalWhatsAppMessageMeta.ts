@@ -4,7 +4,7 @@ import { debounce } from "../../helpers/Debounce";
 import SendMessageRequest from "../../models/SendMessageRequest";
 import Whatsapp from "../../models/Whatsapp";
 import NotifyViaWppService from "../ExtraServices/NotifyViaWppService";
-import { MetaApiClient } from "../../clients/MetaApiClient";
+import { createMetaClient } from "../../clients/MetaApiClient";
 import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 
 const SendExternalWhatsAppMessageMeta = async ({
@@ -53,10 +53,7 @@ const SendExternalWhatsAppMessageMeta = async ({
     }
 
     // Crear cliente Meta API
-    const client = new MetaApiClient({
-      phoneNumberId: fromWpp.phoneNumberId,
-      accessToken: fromWpp.metaAccessToken
-    });
+    const client = createMetaClient(fromWpp.phoneNumberId);
 
     if (createRegisterInDb) {
       result.logs.push(

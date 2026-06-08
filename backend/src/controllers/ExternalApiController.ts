@@ -47,7 +47,8 @@ import {
   persistBufferFile,
   resolveStoredFileToLocalPath
 } from "../services/StorageService";
-import { MetaApiClient } from "../clients/MetaApiClient";
+import SendTemplateService from "../services/TemplateServices/SendTemplateService";
+import ResolveTemplateService from "../services/TemplateServices/ResolveTemplateService";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -217,14 +218,9 @@ export const sendMakeMessaginCampaign = async (
 
   if (apiType === "meta-api") {
     // Meta API branch
-    if (!whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
-      throw new AppError("Meta credentials not configured for this Whatsapp", 400);
+    if (!whatsapp.phoneNumberId) {
+      throw new AppError("Meta phoneNumberId not configured for this Whatsapp", 400);
     }
-
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
 
     for (const numberObj of data) {
       const { number, message } = numberObj;
@@ -242,11 +238,15 @@ export const sendMakeMessaginCampaign = async (
           break;
         }
 
-        // message = templateName for Meta
-        const response = await client.sendTemplate({
+        // Resolve template structure from Meta before sending
+        const resolved = await ResolveTemplateService({
+          name: message.trim(),
+          language: "es"
+        });
+        const response = await SendTemplateService({
           to: number,
-          templateName: message.trim(),
-          languageCode: "es"
+          templatePayload: resolved,
+          phoneNumberId: whatsapp.phoneNumberId
         });
 
         const contact = await CreateOrUpdateContactService({
@@ -270,7 +270,7 @@ export const sendMakeMessaginCampaign = async (
         await Message.create({
           id: response.messages[0].id,
           ticketId: ticket.id,
-          body: `[Template: ${message}]`,
+          body: `[Template: ${message}] ${resolved.bodyText}`,
           contactId: contact.id,
           fromMe: true,
           read: true,
@@ -482,17 +482,12 @@ export const sendMarketingCampaignIntro = async (
   const apiType = whatsapp.apiType || "whatsapp-web.js";
 
   if (apiType === "meta-api") {
-    if (!whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
+    if (!whatsapp.phoneNumberId) {
       throw new AppError(
-        "Meta credentials not configured for this Whatsapp",
+        "Meta phoneNumberId no configured for this Whatsapp",
         400
       );
     }
-
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
 
     const marketingCampaign = await MarketingCampaign.findByPk(campaign_id, {
       include: [
@@ -544,12 +539,22 @@ export const sendMarketingCampaignIntro = async (
     req.myLog("enviando plantillas Meta");
     for (const messageToSend of messagesToSend) {
       try {
-        const templateName = messageToSend.body.trim();
+        let response: any;
 
-        const response = await client.sendTemplate({
+        if (!messageToSend.templatePayload) continue;
+
+        let payload = messageToSend.templatePayload as any;
+        if (typeof payload === "string") payload = JSON.parse(payload);
+
+        const vars = Array.isArray(payload.variables) ? payload.variables : [];
+        const bodyValues = vars.length > 0
+          ? [contact_nombre, contact_nombre_negocio].filter(Boolean)
+          : undefined;
+        response = await SendTemplateService({
           to: contacto_numero,
-          templateName,
-          languageCode: "es"
+          templatePayload: payload,
+          bodyValues,
+          phoneNumberId: whatsapp.phoneNumberId
         });
 
         contact = await CreateOrUpdateContactService({
@@ -579,7 +584,7 @@ export const sendMarketingCampaignIntro = async (
         await Message.create({
           id: response.messages[0].id,
           ticketId: ticket.id,
-          body: `[Template: ${templateName}]`,
+          body: `[Template: ${messageToSend.body}] ${payload.bodyText}`,
           fromMe: true,
           read: true,
           mediaType: "template",
@@ -1840,13 +1845,14 @@ export const sendTemplateMessage = async (
     throw new AppError("Whatsapp connection is not Meta API", 400);
   }
 
-  if (!whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
-    throw new AppError("Meta credentials not configured for this Whatsapp", 400);
+  if (!whatsapp.phoneNumberId) {
+    throw new AppError("Meta phoneNumberId not configured for this Whatsapp", 400);
   }
 
-  const client = new MetaApiClient({
-    phoneNumberId: whatsapp.phoneNumberId,
-    accessToken: whatsapp.metaAccessToken
+  // Resolve template once (shared structure for all recipients)
+  const resolved = await ResolveTemplateService({
+    name: templateName.trim(),
+    language: languageCode || "es"
   });
 
   const results: Array<{ number: string; status: string; messageId?: string; error?: string }> = [];
@@ -1854,14 +1860,11 @@ export const sendTemplateMessage = async (
 
   for (const item of data) {
     try {
-      const response = await client.sendTemplate({
+      const response = await SendTemplateService({
         to: item.number,
-        templateName,
-        languageCode: languageCode || "es",
-        bodyParameters: item.bodyParameters,
-        headerParameters: item.headerImageUrl
-          ? [{ type: "image" as const, image: { link: item.headerImageUrl } }]
-          : undefined
+        templatePayload: resolved,
+        bodyValues: item.bodyParameters,
+        phoneNumberId: whatsapp.phoneNumberId
       });
 
       if (createTickets !== false) {
@@ -1884,7 +1887,7 @@ export const sendTemplateMessage = async (
         await Message.create({
           id: response.messages[0].id,
           ticketId: ticket.id,
-          body: `[Template: ${templateName}]`,
+          body: `[Template: ${resolved.name}] ${resolved.bodyText}`,
           contactId: contact.id,
           fromMe: true,
           read: true,

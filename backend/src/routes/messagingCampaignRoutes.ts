@@ -57,4 +57,10 @@ messagingCampaignRoutes.post(
   MessagingCampaignController.cancel
 );
 
+messagingCampaignRoutes.get(
+  "/messagingCampaigns/shipment/:shipmentId/status",
+  isAuth,
+  MessagingCampaignController.shipmentStatus
+);
+
 export default messagingCampaignRoutes;

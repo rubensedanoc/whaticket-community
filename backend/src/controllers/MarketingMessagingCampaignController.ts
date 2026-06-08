@@ -22,8 +22,8 @@ import {
   verifyMessage
 } from "../services/WbotServices/wbotMessageListener";
 import Message from "../models/Message";
-import { MetaApiClient } from "../clients/MetaApiClient";
 import CreateOrUpdateContactService from "../services/ContactServices/CreateOrUpdateContactService";
+import SendTemplateService from "../services/TemplateServices/SendTemplateService";
 import sleepPromise from "../utils/sleepPromise";
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
@@ -197,6 +197,11 @@ export const send = async (req: Request, res: Response): Promise<void> => {
 
   const result = { ok: true, logs: [], errors: [], numbersWithErrors: [] };
 
+  const whatsapp = await Whatsapp.findByPk(whatsappId);
+  if (!whatsapp) {
+    throw new AppError("Whatsapp no encontrado", 404);
+  }
+
   const marketingMessagingCampaign = await MarketingMessagingCampaign.findByPk(
     marketingMessagingCampaignId,
     {
@@ -279,16 +284,14 @@ export const send = async (req: Request, res: Response): Promise<void> => {
     newMarketingMessagingCampaignShipment
   });
 
-  const whatsapp = await Whatsapp.findByPk(whatsappId);
   const apiType = whatsapp?.apiType || "whatsapp-web.js";
 
   let shipmentCanceled = false;
 
   (async () => {
     if (apiType === "meta-api") {
-      // Validate credentials
-      if (!whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
-        console.error("ERR_SEND_MARKETINGMESSAGINGCAMPAIGN_META — Credenciales Meta no configuradas para whatsappId:", whatsappId);
+      if (!whatsapp.phoneNumberId) {
+        console.error("ERR_SEND_MARKETINGMESSAGINGCAMPAIGN_META — phoneNumberId no configurado para whatsappId:", whatsappId);
         await newMarketingMessagingCampaignShipment.update({
           endTimestamp: (Date.now() / 1000) | 0,
           status: "error"
@@ -296,15 +299,11 @@ export const send = async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      const client = new MetaApiClient({
-        phoneNumberId: whatsapp.phoneNumberId,
-        accessToken: whatsapp.metaAccessToken
-      });
-
       const messagesToSend = marketingMessagingCampaign.marketingCampaignAutomaticMessages;
 
       for (const numberObj of numbersToSend) {
         let numberFailed = false;
+        let lastError = "";
 
         // verify if the shipment was canceled
         const shipment = await MarketingMessagingCampaignShipment.findByPk(
@@ -317,67 +316,82 @@ export const send = async (req: Request, res: Response): Promise<void> => {
         }
 
         try {
-          // Extract bodyParameters from Excel columns (all keys except "number")
-          const bodyParameters = Object.keys(numberObj)
-            .filter(k => k !== "number")
-            .map(k => numberObj[k]?.toString() || "");
-
           for (const messageToSend of messagesToSend) {
-            const templateName = messageToSend.body.trim();
+            if (!messageToSend.templatePayload) continue;
 
-            const response = await client.sendTemplate({
-              to: numberObj.number,
-              templateName,
-              languageCode: "es",
-              ...(bodyParameters.length > 0 && { bodyParameters })
-            });
+            try {
+              let payload = messageToSend.templatePayload as any;
+              if (typeof payload === "string") payload = JSON.parse(payload);
 
-            // Create contact
-            const contact = await CreateOrUpdateContactService({
-              name: numberObj.number,
-              number: numberObj.number,
-              isGroup: false,
-              email: ""
-            });
+              const variables: any[] = Array.isArray(payload.variables) ? payload.variables : [];
+              const bodyValues: string[] = [];
+              for (const v of variables) {
+                const varKey = `var_${v.index}`;
+                const excelValue = numberObj[varKey] ||
+                  Object.values(numberObj).filter((_, i) => i >= v.index && i !== 0)[0];
+                bodyValues.push(excelValue?.toString() || "");
+              }
 
-            // Create ticket
-            const ticket = await FindOrCreateTicketService({
-              contact,
-              whatsappId: whatsapp.id,
-              unreadMessages: 0,
-              groupContact: undefined,
-              lastMessageTimestamp: Math.floor(Date.now() / 1000),
-              marketingMessagingCampaignId: marketingMessagingCampaign.id,
-              marketingCampaignId: marketingMessagingCampaign.marketingCampaignId,
-              marketingMessagingCampaignShipmentId: newMarketingMessagingCampaignShipment.id,
-              msgFromMe: true
-            });
+              const response = await SendTemplateService({
+                to: numberObj.number,
+                templatePayload: payload,
+                bodyValues: bodyValues.length > 0 ? bodyValues : undefined,
+                phoneNumberId: whatsapp.phoneNumberId
+              });
 
-            // Persist message
-            await Message.create({
-              id: response.messages[0].id,
-              ticketId: ticket.id,
-              body: `[Template: ${templateName}]${bodyParameters.length ? ' - Vars: ' + bodyParameters.join(', ') : ''}`,
-              contactId: contact.id,
-              fromMe: true,
-              read: true,
-              mediaType: "template",
-              timestamp: Math.floor(Date.now() / 1000),
-              ack: 0
-            });
+                const contact = await CreateOrUpdateContactService({
+                  name: numberObj.number,
+                  number: numberObj.number,
+                  isGroup: false,
+                  email: ""
+                });
+
+                const ticket = await FindOrCreateTicketService({
+                  contact,
+                  whatsappId: whatsapp.id,
+                  unreadMessages: 0,
+                  groupContact: undefined,
+                  lastMessageTimestamp: Math.floor(Date.now() / 1000),
+                  marketingMessagingCampaignId: marketingMessagingCampaign.id,
+                  marketingCampaignId: marketingMessagingCampaign.marketingCampaignId,
+                  marketingMessagingCampaignShipmentId: newMarketingMessagingCampaignShipment.id,
+                  msgFromMe: true
+                });
+
+                await Message.create({
+                  id: response.messages[0].id,
+                  ticketId: ticket.id,
+                  body: `[Template: ${payload.name}] ${payload.bodyText}${bodyValues.length ? ' | Vars: ' + bodyValues.join(', ') : ''}`,
+                  contactId: contact.id,
+                  fromMe: true,
+                  read: true,
+                  mediaType: "template",
+                  timestamp: Math.floor(Date.now() / 1000),
+                  ack: 0
+                });
+              } catch (templateError) {
+                result.errors.push(`Recipient ${numberObj.number}: ${templateError.message}`);
+                result.numbersWithErrors.push({ number: numberObj.number, error: templateError.message });
+                numberFailed = true;
+                lastError = templateError.message;
+              throw templateError;
+            }
 
             await sleepPromise(2000);
           }
         } catch (error) {
           numberFailed = true;
+          lastError = error.message;
 
           result.ok = false;
           console.log("--- Error en send (Meta)", error);
-          result.errors.push(error.message);
-          result.numbersWithErrors.push({
-            number: numberObj.number,
-            error: error.message
-          });
+          if (error.message && !result.errors.includes(error.message)) {
+            result.errors.push(error.message);
+            result.numbersWithErrors.push({
+              number: numberObj.number,
+              error: error.message
+            });
+          }
         }
 
         console.log(
@@ -388,8 +402,8 @@ export const send = async (req: Request, res: Response): Promise<void> => {
         await MarketingMessagingCampaignShipmentNumber.create({
           number: numberObj.number,
           hadError: numberFailed,
-          marketingMessagingCampaignShipmentId:
-            newMarketingMessagingCampaignShipment.id
+          error: lastError || null,
+          marketingMessagingCampaignShipmentId: newMarketingMessagingCampaignShipment.id
         });
 
         await sleepPromise(1500);
@@ -397,6 +411,7 @@ export const send = async (req: Request, res: Response): Promise<void> => {
     } else {
     for (const numberObj of numbersToSend) {
       let numberFailed = false;
+      let lastError = "";
 
       // verify if the shipment was canceled
       const shipment = await MarketingMessagingCampaignShipment.findByPk(
@@ -520,6 +535,7 @@ export const send = async (req: Request, res: Response): Promise<void> => {
         }
       } catch (error) {
         numberFailed = true;
+        lastError = error.message;
 
         result.ok = false;
         console.log("--- Error en send", error);
@@ -538,8 +554,8 @@ export const send = async (req: Request, res: Response): Promise<void> => {
       await MarketingMessagingCampaignShipmentNumber.create({
         number: numberObj.number,
         hadError: numberFailed,
-        marketingMessagingCampaignShipmentId:
-          newMarketingMessagingCampaignShipment.id
+        error: lastError || null,
+        marketingMessagingCampaignShipmentId: newMarketingMessagingCampaignShipment.id
       });
     }
     }
@@ -608,4 +624,35 @@ export const cancel = async (
   });
 
   return res.status(200).json(marketingMessagingCampaign);
+};
+
+export const shipmentStatus = async (req: Request, res: Response): Promise<Response> => {
+  const { shipmentId } = req.params;
+
+  const shipment = await MarketingMessagingCampaignShipment.findByPk(+shipmentId);
+  if (!shipment) throw new AppError("Shipment not found", 404);
+
+  const numbers = await MarketingMessagingCampaignShipmentNumber.findAll({
+    where: { marketingMessagingCampaignShipmentId: +shipmentId }
+  });
+
+  const total = numbers.length;
+  const failed = numbers.filter(n => n.hadError).length;
+  const sent = total - failed;
+
+  const errors = numbers
+    .filter(n => n.hadError && n.error)
+    .map(n => ({ number: n.number, error: n.error }));
+
+  return res.status(200).json({
+    shipmentId: shipment.id,
+    status: shipment.status || "sending",
+    total,
+    sent,
+    failed,
+    progress: total > 0 ? `${Math.round((sent / total) * 100)}%` : "0%",
+    errors,
+    startTimestamp: shipment.startTimestamp,
+    endTimestamp: shipment.endTimestamp
+  });
 };

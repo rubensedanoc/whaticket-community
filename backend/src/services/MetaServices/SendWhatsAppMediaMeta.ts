@@ -4,7 +4,7 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import formatBody from "../../helpers/Mustache";
-import { MetaApiClient } from "../../clients/MetaApiClient";
+import { createMetaClient } from "../../clients/MetaApiClient";
 import { MetaApiSuccessResponse } from "../../types/meta/MetaApiTypes";
 import { emitEvent } from "../../libs/emitEvent";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
@@ -55,10 +55,7 @@ const SendWhatsAppMediaMeta = async ({
     }
 
     // Crear cliente Meta API
-    const client = new MetaApiClient({
-      phoneNumberId: whatsapp.phoneNumberId,
-      accessToken: whatsapp.metaAccessToken
-    });
+    const client = createMetaClient(whatsapp.phoneNumberId);
 
     // Formatear caption si existe
     const caption = body ? formatBody(body, ticket.contact) : undefined;

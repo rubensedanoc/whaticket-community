@@ -24,6 +24,9 @@ class MessagingCampaignShipmentNumber extends Model<MessagingCampaignShipmentNum
   @Column
   hadError: boolean;
 
+  @Column
+  error: string;
+
   @ForeignKey(() => MessagingCampaignShipment)
   @Column
   messagingCampaignShipmentId: number;
