@@ -123,17 +123,20 @@ const ResolveTemplateService = async ({
     }
     if (component.type === "BODY") {
       bodyText = component.text || "";
-      const varRegex = /\{\{(\d+)\}\}/g;
-      const seenIndices = new Set<number>();
+      // Match both positional {{1}} and named {{nombre}} placeholders
+      const varRegex = /\{\{(.+?)\}\}/g;
+      const seenNames = new Set<string>();
       let match: RegExpExecArray | null;
       while ((match = varRegex.exec(bodyText)) !== null) {
-        const index = parseInt(match[1], 10);
-        if (!seenIndices.has(index)) {
-          seenIndices.add(index);
-          variables.push({ index, placeholder: `{{${index}}}` });
+        const name = match[1].trim();
+        if (!seenNames.has(name)) {
+          seenNames.add(name);
+          variables.push({
+            index: variables.length + 1,
+            placeholder: `{{${name}}}`
+          });
         }
       }
-      variables.sort((a, b) => a.index - b.index);
     }
     if (component.type === "BUTTONS") {
       for (const btn of component.buttons || []) {
