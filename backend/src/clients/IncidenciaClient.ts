@@ -55,7 +55,6 @@ export class IncidenciaClient {
 
   constructor(config: IncidenciaClientConfig = {}) {
     const baseUrl = config.baseUrl || process.env.BILLING_INCIDENCIA_BASE_URL;
-    const apiKey = config.apiKey || process.env.BILLING_INCIDENCIA_API_KEY;
     const timeoutMs = config.timeoutMs || parseInt(process.env.BILLING_INCIDENCIA_TIMEOUT_MS || "15000");
     this.testMode = config.testMode ?? (process.env.BILLING_INCIDENCIA_TEST_MODE === "true");
 
@@ -63,17 +62,8 @@ export class IncidenciaClient {
       throw new Error("BILLING_INCIDENCIA_BASE_URL is required");
     }
 
-    // En modo test, la API KEY no es obligatoria
-    if (!this.testMode && !apiKey) {
-      throw new Error("BILLING_INCIDENCIA_API_KEY is required");
-    }
-
     this.client = axios.create({
       baseURL: baseUrl,
-      headers: {
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-        "Content-Type": "application/json"
-      },
       timeout: timeoutMs
     });
   }
