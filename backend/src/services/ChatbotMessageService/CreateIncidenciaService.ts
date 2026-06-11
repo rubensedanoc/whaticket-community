@@ -119,13 +119,8 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
 
     if (contact.domain) {
       try {
-        // Add protocol if missing
-        const domainWithProtocol = contact.domain.startsWith('http')
-          ? contact.domain
-          : `https://${contact.domain}`;
-        const url = new URL(domainWithProtocol);
-        const hostname = url.hostname;
-        const parts = hostname.split(".");
+        const cleaned = contact.domain.replace(/^https?:\/\//i, "").replace(/\/$/, "").trim();
+        const parts = cleaned.split(".");
         if (parts.length >= 2) {
           dominio = parts.slice(-2).join(".");
           suscripcion = parts.slice(0, -2).join(".");
