@@ -48,9 +48,8 @@ const CheckDuplicateIncidenciaService = async (
   // Ej: "restaurant.pe" -> subdominio = "" (sin subdominio específico)
   let subdomain = "";
   try {
-    const domainWithProtocol = domain.startsWith('http') ? domain : `https://${domain}`;
-    const url = new URL(domainWithProtocol);
-    const parts = url.hostname.split(".");
+    const cleaned = domain.replace(/^https?:\/\//i, "").replace(/\/$/, "").trim();
+    const parts = cleaned.split(".");
     if (parts.length > 2) {
       subdomain = parts.slice(0, -2).join(".");
     }
@@ -111,7 +110,7 @@ const CheckDuplicateIncidenciaService = async (
     }
 
     console.log(`[CheckDuplicateIncidenciaService] No se encontraron duplicados`);
-    
+
     // Log adicional para debugging
     if (candidateTickets.length > 0) {
       console.log(`[CheckDuplicateIncidenciaService] Tickets candidatos encontrados (mismo dominio):`);
