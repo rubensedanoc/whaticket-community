@@ -14,6 +14,14 @@ interface WhatsappData {
   greetingMessage?: string;
   farewellMessage?: string;
   queueIds?: number[];
+  apiType?: string;
+  phoneNumberId?: string;
+  metaAccessToken?: string;
+  metaBusinessAccountId?: string;
+  webhookVerifyToken?: string;
+  chatbotIdentifier?: string;
+  executionType?: string;
+  phoneToNotify?: string;
 }
 
 interface Request {
@@ -43,7 +51,15 @@ const UpdateWhatsAppService = async ({
     session,
     greetingMessage,
     farewellMessage,
-    queueIds = []
+    queueIds = [],
+    apiType,
+    phoneNumberId,
+    metaAccessToken,
+    metaBusinessAccountId,
+    webhookVerifyToken,
+    chatbotIdentifier,
+    executionType,
+    phoneToNotify
   } = whatsappData;
 
   try {
@@ -75,7 +91,15 @@ const UpdateWhatsAppService = async ({
     session,
     greetingMessage,
     farewellMessage,
-    isDefault
+    isDefault,
+    apiType,
+    phoneNumberId,
+    metaAccessToken,
+    metaBusinessAccountId,
+    webhookVerifyToken,
+    chatbotIdentifier,
+    executionType,
+    phoneToNotify
   });
 
   await AssociateWhatsappQueue(whatsapp, queueIds);
