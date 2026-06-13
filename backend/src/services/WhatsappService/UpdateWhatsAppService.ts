@@ -22,6 +22,7 @@ interface WhatsappData {
   chatbotIdentifier?: string;
   executionType?: string;
   phoneToNotify?: string;
+  number?: string;
 }
 
 interface Request {
@@ -59,7 +60,8 @@ const UpdateWhatsAppService = async ({
     webhookVerifyToken,
     chatbotIdentifier,
     executionType,
-    phoneToNotify
+    phoneToNotify,
+    number
   } = whatsappData;
 
   try {
@@ -99,7 +101,8 @@ const UpdateWhatsAppService = async ({
     webhookVerifyToken,
     chatbotIdentifier,
     executionType,
-    phoneToNotify
+    phoneToNotify,
+    number
   });
 
   await AssociateWhatsappQueue(whatsapp, queueIds);
