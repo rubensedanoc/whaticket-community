@@ -60,10 +60,10 @@ export const verifyContact = async (
   msgContact: WbotContact
 ): Promise<Contact> => {
   let profilePicUrl;
-  
+
   // Skip profile pic for LID contacts (new WhatsApp format) to avoid errors
   const isLidContact = msgContact.id._serialized?.includes('@lid');
-  
+
   if (!isLidContact) {
     try {
       profilePicUrl = await timeoutPromise(
@@ -123,7 +123,7 @@ const verifyContactForSyncUnreadMessages = async (
   if (!contact) {
     // Skip profile pic for LID contacts (new WhatsApp format) to avoid errors
     const isLidContact = msgContact.id._serialized?.includes('@lid');
-    
+
     if (!isLidContact) {
       try {
         contactData.profilePicUrl = await msgContact.getProfilePicUrl();
@@ -237,8 +237,7 @@ export const verifyMediaMessage = async (
       storageMediaKey = await persistBufferFile({
         buffer: Buffer.from(media.data, "base64"),
         originalName: media.filename,
-        mimeType: media.mimetype,
-        prefix: "messages"
+        mimeType: media.mimetype
       });
     } catch (err) {
       Sentry.captureException(err);
@@ -346,7 +345,7 @@ export const verifyMessage = async ({
   // Verificar si el mensaje ya existe en la base de datos para evitar duplicados
   // Primero verificar por ID exacto
   let existingMessage = await Message.findByPk(msg.id.id);
-  
+
   // Si no existe por ID, verificar por criterios alternativos (mismo ticket, timestamp y body)
   // Esto maneja el caso donde WhatsApp genera IDs diferentes para el mismo mensaje
   if (!existingMessage) {
@@ -359,7 +358,7 @@ export const verifyMessage = async ({
       }
     });
   }
-  
+
   if (existingMessage) {
     console.log(`[VERIFY] ⚠️ Mensaje ya existe en BD - ID: ${existingMessage.id}, retornando mensaje existente`);
     return existingMessage;
@@ -390,7 +389,7 @@ export const verifyMessage = async ({
   console.log(`[VERIFY] 🔄 Llamando a CreateMessageService...`);
   const createdMessage = await CreateMessageService({ messageData, ticket });
   console.log(`[VERIFY] ✅ Mensaje guardado exitosamente en BD - ID: ${createdMessage.id}`);
-  
+
   return createdMessage;
 };
 
@@ -788,12 +787,12 @@ const handleMessage = async ({
     // y NO debemos actualizar unreadMessages
     const existingMsgWithFlag = await Message.findByPk(msg.id.id);
     const shouldPreserveUnread = existingMsgWithFlag?.identifier === "SKIP_UNREAD_RESET";
-    
+
     if (shouldPreserveUnread) {
       console.log(`[LISTENER] 🔒 Mensaje con flag SKIP_UNREAD_RESET detectado - ID: ${msg.id.id}`);
       console.log(`[LISTENER] 🔒 Preservando contador de mensajes no leídos`);
     }
-    
+
     let ticket: Ticket | null;
 
     // Validamos primero si el mensaje puede pertenecer a un ticket ya existente
@@ -838,19 +837,19 @@ const handleMessage = async ({
     // ========================================
     if (!msg.fromMe && ticket) {
       const activationKeywords = ['iniciar', 'inicio'];
-      const shouldActivateBot = activationKeywords.some(keyword => 
+      const shouldActivateBot = activationKeywords.some(keyword =>
         msg.body.toLowerCase().trim() === keyword
       );
 
       if (shouldActivateBot) {
         console.log(`[PRUEBA BOT] Detectada palabra clave: "${msg.body}"`);
-        
+
         // Cerrar ticket actual si existe y está abierto
         if (ticket.status !== 'closed') {
           await ticket.update({ status: 'closed' });
           console.log(`[PRUEBA BOT] Ticket ${ticket.id} cerrado`);
         }
-        
+
         // Crear nuevo ticket con chatbot activado
         const chatbotIdentifier = 'soporte';
         ticket = await Ticket.create({
@@ -862,7 +861,7 @@ const handleMessage = async ({
           lastMessageTimestamp: msg.timestamp,
           chatbotMessageIdentifier: chatbotIdentifier
         });
-        
+
         console.log(`[PRUEBA BOT] Nuevo ticket ${ticket.id} creado con bot activado (identifier: ${chatbotIdentifier})`);
       }
     }

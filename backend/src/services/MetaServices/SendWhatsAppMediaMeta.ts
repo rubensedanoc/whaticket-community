@@ -35,7 +35,7 @@ const SendWhatsAppMediaMeta = async ({
   body
 }: Request): Promise<MetaMediaResult> => {
   try {
-    const storedMediaKey = await persistMulterFile(media, "messages");
+    const storedMediaKey = await persistMulterFile(media);
     const { localPath, cleanup } = await ensureMulterFileLocalPath(media);
 
     console.log("[SendWhatsAppMediaMeta] Iniciando envio de media");

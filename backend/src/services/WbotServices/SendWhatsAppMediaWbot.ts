@@ -32,7 +32,7 @@ const SendWhatsAppMediaWbot = async ({
   }
 
   try {
-    const storedMediaKey = await persistMulterFile(media, "messages");
+    const storedMediaKey = await persistMulterFile(media);
     const { localPath, cleanup } = await ensureMulterFileLocalPath(media);
 
     const wbot = await GetTicketWbot(ticket);
