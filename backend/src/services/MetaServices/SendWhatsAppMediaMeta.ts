@@ -50,7 +50,7 @@ const SendWhatsAppMediaMeta = async ({
     }
 
     // Validar credenciales
-    if (!whatsapp || !whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
+    if (!whatsapp || !whatsapp.phoneNumberId || !process.env.META_ACCESS_TOKEN) {
       throw new AppError("ERR_META_CREDENTIALS_NOT_CONFIGURED");
     }
 

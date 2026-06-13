@@ -191,7 +191,7 @@ const saveUserMessage = async (
 
       const downloadResult = await DownloadMetaMedia({
         mediaId: mediaInfo.id,
-        accessToken: whatsapp.metaAccessToken,
+        accessToken: process.env.META_ACCESS_TOKEN,
         mimeType: mediaInfo.mimeType
       });
 

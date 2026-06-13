@@ -38,7 +38,7 @@ const SendWhatsAppMessageMeta = async ({
     console.log("[SendWhatsAppMessageMeta] Body length:", body.length);
 
     // Validar credenciales del whatsapp
-    if (!whatsapp || !whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
+    if (!whatsapp || !whatsapp.phoneNumberId || !process.env.META_ACCESS_TOKEN) {
       throw new AppError("ERR_META_CREDENTIALS_NOT_CONFIGURED");
     }
 
@@ -51,7 +51,7 @@ const SendWhatsAppMessageMeta = async ({
 
     // Determinar número de destino
     let recipientNumber: string;
-    
+
     if (ticket.isGroup) {
       recipientNumber = ticket.contact.number;
       console.log("[SendWhatsAppMessageMeta] Enviando a grupo:", recipientNumber);
@@ -70,7 +70,7 @@ const SendWhatsAppMessageMeta = async ({
 
     // Validar ventana de conversación solo para individuales
     let windowStatus: { isOpen: boolean; type: string };
-    
+
     if (!ticket.isGroup) {
       windowStatus = await CheckMetaConversationWindow(ticket);
       console.log("[SendWhatsAppMessageMeta] Estado de ventana:", windowStatus);
@@ -84,7 +84,7 @@ const SendWhatsAppMessageMeta = async ({
     if (!windowStatus.isOpen) {
       // Ventana cerrada o conversación nueva: Enviar plantilla apropiada
       let templateName: string;
-      
+
       if (windowStatus.type === "new_conversation") {
         // Conversación inicial - usar plantilla de bienvenida
         templateName = process.env.META_INITIAL_TEMPLATE_NAME || "initial_conversation";
@@ -94,7 +94,7 @@ const SendWhatsAppMessageMeta = async ({
         templateName = process.env.META_REENGAGEMENT_TEMPLATE_NAME || "reengagement_message";
         console.log("[SendWhatsAppMessageMeta] ⚠️ Ventana cerrada, enviando plantilla de reengagement");
       }
-      
+
       try {
         // Limpiar el mensaje para la plantilla:
         // Meta no permite saltos de línea, tabs, ni más de 4 espacios consecutivos en parámetros
@@ -118,7 +118,7 @@ const SendWhatsAppMessageMeta = async ({
         console.log(`[SendWhatsAppMessageMeta] ✅ Plantilla ${templateName} enviada con mensaje incluido`);
       } catch (templateErr) {
         console.error("[SendWhatsAppMessageMeta] ❌ Error enviando plantilla:", templateErr);
-        
+
         console.log("[SendWhatsAppMessageMeta] Intentando enviar mensaje normal como fallback...");
         result = await client.sendText({
           to: recipientNumber,

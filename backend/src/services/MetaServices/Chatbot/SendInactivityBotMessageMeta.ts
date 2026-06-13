@@ -54,7 +54,7 @@ const SendInactivityBotMessageMeta = async ({
     console.log(`[SendInactivityBotMessageMeta] Whatsapp encontrado: ${whatsapp.id} - ${whatsapp.number}`);
 
     // 2. Validar credenciales Meta
-    if (!whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
+    if (!whatsapp.phoneNumberId || !process.env.META_ACCESS_TOKEN) {
       const error = 'Credenciales Meta no configuradas en el número de inactividad';
       console.error(`[SendInactivityBotMessageMeta] ${error}`);
       throw new Error(error);
