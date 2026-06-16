@@ -2,39 +2,78 @@ import Message from "../models/Message";
 import Ticket from "../models/Ticket";
 import { logger } from "../utils/logger";
 
-export type ConversationWindowStatus = 
-  | { isOpen: true; type: "active" }
-  | { isOpen: false; type: "new_conversation" }
-  | { isOpen: false; type: "expired" };
+export interface ConversationWindowStatus {
+  isOpen: boolean;
+  type: "active" | "expired" | "new_contact";
+  hoursRemaining: number | null;
+  lastIncomingAt: Date | null;
+}
 
 /**
  * Verifica si la ventana de conversación de 24 horas está activa
- * para un ticket de Meta API
- * 
+ * para un contacto en una conexión de WhatsApp (Meta API).
+ *
+ * Busca TODOS los tickets del contacto+whatsapp y encuentra el último mensaje
+ * entrante (fromMe: false) a través de todos esos tickets, no solo uno.
+ *
  * Según política de Meta:
  * - Solo puedes enviar mensajes de texto libre si el cliente te escribió en las últimas 24h
  * - Si el cliente nunca te ha escrito o pasaron > 24h, DEBES usar plantilla aprobada
- * 
- * @param ticket - Ticket a verificar
+ *
+ * @param contactId - ID del contacto
+ * @param whatsappId - ID de la conexión WhatsApp
  * @returns Objeto con estado de la ventana y tipo de conversación
  */
-const CheckMetaConversationWindow = async (ticket: Ticket): Promise<ConversationWindowStatus> => {
+const CheckMetaConversationWindow = async (
+  contactId: number,
+  whatsappId: number
+): Promise<ConversationWindowStatus> => {
   try {
-    // Buscar el último mensaje entrante (del cliente hacia nosotros)
+    // 1. Obtener todos los tickets del contacto+whatsapp
+    const tickets = await Ticket.findAll({
+      where: { contactId, whatsappId },
+      attributes: ["id"]
+    });
+
+    const ticketIds = tickets.map(t => t.id);
+
+    // 2. Buscar el último mensaje entrante (del cliente hacia nosotros)
+    // en CUALQUIERA de esos tickets
+    const whereCondition: any = {
+      fromMe: false
+    };
+
+    if (ticketIds.length > 0) {
+      whereCondition.ticketId = ticketIds;
+    } else {
+      // Si no hay tickets, no hay mensajes — es un contacto nuevo
+      logger.info(
+        `[CheckMetaConversationWindow] No tickets found for contact ${contactId} on whatsapp ${whatsappId}`
+      );
+      return {
+        isOpen: false,
+        type: "new_contact",
+        hoursRemaining: null,
+        lastIncomingAt: null
+      };
+    }
+
     const lastIncomingMessage = await Message.findOne({
-      where: {
-        ticketId: ticket.id,
-        fromMe: false
-      },
+      where: whereCondition,
       order: [["timestamp", "DESC"]]
     });
 
-    // Si no hay mensajes entrantes, es una conversación inicial (cliente nuevo)
+    // Si no hay mensajes entrantes, es un contacto nuevo (nunca nos escribió)
     if (!lastIncomingMessage) {
-      logger.warn(
-        `[CheckMetaConversationWindow] Ticket ${ticket.id}: Conversación inicial - Se requiere plantilla de bienvenida`
+      logger.info(
+        `[CheckMetaConversationWindow] Contact ${contactId} on whatsapp ${whatsappId}: No incoming messages found — new_contact`
       );
-      return { isOpen: false, type: "new_conversation" };
+      return {
+        isOpen: false,
+        type: "new_contact",
+        hoursRemaining: null,
+        lastIncomingAt: null
+      };
     }
 
     // Calcular tiempo transcurrido desde el último mensaje del cliente
@@ -43,24 +82,46 @@ const CheckMetaConversationWindow = async (ticket: Ticket): Promise<Conversation
     const hoursSinceLastMessage = (now - lastMessageTimestamp) / 3600;
 
     logger.info(
-      `[CheckMetaConversationWindow] Ticket ${ticket.id}: Last message ${hoursSinceLastMessage.toFixed(2)} hours ago`
+      `[CheckMetaConversationWindow] Contact ${contactId} on whatsapp ${whatsappId}: Last incoming message ${hoursSinceLastMessage.toFixed(2)} hours ago across ${ticketIds.length} ticket(s)`
     );
 
     // Ventana de 24 horas (usamos 23.5 para dar margen de seguridad)
-    const windowIsOpen = hoursSinceLastMessage < 23.5;
+    const windowIsOpen = hoursSinceLastMessage >= 0 && hoursSinceLastMessage < 23.5;
+    const lastIncomingAt = new Date(lastMessageTimestamp * 1000);
 
     if (!windowIsOpen) {
-      logger.warn(
-        `[CheckMetaConversationWindow] Ticket ${ticket.id}: 24-hour window expired (${hoursSinceLastMessage.toFixed(2)} hours) - Se requiere plantilla de reengagement`
+      const hoursRemaining = 0;
+      logger.info(
+        `[CheckMetaConversationWindow] Contact ${contactId} on whatsapp ${whatsappId}: 24-hour window expired (${hoursSinceLastMessage.toFixed(2)} hours)`
       );
-      return { isOpen: false, type: "expired" };
+      return {
+        isOpen: false,
+        type: "expired",
+        hoursRemaining,
+        lastIncomingAt
+      };
     }
 
-    return { isOpen: true, type: "active" };
+    const hoursRemaining = Math.max(0, 23.5 - hoursSinceLastMessage);
+
+    return {
+      isOpen: true,
+      type: "active",
+      hoursRemaining,
+      lastIncomingAt
+    };
   } catch (err) {
-    logger.error(`[CheckMetaConversationWindow] Error checking window for ticket ${ticket.id}:`, err);
+    logger.error(
+      `[CheckMetaConversationWindow] Error checking window for contact ${contactId} on whatsapp ${whatsappId}:`,
+      err
+    );
     // En caso de error, asumimos que es ventana expirada para forzar uso de plantilla
-    return { isOpen: false, type: "expired" };
+    return {
+      isOpen: false,
+      type: "expired",
+      hoursRemaining: 0,
+      lastIncomingAt: null
+    };
   }
 };
 

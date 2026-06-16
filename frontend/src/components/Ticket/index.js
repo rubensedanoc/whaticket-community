@@ -24,6 +24,8 @@ import TicketHeader from "../TicketHeader";
 import TicketInfo from "../TicketInfo";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import RedditIcon from '@material-ui/icons/Reddit';
+import ConversationWindowBadge from "../ConversationWindowBadge";
+import useConversationWindow from "../../hooks/useConversationWindow";
 
 import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -122,6 +124,8 @@ const Ticket = () => {
   const [selectMarketingCampaign, setSelectMarketingCampaign] = useState(0);
   const [clientelicenciaId, setClientelicenciaId] = useState(null);
 
+  const conversationWindowData = useConversationWindow(ticket.conversationWindow);
+
   async function searchForMicroServiceData(contactNumber) {
     try {
       const { data: microserviceNumberData } = await microserviceApi.post(
@@ -196,7 +200,15 @@ const Ticket = () => {
 
     socket.on("ticket", (data) => {
       if (data.action === "update") {
-        setTicket(data.ticket);
+        setTicket((prevTicket) => ({
+          ...prevTicket,
+          ...data.ticket,
+          // Preserve conversationWindow from socket if present; otherwise keep previous
+          conversationWindow:
+            data.ticket.conversationWindow !== undefined
+              ? data.ticket.conversationWindow
+              : prevTicket.conversationWindow,
+        }));
         setSelectMarketingCampaign(data.ticket.marketingCampaignId || 0);
         console.log("ticker actulizado", data.ticket);
       }
@@ -395,6 +407,10 @@ const Ticket = () => {
           </div>
 
           <div className={classes.ticketActionButtons}>
+            <ConversationWindowBadge
+              conversationWindow={conversationWindowData}
+              isGroup={ticket.isGroup}
+            />
             <TicketActionButtons ticket={ticket}  />
           </div>
         </TicketHeader>
@@ -484,6 +500,7 @@ const Ticket = () => {
               ticketIsGroup={ticket.isGroup}
               ticketStatus={ticket.status}
               ticketPrivateNote={ticket.privateNote}
+              conversationWindow={ticket.conversationWindow}
             />
           )}
         </ReplyMessageProvider>

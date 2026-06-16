@@ -8,6 +8,7 @@ import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateConta
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import getAndSetBeenWaitingSinceTimestampTicketService from "../TicketServices/getAndSetBeenWaitingSinceTimestampTicketService";
+import CheckMetaConversationWindow from "../../helpers/CheckMetaConversationWindow";
 import { MetaWebhookMessage, MetaWebhookPayload } from "../../types/meta/MetaWebhookTypes";
 import DownloadMetaMedia from "./DownloadMetaMedia";
 import HandleChatbot from "./Chatbot/HandleChatbot";
@@ -251,6 +252,15 @@ const emitSocketEvents = async (
 ): Promise<void> => {
   const updatedTicket = await getAndSetBeenWaitingSinceTimestampTicketService(ticket) as Ticket;
 
+  // Compute conversation window for real-time socket updates
+  let conversationWindow = null;
+  if (!ticket.isGroup) {
+    conversationWindow = await CheckMetaConversationWindow(
+      ticket.contactId,
+      ticket.whatsappId
+    );
+  }
+
   emitEvent({
     to: [ticket.id.toString(), ticket.status, "notification"],
     event: {
@@ -270,7 +280,10 @@ const emitSocketEvents = async (
       name: "ticket",
       data: {
         action: "update",
-        ticket: updatedTicket
+        ticket: {
+          ...updatedTicket.toJSON(),
+          conversationWindow
+        }
       }
     }
   });
