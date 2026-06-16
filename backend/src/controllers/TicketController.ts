@@ -29,6 +29,8 @@ import { NOTIFICATIONTYPES } from "../constants";
 import AdvancedListTicketsService, { TicketGroupType } from "../services/TicketServices/AdvancedListTicketsService";
 import { isValidImpersonationRequest } from "../config/impersonation";
 import { logImpersonation } from "../middleware/impersonation";
+import CheckMetaConversationWindow from "../helpers/CheckMetaConversationWindow";
+import { logger } from "../utils/logger";
 
 type IndexQuery = {
   searchParam: string;
@@ -49,6 +51,7 @@ type IndexQuery = {
   viewSource: string;
   impersonatedUserId?: string; // NUEVO: ID del usuario a impersonar
   waitingTimeRanges: string; // ✅ Nuevo
+  includeWindow?: string;
 };
 
 interface TicketData {
@@ -84,7 +87,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     filterByUserQueue: filterByUserQueueStringified,
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
     viewSource,
-    waitingTimeRanges: waitingTimeRangesStringified // ✅ Nuevo
+    waitingTimeRanges: waitingTimeRangesStringified, // ✅ Nuevo
+    includeWindow: includeWindowStringified
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -147,6 +151,9 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   if (waitingTimeRangesStringified) {
     waitingTimeRanges = JSON.parse(waitingTimeRangesStringified);
   }
+
+  // ✅ Parsear includeWindow (opt-in: solo computa si es "true")
+  const includeWindow = includeWindowStringified === "true";
 
   // SI NOS INDICA QUE SE FILTREN POR LA QUEUE DEL USUARIO Y NO HA ESPECIFICADO QUEUEIDS, ENTONCES RECUPERAMOS LAS QUEUE DEL USUARIO Y FILTRAMOS
   if (filterByUserQueue && queueIds.length === 0) {
@@ -242,6 +249,20 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
         shouldSendToZapier: ticketsToUpdate.includes(ticket.id)
       };
     });
+  }
+
+  // Opt-in: compute conversationWindow for non-group tickets when includeWindow=true
+  if (includeWindow) {
+    for (const ticket of ticketsToSend) {
+      if (!ticket.isGroup && ticket.contactId && ticket.whatsappId) {
+        (ticket as any).conversationWindow = await CheckMetaConversationWindow(
+          ticket.contactId,
+          ticket.whatsappId
+        );
+      } else {
+        (ticket as any).conversationWindow = null;
+      }
+    }
   }
 
   return res.status(200).json({
@@ -526,9 +547,22 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
 
-  const contact = await ShowTicketService(ticketId);
+  const ticket = await ShowTicketService(ticketId);
 
-  return res.status(200).json(contact);
+  // Inject conversation window status for non-group tickets
+  let conversationWindow = null;
+
+  if (!ticket.isGroup) {
+    conversationWindow = await CheckMetaConversationWindow(
+      ticket.contactId,
+      ticket.whatsappId
+    );
+  }
+
+  return res.status(200).json({
+    ...ticket.toJSON(),
+    conversationWindow
+  });
 };
 
 export const ShowParticipants = async (
@@ -650,10 +684,21 @@ export const update = async (
     const { farewellMessage } = whatsapp;
 
     if (farewellMessage) {
-      await SendWhatsAppMessage({
-        body: formatBody(farewellMessage, ticket.contact),
-        ticket
-      });
+      const windowStatus = await CheckMetaConversationWindow(
+        ticket.contactId,
+        ticket.whatsappId
+      );
+
+      if (windowStatus.isOpen) {
+        await SendWhatsAppMessage({
+          body: formatBody(farewellMessage, ticket.contact),
+          ticket
+        });
+      } else {
+        logger.info(
+          `Farewell omitido para ticket ${ticket.id}: ventana cerrada`
+        );
+      }
     }
   }
 
@@ -691,10 +736,20 @@ export const update = async (
   //   })
   // }
 
-  // console.log("ticket userId", ticket.userId);
-  // console.log("ticket oldUserId", oldUserId);
+  // Inject conversation window status for non-group tickets
+  let conversationWindow = null;
 
-  return res.status(200).json(ticket);
+  if (!ticket.isGroup) {
+    conversationWindow = await CheckMetaConversationWindow(
+      ticket.contactId,
+      ticket.whatsappId
+    );
+  }
+
+  return res.status(200).json({
+    ...ticket.toJSON(),
+    conversationWindow
+  });
 };
 
 export const remove = async (

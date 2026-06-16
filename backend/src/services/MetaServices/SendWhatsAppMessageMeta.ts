@@ -72,7 +72,7 @@ const SendWhatsAppMessageMeta = async ({
     let windowStatus: { isOpen: boolean; type: string };
 
     if (!ticket.isGroup) {
-      windowStatus = await CheckMetaConversationWindow(ticket);
+      windowStatus = await CheckMetaConversationWindow(ticket.contactId, ticket.whatsappId);
       console.log("[SendWhatsAppMessageMeta] Estado de ventana:", windowStatus);
     } else {
       console.log("[SendWhatsAppMessageMeta] Grupo: omitiendo validación de ventana de 24h");
@@ -82,18 +82,9 @@ const SendWhatsAppMessageMeta = async ({
     let result: MetaApiSuccessResponse;
 
     if (!windowStatus.isOpen) {
-      // Ventana cerrada o conversación nueva: Enviar plantilla apropiada
-      let templateName: string;
+      const templateName = process.env.META_TEMPLATE_NAME || "info";
 
-      if (windowStatus.type === "new_conversation") {
-        // Conversación inicial - usar plantilla de bienvenida
-        templateName = process.env.META_INITIAL_TEMPLATE_NAME || "initial_conversation";
-        console.log("[SendWhatsAppMessageMeta] ⚠️ Conversación inicial, enviando plantilla de bienvenida");
-      } else {
-        // Ventana expirada - usar plantilla de reengagement
-        templateName = process.env.META_REENGAGEMENT_TEMPLATE_NAME || "reengagement_message";
-        console.log("[SendWhatsAppMessageMeta] ⚠️ Ventana cerrada, enviando plantilla de reengagement");
-      }
+      console.log(`[SendWhatsAppMessageMeta] ⚠️ Ventana cerrada, plantilla: ${templateName}`);
 
       try {
         // Limpiar el mensaje para la plantilla:
@@ -118,13 +109,7 @@ const SendWhatsAppMessageMeta = async ({
         console.log(`[SendWhatsAppMessageMeta] ✅ Plantilla ${templateName} enviada con mensaje incluido`);
       } catch (templateErr) {
         console.error("[SendWhatsAppMessageMeta] ❌ Error enviando plantilla:", templateErr);
-
-        console.log("[SendWhatsAppMessageMeta] Intentando enviar mensaje normal como fallback...");
-        result = await client.sendText({
-          to: recipientNumber,
-          body: bodyFormated,
-          replyToMessageId
-        });
+        throw templateErr;
       }
     } else {
       // Ventana abierta: Enviar mensaje normal

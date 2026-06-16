@@ -54,6 +54,12 @@ contactRoutes.delete("/contacts/:contactId", isAuth, ContactController.remove);
 
 contactRoutes.post("/contacts/sync-attention-types", isAuth, ContactController.syncAttentionTypes);
 
+contactRoutes.get(
+  "/contacts/:contactId/conversation-window",
+  isAuth,
+  ContactController.getConversationWindow
+);
+
 export default contactRoutes;
 
 

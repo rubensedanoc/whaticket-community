@@ -38,6 +38,7 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
 import NewPrivateNoteModal from "../NewPrivateNoteModal/index.js";
+import WindowWarningBanner from "../WindowWarningBanner";
 import RecordingTimer from "./RecordingTimer";
 
 const Mp3Recorder = new MicRecorder({ bitRate: 128 });
@@ -206,7 +207,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
+const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup, conversationWindow }) => {
   const classes = useStyles();
   const { ticketId } = useParams();
 
@@ -517,6 +518,9 @@ const MessageInput = ({ ticketStatus, ticketPrivateNote, ticketIsGroup }) => {
   else {
     return (
       <Paper square elevation={0} className={classes.mainWrapper}>
+        {conversationWindow && !conversationWindow.isOpen && (
+          <WindowWarningBanner />
+        )}
         {replyingMessage && renderReplyingMessage(replyingMessage)}
         <div className={classes.newMessageBox}>
           <Hidden only={["sm", "xs"]}>
