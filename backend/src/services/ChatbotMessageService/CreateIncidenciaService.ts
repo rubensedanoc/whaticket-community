@@ -9,7 +9,7 @@ import CheckDuplicateIncidenciaService from "./CheckDuplicateIncidenciaService";
 
 // Valores por defecto cuando no se puede extraer el dominio
 export const DEFAULT_DOMINIO = "restaurant.pe";
-export const DEFAULT_SUBDOMAIN = "demoperu";
+export const DEFAULT_SUBDOMAIN = "chatbotmeta";
 
 const COUNTRY_ID_MAPPER: Record<number, number> = {
   // Mapeo -> [ID_WhatMeta]: ID_Billing

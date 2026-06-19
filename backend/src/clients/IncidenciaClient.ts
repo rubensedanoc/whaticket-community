@@ -69,7 +69,7 @@ export class IncidenciaClient {
   }
 
   async createIncident(params: CreateIncidentParams): Promise<string> {
-    const { payload, suscripcion = "demoperu", localId = "1", dominio = "restaurant.pe" } = params;
+    const { payload, suscripcion = "chatbotmeta", localId = "1", dominio = "restaurant.pe" } = params;
 
     if (this.testMode) return this.simulateCreateIncident(payload);
 
