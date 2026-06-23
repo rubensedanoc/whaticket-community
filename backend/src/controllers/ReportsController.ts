@@ -1315,17 +1315,12 @@ export const reportHistoryWithDateRange = async (
   });
 };
 
-export const reportToExcel = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const {
-    fromDate: fromDateAsString,
-    toDate: toDateAsString,
-    selectedWhatsappIds: selectedWhatsappIdsAsString = 'null',
-    selectedQueueIds: selectedQueueIdsAsString = 'null'
-  } = req.query as IndexQuery;
-
+async function processReportData(
+  fromDateAsString: string,
+  toDateAsString: string,
+  selectedWhatsappIdsAsString: string,
+  selectedQueueIdsAsString: string
+): Promise<{ ticketListFinal: any[]; sql: string; logsTime: string[] }> {
   const selectedWhatsappIds = JSON.parse(selectedWhatsappIdsAsString) as string[];
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
@@ -1334,7 +1329,6 @@ export const reportToExcel = async (
       (ct.isCompanyMember = 0 or ct.isCompanyMember is null) AND
       t.createdAt between '${formatDateToMySQL(fromDateAsString)}' AND '${formatDateToMySQL(toDateAsString)}'
     `;
-  // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds && selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
@@ -1363,7 +1357,7 @@ export const reportToExcel = async (
   logsTime.push(`Whatasappnew-fin: ${Date()}`);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   whatasappListIDS = whatasappListIDS.map(whatasapp => `'${whatasapp.number}'`);
-  
+
   if (!whatasappListIDS || whatasappListIDS.length === 0) {
     whatasappListIDS = ['""'];
   }
@@ -1403,7 +1397,6 @@ export const reportToExcel = async (
   LEFT JOIN Queues que ON t.queueId = que.id
   WHERE
   ${sqlWhereAdd}`;
-  // console.log("sql", sql);
   logsTime.push(`sql-inicio: ${Date()}`);
   const ticketListFinal = [];
   /**
@@ -1597,7 +1590,6 @@ export const reportToExcel = async (
 
     if (contactNumber.length > 0) {
       try {
-        // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
         const response = await fetch(
           "https://microservices.restaurant.pe/backendrestaurantpe/public/rest/common/contactobi/searchphoneListToWppticket",
           {
@@ -1615,7 +1607,6 @@ export const reportToExcel = async (
 
         const data = await response.json();
 
-        // Persistir link_dominio en Contacts.domain si no lo tiene guardado
         const contactUpdates: any[] = [];
         for (const number in data.data) {
           const entry = Array.isArray(data.data[number]) && data.data[number].length > 0
@@ -1655,7 +1646,6 @@ export const reportToExcel = async (
       }
     }
 
-    // Fallback: usar ct.domain local cuando el microservicio no devuelve link_dominio
     for (const ticket of ticketListFinal) {
       if (!ticket.ctdomain) continue;
       if (!ticket.microserviceData) {
@@ -1666,10 +1656,9 @@ export const reportToExcel = async (
     }
   }
 
-  // Extraer comentarios de cierre de los mensajes privados
   if (ticketListFinal.length > 0) {
     const ticketIds = ticketListFinal.map(t => t.tid).join(",");
-    
+
     const closeCommentMessages: any[] = await Message.sequelize.query(
       `SELECT 
         m.ticketId,
@@ -1686,13 +1675,11 @@ export const reportToExcel = async (
       }
     );
 
-    // Función auxiliar para extraer el comentario del mensaje
     const extractCloseComment = (messageBody: string): string | null => {
       const match = messageBody.match(/\*resolvió\* la conversación con el \*comentario\*:\s*(.+)/);
       return match ? match[1].trim() : null;
     };
 
-    // Agrupar por ticketId y tomar solo el más reciente
     const closeCommentsByTicket = closeCommentMessages.reduce((acc: any, msg: any) => {
       if (!acc[msg.ticketId]) {
         const comment = extractCloseComment(msg.body);
@@ -1703,19 +1690,58 @@ export const reportToExcel = async (
       return acc;
     }, {});
 
-    // Agregar los comentarios a ticketListFinal
     for (const ticket of ticketListFinal) {
       ticket.closeComment = closeCommentsByTicket[ticket.tid] || null;
     }
   }
 
   logsTime.push(`asignacion-fin: ${Date()}`);
-  return res.status(200).json({
-    // ticketListFind,
-    ticketListFinal,
-    sql,
-    logsTime
-  });
+  return { ticketListFinal, sql, logsTime };
+}
+
+export const reportToExcel = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedWhatsappIds: selectedWhatsappIdsAsString = 'null',
+    selectedQueueIds: selectedQueueIdsAsString = 'null'
+  } = req.query as IndexQuery;
+
+  const result = await processReportData(
+    fromDateAsString,
+    toDateAsString,
+    selectedWhatsappIdsAsString,
+    selectedQueueIdsAsString
+  );
+
+  return res.status(200).json(result);
+};
+
+export const reportToExcelPublic = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    date: dateParam,
+    selectedWhatsappIds: selectedWhatsappIdsAsString = '[]',
+    selectedQueueIds: selectedQueueIdsAsString = '[]'
+  } = req.query as any;
+
+  const targetDate = dateParam ? dayjs(dateParam as string) : dayjs();
+  const fromDate = targetDate.format("YYYY-MM-DD[T]00:00:00-05:00");
+  const toDate = targetDate.format("YYYY-MM-DD[T]23:59:59-05:00");
+
+  const result = await processReportData(
+    fromDate,
+    toDate,
+    selectedWhatsappIdsAsString,
+    selectedQueueIdsAsString
+  );
+
+  return res.status(200).json({ ticketListFinal: result.ticketListFinal });
 };
 
 export const reportToExcelForIA = async (
