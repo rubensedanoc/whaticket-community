@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as ExternalApiController from "../controllers/ExternalApiController";
+import * as ReportsController from "../controllers/ReportsController";
 
 const externalRoutes = Router();
 
@@ -65,6 +66,11 @@ externalRoutes.post(
 externalRoutes.post(
   "/fixGroupNames",
   ExternalApiController.fixGroupNames
+);
+
+externalRoutes.get(
+  "/reportToExcelDaily",
+  ReportsController.reportToExcelPublic
 );
 
 export default externalRoutes;

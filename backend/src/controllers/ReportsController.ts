@@ -1303,17 +1303,12 @@ export const reportHistoryWithDateRange = async (
   });
 };
 
-export const reportToExcel = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const {
-    fromDate: fromDateAsString,
-    toDate: toDateAsString,
-    selectedWhatsappIds: selectedWhatsappIdsAsString = 'null',
-    selectedQueueIds: selectedQueueIdsAsString = 'null'
-  } = req.query as IndexQuery;
-
+async function processReportData(
+  fromDateAsString: string,
+  toDateAsString: string,
+  selectedWhatsappIdsAsString: string,
+  selectedQueueIdsAsString: string
+): Promise<{ ticketListFinal: any[]; sql: string; logsTime: string[] }> {
   const selectedWhatsappIds = JSON.parse(selectedWhatsappIdsAsString) as string[];
   const selectedQueueIds = JSON.parse(selectedQueueIdsAsString) as string[];
   const logsTime = [];
@@ -1323,7 +1318,6 @@ export const reportToExcel = async (
       (ct.isCompanyMember = 0 or ct.isCompanyMember is null) AND
       t.createdAt between '${formatDateToMySQL(fromDateAsString)}' AND '${formatDateToMySQL(toDateAsString)}'
     `;
-  // const sqlWhereAdd = " t.id = 3318 ";
 
   if (selectedWhatsappIds && selectedWhatsappIds.length > 0) {
     sqlWhereAdd += ` AND t.whatsappId IN (${selectedWhatsappIds.join(",")}) `;
@@ -1372,7 +1366,6 @@ export const reportToExcel = async (
   LEFT JOIN Queues que ON t.queueId = que.id
   WHERE
   ${sqlWhereAdd}`;
-  // console.log("sql", sql);
   logsTime.push(`sql-inicio: ${Date()}`);
   const ticketListFinal = [];
   /**
@@ -1560,7 +1553,6 @@ export const reportToExcel = async (
 
     if (contactNumber.length > 0) {
       try {
-        // ESTA API HACE EL FILTRADO DEL ARRAY QUE LE PASO
         const response = await fetch(
           "https://microservices.restaurant.pe/backendrestaurantpe/public/rest/common/contactobi/searchphoneListToWppticket",
           {
@@ -1591,12 +1583,52 @@ export const reportToExcel = async (
   }
 
   logsTime.push(`asignacion-fin: ${Date()}`);
-  return res.status(200).json({
-    // ticketListFind,
-    ticketListFinal,
-    sql,
-    logsTime
-  });
+  return { ticketListFinal, sql, logsTime };
+}
+
+export const reportToExcel = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    fromDate: fromDateAsString,
+    toDate: toDateAsString,
+    selectedWhatsappIds: selectedWhatsappIdsAsString = 'null',
+    selectedQueueIds: selectedQueueIdsAsString = 'null'
+  } = req.query as IndexQuery;
+
+  const result = await processReportData(
+    fromDateAsString,
+    toDateAsString,
+    selectedWhatsappIdsAsString,
+    selectedQueueIdsAsString
+  );
+
+  return res.status(200).json(result);
+};
+
+export const reportToExcelPublic = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const {
+    date: dateParam,
+    selectedWhatsappIds: selectedWhatsappIdsAsString = '[]',
+    selectedQueueIds: selectedQueueIdsAsString = '[]'
+  } = req.query as any;
+
+  const targetDate = dateParam ? dayjs(dateParam as string) : dayjs();
+  const fromDate = targetDate.format("YYYY-MM-DD[T]00:00:00-05:00");
+  const toDate = targetDate.format("YYYY-MM-DD[T]23:59:59-05:00");
+
+  const result = await processReportData(
+    fromDate,
+    toDate,
+    selectedWhatsappIdsAsString,
+    selectedQueueIdsAsString
+  );
+
+  return res.status(200).json({ ticketListFinal: result.ticketListFinal });
 };
 
 export const reportToExcelForIA = async (
