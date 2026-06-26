@@ -333,7 +333,7 @@ class ChatbotResponseHelper {
    * Envía el mensaje raíz del chatbot por identifier
    * @param identifier - Identifier específico a enviar (opcional, por defecto usa whatsapp.chatbotIdentifier)
    */
-  async sendRootMessage(ticket: Ticket, contact: Contact, whatsapp: Whatsapp, identifier?: string): Promise<void> {
+  async sendRootMessage(ticket: Ticket, contact: Contact, whatsapp: Whatsapp, identifier?: string): Promise<boolean> {
     const targetIdentifier = identifier || whatsapp.chatbotIdentifier;
     console.log(`[ChatbotResponseHelper] Enviando mensaje raíz para identifier: ${targetIdentifier}`);
 
@@ -358,7 +358,7 @@ class ChatbotResponseHelper {
 
       if (!chatbotMessage) {
         console.error(`[ChatbotResponseHelper] No se encontró chatbot con identifier: ${targetIdentifier}`);
-        return;
+        return false;
       }
 
       const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
@@ -413,6 +413,7 @@ class ChatbotResponseHelper {
       await ticket.update({ chatbotMessageIdentifier: targetIdentifier, chatbotMessageLastStep: chatbotMessage.identifier, lastBotMessageAt: new Date() });
 
       console.log(`[ChatbotResponseHelper] Mensaje raíz enviado para ticket ${ticket.id}`);
+      return true;
     } catch (error) {
       console.error("[ChatbotResponseHelper] Error enviando mensaje raíz:", error);
       Sentry.captureException(error);
