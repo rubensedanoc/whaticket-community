@@ -166,11 +166,15 @@ const HandleProactiveBot = async ({
 
       console.log(`[HandleProactiveBotValidation] Usuario rechazó continuar, solicitando feedback`);
 
-      // Intentar enviar mensaje de feedback usando ChatbotResponseHelper
+      let feedbackSent = false;
       try {
-        await ChatbotResponseHelper.sendRootMessage(ticket, contact, whatsapp, 'inactividad_feedback');
+        feedbackSent = await ChatbotResponseHelper.sendRootMessage(ticket, contact, whatsapp, 'inactividad_feedback');
+      } catch (error) {
+        console.error(`[HandleProactiveBotValidation] Error enviando nodo de feedback:`, error);
+      }
 
-        // Actualizar sesión
+      if (feedbackSent) {
+        // Nodo de feedback encontrado y activo → actualizar sesión y esperar respuesta
         const session = await ProactiveBotSession.findOne({
           where: { ticketId: ticket.id, status: 'ACTIVE' }
         });
@@ -182,9 +186,9 @@ const HandleProactiveBot = async ({
               `\n[${new Date().toISOString()}] Usuario respondió: "${messageBody}" - Rechazó continuar`
           });
         }
-      } catch (error) {
-        // Si no existe el nodo de feedback, enviar mensaje simple y cerrar
-        console.warn(`[HandleProactiveBotValidation] No se encontró nodo de feedback, usando mensaje simple`);
+      } else {
+        // Nodo de feedback inactivo o error de red → despedida + cerrar + reportar
+        console.warn(`[HandleProactiveBotValidation] Nodo de feedback no disponible, enviando despedida`);
 
         const client = new MetaApiClient({
           phoneNumberId: whatsapp.phoneNumberId,
