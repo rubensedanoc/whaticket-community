@@ -1,9 +1,11 @@
 import Contact from "../../models/Contact";
 import IncidenciaLog from "../../models/IncidenciaLog";
+import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
 import { IncidenciaClient, BusinessError, TimeoutError, ApiError } from "../../clients/IncidenciaClient";
 import { MetaApiClient } from "../../clients/MetaApiClient";
+import { emitEvent } from "../../libs/emitEvent";
 import * as Sentry from "@sentry/node";
 import CheckDuplicateIncidenciaService from "./CheckDuplicateIncidenciaService";
 
@@ -107,7 +109,37 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
 
     // Enviar mensaje de "Procesando..."
     const client = new MetaApiClient({ phoneNumberId: whatsapp.phoneNumberId, accessToken: whatsapp.metaAccessToken });
-    await client.sendText({ to: contact.number, body: "⏳ Registrando tu solicitud, por favor espera..." });
+    const processingBody = "⏳ Registrando tu solicitud, por favor espera...";
+    const processingResponse = await client.sendText({ to: contact.number, body: processingBody });
+
+    const processingMessageId = processingResponse.messages[0].id;
+    const processingMessage = await Message.create({
+      id: processingMessageId,
+      ticketId: ticket.id,
+      contactId: contact.id,
+      body: processingBody,
+      fromMe: true,
+      mediaType: "chat",
+      mediaUrl: null,
+      read: true,
+      quotedMsgId: null,
+      timestamp: Math.floor(Date.now() / 1000),
+      ack: 3,
+      identifier: ticket.chatbotMessageLastStep
+    });
+
+    emitEvent({
+      to: [ticket.id.toString(), ticket.status],
+      event: {
+        name: "appMessage",
+        data: {
+          action: "create",
+          message: processingMessage,
+          ticket: ticket,
+          contact: contact
+        }
+      }
+    });
 
     const billingCountryId = COUNTRY_ID_MAPPER[contact.countryId] || 1;
     const localId = "1";
@@ -152,17 +184,21 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
     const billingClient = new IncidenciaClient();
     const incidenciaId = await billingClient.createIncident({ payload, suscripcion, localId, dominio });
 
-    // Guardar en IncidenciaLog
-    await IncidenciaLog.create({
-      ticketId: ticket.id,
-      requestPayload: JSON.stringify(payload),
-      responsePayload: JSON.stringify({ incidenciaId }),
-      status: "success",
-      errorMessage: null
-    });
-
-    // Actualizar Ticket con el ID de incidencia
+    // Actualizar Ticket con el ID de incidencia (antes del log para no perder el vínculo)
     await ticket.update({ incidenciaExternalId: incidenciaId });
+
+    // Guardar en IncidenciaLog (no debe romper el flujo si falla)
+    try {
+      await IncidenciaLog.create({
+        ticketId: ticket.id,
+        requestPayload: JSON.stringify(payload),
+        responsePayload: JSON.stringify({ incidenciaId }),
+        status: "success",
+        errorMessage: null
+      });
+    } catch (logError) {
+      console.error("[CreateIncidenciaService] Error guardando IncidenciaLog (success):", logError);
+    }
 
     console.log(`[CreateIncidenciaService] Incidencia creada exitosamente: ${incidenciaId}`);
 
@@ -173,14 +209,18 @@ const CreateIncidenciaService = async (params: CreateIncidenciaParams): Promise<
 
     let errorMessage = "No fue posible registrar tu solicitud en este momento.";
 
-    // Guardar error en IncidenciaLog
-    await IncidenciaLog.create({
-      ticketId: ticket.id,
-      requestPayload: JSON.stringify({}),
-      responsePayload: null,
-      status: "error",
-      errorMessage: error instanceof Error ? error.message : String(error)
-    });
+    // Guardar error en IncidenciaLog (no debe romper el flujo si falla)
+    try {
+      await IncidenciaLog.create({
+        ticketId: ticket.id,
+        requestPayload: JSON.stringify({}),
+        responsePayload: null,
+        status: "error",
+        errorMessage: error instanceof Error ? error.message : String(error)
+      });
+    } catch (logError) {
+      console.error("[CreateIncidenciaService] Error guardando IncidenciaLog (error):", logError);
+    }
 
     if (error instanceof BusinessError) {
       errorMessage = error.message;
