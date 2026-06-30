@@ -89,7 +89,7 @@ export interface MetaWebhookMessage {
   button?: MetaButtonObject;
   // TODO: Agregar cuando se necesiten
   // location?: MetaLocationObject;
-  // contacts?: MetaContactObject[];
+  contacts?: MetaContactObject[];
   // reaction?: MetaReactionObject;
   // Contexto (si es respuesta o reenviado)
   context?: MetaContextObject;
@@ -251,7 +251,15 @@ export interface MetaWebhookVerifyQuery {
 //   address?: string;
 // }
 
-// export interface MetaContactObject { ... }
+export interface MetaContactObject {
+  name?: {
+    formatted_name: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  phones?: { phone: string; type?: string; wa_id?: string }[];
+  emails?: { email: string; type?: string }[];
+}
 
 // export interface MetaButtonObject {
 //   payload: string;

@@ -406,6 +406,16 @@ const getMessageBody = (message: MetaWebhookMessage): string => {
       return "📍 Ubicación";
     case "sticker":
       return "Sticker";
+    case "contacts":
+      if (message.contacts?.length) {
+        const parts = message.contacts.map(c => {
+          const name = c.name?.formatted_name || "Contacto";
+          const phone = c.phones?.[0]?.phone || c.phones?.[0]?.wa_id || "";
+          return phone ? `${name}: ${phone}` : name;
+        });
+        return `📇 Contacto compartido: ${parts.join(" | ")}`;
+      }
+      return "📇 Contacto compartido";
     default:
       return `Mensaje tipo: ${message.type}`;
   }
