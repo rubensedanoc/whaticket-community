@@ -41,7 +41,7 @@ services:
       - BILLING_INCIDENCIA_TIMEOUT_MS=${BILLING_INCIDENCIA_TIMEOUT_MS:-15000}
       - BILLING_WEBHOOK_API_KEY=${BILLING_WEBHOOK_API_KEY}
       - BILLING_INCIDENCIA_TEST_MODE=${BILLING_INCIDENCIA_TEST_MODE:-true}
-      - META_TEMPLATE_NAME=${META_TEMPLATE_NAME:-reengagement_message}
+      - META_TEMPLATE_NAME=${META_TEMPLATE_NAME:-info}
       # ARGS (CHROMIUN)
       - CHROME_ARGS_CHROMIUN=--no-sandbox --disable-client-side-phishing-detection --disable-setuid-sandbox --disable-component-update --disable-default-apps --disable-popup-blocking --disable-offer-store-unmasked-wallet-cards --disable-speech-api --hide-scrollbars --mute-audio --disable-extensions --disable-dev-shm-usage --disable-accelerated-2d-canvas --no-first-run --no-default-browser-check --no-pings --password-store=basic --use-mock-keychain --no-zygote --single-process --disable-gpu
 
