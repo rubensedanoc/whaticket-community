@@ -14,6 +14,7 @@ import {
   persistMulterFile
 } from "../StorageService";
 import { sendGoogleChatMetaError } from "../../helpers/SendGoogleChatLog";
+import CheckMetaConversationWindow from "../../helpers/CheckMetaConversationWindow";
 
 interface Request {
   media: Express.Multer.File;
@@ -52,6 +53,17 @@ const SendWhatsAppMediaMeta = async ({
     // Validar credenciales
     if (!whatsapp || !whatsapp.phoneNumberId || !whatsapp.metaAccessToken) {
       throw new AppError("ERR_META_CREDENTIALS_NOT_CONFIGURED");
+    }
+
+    // Validar ventana de conversación (solo para individuales)
+    if (!ticket.isGroup) {
+      const windowStatus = await CheckMetaConversationWindow(
+        ticket.contactId,
+        ticket.whatsappId
+      );
+      if (!windowStatus.isOpen) {
+        throw new AppError("ERR_META_WINDOW_CLOSED_MEDIA", 400);
+      }
     }
 
     // Crear cliente Meta API

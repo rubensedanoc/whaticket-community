@@ -28,6 +28,7 @@ import { getClientTimeWaitingForTickets } from "./ReportsController";
 import GetContactByNumberService from "../services/ContactServices/GetContactByNumberService";
 import RemoveContactClientelicenciaService from "../services/ContactServices/RemoveContactClientelicenciaService";
 import SyncAttentionTypesService from "../services/ContactServices/SyncAttentionTypesService";
+import CheckMetaConversationWindow from "../helpers/CheckMetaConversationWindow";
 
 type IndexQuery = {
   searchParam: string;
@@ -829,4 +830,41 @@ export const syncAttentionTypes = async (
       error: error.message || "Error desconocido",
     });
   }
+};
+
+/**
+ * Retorna el estado de la ventana de 24h de Meta para un contacto+whatsapp,
+ * sin necesidad de un ticket activo. Usado por NewTicketModal para informar
+ * al agente si podrá enviar texto libre o se usará plantilla antes de crear el ticket.
+ *
+ * @route GET /contacts/:contactId/conversation-window?whatsappId=X
+ */
+export const getConversationWindow = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { contactId } = req.params;
+  const { whatsappId } = req.query;
+
+  if (!whatsappId) {
+    return res.status(400).json({
+      error: "Query param 'whatsappId' is required"
+    });
+  }
+
+  const contactIdNum = parseInt(contactId, 10);
+  const whatsappIdNum = parseInt(whatsappId as string, 10);
+
+  if (isNaN(contactIdNum) || isNaN(whatsappIdNum)) {
+    return res.status(400).json({
+      error: "contactId and whatsappId must be valid numbers"
+    });
+  }
+
+  const windowStatus = await CheckMetaConversationWindow(
+    contactIdNum,
+    whatsappIdNum
+  );
+
+  return res.status(200).json(windowStatus);
 };
