@@ -27,6 +27,8 @@ import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import ContactModal from "../ContactModal";
+import Typography from "@material-ui/core/Typography";
+import Box from "@material-ui/core/Box";
 
 const filter = createFilterOptions({
   trim: true,
@@ -45,6 +47,8 @@ const NewTicketModal = ({ preSelectedContactId, modalOpen, onClose }) => {
   const { user } = useContext(AuthContext);
   const { whatsApps } = useContext(WhatsAppsContext);
   const [key, setKey] = useState(0);
+  const [conversationWindow, setConversationWindow] = useState(null);
+  const [windowLoading, setWindowLoading] = useState(false);
 
   useEffect(() => {
     if (!modalOpen) {
@@ -73,6 +77,32 @@ const NewTicketModal = ({ preSelectedContactId, modalOpen, onClose }) => {
     }, 500);
     return () => clearTimeout(delayDebounceFn);
   }, [searchParam, modalOpen]);
+
+  // Fetch conversation window when both contact and whatsapp are selected
+  useEffect(() => {
+    if (!selectedContact?.id || !selectedWhatsappId) {
+      setConversationWindow(null);
+      return;
+    }
+
+    setWindowLoading(true);
+    const fetchWindow = async () => {
+      try {
+        const { data } = await api.get(
+          `/contacts/${selectedContact.id}/conversation-window`,
+          { params: { whatsappId: selectedWhatsappId } }
+        );
+        setConversationWindow(data);
+      } catch (err) {
+        console.log("Error fetching conversation window:", err);
+        setConversationWindow(null);
+      } finally {
+        setWindowLoading(false);
+      }
+    };
+
+    fetchWindow();
+  }, [selectedContact?.id, selectedWhatsappId]);
 
   const handleClose = () => {
     onClose();
@@ -296,6 +326,30 @@ const NewTicketModal = ({ preSelectedContactId, modalOpen, onClose }) => {
                 })}
             </Select>
           </FormControl>
+          {conversationWindow && (
+            <Box mt={1} style={{ width: "300px" }}>
+              {conversationWindow.isOpen && conversationWindow.type === "active" ? (
+                <Typography
+                  variant="body2"
+                  style={{ color: "#4caf50", fontWeight: 500 }}
+                >
+                  🟢 Ventana abierta — Puedes enviar texto, imágenes, archivos y audio con libertad.
+                </Typography>
+              ) : (
+                <Typography
+                  variant="body2"
+                  style={{ color: "#f44336", fontWeight: 500 }}
+                >
+                  🔴 Ventana cerrada — Los mensajes se enviarán como plantilla. Puedes enviar varios pero solo texto, sin imágenes ni archivos.
+                </Typography>
+              )}
+            </Box>
+          )}
+          {windowLoading && selectedContact?.id && selectedWhatsappId && (
+            <Box mt={1} style={{ width: "300px" }}>
+              <CircularProgress size={16} />
+            </Box>
+          )}
           <br />
         </DialogContent>
         <DialogActions>
