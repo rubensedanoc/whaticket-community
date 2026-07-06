@@ -8,7 +8,21 @@ interface Request {
 }
 
 /**
- * SyncClientTicketsService
+ * ⚠️ SERVICIO DESHABILITADO
+ * 
+ * Este servicio fue creado para la vista "Por Clientes" (grouped) que
+ * sincronizaba automáticamente todos los tickets de un mismo contacto
+ * cuando tenía múltiples conexiones.
+ * 
+ * La vista "Por Clientes" fue deshabilitada en el frontend, por lo que
+ * este servicio ya NO se utiliza. Se mantiene el archivo para referencia
+ * histórica.
+ * 
+ * Fecha de deshabilitación: 2026-07-06
+ * 
+ * ---
+ * 
+ * SyncClientTicketsService (ORIGINAL)
  * 
  * Sincroniza todos los tickets de un mismo cliente (mismo contact.number)
  * cuando se actualiza uno de ellos. Esto asegura que si un cliente individual
