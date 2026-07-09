@@ -22,6 +22,7 @@ import SendExternalWhatsAppImageMessage from "../services/WbotServices/SendExter
 import SendExternalWhatsAppMessage from "../services/WbotServices/SendExternalWhatsAppMessage";
 import FindGroupByNameService from "../services/WbotServices/FindGroupByNameService";
 import SendMessageToTicketService from "../services/WbotServices/SendMessageToTicketService";
+import SendMessageToContactService from "../services/WbotServices/SendMessageToContactService";
 import FixGroupNamesService from "../services/ContactServices/FixGroupNamesService";
 import {
   verifyContact,
@@ -1526,6 +1527,78 @@ export const fixGroupNames = async (
     return res.status(500).json({
       error: 'Error al corregir nombres de grupos',
       message: error.message
+    });
+  }
+};
+
+export const sendMessageToContact = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  console.log("=".repeat(80));
+  console.log("[ExternalApiController] 📞 CALL FOR sendMessageToContact");
+  console.log("[ExternalApiController] Body:", JSON.stringify(req.body, null, 2));
+  console.log("=".repeat(80));
+
+  const { toNumber, message, fromNumber, userId, queueId } = req.body;
+
+  // Validaciones
+  if (!toNumber || typeof toNumber !== "string") {
+    console.log("[ExternalApiController] ❌ toNumber inválido:", toNumber);
+    return res.status(400).json({
+      success: false,
+      error: "INVALID_TO_NUMBER",
+      message: "El campo 'toNumber' es requerido y debe ser un string"
+    });
+  }
+
+  if (!message || typeof message !== "string" || message.trim().length === 0) {
+    console.log("[ExternalApiController] ❌ message vacío o inválido");
+    return res.status(400).json({
+      success: false,
+      error: "INVALID_MESSAGE",
+      message: "El campo 'message' es requerido y no puede estar vacío"
+    });
+  }
+
+  console.log("[ExternalApiController] ✅ Validaciones pasadas, llamando al servicio...");
+
+  try {
+    const result = await SendMessageToContactService({
+      toNumber,
+      message,
+      fromNumber,
+      userId,
+      queueId
+    });
+
+    console.log("[ExternalApiController] 📊 Resultado del servicio:", result.success ? "SUCCESS" : "FAILED");
+
+    if (!result.success) {
+      let statusCode = 500;
+      
+      if (result.error === "NO_WHATSAPP_AVAILABLE") {
+        statusCode = 404;
+      } else if (result.error === "SEND_ERROR") {
+        statusCode = 400;
+      }
+
+      console.log("[ExternalApiController] ⚠️ Retornando error con código:", statusCode);
+      return res.status(statusCode).json(result);
+    }
+
+    console.log("[ExternalApiController] ✅ Retornando respuesta exitosa");
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.log("[ExternalApiController] ❌ ERROR CAPTURADO:");
+    console.log("[ExternalApiController] Error:", error.message);
+    console.log("[ExternalApiController] Stack:", error.stack);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_ERROR",
+      message: `Error interno del servidor: ${error.message}`
     });
   }
 };

@@ -64,6 +64,11 @@ externalRoutes.post(
 );
 
 externalRoutes.post(
+  "/sendMessageToContact",
+  ExternalApiController.sendMessageToContact
+);
+
+externalRoutes.post(
   "/fixGroupNames",
   ExternalApiController.fixGroupNames
 );
