@@ -15,6 +15,7 @@ import TextField from "@material-ui/core/TextField";
 import Typography from "@material-ui/core/Typography";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
+import useWhatsApps from "../../hooks/useWhatsApps";
 
 const useStyles = makeStyles((theme) => ({
   textField: { marginRight: 0, marginBottom: "0.5rem", flex: 1 },
@@ -33,6 +34,8 @@ const MessagingCampaignMessageModal = ({ open, onClose, onSave, messagingCampaig
   const [templateName, setTemplateName] = useState("");
   const [templateLanguage, setTemplateLanguage] = useState("es");
   const [saving, setSaving] = useState(false);
+  const [selectedWhatsappId, setSelectedWhatsappId] = useState("");
+  const { whatsApps } = useWhatsApps();
 
   useEffect(() => {
     if (!messagingCampaignMessageId) return;
@@ -52,9 +55,10 @@ const MessagingCampaignMessageModal = ({ open, onClose, onSave, messagingCampaig
 
   const handleResolve = async () => {
     if (!templateName.trim()) { toast.error("Ingrese el nombre de la plantilla"); return; }
+    if (!selectedWhatsappId) { toast.error("Seleccione una conexión WhatsApp"); return; }
     setResolving(true);
     try {
-      const { data } = await api.post("/templates/resolve", { name: templateName.trim(), language: templateLanguage });
+      const { data } = await api.post("/templates/resolve", { name: templateName.trim(), language: templateLanguage, whatsappId: selectedWhatsappId });
       setResolvedTemplate(data);
       toast.success("Plantilla verificada");
     } catch (err) { toastError(err); setResolvedTemplate(null); }
@@ -78,7 +82,7 @@ const MessagingCampaignMessageModal = ({ open, onClose, onSave, messagingCampaig
     finally { setSaving(false); }
   };
 
-  const handleClose = () => { setMessage({ order: 1, body: "" }); setResolvedTemplate(null); setTemplateName(""); setTemplateLanguage("es"); onClose(); };
+  const handleClose = () => { setMessage({ order: 1, body: "" }); setResolvedTemplate(null); setTemplateName(""); setTemplateLanguage("es"); setSelectedWhatsappId(""); onClose(); };
   const getVarCount = (tpl) => Array.isArray(tpl?.variables) ? tpl.variables.length : 0;
 
   return (
@@ -96,7 +100,16 @@ const MessagingCampaignMessageModal = ({ open, onClose, onSave, messagingCampaig
           </Select>
         </FormControl>
 
-        <Button variant="outlined" color="primary" onClick={handleResolve} disabled={resolving || !templateName.trim()} fullWidth>
+        <FormControl variant="outlined" fullWidth size="small" className={classes.textField}>
+          <InputLabel>Conexión WhatsApp</InputLabel>
+          <Select value={selectedWhatsappId} onChange={e => setSelectedWhatsappId(e.target.value)} label="Conexión WhatsApp">
+            {whatsApps?.filter(w => w.apiType === "meta-api").map(w => (
+              <MenuItem dense key={w.id} value={w.id}>{w.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <Button variant="outlined" color="primary" onClick={handleResolve} disabled={resolving || !templateName.trim() || !selectedWhatsappId} fullWidth>
           {resolving ? <CircularProgress size={20} /> : "Buscar en Meta"}
         </Button>
 

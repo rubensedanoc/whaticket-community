@@ -23,6 +23,7 @@ import {
 } from "../services/WbotServices/wbotMessageListener";
 import Message from "../models/Message";
 import CreateOrUpdateContactService from "../services/ContactServices/CreateOrUpdateContactService";
+import ResolveTemplateService from "../services/TemplateServices/ResolveTemplateService";
 import SendTemplateService from "../services/TemplateServices/SendTemplateService";
 import sleepPromise from "../utils/sleepPromise";
 
@@ -323,7 +324,20 @@ export const send = async (req: Request, res: Response): Promise<void> => {
               let payload = messageToSend.templatePayload as any;
               if (typeof payload === "string") payload = JSON.parse(payload);
 
-              const variables: any[] = Array.isArray(payload.variables) ? payload.variables : [];
+              const freshPayload = await ResolveTemplateService({
+                name: payload.name,
+                language: payload.language,
+                wabaId: whatsapp.metaBusinessAccountId
+              }).catch(() => null);
+
+              if (!freshPayload) {
+                throw new AppError(
+                  `Plantilla '${payload.name}' no existe en el WABA de '${whatsapp.name}'. Créala primero en Meta Business Manager para esta conexión.`,
+                  400
+                );
+              }
+
+              const variables: any[] = Array.isArray(freshPayload.variables) ? freshPayload.variables : [];
               const bodyValues: string[] = [];
               for (const v of variables) {
                 const varKey = `var_${v.index}`;
@@ -334,9 +348,10 @@ export const send = async (req: Request, res: Response): Promise<void> => {
 
               const response = await SendTemplateService({
                 to: numberObj.number,
-                templatePayload: payload,
+                templatePayload: freshPayload,
                 bodyValues: bodyValues.length > 0 ? bodyValues : undefined,
-                phoneNumberId: whatsapp.phoneNumberId
+                phoneNumberId: whatsapp.phoneNumberId,
+                wabaId: whatsapp.metaBusinessAccountId
               });
 
                 // Create contact

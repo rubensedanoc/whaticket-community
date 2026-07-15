@@ -4,6 +4,7 @@ import AppError from "../../errors/AppError";
 interface ResolveTemplateParams {
   name: string;
   language: string;
+  wabaId: string;
 }
 
 export interface ResolvedTemplate {
@@ -54,13 +55,17 @@ interface MetaTemplateResponse {
 
 const ResolveTemplateService = async ({
   name,
-  language
+  language,
+  wabaId
 }: ResolveTemplateParams): Promise<ResolvedTemplate> => {
-  const wabaId = process.env.META_BUSINESS_ACCOUNT_ID;
   const accessToken = process.env.META_ACCESS_TOKEN;
 
-  if (!wabaId || !accessToken) {
-    throw new AppError("META_BUSINESS_ACCOUNT_ID y META_ACCESS_TOKEN deben estar configurados en .env", 500);
+  if (!wabaId) {
+    throw new AppError("WABA ID no configurado para este número de WhatsApp", 400);
+  }
+
+  if (!accessToken) {
+    throw new AppError("META_ACCESS_TOKEN debe estar configurado en .env", 500);
   }
 
   const apiVersion = process.env.META_API_VERSION || "v18.0";

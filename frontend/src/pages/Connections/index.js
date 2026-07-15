@@ -351,6 +351,7 @@ const Connections = () => {
               <TableCell align="center">Número</TableCell>
               <TableCell align="center">Tipo</TableCell>
               <TableCell align="center">Phone Number ID</TableCell>
+              <TableCell align="center">WABA ID</TableCell>
               <TableCell align="center">
                 {i18n.t("connections.table.status")}
               </TableCell>
@@ -393,6 +394,9 @@ const Connections = () => {
                       </TableCell>
                       <TableCell align="center">
                         {whatsApp.apiType === "meta-api" && whatsApp.phoneNumberId ? whatsApp.phoneNumberId : "-"}
+                      </TableCell>
+                      <TableCell align="center">
+                        {whatsApp.apiType === "meta-api" && whatsApp.metaBusinessAccountId ? whatsApp.metaBusinessAccountId : "-"}
                       </TableCell>
                       <TableCell align="center">
                         {renderStatusToolTips(whatsApp)}
