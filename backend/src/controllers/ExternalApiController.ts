@@ -241,12 +241,14 @@ export const sendMakeMessaginCampaign = async (
         // Resolve template structure from Meta before sending
         const resolved = await ResolveTemplateService({
           name: message.trim(),
-          language: "es"
+          language: "es",
+          wabaId: whatsapp.metaBusinessAccountId
         });
         const response = await SendTemplateService({
           to: number,
           templatePayload: resolved,
-          phoneNumberId: whatsapp.phoneNumberId
+          phoneNumberId: whatsapp.phoneNumberId,
+          wabaId: whatsapp.metaBusinessAccountId
         });
 
         const contact = await CreateOrUpdateContactService({
@@ -546,15 +548,29 @@ export const sendMarketingCampaignIntro = async (
         let payload = messageToSend.templatePayload as any;
         if (typeof payload === "string") payload = JSON.parse(payload);
 
-        const vars = Array.isArray(payload.variables) ? payload.variables : [];
+        const freshPayload = await ResolveTemplateService({
+          name: payload.name,
+          language: payload.language,
+          wabaId: whatsapp.metaBusinessAccountId
+        }).catch(() => null);
+
+        if (!freshPayload) {
+          throw new AppError(
+            `Plantilla '${payload.name}' no existe en el WABA de '${whatsapp.name}'. Créala primero en Meta Business Manager para esta conexión.`,
+            400
+          );
+        }
+
+        const vars = Array.isArray(freshPayload.variables) ? freshPayload.variables : [];
         const bodyValues = vars.length > 0
           ? [contact_nombre, contact_nombre_negocio].filter(Boolean)
           : undefined;
         response = await SendTemplateService({
           to: contacto_numero,
-          templatePayload: payload,
+          templatePayload: freshPayload,
           bodyValues,
-          phoneNumberId: whatsapp.phoneNumberId
+          phoneNumberId: whatsapp.phoneNumberId,
+          wabaId: whatsapp.metaBusinessAccountId
         });
 
         contact = await CreateOrUpdateContactService({
@@ -1852,7 +1868,8 @@ export const sendTemplateMessage = async (
   // Resolve template once (shared structure for all recipients)
   const resolved = await ResolveTemplateService({
     name: templateName.trim(),
-    language: languageCode || "es"
+    language: languageCode || "es",
+    wabaId: whatsapp.metaBusinessAccountId
   });
 
   const results: Array<{ number: string; status: string; messageId?: string; error?: string }> = [];
@@ -1864,7 +1881,8 @@ export const sendTemplateMessage = async (
         to: item.number,
         templatePayload: resolved,
         bodyValues: item.bodyParameters,
-        phoneNumberId: whatsapp.phoneNumberId
+        phoneNumberId: whatsapp.phoneNumberId,
+        wabaId: whatsapp.metaBusinessAccountId
       });
 
       if (createTickets !== false) {

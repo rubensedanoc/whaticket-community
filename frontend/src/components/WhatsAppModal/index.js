@@ -70,6 +70,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
     apiType: "whatsapp-web.js",
     number: "",
     phoneNumberId: "",
+    metaBusinessAccountId: "",
   };
   const [whatsApp, setWhatsApp] = useState(initialState);
   const [selectedQueueIds, setSelectedQueueIds] = useState([]);
@@ -199,6 +200,16 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
                         as={TextField}
                         label="Phone Number ID"
                         name="phoneNumberId"
+                        fullWidth
+                        variant="outlined"
+                        margin="dense"
+                      />
+                    </div>
+                    <div>
+                      <Field
+                        as={TextField}
+                        label="WABA ID (Meta Business Account ID)"
+                        name="metaBusinessAccountId"
                         fullWidth
                         variant="outlined"
                         margin="dense"

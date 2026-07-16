@@ -23,13 +23,15 @@ interface SendTemplateServiceParams {
   };
   bodyValues?: string[];
   phoneNumberId: string;
+  wabaId: string;
 }
 
 const SendTemplateService = async ({
   to,
   templatePayload,
   bodyValues,
-  phoneNumberId
+  phoneNumberId,
+  wabaId
 }: SendTemplateServiceParams): Promise<any> => {
   // Re-resolve from Meta for fresh image URL and variables
   let freshHeaderUrl = templatePayload.defaultHeaderUrl || null;
@@ -38,7 +40,8 @@ const SendTemplateService = async ({
   try {
     const refreshed = await ResolveTemplateService({
       name: templatePayload.name,
-      language: templatePayload.language
+      language: templatePayload.language,
+      wabaId
     });
     freshHeaderUrl = refreshed.defaultHeaderUrl || freshHeaderUrl;
     freshVariables = refreshed.variables || freshVariables;
