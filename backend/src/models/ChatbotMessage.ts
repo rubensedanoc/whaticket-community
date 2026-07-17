@@ -57,6 +57,10 @@ class ChatbotMessage extends Model<ChatbotMessage> {
   @Column
   flujoConIncidencia: boolean;
 
+  @Default(false)
+  @Column
+  shouldCloseTicket: boolean;
+
   @ForeignKey(() => ChatbotMessage)
   @Column
   fatherChatbotOptionId: number;

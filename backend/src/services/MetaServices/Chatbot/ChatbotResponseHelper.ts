@@ -716,7 +716,19 @@ class ChatbotResponseHelper {
         return;
       }
 
-      await ticket.update({ chatbotMessageLastStep: null, chatbotFinishedAt: new Date(), lastBotMessageAt: new Date()});
+      const updateData: any = { 
+        chatbotMessageLastStep: null, 
+        chatbotFinishedAt: new Date(), 
+        lastBotMessageAt: new Date()
+      };
+
+      // Si el mensaje indica que debe cerrar el ticket, agregarlo
+      if (nextChatbotMessage.shouldCloseTicket) {
+        console.log(`[ChatbotResponseHelper] Mensaje marca shouldCloseTicket=true, cerrando ticket`);
+        updateData.status = 'closed';
+      }
+
+      await ticket.update(updateData);
     } else {
       await ticket.update({ chatbotMessageLastStep: nextChatbotMessage.identifier, lastBotMessageAt: new Date() });
     }
