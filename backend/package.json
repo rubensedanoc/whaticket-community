@@ -44,7 +44,7 @@
     "socket.io": "^3.0.5",
     "socket.io-client": "^3.0.5",
     "uuid": "^8.3.2",
-    "whatsapp-web.js": "github:erickmourasilva/whatsapp-web.js#fix/wa-web-1043-serialized-compat-pr",
+    "whatsapp-web.js": "github:lindionez/whatsapp-web.js#feat/fix-_serialized-id-fallback",
     "yup": "^0.32.8"
   },
   "devDependencies": {
