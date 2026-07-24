@@ -672,6 +672,11 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     });
 
     socket.on("appMessage", (data) => {
+      // Evita que mensajes de otros tickets (recibidos por rooms compartidos)
+      // se procesen en este chat. Defensivo: MessagesList solo debe recibir
+      // mensajes de su ticket vía joinChatBox.
+      if (data.message?.ticketId !== ticketId) return;
+
       console.log("appMessage", data);
       if (data.action === "create") {
         dispatch({ type: "ADD_MESSAGE", payload: data.message });

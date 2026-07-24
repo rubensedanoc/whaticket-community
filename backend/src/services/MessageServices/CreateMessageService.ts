@@ -135,8 +135,12 @@ const CreateMessageService = async ({
     )) as Ticket;
   }
 
+  // Se quitó message.ticket.status del array "to" porque emitir al room de status
+  // causaba que mensajes de un ticket aparecieran en otros tickets abiertos del
+  // mismo usuario (los sockets compartidos amplificaron el problema).
+  // MessagesList ya recibe el mensaje vía joinChatBox por ticketId.
   emitEvent({
-    to: [message.ticketId.toString(), message.ticket.status, "notification"],
+    to: [message.ticketId.toString(), "notification"],
     event: {
       name: "appMessage",
       data: {

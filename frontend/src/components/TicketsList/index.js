@@ -570,9 +570,10 @@ const TicketsList = (props) => {
       // console.log("-------------------------connect-------------------------");
       if (status) {
         socket.emit("joinTickets", status);
-      } else {
-        socket.emit("joinNotification");
       }
+      // joinNotification siempre, incluso con filtro de status, porque
+      // appMessage ya no se emite a rooms de status (ver CreateMessageService).
+      socket.emit("joinNotification");
 
       // setWasDisConnected((prevState) => {
       //   if (prevState === 'disconnected') {
@@ -628,22 +629,9 @@ const TicketsList = (props) => {
     });
 
     socket.on("appMessage", (data) => {
-
-      // if (status) {
-      //   console.log("appMessage socket::::::::::::::::::::" + status);
-      // }
-
-      // console.log("ticket socket::::::::::::::::::::", data, {
-      //   status,
-      //   searchParam,
-      //   showAll,
-      //   selectedWhatsappIds,
-      //   selectedQueueIds,
-      //   selectedTypeIds,
-      //   style,
-      //   ticketsType,
-      //   category,
-      // });
+      // Como ahora appMessage llega vía notification (no por room de status),
+      // filtramos manualmente: solo procesar si el mensaje es del status de esta vista.
+      if (status && data.message?.ticket?.status !== status) return;
 
       if (data.action === "create") {
         if (

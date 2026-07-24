@@ -298,9 +298,10 @@ const TicketsCountChips = (props) => {
     socket.on("connect", () => {
       if (status) {
         socket.emit("joinTickets", status);
-      } else {
-        socket.emit("joinNotification");
       }
+      // joinNotification siempre, incluso con filtro de status, porque
+      // appMessage ya no se emite a rooms de status (ver CreateMessageService).
+      socket.emit("joinNotification");
 
       // setWasDisConnected((prevState) => {
       //   if (prevState === 'disconnected') {
@@ -353,6 +354,10 @@ const TicketsCountChips = (props) => {
     });
 
     socket.on("appMessage", (data) => {
+      // Como ahora appMessage llega vía notification (no por room de status),
+      // filtramos manualmente: solo procesar si el mensaje es del status de esta vista.
+      if (status && data.message?.ticket?.status !== status) return;
+
       if (data.action === "create") {
         if (
           shouldUpdateTicket(data.ticket) &&
