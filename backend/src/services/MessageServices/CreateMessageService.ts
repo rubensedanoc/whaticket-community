@@ -138,9 +138,18 @@ const CreateMessageService = async ({
   // Se quitó message.ticket.status del array "to" porque emitir al room de status
   // causaba que mensajes de un ticket aparecieran en otros tickets abiertos del
   // mismo usuario (los sockets compartidos amplificaron el problema).
-  // MessagesList ya recibe el mensaje vía joinChatBox por ticketId.
+  // MessagesList filtra por ticketId en su guard, y TicketsList/TicketsCountChips
+  // dependen de "notification" para actualizar contadores en tiempo real.
+  const rooms = [message.ticketId.toString(), "notification"];
+  console.log("[CreateMessageService] emitEvent appMessage", {
+    ticketId: message.ticketId,
+    status: message.ticket.status,
+    rooms,
+    messageId: message.id,
+    body: message.body?.substring(0, 40),
+  });
   emitEvent({
-    to: [message.ticketId.toString(), "notification"],
+    to: rooms,
     event: {
       name: "appMessage",
       data: {

@@ -672,12 +672,26 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     });
 
     socket.on("appMessage", (data) => {
-      // Evita que mensajes de otros tickets (recibidos por rooms compartidos)
-      // se procesen en este chat. Defensivo: MessagesList solo debe recibir
-      // mensajes de su ticket vía joinChatBox.
-      if (data.message?.ticketId !== ticketId) return;
+      // Guard mejorado: verificar ticketId de múltiples formas y comparar como strings
+      const messageTicketId = data.message?.ticketId || data.ticket?.id;
+      const currentTicketId = ticketId;
+      
+      // Comparar como strings para evitar problemas de tipo (número vs string)
+      if (String(messageTicketId) !== String(currentTicketId)) {
+        console.log("[MessagesList] ❌ Mensaje rechazado - ticketId no coincide:", {
+          messageTicketId,
+          currentTicketId,
+          messageBody: data.message?.body?.substring(0, 30)
+        });
+        return;
+      }
+      
+      console.log("[MessagesList] ✅ Mensaje aceptado:", {
+        messageTicketId,
+        currentTicketId,
+        action: data.action
+      });
 
-      console.log("appMessage", data);
       if (data.action === "create") {
         dispatch({ type: "ADD_MESSAGE", payload: data.message });
         scrollToBottom();

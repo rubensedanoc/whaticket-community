@@ -115,6 +115,12 @@ const fetchMessages = async (
   if (!hasMore) {
     const nextTicket = await findNextClosedTicket(lastTicketToFetchMessages);
     if (nextTicket) {
+      console.log("[ListMessagesV2] encadenando ticket cerrado a la cola", {
+        ticketActual: lastTicketToFetchMessages.ticketId,
+        ticketEncadenado: nextTicket.id,
+        contactoId: nextTicket.contactId,
+        whatsappId: nextTicket.whatsappId,
+      });
       ticketsToFetchMessagesQueue.push({
         ticketId: nextTicket.id,
         pageNumber: "0"

@@ -80,7 +80,7 @@ const SendWhatsAppMedia = async ({
 
       // Emitir evento socket para actualizar la UI inmediatamente
       emitEvent({
-        to: [ticket.id.toString()],
+        to: [ticket.id.toString(), "notification"],
         event: {
           name: "appMessage",
           data: {

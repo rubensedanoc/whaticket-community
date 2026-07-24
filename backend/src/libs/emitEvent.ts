@@ -5,6 +5,15 @@ export function emitEvent({
   to?: any[];
   event: { name: string; data: any };
 }) {
+  if (event.name === "appMessage") {
+    console.log("[emitEvent] emitiendo appMessage", {
+      rooms: to,
+      ticketId: event.data?.message?.ticketId || event.data?.ticket?.id,
+      action: event.data?.action,
+      body: event.data?.message?.body?.substring(0, 40),
+    });
+  }
+
   const url = process.env.NODE_URL + "/toEmit";
   fetch(url, {
     method: "POST",
