@@ -28,6 +28,8 @@ const createSharedSocket = (key, userId, token) => {
   const entry = {
     socket,
     consumers: new Set(),
+    maintenanceReconnect: false,
+    reconnectTimer: null,
   };
 
   sharedSockets.set(key, entry);
@@ -49,7 +51,14 @@ function connectToSocket(userId) {
       if (disconnected) return consumer;
 
       const wrappedHandler = data =>
-        handler(normalizeEventData(event, data));
+        // Internal reconnects only exist to clear stale Socket.IO rooms.
+        // Components that joined rooms must rejoin, but global connectivity
+        // observers must not show offline/online notices or reload the UI.
+        entry.maintenanceReconnect &&
+        (event === "connect" || event === "disconnect") &&
+        !joinedRoom
+          ? undefined
+          : handler(normalizeEventData(event, data));
 
       listeners.push({ event, handler, wrappedHandler });
       entry.socket.on(event, wrappedHandler);
@@ -102,13 +111,35 @@ function connectToSocket(userId) {
       entry.consumers.delete(consumer);
 
       if (entry.consumers.size === 0) {
+        if (entry.reconnectTimer) {
+          clearTimeout(entry.reconnectTimer);
+          entry.reconnectTimer = null;
+        }
         entry.socket.disconnect();
         sharedSockets.delete(key);
       } else if (joinedRoom) {
         // Socket.IO rooms can only be left by the server. Reconnecting clears
         // rooms no longer used; remaining consumers rejoin in their callbacks.
-        entry.socket.disconnect();
-        entry.socket.connect();
+        // Several components can unmount in the same render, so coalesce their
+        // cleanup into one silent maintenance reconnect.
+        if (!entry.reconnectTimer) {
+          entry.reconnectTimer = setTimeout(() => {
+            entry.reconnectTimer = null;
+
+            if (entry.consumers.size === 0 || !entry.socket.connected) {
+              return;
+            }
+
+            entry.maintenanceReconnect = true;
+            entry.socket.once("connect", () => {
+              Promise.resolve().then(() => {
+                entry.maintenanceReconnect = false;
+              });
+            });
+            entry.socket.disconnect();
+            entry.socket.connect();
+          }, 50);
+        }
       }
 
       return consumer;
