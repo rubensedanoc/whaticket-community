@@ -141,9 +141,9 @@ const CreateMessageService = async ({
       name: "appMessage",
       data: {
         action: "create",
-        message,
-        ticket: message.ticket,
-        contact: message.ticket.contact
+        // `message` already includes both ticket and contact. Sending them
+        // again duplicated the largest part of every websocket payload.
+        message
       }
     }
   });
