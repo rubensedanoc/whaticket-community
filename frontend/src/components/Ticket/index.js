@@ -201,6 +201,9 @@ const Ticket = () => {
     socket.on("connect", () => socket.emit("joinChatBox", ticketId));
 
     socket.on("ticket", (data) => {
+      const eventTicketId = data.ticket?.id || data.ticketId;
+      if (eventTicketId && +eventTicketId !== +ticketId) return;
+
       if (data.action === "update") {
         setTicket(data.ticket);
         setSelectMarketingCampaign(data.ticket.marketingCampaignId || 0);
@@ -208,6 +211,7 @@ const Ticket = () => {
       }
 
       if (data.action === "delete") {
+        if (+data.ticketId !== +ticketId) return;
         toast.success("Ticket deleted sucessfully.");
         history.push("/tickets");
       }

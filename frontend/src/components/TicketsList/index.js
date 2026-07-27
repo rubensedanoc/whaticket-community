@@ -570,10 +570,9 @@ const TicketsList = (props) => {
       // console.log("-------------------------connect-------------------------");
       if (status) {
         socket.emit("joinTickets", status);
+      } else {
+        socket.emit("joinNotification");
       }
-      // joinNotification siempre, incluso con filtro de status, porque
-      // appMessage ya no se emite a rooms de status (ver CreateMessageService).
-      socket.emit("joinNotification");
 
       // setWasDisConnected((prevState) => {
       //   if (prevState === 'disconnected') {
@@ -644,10 +643,8 @@ const TicketsList = (props) => {
             payload: { ticket: data.ticket, setUpdatedCount },
           });
         } else {
-          dispatch({
-            type: "DELETE_TICKET", // si encuentra el ticket en el estado lo elimina
-            payload: { ticketId: data.ticket?.id, setUpdatedCount },
-          });
+          // No eliminar - el ticket no aplica a los filtros de esta vista pero existe
+          return;
         }
       }
     });

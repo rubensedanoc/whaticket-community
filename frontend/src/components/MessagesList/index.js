@@ -430,26 +430,6 @@ const reducer = (state, action) => {
 const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   const classes = useStyles();
 
-  // 🚨 DETECTOR DE LOOPS INFINITOS
-  const renderCountRef = useRef({ count: 0, lastReset: Date.now() });
-  const renderTimestamp = Date.now();
-  
-  // Resetear contador cada 5 segundos
-  if (renderTimestamp - renderCountRef.current.lastReset > 5000) {
-    renderCountRef.current = { count: 0, lastReset: renderTimestamp };
-  }
-  
-  renderCountRef.current.count++;
-  
-  // Alertar si hay más de 10 renders en 5 segundos (posible loop infinito)
-  if (renderCountRef.current.count > 10) {
-    console.error("🚨🚨🚨 [MessagesList] LOOP INFINITO DETECTADO! Renders en 5 seg:", renderCountRef.current.count, "ticketId:", ticketId);
-  } else if (renderCountRef.current.count > 5) {
-    console.warn("⚠️ [MessagesList] Renders frecuentes detectados:", renderCountRef.current.count, "ticketId:", ticketId);
-  } else {
-    console.log("[MessagesList] 🔄 Render #" + renderCountRef.current.count, "ticketId:", ticketId);
-  }
-
   const [messagesList, dispatch] = useReducer(reducer, []);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -684,40 +664,19 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   }, [contactId, clientNumber, viewSource, isGroup, ticketId]);
 
   useEffect(() => {
-    // 🔍 LOG: Detectar si el useEffect se ejecuta múltiples veces (posible loop)
-    const effectTimestamp = Date.now();
-    console.log("[MessagesList] 🔄 useEffect EJECUTADO - ticket:", ticketId, "timestamp:", effectTimestamp);
-    
     const socket = openSocket();
-    // Capturar ticketId una sola vez al inicio del effect para evitar closures cambiantes
     const currentTicketId = ticketId;
 
     socket.on("connect", () => {
-      console.log("[MessagesList] 🟢 socket conectado para ticket:", currentTicketId, "timestamp:", Date.now());
       socket.emit("joinChatBox", currentTicketId);
     });
 
     socket.on("appMessage", (data) => {
-      // Guard mejorado: verificar ticketId de múltiples formas y comparar como strings
       const messageTicketId = data.message?.ticketId || data.ticket?.id;
       
-      // Comparar como strings para evitar problemas de tipo (número vs string)
       if (String(messageTicketId) !== String(currentTicketId)) {
-        console.log("[MessagesList] ❌ Mensaje rechazado - ticketId no coincide:", {
-          messageTicketId,
-          currentTicketId,
-          messageBody: data.message?.body?.substring(0, 30),
-          timestamp: Date.now()
-        });
         return;
       }
-      
-      console.log("[MessagesList] ✅ Mensaje aceptado:", {
-        messageTicketId,
-        currentTicketId,
-        action: data.action,
-        timestamp: Date.now()
-      });
 
       if (data.action === "create") {
         dispatch({ type: "ADD_MESSAGE", payload: data.message });
@@ -731,13 +690,11 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
 
     socket.on("contact", (data) => {
       if (data.action === "update") {
-        console.log("[MessagesList] 📞 UPDATE_CONTACT:", data.contact.id, "timestamp:", Date.now());
         dispatch({ type: "UPDATE_CONTACT", payload: data.contact });
       }
     });
 
     return () => {
-      console.log("[MessagesList] � CLEANUP ejecutado - Desconectando socket para ticket:", currentTicketId, "timestamp:", Date.now());
       socket.disconnect();
     };
   }, [ticketId]);
