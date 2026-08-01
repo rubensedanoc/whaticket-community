@@ -295,14 +295,30 @@ const processQueue = async () => {
       }
 
       // Logging detallado del mensaje enviado
-      console.log(`[wbot-queue] ✅ Mensaje enviado exitosamente:`, {
+      console.log(`[wbot-queue] ✅ Mensaje enviado a WhatsApp:`, {
         messageId: sentMessage.id.id,
         to: sentMessage.to,
         from: sentMessage.from,
         timestamp: sentMessage.timestamp,
         ack: sentMessage.ack,
-        hasMedia: !!message.mediaUrl
+        hasMedia: !!message.mediaUrl,
+        body: sentMessage.body?.substring(0, 50) || '(media)'
       });
+
+      // Verificar el ACK (acknowledgment) del mensaje
+      // ack: -1 = error, 0 = pendiente, 1 = enviado al servidor, 2 = entregado, 3 = leído
+      if (sentMessage.ack === -1) {
+        console.error(`[wbot-queue] ❌ Mensaje con ACK de error (-1)`);
+        throw new Error('WhatsApp rechazó el mensaje (ACK -1)');
+      }
+
+      // NO marcar como sent si el ACK es 0 (pendiente)
+      if (sentMessage.ack === 0) {
+        console.error(`[wbot-queue] ❌ Mensaje con ACK 0 (pendiente). WhatsApp NO lo envió realmente.`);
+        throw new Error('WhatsApp no procesó el mensaje (ACK 0 - Pendiente). El mensaje no fue enviado al destinatario.');
+      }
+
+      console.log(`[wbot-queue] 📊 ACK Status: ${sentMessage.ack} (${sentMessage.ack === 1 ? 'Enviado al servidor' : sentMessage.ack === 2 ? 'Entregado' : sentMessage.ack === 3 ? 'Leído' : 'Desconocido'})`);
 
       message.sendMessageRequest.status = 'sent';
       queueState.lastSentTimestamp = Date.now();
