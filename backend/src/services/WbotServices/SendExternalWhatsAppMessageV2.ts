@@ -260,37 +260,74 @@ const processQueue = async () => {
       try {
         const numberId = await wbot.getNumberId(`${message.toNumber}@c.us`);
         
-        if (numberId) {
-          // Usar el ID obtenido (puede ser @c.us o @lid)
-          destinationId = numberId._serialized;
-          console.log(`[wbot-queue] ✅ ID obtenido con getNumberId: ${destinationId}`);
-        } else {
-          // Fallback: usar formato tradicional @c.us para números antiguos
-          destinationId = `${message.toNumber}@c.us`;
-          console.log(`[wbot-queue] ⚠️ getNumberId retornó null, usando formato tradicional: ${destinationId}`);
+        if (!numberId) {
+          // Si getNumberId retorna null, el número NO está registrado en WhatsApp
+          console.error(`[wbot-queue] ❌ Número ${message.toNumber} no encontrado en WhatsApp (getNumberId retornó null)`);
+          throw new Error(`Número ${message.toNumber} no está registrado en WhatsApp`);
         }
+        
+        // Usar el ID obtenido (puede ser @c.us o @lid)
+        destinationId = numberId._serialized;
+        console.log(`[wbot-queue] ✅ ID obtenido con getNumberId: ${destinationId}`);
       } catch (error: any) {
-        // Si getNumberId falla, usar formato tradicional como fallback
-        destinationId = `${message.toNumber}@c.us`;
-        console.log(`[wbot-queue] ⚠️ Error en getNumberId, usando formato tradicional: ${destinationId}`);
-        console.log(`[wbot-queue] Error detalle:`, error?.message || error);
+        // Si getNumberId falla, lanzar error en lugar de usar fallback
+        console.error(`[wbot-queue] ❌ Error obteniendo ID para ${message.toNumber}:`, error?.message || error);
+        throw new Error(`No se pudo obtener ID de WhatsApp para ${message.toNumber}: ${error?.message || 'Error desconocido'}`);
+      }
+
+      // Validar que el número está registrado en WhatsApp antes de enviar
+      console.log(`[wbot-queue] 🔍 Validando que ${destinationId} está registrado en WhatsApp...`);
+      try {
+        const isRegistered = await wbot.isRegisteredUser(destinationId);
+        if (!isRegistered) {
+          console.error(`[wbot-queue] ❌ Número ${message.toNumber} no está registrado en WhatsApp`);
+          throw new Error(`Número ${message.toNumber} no está registrado en WhatsApp`);
+        }
+        console.log(`[wbot-queue] ✅ Número ${destinationId} validado como registrado en WhatsApp`);
+      } catch (error: any) {
+        console.error(`[wbot-queue] ❌ Error validando número ${message.toNumber}:`, error?.message || error);
+        throw new Error(`Número ${message.toNumber} no es válido o no está registrado en WhatsApp: ${error?.message || 'Error desconocido'}`);
       }
 
       // Enviar mensaje usando el ID correcto
+      console.log(`[wbot-queue] 📤 Enviando mensaje a ${destinationId}...`);
+      let sentMessage;
+      
       if (message.mediaUrl) {
         const media = await MessageMedia.fromUrl(message.mediaUrl);
-        await wbot.sendMessage(destinationId, media, {
+        sentMessage = await wbot.sendMessage(destinationId, media, {
           caption: message.message
         });
       } else {
-        await wbot.sendMessage(destinationId, message.message);
+        sentMessage = await wbot.sendMessage(destinationId, message.message);
       }
+
+      // Validar que el mensaje fue enviado correctamente
+      if (!sentMessage || !sentMessage.id) {
+        console.error(`[wbot-queue] ❌ El mensaje no fue enviado correctamente (sin ID de mensaje)`);
+        throw new Error('El mensaje no fue enviado correctamente por WhatsApp');
+      }
+
+      // Logging detallado del mensaje enviado
+      console.log(`[wbot-queue] ✅ Mensaje enviado exitosamente:`, {
+        messageId: sentMessage.id.id,
+        to: sentMessage.to,
+        from: sentMessage.from,
+        timestamp: sentMessage.timestamp,
+        ack: sentMessage.ack,
+        hasMedia: !!message.mediaUrl
+      });
 
       message.sendMessageRequest.status = 'sent';
       queueState.lastSentTimestamp = Date.now();
 
     } catch (error: any) {
-      console.error('[wbot-queue] Error enviando mensaje:', error?.message || error);
+      console.error('[wbot-queue] ❌ Error enviando mensaje:', {
+        error: error?.message || error,
+        fromNumber: message.fromNumber,
+        toNumber: message.toNumber,
+        stack: error?.stack
+      });
       message.sendMessageRequest.status = 'failed';
     }
 
