@@ -241,16 +241,37 @@ const processQueue = async () => {
         // Continuar con precaución
       }
 
-      // Aplicar parches si es necesario (NO BLOQUEAR si falla)
-      if ((wbot as any)?.pupPage) {
+      // Validar que los parches estén aplicados (CRÍTICO para que funcione)
+      if ((wbot as any)?.pupPage && !(wbot as any).pupPage.isClosed()) {
         try {
-          const patched = await applyPatchesToWbot(wbot as any);
-          if (!patched) {
-            console.warn('[wbot-queue] ⚠️ No se pudieron aplicar parches, continuando sin ellos...');
+          const patchStatus = await (wbot as any).pupPage.evaluate(() => {
+            return {
+              applied: !!(window as any).__whaticket_patch_applied,
+              wwebjsExists: typeof (window as any).WWebJS !== 'undefined',
+              getChatExists: typeof (window as any).WWebJS?.getChat === 'function'
+            };
+          });
+          
+          if (!patchStatus.applied || !patchStatus.wwebjsExists || !patchStatus.getChatExists) {
+            console.error(`[wbot-queue] ❌ Patches no aplicados correctamente para WhatsApp ${fromWpp.id}`, patchStatus);
+            console.error(`[wbot-queue] ❌ Esto causará que los mensajes no se envíen. Reconectar WhatsApp.`);
+            message.sendMessageRequest.status = 'failed';
+            await message.sendMessageRequest.save();
+            continue;
           }
-        } catch (error) {
-          console.warn('[wbot-queue] ⚠️ Error aplicando parches, continuando sin ellos:', error);
+          
+          console.log('[wbot-queue] ✓ Patches validados correctamente');
+        } catch (validationErr) {
+          console.error(`[wbot-queue] ❌ No se pudo validar patches:`, validationErr.message);
+          message.sendMessageRequest.status = 'failed';
+          await message.sendMessageRequest.save();
+          continue;
         }
+      } else {
+        console.error(`[wbot-queue] ❌ pupPage no disponible para WhatsApp ${fromWpp.id}`);
+        message.sendMessageRequest.status = 'failed';
+        await message.sendMessageRequest.save();
+        continue;
       }
 
       // Obtener el ID correcto del destinatario (soporta @c.us antiguo y @lid nuevo)
@@ -289,6 +310,21 @@ const processQueue = async () => {
         sentMessage = await wbot.sendMessage(destinationId, message.message, {
           linkPreview: false
         });
+      }
+
+      // Esperar 3 segundos para que WhatsApp Web procese y envíe el mensaje
+      console.log(`[wbot-queue] ⏳ Esperando 3s para que WhatsApp procese el mensaje...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Intentar obtener el mensaje actualizado para verificar el ACK
+      try {
+        const updatedMessage = await wbot.getMessageById(sentMessage.id._serialized);
+        if (updatedMessage) {
+          sentMessage = updatedMessage;
+          console.log(`[wbot-queue] 🔄 Mensaje actualizado después de 3s - ACK: ${updatedMessage.ack}`);
+        }
+      } catch (refreshError) {
+        console.warn(`[wbot-queue] ⚠️ No se pudo refrescar el mensaje:`, refreshError.message);
       }
 
       // Validar que el mensaje fue enviado correctamente
