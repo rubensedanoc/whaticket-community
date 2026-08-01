@@ -282,10 +282,13 @@ const processQueue = async () => {
       if (message.mediaUrl) {
         const media = await MessageMedia.fromUrl(message.mediaUrl);
         sentMessage = await wbot.sendMessage(destinationId, media, {
-          caption: message.message
+          caption: message.message,
+          linkPreview: false
         });
       } else {
-        sentMessage = await wbot.sendMessage(destinationId, message.message);
+        sentMessage = await wbot.sendMessage(destinationId, message.message, {
+          linkPreview: false
+        });
       }
 
       // Validar que el mensaje fue enviado correctamente
