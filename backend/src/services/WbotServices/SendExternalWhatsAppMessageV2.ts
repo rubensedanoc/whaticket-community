@@ -309,19 +309,21 @@ const processQueue = async () => {
       });
 
       // Verificar el ACK (acknowledgment) del mensaje
-      // ack: -1 = error, 0 = pendiente, 1 = enviado al servidor, 2 = entregado, 3 = leído
+      // ack: -1 = error, 0 = pendiente (inicial), 1 = enviado al servidor, 2 = entregado, 3 = leído
+      // NOTA: ACK 0 es NORMAL inicialmente. El ACK se actualiza después de forma asíncrona
+      // vía el evento 'message_ack' en wbotMessageListener.ts
       if (sentMessage.ack === -1) {
         console.error(`[wbot-queue] ❌ Mensaje con ACK de error (-1)`);
         throw new Error('WhatsApp rechazó el mensaje (ACK -1)');
       }
 
-      // NO marcar como sent si el ACK es 0 (pendiente)
-      if (sentMessage.ack === 0) {
-        console.error(`[wbot-queue] ❌ Mensaje con ACK 0 (pendiente). WhatsApp NO lo envió realmente.`);
-        throw new Error('WhatsApp no procesó el mensaje (ACK 0 - Pendiente). El mensaje no fue enviado al destinatario.');
-      }
-
-      console.log(`[wbot-queue] 📊 ACK Status: ${sentMessage.ack} (${sentMessage.ack === 1 ? 'Enviado al servidor' : sentMessage.ack === 2 ? 'Entregado' : sentMessage.ack === 3 ? 'Leído' : 'Desconocido'})`);
+      // Log informativo del ACK inicial (no es un error si es 0)
+      console.log(`[wbot-queue] 📊 ACK inicial: ${sentMessage.ack} (${
+        sentMessage.ack === 0 ? 'Pendiente - se actualizará vía evento message_ack' : 
+        sentMessage.ack === 1 ? 'Enviado al servidor' : 
+        sentMessage.ack === 2 ? 'Entregado' : 
+        sentMessage.ack === 3 ? 'Leído' : 'Desconocido'
+      })`);
 
       message.sendMessageRequest.status = 'sent';
       queueState.lastSentTimestamp = Date.now();
