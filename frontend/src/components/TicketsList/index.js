@@ -261,6 +261,7 @@ const TicketsList = (props) => {
     showOnlyMyGroups,
     setShowOnlyMyGroups,
     ticketsType,
+    etapaLabel,
     category,
     onMoveToLeft,
     onMoveToRight,
@@ -966,6 +967,12 @@ const TicketsList = (props) => {
         {ticketsType === "pendings" && (
           <>
             <div>PENDIENTES</div>
+          </>
+        )}
+
+        {ticketsType === "etapa" && (
+          <>
+            <div>{etapaLabel}</div>
           </>
         )}
 
