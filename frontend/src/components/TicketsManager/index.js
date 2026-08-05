@@ -1319,6 +1319,32 @@ const TicketsManager = () => {
             </div>
           </div>
 
+          {isImplementacionesUser && (
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                padding: "8px 16px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                backgroundColor: "#f5f5f5",
+              }}
+            >
+              {implementacionesEtapaColumns.map((etapa) => (
+                <Chip
+                  key={etapa.id ?? "sin-etapa"}
+                  size="small"
+                  label={etapa.label}
+                  style={{
+                    backgroundColor: "#e3f2fd",
+                    fontWeight: 500,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
           <div
             style={{
               display: "flex",
