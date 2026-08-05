@@ -762,11 +762,9 @@ const TicketsList = (props) => {
         ...style,
         ...(columnsWidth ? {
           width:
-            columnsWidth === "normal"
-              ? "20rem"
-              : columnsWidth === "large"
-              ? "25rem"
-              : "20rem",
+            ticketsType === "etapa"
+              ? (columnsWidth === "normal" ? "12rem" : "15rem")
+              : (columnsWidth === "normal" ? "20rem" : "25rem"),
           borderRadius: 8,
           flexShrink: 0,
         } : {
