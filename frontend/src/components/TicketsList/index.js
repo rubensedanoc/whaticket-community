@@ -261,6 +261,7 @@ const TicketsList = (props) => {
     showOnlyMyGroups,
     setShowOnlyMyGroups,
     ticketsType,
+    etapaLabel,
     category,
     onMoveToLeft,
     onMoveToRight,
@@ -761,11 +762,9 @@ const TicketsList = (props) => {
         ...style,
         ...(columnsWidth ? {
           width:
-            columnsWidth === "normal"
-              ? "20rem"
-              : columnsWidth === "large"
-              ? "25rem"
-              : "20rem",
+            ticketsType === "etapa"
+              ? (columnsWidth === "normal" ? "12rem" : "15rem")
+              : (columnsWidth === "normal" ? "20rem" : "25rem"),
           borderRadius: 8,
           flexShrink: 0,
         } : {
@@ -966,6 +965,12 @@ const TicketsList = (props) => {
         {ticketsType === "pendings" && (
           <>
             <div>PENDIENTES</div>
+          </>
+        )}
+
+        {ticketsType === "etapa" && (
+          <>
+            <div>{etapaLabel}</div>
           </>
         )}
 

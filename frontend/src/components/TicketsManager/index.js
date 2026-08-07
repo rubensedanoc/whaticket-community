@@ -150,6 +150,20 @@ const altaChipValueId = [5];
 const altaFeChipValueId = [7];
 const monitoreoChipValueId = [8];
 
+const IMPLEMENTACIONES_QUEUE_ID = 2;
+
+// Columnas de etapa de Traza para la Bandeja de usuarios de Implementaciones
+const implementacionesEtapaColumns = [
+  { id: null, label: "Sin Etapa" },
+  { id: 6, label: "Onboarding" },
+  { id: 1, label: "Insp. técnica" },
+  { id: 2, label: "Config. plataforma" },
+  { id: 3, label: "Config. equipos" },
+  { id: 4, label: "Cap. op y mantenimiento" },
+  { id: 8, label: "Monitoreo" },
+  { id: 5, label: "Alta" },
+];
+
 const TicketsManager = () => {
   const classes = useStyles();
 
@@ -164,6 +178,9 @@ const TicketsManager = () => {
   const { user } = useContext(AuthContext);
 
   const userQueueIds = [...user.queues.map((q) => q.id), null];
+  const isImplementacionesUser = user?.queues?.some(
+    (q) => q.id === IMPLEMENTACIONES_QUEUE_ID
+  );
   const { whatsApps } = useContext(WhatsAppsContext);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
   const [principalTicketType, setPrincipalTicketType] = useState("");
@@ -945,71 +962,73 @@ const TicketsManager = () => {
               </>
             )}
 
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                alignItems: "center",
-                marginLeft: "auto",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}
-            >
-              <Chip
-                onClick={() => onSelectTicketsCountChips(null)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(null) ? "primary" : "default"}
-                label="Sin Etapa"
-              />
-              <Chip
-                onClick={() => onSelectTicketsCountChips(6)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(6) ? "primary" : "default"}
-                label="Onboarding"
-              />
-              <Chip
-                onClick={() => onSelectTicketsCountChips(1)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(1) ? "primary" : "default"}
-                label="Insp. técnica"
-              />
-              <Chip
-                onClick={() => onSelectTicketsCountChips(2)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(2) ? "primary" : "default"}
-                label="Config. plataforma"
-              />
-              <Chip
-                onClick={() => onSelectTicketsCountChips(3)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(3) ? "primary" : "default"}
-                label="Config. equipos"
-              />
-              <Chip
-                onClick={() => onSelectTicketsCountChips(4)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(4) ? "primary" : "default"}
-                label="Cap. op y mantenimiento"
-              />
-              <Chip
-                onClick={() => onSelectTicketsCountChips(8)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(8) ? "primary" : "default"}
-                label="Monitoreo"
-              />
-              <Chip
-                onClick={() => onSelectTicketsCountChips(5)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(5) ? "primary" : "default"}
-                label="Alta"
-              />
-              {/* <Chip
-                onClick={() => onSelectTicketsCountChips(7)}
-                size="small"
-                color={selectedClientelicenciaEtapaIds?.includes(7) ? "primary" : "default"}
-                label="Alta FE"
-              /> */}
-            </div>
+            {!isImplementacionesUser && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "center",
+                  marginLeft: "auto",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                }}
+              >
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(null)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(null) ? "primary" : "default"}
+                  label="Sin Etapa"
+                />
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(6)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(6) ? "primary" : "default"}
+                  label="Onboarding"
+                />
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(1)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(1) ? "primary" : "default"}
+                  label="Insp. técnica"
+                />
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(2)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(2) ? "primary" : "default"}
+                  label="Config. plataforma"
+                />
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(3)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(3) ? "primary" : "default"}
+                  label="Config. equipos"
+                />
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(4)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(4) ? "primary" : "default"}
+                  label="Cap. op y mantenimiento"
+                />
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(8)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(8) ? "primary" : "default"}
+                  label="Monitoreo"
+                />
+                <Chip
+                  onClick={() => onSelectTicketsCountChips(5)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(5) ? "primary" : "default"}
+                  label="Alta"
+                />
+                {/* <Chip
+                  onClick={() => onSelectTicketsCountChips(7)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(7) ? "primary" : "default"}
+                  label="Alta FE"
+                /> */}
+              </div>
+            )}
 
             <div
               style={{
@@ -1300,6 +1319,30 @@ const TicketsManager = () => {
             </div>
           </div>
 
+          {isImplementacionesUser && (
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                alignItems: "center",
+                padding: "8px 16px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                backgroundColor: "#f5f5f5",
+              }}
+            >
+              {implementacionesEtapaColumns.map((etapa) => (
+                <Chip
+                  key={etapa.id ?? "sin-etapa"}
+                  onClick={() => onSelectTicketsCountChips(etapa.id)}
+                  size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(etapa.id) ? "primary" : "default"}
+                  label={etapa.label}
+                />
+              ))}
+            </div>
+          )}
+
           <div
             style={{
               display: "flex",
@@ -1310,232 +1353,260 @@ const TicketsManager = () => {
               flexGrow: 1,
             }}
           >
-            <TicketsList
-              status="open"
-              searchParam={searchParam}
-              showAll={showAll}
-              setShowAll={setShowAll}
-              showOnlyMyGroups={showOnlyMyGroups}
-              setShowOnlyMyGroups={setShowOnlyMyGroups}
-              showOnlyWaitingTickets={showOnlyWaitingTickets}
-              columnsWidth={columnsWidth}
-              selectedTypeIds={
-                principalTicketType === "groups"
-                  ? typeIdsForGroups
-                  : typeIdsForIndividuals
-              }
-              selectedWhatsappIds={selectedWhatsappIds}
-              selectedQueueIds={selectedQueueIds}
-              selectedTicketUsersIds={selectedTicketUsersIds}
-              selectedAccountManagerIds={selectedAccountManagerIds}
-              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-              ticketsType={
-                principalTicketType === "groups" ? "individuals" : "groups"
-              }
-              onMoveToLeft={() => onMoveSecondaryColumn("left")}
-              onMoveToRight={() => {
-                onMoveSecondaryColumn("right");
-              }}
-              style={{
-                ...(secondaryColumnSide === "left"
-                  ? { order: 0 }
-                  : { order: 2 }),
-              }}
-              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-            />
+            {isImplementacionesUser ? (
+              <>
+                {implementacionesEtapaColumns.map((etapa) => (
+                  <TicketsList
+                    key={etapa.id ?? "sin-etapa"}
+                    status="open"
+                    searchParam={searchParam}
+                    showAll={showAll}
+                    showOnlyMyGroups={showOnlyMyGroups}
+                    showOnlyWaitingTickets={showOnlyWaitingTickets}
+                    columnsWidth={columnsWidth}
+                    selectedTypeIds={typeIdsForGroups}
+                    selectedWhatsappIds={selectedWhatsappIds}
+                    selectedQueueIds={selectedQueueIds}
+                    selectedTicketUsersIds={selectedTicketUsersIds}
+                    selectedAccountManagerIds={selectedAccountManagerIds}
+                    selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                    selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                    ticketsType="etapa"
+                    etapaLabel={etapa.label}
+                    selectedClientelicenciaEtapaIds={[etapa.id]}
+                  />
+                ))}
+              </>
+            ) : (
+              <>
+                <TicketsList
+                  status="open"
+                  searchParam={searchParam}
+                  showAll={showAll}
+                  setShowAll={setShowAll}
+                  showOnlyMyGroups={showOnlyMyGroups}
+                  setShowOnlyMyGroups={setShowOnlyMyGroups}
+                  showOnlyWaitingTickets={showOnlyWaitingTickets}
+                  columnsWidth={columnsWidth}
+                  selectedTypeIds={
+                    principalTicketType === "groups"
+                      ? typeIdsForGroups
+                      : typeIdsForIndividuals
+                  }
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  selectedTicketUsersIds={selectedTicketUsersIds}
+                  selectedAccountManagerIds={selectedAccountManagerIds}
+                  selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  ticketsType={
+                    principalTicketType === "groups" ? "individuals" : "groups"
+                  }
+                  onMoveToLeft={() => onMoveSecondaryColumn("left")}
+                  onMoveToRight={() => {
+                    onMoveSecondaryColumn("right");
+                  }}
+                  style={{
+                    ...(secondaryColumnSide === "left"
+                      ? { order: 0 }
+                      : { order: 2 }),
+                  }}
+                  selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                />
 
-            <TicketsList
-              status="pending"
-              searchParam={searchParam}
-              selectedTypeIds={typeIdsForAll}
-              selectedWhatsappIds={selectedWhatsappIds}
-              selectedQueueIds={selectedQueueIds}
-              // selectedTicketUsersIds={selectedTic  ketUsersIds}
-              selectedAccountManagerIds={selectedAccountManagerIds}
-              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-              selectedMarketingCampaignIds={selectedMarketingCampaignIds}
-              showOnlyWaitingTickets={showOnlyWaitingTickets}
-              columnsWidth={columnsWidth}
-              ticketsType="pendings"
-              onMoveToLeft={() => onMovePendingColumn("left")}
-              onMoveToRight={() => {
-                onMovePendingColumn("right");
-              }}
-              style={{
-                ...(pendingColumnSide === "left" ? { order: 0 } : { order: 1 }),
-              }}
-            />
+                <TicketsList
+                  status="pending"
+                  searchParam={searchParam}
+                  selectedTypeIds={typeIdsForAll}
+                  selectedWhatsappIds={selectedWhatsappIds}
+                  selectedQueueIds={selectedQueueIds}
+                  // selectedTicketUsersIds={selectedTic  ketUsersIds}
+                  selectedAccountManagerIds={selectedAccountManagerIds}
+                  selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                  selectedMarketingCampaignIds={selectedMarketingCampaignIds}
+                  showOnlyWaitingTickets={showOnlyWaitingTickets}
+                  columnsWidth={columnsWidth}
+                  ticketsType="pendings"
+                  onMoveToLeft={() => onMovePendingColumn("left")}
+                  onMoveToRight={() => {
+                    onMovePendingColumn("right");
+                  }}
+                  style={{
+                    ...(pendingColumnSide === "left" ? { order: 0 } : { order: 1 }),
+                  }}
+                />
 
-            {/* <Divider orientation="vertical" flexItem /> */}
+                {/* <Divider orientation="vertical" flexItem /> */}
 
-            {(secondaryColumnSide === "left" ||
-              pendingColumnSide === "left") && (
-              <Divider orientation="vertical" flexItem />
-            )}
+                {(secondaryColumnSide === "left" ||
+                  pendingColumnSide === "left") && (
+                  <Divider orientation="vertical" flexItem />
+                )}
 
-            {(() => {
-              if (doubleRow) {
-                return (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: `repeat(${Math.round(
-                        selectedCategoriesIds?.length / 2
-                      )}, 1fr)`,
-                      gap: "12px",
-                      height: "100%",
-                      gridAutoFlow: "column",
-                      gridTemplateRows: "repeat(2, auto)",
-                    }}
-                  >
-                    {categories.map((category, categoryIndex) => {
-                      return category === "no-category" ? (
-                        <TicketsList
-                          key="no-category"
-                          status="open"
-                          searchParam={searchParam}
-                          showAll={showAll}
-                          showOnlyMyGroups={showOnlyMyGroups}
-                          selectedTypeIds={
-                            principalTicketType === "groups"
-                              ? typeIdsForGroups
-                              : typeIdsForIndividuals
-                          }
-                          selectedWhatsappIds={selectedWhatsappIds}
-                          selectedQueueIds={selectedQueueIds}
-                          selectedTicketUsersIds={selectedTicketUsersIds}
-                          selectedAccountManagerIds={selectedAccountManagerIds}
-                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-                          selectedMarketingCampaignIds={
-                            selectedMarketingCampaignIds
-                          }
-                          showOnlyWaitingTickets={showOnlyWaitingTickets}
-                          columnsWidth={columnsWidth}
-                          ticketsType="no-category"
-                          onMoveToLeft={() =>
-                            onMoveCategoryColumn(categoryIndex, "left")
-                          }
-                          onMoveToRight={() => {
-                            onMoveCategoryColumn(categoryIndex, "right");
-                          }}
-                          selectedCategoriesIds={selectedCategoriesIds}
-                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                        />
-                      ) : (
-                        <TicketsList
-                          key={category.id}
-                          status="open"
-                          searchParam={searchParam}
-                          category={category}
-                          showAll={showAll}
-                          showOnlyMyGroups={showOnlyMyGroups}
-                          showOnlyWaitingTickets={showOnlyWaitingTickets}
-                          columnsWidth={columnsWidth}
-                          selectedTypeIds={
-                            principalTicketType === "groups"
-                              ? typeIdsForGroups
-                              : typeIdsForIndividuals
-                          }
-                          selectedWhatsappIds={selectedWhatsappIds}
-                          selectedQueueIds={selectedQueueIds}
-                          selectedTicketUsersIds={selectedTicketUsersIds}
-                          selectedAccountManagerIds={selectedAccountManagerIds}
-                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-                          selectedMarketingCampaignIds={
-                            selectedMarketingCampaignIds
-                          }
-                          onMoveToLeft={() =>
-                            onMoveCategoryColumn(categoryIndex, "left")
-                          }
-                          onMoveToRight={() => {
-                            onMoveCategoryColumn(categoryIndex, "right");
-                          }}
-                          selectedCategoriesIds={selectedCategoriesIds}
-                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                        />
-                      );
-                    })}
-                  </div>
-                );
-              } else {
-                return (
-                  <>
-                    {categories.map((category, categoryIndex) => {
-                      return category === "no-category" ? (
-                        <TicketsList
-                          key="no-category"
-                          status="open"
-                          searchParam={searchParam}
-                          showAll={showAll}
-                          showOnlyMyGroups={showOnlyMyGroups}
-                          selectedTypeIds={
-                            principalTicketType === "groups"
-                              ? typeIdsForGroups
-                              : typeIdsForIndividuals
-                          }
-                          selectedWhatsappIds={selectedWhatsappIds}
-                          selectedQueueIds={selectedQueueIds}
-                          selectedTicketUsersIds={selectedTicketUsersIds}
-                          selectedAccountManagerIds={selectedAccountManagerIds}
-                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-                          selectedMarketingCampaignIds={
-                            selectedMarketingCampaignIds
-                          }
-                          showOnlyWaitingTickets={showOnlyWaitingTickets}
-                          columnsWidth={columnsWidth}
-                          ticketsType="no-category"
-                          onMoveToLeft={() =>
-                            onMoveCategoryColumn(categoryIndex, "left")
-                          }
-                          onMoveToRight={() => {
-                            onMoveCategoryColumn(categoryIndex, "right");
-                          }}
-                          selectedCategoriesIds={selectedCategoriesIds}
-                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                        />
-                      ) : (
-                        <TicketsList
-                          key={category.id}
-                          status="open"
-                          searchParam={searchParam}
-                          category={category}
-                          showAll={showAll}
-                          showOnlyMyGroups={showOnlyMyGroups}
-                          showOnlyWaitingTickets={showOnlyWaitingTickets}
-                          columnsWidth={columnsWidth}
-                          selectedTypeIds={
-                            principalTicketType === "groups"
-                              ? typeIdsForGroups
-                              : typeIdsForIndividuals
-                          }
-                          selectedWhatsappIds={selectedWhatsappIds}
-                          selectedQueueIds={selectedQueueIds}
-                          selectedTicketUsersIds={selectedTicketUsersIds}
-                          selectedAccountManagerIds={selectedAccountManagerIds}
-                          selectedWaitingTimeRanges={selectedWaitingTimeRanges}
-                          selectedMarketingCampaignIds={
-                            selectedMarketingCampaignIds
-                          }
-                          onMoveToLeft={() =>
-                            onMoveCategoryColumn(categoryIndex, "left")
-                          }
-                          onMoveToRight={() => {
-                            onMoveCategoryColumn(categoryIndex, "right");
-                          }}
-                          selectedCategoriesIds={selectedCategoriesIds}
-                          selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
-                        />
-                      );
-                    })}
-                  </>
-                );
-              }
-            })()}
+                {(() => {
+                  if (doubleRow) {
+                    return (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: `repeat(${Math.round(
+                            selectedCategoriesIds?.length / 2
+                          )}, 1fr)`,
+                          gap: "12px",
+                          height: "100%",
+                          gridAutoFlow: "column",
+                          gridTemplateRows: "repeat(2, auto)",
+                        }}
+                      >
+                        {categories.map((category, categoryIndex) => {
+                          return category === "no-category" ? (
+                            <TicketsList
+                              key="no-category"
+                              status="open"
+                              searchParam={searchParam}
+                              showAll={showAll}
+                              showOnlyMyGroups={showOnlyMyGroups}
+                              selectedTypeIds={
+                                principalTicketType === "groups"
+                                  ? typeIdsForGroups
+                                  : typeIdsForIndividuals
+                              }
+                              selectedWhatsappIds={selectedWhatsappIds}
+                              selectedQueueIds={selectedQueueIds}
+                              selectedTicketUsersIds={selectedTicketUsersIds}
+                              selectedAccountManagerIds={selectedAccountManagerIds}
+                              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedMarketingCampaignIds={
+                                selectedMarketingCampaignIds
+                              }
+                              showOnlyWaitingTickets={showOnlyWaitingTickets}
+                              columnsWidth={columnsWidth}
+                              ticketsType="no-category"
+                              onMoveToLeft={() =>
+                                onMoveCategoryColumn(categoryIndex, "left")
+                              }
+                              onMoveToRight={() => {
+                                onMoveCategoryColumn(categoryIndex, "right");
+                              }}
+                              selectedCategoriesIds={selectedCategoriesIds}
+                              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                            />
+                          ) : (
+                            <TicketsList
+                              key={category.id}
+                              status="open"
+                              searchParam={searchParam}
+                              category={category}
+                              showAll={showAll}
+                              showOnlyMyGroups={showOnlyMyGroups}
+                              showOnlyWaitingTickets={showOnlyWaitingTickets}
+                              columnsWidth={columnsWidth}
+                              selectedTypeIds={
+                                principalTicketType === "groups"
+                                  ? typeIdsForGroups
+                                  : typeIdsForIndividuals
+                              }
+                              selectedWhatsappIds={selectedWhatsappIds}
+                              selectedQueueIds={selectedQueueIds}
+                              selectedTicketUsersIds={selectedTicketUsersIds}
+                              selectedAccountManagerIds={selectedAccountManagerIds}
+                              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedMarketingCampaignIds={
+                                selectedMarketingCampaignIds
+                              }
+                              onMoveToLeft={() =>
+                                onMoveCategoryColumn(categoryIndex, "left")
+                              }
+                              onMoveToRight={() => {
+                                onMoveCategoryColumn(categoryIndex, "right");
+                              }}
+                              selectedCategoriesIds={selectedCategoriesIds}
+                              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <>
+                        {categories.map((category, categoryIndex) => {
+                          return category === "no-category" ? (
+                            <TicketsList
+                              key="no-category"
+                              status="open"
+                              searchParam={searchParam}
+                              showAll={showAll}
+                              showOnlyMyGroups={showOnlyMyGroups}
+                              selectedTypeIds={
+                                principalTicketType === "groups"
+                                  ? typeIdsForGroups
+                                  : typeIdsForIndividuals
+                              }
+                              selectedWhatsappIds={selectedWhatsappIds}
+                              selectedQueueIds={selectedQueueIds}
+                              selectedTicketUsersIds={selectedTicketUsersIds}
+                              selectedAccountManagerIds={selectedAccountManagerIds}
+                              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedMarketingCampaignIds={
+                                selectedMarketingCampaignIds
+                              }
+                              showOnlyWaitingTickets={showOnlyWaitingTickets}
+                              columnsWidth={columnsWidth}
+                              ticketsType="no-category"
+                              onMoveToLeft={() =>
+                                onMoveCategoryColumn(categoryIndex, "left")
+                              }
+                              onMoveToRight={() => {
+                                onMoveCategoryColumn(categoryIndex, "right");
+                              }}
+                              selectedCategoriesIds={selectedCategoriesIds}
+                              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                            />
+                          ) : (
+                            <TicketsList
+                              key={category.id}
+                              status="open"
+                              searchParam={searchParam}
+                              category={category}
+                              showAll={showAll}
+                              showOnlyMyGroups={showOnlyMyGroups}
+                              showOnlyWaitingTickets={showOnlyWaitingTickets}
+                              columnsWidth={columnsWidth}
+                              selectedTypeIds={
+                                principalTicketType === "groups"
+                                  ? typeIdsForGroups
+                                  : typeIdsForIndividuals
+                              }
+                              selectedWhatsappIds={selectedWhatsappIds}
+                              selectedQueueIds={selectedQueueIds}
+                              selectedTicketUsersIds={selectedTicketUsersIds}
+                              selectedAccountManagerIds={selectedAccountManagerIds}
+                              selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedMarketingCampaignIds={
+                                selectedMarketingCampaignIds
+                              }
+                              onMoveToLeft={() =>
+                                onMoveCategoryColumn(categoryIndex, "left")
+                              }
+                              onMoveToRight={() => {
+                                onMoveCategoryColumn(categoryIndex, "right");
+                              }}
+                              selectedCategoriesIds={selectedCategoriesIds}
+                              selectedClientelicenciaEtapaIds={selectedClientelicenciaEtapaIds}
+                            />
+                          );
+                        })}
+                      </>
+                    );
+                  }
+                })()}
 
-            {(secondaryColumnSide === "right" ||
-              pendingColumnSide === "right") && (
-              <Divider orientation="vertical" flexItem />
+                {(secondaryColumnSide === "right" ||
+                  pendingColumnSide === "right") && (
+                  <Divider orientation="vertical" flexItem />
+                )}
+              </>
             )}
           </div>
         </Paper>
