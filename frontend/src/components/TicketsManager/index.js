@@ -1334,12 +1334,10 @@ const TicketsManager = () => {
               {implementacionesEtapaColumns.map((etapa) => (
                 <Chip
                   key={etapa.id ?? "sin-etapa"}
+                  onClick={() => onSelectTicketsCountChips(etapa.id)}
                   size="small"
+                  color={selectedClientelicenciaEtapaIds?.includes(etapa.id) ? "primary" : "default"}
                   label={etapa.label}
-                  style={{
-                    backgroundColor: "#e3f2fd",
-                    fontWeight: 500,
-                  }}
                 />
               ))}
             </div>
