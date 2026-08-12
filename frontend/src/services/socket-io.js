@@ -3,6 +3,32 @@ import { getNodeUrl } from "../config";
 
 const sharedSockets = new Map();
 
+// Marker passed to connect/disconnect handlers while the shared socket goes
+// through a maintenance reconnect (used to clear stale server-side rooms).
+// Handlers must NEVER be suppressed: components rejoin their rooms in these
+// callbacks. Connectivity observers use the marker to stay silent instead.
+const MAINTENANCE_EVENT = { __maintenance: true };
+
+const getStoredToken = () => {
+  const storedToken = localStorage.getItem("token");
+  return storedToken ? JSON.parse(storedToken) : null;
+};
+
+// The socket query is fixed at creation time. Keep the token in sync with
+// localStorage so reconnects don't use a stale token after refresh_token.
+const refreshSocketToken = entry => {
+  try {
+    if (entry.socket.io && entry.socket.io.opts) {
+      entry.socket.io.opts.query = {
+        ...entry.socket.io.opts.query,
+        token: getStoredToken(),
+      };
+    }
+  } catch (err) {
+    // keep previous token
+  }
+};
+
 const normalizeEventData = (event, data) => {
   if (event !== "appMessage" || !data?.message?.ticket) {
     return data;
@@ -37,11 +63,11 @@ const createSharedSocket = (key, userId, token) => {
 };
 
 function connectToSocket(userId) {
-  const storedToken = localStorage.getItem("token");
-  const token = storedToken ? JSON.parse(storedToken) : null;
+  const token = getStoredToken();
   const key = userId ? `presence:${userId}` : "application";
   const entry =
     sharedSockets.get(key) || createSharedSocket(key, userId, token);
+  refreshSocketToken(entry);
   const listeners = [];
   let disconnected = false;
   let joinedRoom = false;
@@ -52,12 +78,11 @@ function connectToSocket(userId) {
 
       const wrappedHandler = data =>
         // Internal reconnects only exist to clear stale Socket.IO rooms.
-        // Components that joined rooms must rejoin, but global connectivity
-        // observers must not show offline/online notices or reload the UI.
+        // connect/disconnect are never swallowed: components must always
+        // rejoin their rooms. Observers receive a marker to stay silent.
         entry.maintenanceReconnect &&
-        (event === "connect" || event === "disconnect") &&
-        !joinedRoom
-          ? undefined
+        (event === "connect" || event === "disconnect")
+          ? handler(MAINTENANCE_EVENT)
           : handler(normalizeEventData(event, data));
 
       listeners.push({ event, handler, wrappedHandler });
@@ -121,7 +146,8 @@ function connectToSocket(userId) {
         // Socket.IO rooms can only be left by the server. Reconnecting clears
         // rooms no longer used; remaining consumers rejoin in their callbacks.
         // Several components can unmount in the same render, so coalesce their
-        // cleanup into one silent maintenance reconnect.
+        // cleanup into one maintenance reconnect. The delay also absorbs
+        // unmount/remount bursts so the socket doesn't reconnect in a loop.
         if (!entry.reconnectTimer) {
           entry.reconnectTimer = setTimeout(() => {
             entry.reconnectTimer = null;
@@ -136,9 +162,10 @@ function connectToSocket(userId) {
                 entry.maintenanceReconnect = false;
               });
             });
+            refreshSocketToken(entry);
             entry.socket.disconnect();
             entry.socket.connect();
-          }, 50);
+          }, 300);
         }
       }
 

@@ -1603,3 +1603,107 @@ export const sendMessageToContact = async (
   }
 };
 
+export const getTicketsByClientelicenciaId = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { clientelicenciaId } = req.query;
+
+  if (!clientelicenciaId) {
+    throw new AppError("Falta el parámetro clientelicenciaId", 400);
+  }
+
+  const clientelicenciaIdNum = Number(clientelicenciaId);
+  if (isNaN(clientelicenciaIdNum)) {
+    throw new AppError("clientelicenciaId debe ser un número", 400);
+  }
+
+  const contacts = await Contact.findAll({
+    attributes: ["id"],
+    include: [
+      {
+        model: ContactClientelicencia,
+        as: "contactClientelicencias",
+        where: {
+          traza_clientelicencia_id: clientelicenciaIdNum
+        },
+        required: true
+      }
+    ]
+  });
+
+  if (!contacts || contacts.length === 0) {
+    return res.status(200).json({
+      tickets: [],
+      mensaje: "No se encontraron contactos con ese clientelicenciaId"
+    });
+  }
+
+  const contactIds = contacts.map(c => c.id);
+
+  const tickets = await Ticket.findAll({
+    where: {
+      contactId: { [Op.in]: contactIds }
+    },
+    include: [
+      {
+        model: Contact,
+        as: "contact",
+        include: [
+          "extraInfo",
+          { model: Country, as: "country", required: false },
+          "contactClientelicencias"
+        ]
+      },
+      {
+        model: Queue,
+        as: "queue",
+        attributes: ["id", "name", "color"]
+      },
+      {
+        model: Whatsapp,
+        as: "whatsapp",
+        attributes: ["id", "name"]
+      },
+      {
+        model: User,
+        as: "participantUsers",
+        required: false
+      },
+      {
+        model: Message,
+        as: "messages",
+        attributes: ["id", "fromMe", "body", "mediaType", "timestamp", "isPrivate"],
+        separate: true,
+        order: [["timestamp", "DESC"]],
+        limit: 15
+      }
+    ],
+    order: [["updatedAt", "DESC"]]
+  });
+
+  const frontendUrl = process.env.FRONTEND_URL || "https://wa-app.restaurant.pe";
+
+  const result = tickets.map(ticket => {
+    const plain = ticket.get({ plain: true }) as any;
+    
+    if (plain.messages) {
+      plain.messages = plain.messages
+        .reverse()
+        .map((msg: any) => {
+          if (msg.body && msg.body.length > 1000) {
+            msg.body = msg.body.substring(0, 1000) + "...";
+          }
+          msg.date = dayjs.unix(msg.timestamp).tz("America/Lima").format("YYYY-MM-DD HH:mm:ss");
+          return msg;
+        });
+    }
+
+    plain.ticketUrl = `${frontendUrl}/tickets/${plain.id}`;
+    
+    return plain;
+  });
+
+  return res.status(200).json({ tickets: result });
+};
+
