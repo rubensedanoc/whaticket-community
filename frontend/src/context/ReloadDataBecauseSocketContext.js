@@ -13,25 +13,34 @@ const ReloadDataBecauseSocketContextProvider = ({ children }) => {
   useEffect(() => {
     const socket = openSocket();
 
-    socket.on("connect", () => {
+    socket.on("connect", (data) => {
+      // Las reconexiones de mantenimiento (limpieza de rooms) llegan con el
+      // marcador __maintenance: no muestran avisos, pero SÍ recargan la data
+      // porque durante la reconexión pudieron perderse eventos del socket.
+      const isMaintenance = Boolean(data && data.__maintenance);
       console.log("-------------------------connect-------------------------");
 
       setWasDisConnected((prevState) => {
         if (prevState === 'disconnected') {
-          toast.success("Conexión al servidor restablecida");
+          if (!isMaintenance) {
+            toast.success("Conexión al servidor restablecida");
+          }
           setReconnect((prevState) => prevState + 1);
         }
         return 'connected';
       });
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", (reason) => {
+      const isMaintenance = Boolean(reason && reason.__maintenance);
       console.log(
         ".........................disconnect........................."
       );
       setWasDisConnected((prevState) => {
         if (prevState === 'connected') {
-          toast.error("Te desconectaste del servidor, dale F5");
+          if (!isMaintenance) {
+            toast.error("Te desconectaste del servidor, dale F5");
+          }
           return 'disconnected'
         }
         return prevState;

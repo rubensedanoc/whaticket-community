@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { Checkbox, ListItemText } from "@material-ui/core";
 import Badge from "@material-ui/core/Badge";
@@ -227,7 +227,19 @@ const TicketsManager = () => {
 
   const [selectedClientelicenciaEtapaIds, setSelectedClientelicenciaEtapaIds] = useState([]);
   const [canImpersonate, setCanImpersonate] = useState(false);
-  
+
+  // ✅ Referencias estables para las props de TicketsList. Sin useMemo, cada
+  // render generaba arrays nuevos y el efecto de socket de TicketsList se
+  // re-suscribía en cada render, forzando reconexiones del socket compartido.
+  const cleanQueueIds = useMemo(
+    () => selectedQueueIds.filter((id) => id !== null && id !== undefined),
+    [selectedQueueIds]
+  );
+  const whatsappIdsForGeneral = useMemo(
+    () => (user.profile === "admin" ? selectedWhatsappIds : []),
+    [user.profile, selectedWhatsappIds]
+  );
+
   // Verificar permisos de impersonación al cargar
   useEffect(() => {
     const checkImpersonationPermission = async () => {
@@ -2346,10 +2358,8 @@ const TicketsManager = () => {
             >
               {/* Filtrar nulls de selectedQueueIds antes de enviar */}
               {(() => {
-                const cleanQueueIds = selectedQueueIds.filter(id => id !== null && id !== undefined);
-                // En vista GENERAL, no filtrar por whatsappIds específico para usuarios normales
-                const whatsappIdsForGeneral = user.profile === "admin" ? selectedWhatsappIds : [];
-                
+                // cleanQueueIds y whatsappIdsForGeneral vienen memoizados
+                // desde arriba para no re-suscribir el socket en cada render.
                 return (
                   <>
                     <TicketsList

@@ -78,4 +78,9 @@ externalRoutes.get(
   ReportsController.reportToExcelPublic
 );
 
+externalRoutes.get(
+  "/getTicketsByClientelicenciaId",
+  ExternalApiController.getTicketsByClientelicenciaId
+);
+
 export default externalRoutes;

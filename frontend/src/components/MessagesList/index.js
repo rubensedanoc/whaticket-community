@@ -666,9 +666,29 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   useEffect(() => {
     const socket = openSocket();
     const currentTicketId = ticketId;
+    let hasConnectedOnce = false;
 
     socket.on("connect", () => {
       socket.emit("joinChatBox", currentTicketId);
+
+      if (hasConnectedOnce) {
+        // Reconexión: durante el gap pudieron perderse eventos appMessage.
+        // Traer la página más reciente y fusionarla (dedupe por id en el
+        // reducer), sin resetear el scroll ni las páginas antiguas cargadas.
+        fetchMessages({
+          evenToDispatch: "LOAD_NEW_MESSAGES",
+          ticketId: currentTicketId,
+          ticketsQueue: [
+            {
+              ticketId: currentTicketId,
+              pageNumber: 1,
+              isTheInitialFetch: false,
+            },
+          ],
+        });
+      } else {
+        hasConnectedOnce = true;
+      }
     });
 
     socket.on("appMessage", (data) => {
