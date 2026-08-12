@@ -20,6 +20,7 @@ import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import SendApiChatbotMessage from "../services/WbotServices/SendApiChatbotMessage";
 import SendExternalWhatsAppImageMessage from "../services/WbotServices/SendExternalWhatsAppImageMessage";
 import SendExternalWhatsAppMessage from "../services/WbotServices/SendExternalWhatsAppMessage";
+import SendExternalWhatsAppMessageAddon from "../services/WbotServices/SendExternalWhatsAppMessageAddon";
 import FindGroupByNameService from "../services/WbotServices/FindGroupByNameService";
 import SendMessageToTicketService from "../services/WbotServices/SendMessageToTicketService";
 import SendMessageToContactService from "../services/WbotServices/SendMessageToContactService";
@@ -101,6 +102,21 @@ export const sendMessageV2 = async (
 
   const sendExternalWhatsAppMessage = await addMessageToQueue({
     fromNumber,
+    toNumber,
+    message,
+    mediaUrl
+  });
+
+  return res.status(200).json(sendExternalWhatsAppMessage);
+};
+
+export const sendMessageAddon = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { toNumber, message, mediaUrl } = req.body;
+
+  const sendExternalWhatsAppMessage = await SendExternalWhatsAppMessageAddon({
     toNumber,
     message,
     mediaUrl
