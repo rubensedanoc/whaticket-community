@@ -251,11 +251,9 @@ const NotificationsList = (props) => {
   }, [count]);
 
   useEffect(() => {
-    console.log("RECONNECT", reconnect);
     if (reconnect) {
-      dispatch({ type: "RESET" });
-      setPageNumber(1);
-      triggerReload();
+      // Do not empty the notification list during socket recovery.
+      triggerReload({ silent: true });
     }
   }, [reconnect]);
 

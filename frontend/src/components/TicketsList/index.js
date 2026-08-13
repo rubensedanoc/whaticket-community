@@ -359,11 +359,10 @@ const TicketsList = (props) => {
   }, [count]);
 
   useEffect(() => {
-    console.log("RECONNECT", reconnect);
     if (reconnect) {
-      dispatch({ type: "RESET" });
-      setPageNumber(1);
-      triggerReload();
+      // Sync in the background without clearing the current list or showing
+      // a full-column spinner after a socket reconnect.
+      triggerReload({ silent: true });
     }
   }, [reconnect]);
 
