@@ -34,6 +34,7 @@ const useTickets = ({
   // ✅ Refs para cancelar requests anteriores y evitar consultas simultáneas
   const abortControllerRef = useRef(null);
   const isFetchingRef = useRef(false);
+  const silentReloadRef = useRef(false);
 
   useEffect(() => {
     // 🔍 LOG: Inicio de useEffect
@@ -62,7 +63,11 @@ const useTickets = ({
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    setLoading(true);
+    const isSilentReload = silentReloadRef.current;
+    silentReloadRef.current = false;
+    if (!isSilentReload) {
+      setLoading(true);
+    }
 
     const fetchTickets = async () => {
         try {
@@ -228,7 +233,8 @@ const useTickets = ({
     JSON.stringify(waitingTimeRanges) // ✅ Dependencia para recargar si cambia el filtro
   ]);
 
-  const triggerReload = () => {
+  const triggerReload = ({ silent = false } = {}) => {
+    silentReloadRef.current = silent;
     setReload((prev) => prev + 1);
   };
 

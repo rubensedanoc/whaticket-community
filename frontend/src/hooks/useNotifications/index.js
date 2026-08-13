@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getHoursCloseTicketsAuto } from "../../config";
 import toastError from "../../errors/toastError";
 
@@ -15,9 +15,14 @@ const useNotifications = ({
   const [tickets, setTickets] = useState([]);
   const [count, setCount] = useState(0);
   const [reload, setReload] = useState(0);
+  const silentReloadRef = useRef(false);
 
   useEffect(() => {
-    setLoading(true);
+    const isSilentReload = silentReloadRef.current;
+    silentReloadRef.current = false;
+    if (!isSilentReload) {
+      setLoading(true);
+    }
     const delayDebounceFn = setTimeout(() => {
       const fetchTickets = async () => {
         try {
@@ -50,7 +55,8 @@ const useNotifications = ({
     selectedUsersIds
   ]);
 
-  const triggerReload = () => {
+  const triggerReload = ({ silent = false } = {}) => {
+    silentReloadRef.current = silent;
     setReload((prev) => prev + 1);
   };
 

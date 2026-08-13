@@ -200,11 +200,9 @@ const TicketsCountChips = (props) => {
   }, [count]);
 
   useEffect(() => {
-    // console.log("RECONNECT", reconnect);
     if (reconnect) {
-      dispatch({ type: "RESET" });
-      setPageNumber(1);
-      triggerReload();
+      // Preserve visible tickets while refreshing the count/list in background.
+      triggerReload({ silent: true });
     }
   }, [reconnect]);
 
