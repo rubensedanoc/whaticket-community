@@ -179,9 +179,9 @@ const TicketsManager = () => {
   const { user } = useContext(AuthContext);
 
   const userQueueIds = [...user.queues.map((q) => q.id), null];
-  const isImplementacionesUser =
-    Number(user?.id) === 1 ||
-    user?.queues?.some((q) => q.id === IMPLEMENTACIONES_QUEUE_ID);
+  const isImplementacionesUser = user?.queues?.some(
+    (q) => q.id === IMPLEMENTACIONES_QUEUE_ID
+  );
   const { whatsApps } = useContext(WhatsAppsContext);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
   const [principalTicketType, setPrincipalTicketType] = useState("");
@@ -800,7 +800,7 @@ const TicketsManager = () => {
               setSelectedWaitingTimeRanges(values);
             }}
           />
-          {isImplementacionesUser && tab !== "closed" && (
+          {tab !== "closed" && (
             <AltaDaysSelect
               value={selectedAltaDaysFilter}
               onChange={(value) => {
@@ -1441,6 +1441,7 @@ const TicketsManager = () => {
                   selectedTicketUsersIds={selectedTicketUsersIds}
                   selectedAccountManagerIds={selectedAccountManagerIds}
                   selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                  selectedAltaDaysFilter={selectedAltaDaysFilter}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   ticketsType={
                     principalTicketType === "groups" ? "individuals" : "groups"
@@ -1466,6 +1467,7 @@ const TicketsManager = () => {
                   // selectedTicketUsersIds={selectedTic  ketUsersIds}
                   selectedAccountManagerIds={selectedAccountManagerIds}
                   selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                  selectedAltaDaysFilter={selectedAltaDaysFilter}
                   selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                   showOnlyWaitingTickets={showOnlyWaitingTickets}
                   columnsWidth={columnsWidth}
@@ -1519,6 +1521,7 @@ const TicketsManager = () => {
                               selectedTicketUsersIds={selectedTicketUsersIds}
                               selectedAccountManagerIds={selectedAccountManagerIds}
                               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedAltaDaysFilter={selectedAltaDaysFilter}
                               selectedMarketingCampaignIds={
                                 selectedMarketingCampaignIds
                               }
@@ -1554,6 +1557,7 @@ const TicketsManager = () => {
                               selectedTicketUsersIds={selectedTicketUsersIds}
                               selectedAccountManagerIds={selectedAccountManagerIds}
                               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedAltaDaysFilter={selectedAltaDaysFilter}
                               selectedMarketingCampaignIds={
                                 selectedMarketingCampaignIds
                               }
@@ -1591,6 +1595,7 @@ const TicketsManager = () => {
                               selectedTicketUsersIds={selectedTicketUsersIds}
                               selectedAccountManagerIds={selectedAccountManagerIds}
                               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedAltaDaysFilter={selectedAltaDaysFilter}
                               selectedMarketingCampaignIds={
                                 selectedMarketingCampaignIds
                               }
@@ -1626,6 +1631,7 @@ const TicketsManager = () => {
                               selectedTicketUsersIds={selectedTicketUsersIds}
                               selectedAccountManagerIds={selectedAccountManagerIds}
                               selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                              selectedAltaDaysFilter={selectedAltaDaysFilter}
                               selectedMarketingCampaignIds={
                                 selectedMarketingCampaignIds
                               }
