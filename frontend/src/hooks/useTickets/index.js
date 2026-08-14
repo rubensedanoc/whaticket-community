@@ -23,7 +23,8 @@ const useTickets = ({
   accountManagerIds,
   viewSource = null,
   impersonatedUserId,
-  waitingTimeRanges
+  waitingTimeRanges,
+  altaDaysFilter
 }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -99,6 +100,7 @@ const useTickets = ({
                 ticketGroupType: advancedList,
                 viewSource,
                 impersonatedUserId,
+                altaDaysFilter,
                 waitingTimeRanges: JSON.stringify(waitingTimeRanges)
               },
               signal // ✅ Pasar signal para cancelación
@@ -128,6 +130,7 @@ const useTickets = ({
                 showOnlyWaitingTickets,
                 filterByUserQueue,
                 clientelicenciaEtapaIds,
+                altaDaysFilter,
                 viewSource,
                 waitingTimeRanges: JSON.stringify(waitingTimeRanges)
               },
@@ -229,6 +232,7 @@ const useTickets = ({
     showOnlyWaitingTickets,
     reload,
     clientelicenciaEtapaIds,
+    altaDaysFilter,
     impersonatedUserId,
     JSON.stringify(waitingTimeRanges) // ✅ Dependencia para recargar si cambia el filtro
   ]);

@@ -39,7 +39,10 @@ const CreateTicketService = async ({
 
   await CheckContactOpenTickets(contactId, whatsappToUse.id);
 
-  const { isGroup } = await ShowContactService(contactId);
+  const contact = await ShowContactService(contactId);
+  const { isGroup } = contact;
+  // eslint-disable-next-line camelcase
+  const currentEtapaId = contact.traza_clientelicencia_currentetapaid;
 
   if (queueId === undefined) {
     const whatsappToUseWithQueues = await Whatsapp.findByPk(whatsappToUse.id, {
@@ -66,7 +69,10 @@ const CreateTicketService = async ({
     isGroup,
     userId,
     queueId,
-    lastMessageTimestamp
+    lastMessageTimestamp,
+    ...(isGroup && currentEtapaId === 5 && {
+      etapa_alta_assigned_at: new Date()
+    })
   });
 
   const defaultCategory = await Category.findOne({

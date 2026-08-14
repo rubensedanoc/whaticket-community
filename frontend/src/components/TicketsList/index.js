@@ -271,8 +271,11 @@ const TicketsList = (props) => {
     selectedClientelicenciaEtapaIds,
     advancedList,
     viewSource,
-    impersonatedUserId
+    impersonatedUserId,
+    selectedAltaDaysFilter = ""
   } = props;
+
+  const altaDaysFilter = status === "closed" ? "" : selectedAltaDaysFilter;
 
   console.log("[TicketsList] RENDER - selectedAccountManagerIds:", selectedAccountManagerIds);
 
@@ -314,7 +317,8 @@ const TicketsList = (props) => {
     JSON.stringify(selectedWaitingTimeRanges),
     showOnlyWaitingTickets,
     JSON.stringify(selectedClientelicenciaEtapaIds),
-    impersonatedUserId
+    impersonatedUserId,
+    altaDaysFilter
   ]);
 
   console.log("[TicketsList] Llamando useTickets con accountManagerIds:", JSON.stringify(selectedAccountManagerIds));
@@ -339,6 +343,7 @@ const TicketsList = (props) => {
     advancedList,
     viewSource,
     impersonatedUserId,
+    altaDaysFilter,
     waitingTimeRanges: selectedWaitingTimeRanges // ✅ Pasar filtro al backend
   });
 
@@ -469,6 +474,20 @@ const TicketsList = (props) => {
         selectedClientelicenciaEtapaIds?.some((id) => ticket.contact.traza_clientelicencia_currentetapaid === id)
       );
 
+      const etapaAltaAssignedAt = new Date(
+        ticket.etapa_alta_assigned_at
+      ).getTime();
+      const altaCutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
+      const altaDaysCondition =
+        !altaDaysFilter ||
+        (ticket.isGroup &&
+          ticket.contact?.traza_clientelicencia_currentetapaid === 5 &&
+          Boolean(ticket.etapa_alta_assigned_at) &&
+          Number.isFinite(etapaAltaAssignedAt) &&
+          (altaDaysFilter === "alta-15-or-less"
+            ? etapaAltaAssignedAt >= altaCutoff
+            : etapaAltaAssignedAt < altaCutoff));
+
       // Función auxiliar para calcular el timestamp hace N minutos
       const getNMinutesAgo = (minutes) => {
         return (Date.now() - minutes * 60 * 1000) / 1000; // Convertir a segundos
@@ -540,6 +559,7 @@ const TicketsList = (props) => {
             marketingCampaignCondition && ticketUserCondition)) &&
         categoryCondition && 
         clientelicenciaEtapaIdCondition &&
+        altaDaysCondition &&
         (!advancedList || (
           (advancedList === "no-response" && noResponseColCondition) ||
           (advancedList === "in-progress" && inProgressColCondition) ||
@@ -693,7 +713,8 @@ const TicketsList = (props) => {
     selectedWaitingTimeRanges,
     showOnlyMyGroups,
     showOnlyWaitingTickets,
-    selectedClientelicenciaEtapaIds
+    selectedClientelicenciaEtapaIds,
+    altaDaysFilter
   ]);
 
   // ✅ PAGINACIÓN TRADICIONAL - Reemplaza scroll infinito

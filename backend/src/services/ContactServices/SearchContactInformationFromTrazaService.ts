@@ -59,21 +59,49 @@ const SearchContactInformationFromTrazaService = async ({
 
   console.log("--- SearchContactInformationFromTrazaService: Updating contact with data from Traza", data);
 
-  const next_traza_clientelicencia_currentetapaid = data?.datos?.clientelicencia_currentetapaid || null;
+  const rawEtapaId = data?.datos?.clientelicencia_currentetapaid;
+  const hasNumericEtapaValue =
+    (typeof rawEtapaId === "number" || typeof rawEtapaId === "string") &&
+    String(rawEtapaId).trim() !== "";
+  const parsedEtapaId = hasNumericEtapaValue ? Number(rawEtapaId) : NaN;
 
-    const contactData: ContactData = {
-      traza_clientelicencia_currentetapaid: next_traza_clientelicencia_currentetapaid,
-    }
+  if (!Number.isInteger(parsedEtapaId) || parsedEtapaId <= 0) {
+    console.warn(
+      "--- SearchContactInformationFromTrazaService: Invalid etapa received from Traza",
+      rawEtapaId
+    );
+    return false;
+  }
 
-    UpdateContactService({ contactId: contactId + "", contactData, skipTrazaSync: true });
+  const contactData: ContactData = {
+    traza_clientelicencia_currentetapaid: parsedEtapaId
+  };
 
-    const ticketsToUpdate = await Ticket.findAll({
-      where: {
-        contactId: contactId,
-      }
+  try {
+    await UpdateContactService({
+      contactId: String(contactId),
+      contactData,
+      skipTrazaSync: true
     });
+  } catch (error) {
+    console.error(
+      "--- SearchContactInformationFromTrazaService: Error updating contact",
+      error
+    );
+    return false;
+  }
 
-    ticketsToUpdate.forEach(async (ticket) => {
+  const ticketsToUpdate = await Ticket.findAll({
+    where: {
+      contactId
+    }
+  });
+
+  // El procesamiento secuencial evita saturar la BD y aísla cada emit.
+  // eslint-disable-next-line no-restricted-syntax
+  for (const ticket of ticketsToUpdate) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
       const ticketWithAllData = await ShowTicketService(ticket.id, true);
 
       emitEvent({
@@ -86,7 +114,13 @@ const SearchContactInformationFromTrazaService = async ({
           }
         }
       });
-    });
+    } catch (error) {
+      console.error(
+        `--- SearchContactInformationFromTrazaService: Error emitting ticket ${ticket.id}`,
+        error
+      );
+    }
+  }
 
   return true;
 };
