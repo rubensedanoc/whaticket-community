@@ -136,9 +136,9 @@ const UpdateContactService = async ({
 
   if (traza_clientelicencia_id && !skipTrazaSync) {
     try {
-      SearchContactInformationFromTrazaService({
+      await SearchContactInformationFromTrazaService({
         contactId: contact.id
-      })
+      });
     } catch (error) {
       console.log("--- UpdateContactService: Error searching contact information from Traza", error);
     }

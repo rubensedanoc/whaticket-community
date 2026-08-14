@@ -1,4 +1,4 @@
-import { endOfDay, parseISO, startOfDay } from "date-fns";
+import { endOfDay, parseISO, startOfDay, subDays } from "date-fns";
 import {
   Filterable,
   Includeable,
@@ -38,6 +38,7 @@ interface Request {
   ticketsType?: string;
   profile?: string;
   waitingTimeRanges?: string[]; // ✅ Nuevo parámetro
+  altaDaysFilter?: string;
 }
 
 interface Response {
@@ -68,7 +69,8 @@ const buildWhereCondition = async ({
   viewSource,
   ticketsType,
   profile,
-  waitingTimeRanges
+  waitingTimeRanges,
+  altaDaysFilter
 }: Request): Promise<Filterable["where"]> => {
   
   // Inicio de buildWhereCondition
@@ -298,13 +300,31 @@ const buildWhereCondition = async ({
   }
   // NO filtrar automáticamente por beenWaitingSinceTimestamp cuando el filtro está desactivado
 
-  if (clientelicenciaEtapaIds.length) {
+  const hasAltaDaysFilter =
+    altaDaysFilter === "alta-15-or-less" ||
+    altaDaysFilter === "alta-15-or-more";
+
+  if (!hasAltaDaysFilter && clientelicenciaEtapaIds?.length) {
     baseCondition = {
       ...baseCondition,
       "$contact.traza_clientelicencia_currentetapaid$": {
         [Op.or]: clientelicenciaEtapaIds.includes(null)
           ? [clientelicenciaEtapaIds.filter(id => id !== null), null]
           : [clientelicenciaEtapaIds]
+      }
+    };
+  }
+
+  if (hasAltaDaysFilter) {
+    const cutoff = subDays(new Date(), 15);
+
+    baseCondition = {
+      ...baseCondition,
+      isGroup: true,
+      "$contact.traza_clientelicencia_currentetapaid$": 5,
+      etapa_alta_assigned_at: {
+        [Op.ne]: null,
+        [altaDaysFilter === "alta-15-or-less" ? Op.gte : Op.lt]: cutoff
       }
     };
   }
@@ -678,6 +698,7 @@ const buildIncludeConditionForCount = ({
   showOnlyMyGroups,
   typeIds,
   clientelicenciaEtapaIds,
+  altaDaysFilter,
 }: Request): Includeable[] => {
   const includeCondition: Includeable[] = [];
 
@@ -686,6 +707,7 @@ const buildIncludeConditionForCount = ({
   // ---------------------------------------------------------------
   const needsContact =
     Boolean(searchParam) ||
+    Boolean(altaDaysFilter) ||
     (clientelicenciaEtapaIds && clientelicenciaEtapaIds.length > 0);
 
   if (needsContact) {

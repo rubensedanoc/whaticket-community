@@ -49,6 +49,7 @@ import NotificationsList from "../NotificationsList";
 import NotificationsIcon from '@material-ui/icons/Notifications';
 import UsersSelect from "../UsersSelect";
 import WaitingTimeSelect from "../WaitingTimeSelect";
+import AltaDaysSelect from "../AltaDaysSelect";
 import HomeIcon from '@material-ui/icons/Home';
 import InputLabel from "@material-ui/core/InputLabel";
 
@@ -226,6 +227,7 @@ const TicketsManager = () => {
   }, [selectedAccountManagerIds]);
 
   const [selectedClientelicenciaEtapaIds, setSelectedClientelicenciaEtapaIds] = useState([]);
+  const [selectedAltaDaysFilter, setSelectedAltaDaysFilter] = useState("");
   const [canImpersonate, setCanImpersonate] = useState(false);
 
   // ✅ Referencias estables para las props de TicketsList. Sin useMemo, cada
@@ -353,6 +355,17 @@ const TicketsManager = () => {
       setSelectedWaitingTimeRanges(
         JSON.parse(localStorage.getItem("WaitingTimeRanges"))
       );
+
+    const storedAltaDaysFilter = JSON.parse(
+      localStorage.getItem("selectedAltaDaysFilter") || '""'
+    );
+    if (
+      storedAltaDaysFilter === "alta-15-or-less" ||
+      storedAltaDaysFilter === "alta-15-or-more"
+    ) {
+      setSelectedAltaDaysFilter(storedAltaDaysFilter);
+      setSelectedClientelicenciaEtapaIds([]);
+    }
   }, []);
 
   // useEffect(() => {
@@ -558,6 +571,8 @@ const TicketsManager = () => {
   };
 
   const onSelectTicketsCountChips = (selectedEtapa) => {
+    setSelectedAltaDaysFilter("");
+    localStorage.setItem("selectedAltaDaysFilter", JSON.stringify(""));
     setSelectedClientelicenciaEtapaIds(e => {
       // Si el chip ya está seleccionado, lo deseleccionamos (array vacío)
       if (e.includes(selectedEtapa)) {
@@ -785,6 +800,17 @@ const TicketsManager = () => {
               setSelectedWaitingTimeRanges(values);
             }}
           />
+          {isImplementacionesUser && tab !== "closed" && (
+            <AltaDaysSelect
+              value={selectedAltaDaysFilter}
+              onChange={(value) => {
+                setSelectedAltaDaysFilter(value);
+                if (value) {
+                  setSelectedClientelicenciaEtapaIds([]);
+                }
+              }}
+            />
+          )}
           {/* - WAITING TIME SELECT */}
           {/* MARKETING CAMPAIGN SELECT */}
           {getREACT_APP_PURPOSE() === "comercial" && (
@@ -1367,7 +1393,11 @@ const TicketsManager = () => {
           >
             {isImplementacionesUser ? (
               <>
-                {implementacionesEtapaColumns.map((etapa) => (
+                {implementacionesEtapaColumns
+                  .filter(
+                    (etapa) => !selectedAltaDaysFilter || etapa.id === 5
+                  )
+                  .map((etapa) => (
                   <TicketsList
                     key={etapa.id ?? "sin-etapa"}
                     status="open"
@@ -1382,6 +1412,7 @@ const TicketsManager = () => {
                     selectedTicketUsersIds={selectedTicketUsersIds}
                     selectedAccountManagerIds={selectedAccountManagerIds}
                     selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                    selectedAltaDaysFilter={selectedAltaDaysFilter}
                     selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                     ticketsType="etapa"
                     etapaLabel={etapa.label}
@@ -2377,6 +2408,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedAccountManagerIds={selectedAccountManagerIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                      selectedAltaDaysFilter={selectedAltaDaysFilter}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                       showOnlyWaitingTickets={showOnlyWaitingTickets}
                       ticketsType={"no-response"}
@@ -2401,6 +2433,7 @@ const TicketsManager = () => {
                       selectedTicketUsersIds={selectedTicketUsersIds}
                       selectedAccountManagerIds={selectedAccountManagerIds}
                       selectedWaitingTimeRanges={selectedWaitingTimeRanges}
+                      selectedAltaDaysFilter={selectedAltaDaysFilter}
                       selectedMarketingCampaignIds={selectedMarketingCampaignIds}
                       showOnlyWaitingTickets={showOnlyWaitingTickets}
                       ticketsType={"in-progress"}

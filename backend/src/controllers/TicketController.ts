@@ -49,6 +49,7 @@ type IndexQuery = {
   viewSource: string;
   impersonatedUserId?: string; // NUEVO: ID del usuario a impersonar
   waitingTimeRanges: string; // ✅ Nuevo
+  altaDaysFilter?: string;
 };
 
 interface TicketData {
@@ -85,7 +86,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     filterByUserQueue: filterByUserQueueStringified,
     clientelicenciaEtapaIds: clientelicenciaEtapaIdsStringified,
     viewSource,
-    waitingTimeRanges: waitingTimeRangesStringified // ✅ Nuevo
+    waitingTimeRanges: waitingTimeRangesStringified, // ✅ Nuevo
+    altaDaysFilter
   } = req.query as IndexQuery;
 
   const userId = req.user.id;
@@ -188,6 +190,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
       categoryId,
       showOnlyWaitingTickets,
       clientelicenciaEtapaIds,
+      altaDaysFilter,
       viewSource,
       waitingTimeRanges // ✅ Pasar al servicio
     });
@@ -266,7 +269,8 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
     ticketGroupType,
     viewSource,
     impersonatedUserId, // NUEVO: ID del usuario a impersonar (opcional)
-    waitingTimeRanges: waitingTimeRangesStringified // ✅ Nuevo
+    waitingTimeRanges: waitingTimeRangesStringified, // ✅ Nuevo
+    altaDaysFilter
   } = req.query as IndexQuery;
 
   // ⚠️ CRÍTICO: Por defecto usar el userId real (funciona como siempre)
@@ -414,6 +418,7 @@ export const advancedIndex = async (req: Request, res: Response): Promise<Respon
       categoryId,
       showOnlyWaitingTickets,
       clientelicenciaEtapaIds,
+      altaDaysFilter,
       ticketGroupType,
       viewSource,
       forceUserIdFilter: isImpersonationActive, // Solo forzar si impersonación fue exitosa

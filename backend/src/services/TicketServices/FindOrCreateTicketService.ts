@@ -88,6 +88,9 @@ const FindOrCreateTicketService = async (props: {
         unreadMessages,
         whatsappId,
         lastMessageTimestamp,
+        ...(groupContact?.traza_clientelicencia_currentetapaid === 5 && {
+          etapa_alta_assigned_at: new Date()
+        }),
         ...(chatbotMessageIdentifier && {
           chatbotMessageIdentifier
         }),
@@ -151,6 +154,9 @@ const FindOrCreateTicketService = async (props: {
           unreadMessages,
           whatsappId,
           lastMessageTimestamp,
+          ...(groupContact?.traza_clientelicencia_currentetapaid === 5 && {
+            etapa_alta_assigned_at: new Date()
+          }),
           ...(chatbotMessageIdentifier && {
             chatbotMessageIdentifier
           }),
@@ -297,7 +303,11 @@ const findTicket = async ({
       }),
       ...(userId && {
         userId
-      })
+      }),
+      ...(groupContact?.traza_clientelicencia_currentetapaid === 5 &&
+        !ticket.etapa_alta_assigned_at && {
+          etapa_alta_assigned_at: new Date()
+        })
     });
 
     if (categoriesIds) {
@@ -335,7 +345,11 @@ const findTicket = async ({
         ...(unreadMessages !== undefined && { unreadMessages }),
         ...(lastMessageTimestamp > ticket.lastMessageTimestamp && {
           lastMessageTimestamp
-        })
+        }),
+        ...(groupContact.traza_clientelicencia_currentetapaid === 5 &&
+          !ticket.etapa_alta_assigned_at && {
+            etapa_alta_assigned_at: new Date()
+          })
       });
     }
   }

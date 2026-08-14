@@ -613,20 +613,29 @@ export const updateFromTrazaByClientelicenciaId = async (
       }
     });
 
-    ticketsToUpdate.forEach(async (ticket) => {
-      const ticketWithAllData = await ShowTicketService(ticket.id, true);
+    // eslint-disable-next-line no-restricted-syntax
+    for (const ticket of ticketsToUpdate) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const ticketWithAllData = await ShowTicketService(ticket.id, true);
 
-      emitEvent({
-        to: [ticket.status],
-        event: {
-          name: "ticket",
-          data: {
-            action: "update",
-            ticket: ticketWithAllData
+        emitEvent({
+          to: [ticket.status],
+          event: {
+            name: "ticket",
+            data: {
+              action: "update",
+              ticket: ticketWithAllData
+            }
           }
-        }
-      });
-    });
+        });
+      } catch (error) {
+        console.error(
+          `Error emitting updated ticket ${ticket.id} from Traza update`,
+          error
+        );
+      }
+    }
   }
 
   return res.status(200).json({

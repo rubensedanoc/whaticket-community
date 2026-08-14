@@ -1,4 +1,4 @@
-import { endOfDay, parseISO, startOfDay } from "date-fns";
+import { endOfDay, parseISO, startOfDay, subDays } from "date-fns";
 import {
   Filterable,
   Includeable,
@@ -48,6 +48,7 @@ interface Request {
   forceUserIdFilter?: boolean;
 
   waitingTimeRanges?: string[]; // ✅ Nuevo
+  altaDaysFilter?: string;
 }
 
 interface Response {
@@ -82,7 +83,8 @@ const buildSpecialWhereCondition = ({
   showAll,
   viewSource,
   forceUserIdFilter,
-  waitingTimeRanges // ✅ Nuevo
+  waitingTimeRanges, // ✅ Nuevo
+  altaDaysFilter
 }: Request): Filterable["where"] => {
 
   // ============================================================
@@ -322,13 +324,30 @@ const buildSpecialWhereCondition = ({
     });
   }
 
+  const hasAltaDaysFilter =
+    altaDaysFilter === "alta-15-or-less" ||
+    altaDaysFilter === "alta-15-or-more";
+
   // Filtrado por clientelicenciaEtapaIds
-  if (clientelicenciaEtapaIds?.length) {
+  if (!hasAltaDaysFilter && clientelicenciaEtapaIds?.length) {
     (finalCondition[Op.and] as any[]).push({
       "$contact.traza_clientelicencia_currentetapaid$": {
         [Op.or]: clientelicenciaEtapaIds.includes(null)
           ? [clientelicenciaEtapaIds.filter(id => id !== null), null]
           : [clientelicenciaEtapaIds]
+      }
+    });
+  }
+
+  if (hasAltaDaysFilter) {
+    const cutoff = subDays(new Date(), 15);
+
+    (finalCondition[Op.and] as any[]).push({
+      isGroup: true,
+      "$contact.traza_clientelicencia_currentetapaid$": 5,
+      etapa_alta_assigned_at: {
+        [Op.ne]: null,
+        [altaDaysFilter === "alta-15-or-less" ? Op.gte : Op.lt]: cutoff
       }
     });
   }
@@ -647,6 +666,7 @@ const buildIncludeConditionForCount = ({
   showOnlyMyGroups,
   typeIds,
   clientelicenciaEtapaIds,
+  altaDaysFilter,
 }: Request): Includeable[] => {
   const includeCondition: Includeable[] = [];
 
@@ -655,6 +675,7 @@ const buildIncludeConditionForCount = ({
   // ---------------------------------------------------------------
   const needsContact =
     Boolean(searchParam) ||
+    Boolean(altaDaysFilter) ||
     (clientelicenciaEtapaIds && clientelicenciaEtapaIds.length > 0);
 
   if (needsContact) {

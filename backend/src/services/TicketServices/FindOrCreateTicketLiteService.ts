@@ -31,13 +31,25 @@ const FindOrCreateTicketLiteService = async (
     }
   });
 
+  const shouldSealEtapaAlta =
+    groupContact?.traza_clientelicencia_currentetapaid === 5;
+
   // if ticket exists, update his unreadMessages
-  if (ticket && (unreadMessages || lastMessageTimestamp)) {
+  if (
+    ticket &&
+    (unreadMessages ||
+      lastMessageTimestamp ||
+      (shouldSealEtapaAlta && !ticket.etapa_alta_assigned_at))
+  ) {
     await ticket.update({
       ...(ticket.unreadMessages !== unreadMessages && { unreadMessages }),
       ...(ticket.lastMessageTimestamp < (lastMessageTimestamp || 0) && {
         lastMessageTimestamp
-      })
+      }),
+      ...(shouldSealEtapaAlta &&
+        !ticket.etapa_alta_assigned_at && {
+          etapa_alta_assigned_at: new Date()
+        })
     });
   }
 
@@ -60,6 +72,10 @@ const FindOrCreateTicketLiteService = async (
         ...(lastMessageTimestamp &&
           ticket.lastMessageTimestamp < lastMessageTimestamp && {
             lastMessageTimestamp
+          }),
+        ...(groupContact.traza_clientelicencia_currentetapaid === 5 &&
+          !ticket.etapa_alta_assigned_at && {
+            etapa_alta_assigned_at: new Date()
           })
       });
     }
@@ -101,7 +117,10 @@ const FindOrCreateTicketLiteService = async (
       isGroup: !!groupContact,
       unreadMessages,
       whatsappId,
-      lastMessageTimestamp
+      lastMessageTimestamp,
+      ...(shouldSealEtapaAlta && {
+        etapa_alta_assigned_at: new Date()
+      })
     });
   }
 

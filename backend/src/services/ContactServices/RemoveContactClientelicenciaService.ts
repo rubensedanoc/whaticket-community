@@ -70,9 +70,9 @@ const RemoveContactClientelicenciaService = async ({
   });
 
   try {
-    SearchContactInformationFromTrazaService({
+    await SearchContactInformationFromTrazaService({
       contactId: contact.id
-    })
+    });
   } catch (error) {
     console.log("--- UpdateContactService: Error searching contact information from Traza", error);
   }
