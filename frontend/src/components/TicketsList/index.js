@@ -276,6 +276,10 @@ const TicketsList = (props) => {
   } = props;
 
   const altaDaysFilter = status === "closed" ? "" : selectedAltaDaysFilter;
+  const effectiveSelectedTypeIds = useMemo(
+    () => (altaDaysFilter ? ["group"] : selectedTypeIds || []),
+    [altaDaysFilter, selectedTypeIds]
+  );
 
   console.log("[TicketsList] RENDER - selectedAccountManagerIds:", selectedAccountManagerIds);
 
@@ -310,7 +314,7 @@ const TicketsList = (props) => {
     JSON.stringify(selectedWhatsappIds),
     JSON.stringify(selectedQueueIds),
     JSON.stringify(selectedMarketingCampaignIds),
-    JSON.stringify(selectedTypeIds),
+    JSON.stringify(effectiveSelectedTypeIds),
     JSON.stringify(selectedTicketUsersIds),
     JSON.stringify(selectedAccountManagerIds),
     // ✅ AHORA SÍ incluir selectedWaitingTimeRanges porque afecta la query al backend
@@ -332,7 +336,7 @@ const TicketsList = (props) => {
     queueIds: JSON.stringify(selectedQueueIds),
     clientelicenciaEtapaIds: JSON.stringify(selectedClientelicenciaEtapaIds),
     marketingCampaignIds: JSON.stringify(selectedMarketingCampaignIds),
-    typeIds: JSON.stringify(selectedTypeIds),
+    typeIds: JSON.stringify(effectiveSelectedTypeIds),
     ticketUsersIds: JSON.stringify(selectedTicketUsersIds),
     accountManagerIds: JSON.stringify(selectedAccountManagerIds),
     showOnlyMyGroups,
@@ -416,8 +420,8 @@ const TicketsList = (props) => {
       const noSearchParamCondition = !searchParam;
 
       const TypeCondition =
-        (!ticket.isGroup && selectedTypeIds?.includes("individual")) ||
-        (ticket.isGroup && selectedTypeIds?.includes("group"));
+        (!ticket.isGroup && effectiveSelectedTypeIds.includes("individual")) ||
+        (ticket.isGroup && effectiveSelectedTypeIds.includes("group"));
 
       const userCondition =
         (!ticket.isGroup &&
@@ -456,12 +460,12 @@ const TicketsList = (props) => {
 
       const ignoreConditions =
         (!ticket.isGroup &&
-          selectedTypeIds.length === 1 &&
-          selectedTypeIds[0] === "individual" &&
+          effectiveSelectedTypeIds.length === 1 &&
+          effectiveSelectedTypeIds[0] === "individual" &&
           !showAll) ||
         (ticket.isGroup &&
-          selectedTypeIds.length === 1 &&
-          selectedTypeIds[0] === "group" &&
+          effectiveSelectedTypeIds.length === 1 &&
+          effectiveSelectedTypeIds[0] === "group" &&
           showOnlyMyGroups);
 
       const categoryCondition =
@@ -707,7 +711,7 @@ const TicketsList = (props) => {
     showAll,
     user,
     selectedQueueIds,
-    selectedTypeIds,
+    effectiveSelectedTypeIds,
     selectedWhatsappIds,
     selectedTicketUsersIds,
     selectedWaitingTimeRanges,
