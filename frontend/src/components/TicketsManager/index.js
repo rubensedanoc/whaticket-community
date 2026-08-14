@@ -179,9 +179,9 @@ const TicketsManager = () => {
   const { user } = useContext(AuthContext);
 
   const userQueueIds = [...user.queues.map((q) => q.id), null];
-  const isImplementacionesUser = user?.queues?.some(
-    (q) => q.id === IMPLEMENTACIONES_QUEUE_ID
-  );
+  const isImplementacionesUser =
+    Number(user?.id) === 1 ||
+    user?.queues?.some((q) => q.id === IMPLEMENTACIONES_QUEUE_ID);
   const { whatsApps } = useContext(WhatsAppsContext);
   const [selectedWhatsappIds, setSelectedWhatsappIds] = useState([]);
   const [principalTicketType, setPrincipalTicketType] = useState("");
