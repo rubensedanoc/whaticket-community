@@ -104,46 +104,70 @@ const SendExternalWhatsAppMessageAddon = async ({
       throw new Error("ERR_PUPPAGE_NOT_AVAILABLE");
     }
 
-    const numberId = await wbot.getNumberId(`${cleanToNumber}@c.us`);
-    if (!numberId) {
-      throw new Error(`ERR_NUMBER_NOT_FOUND: ${cleanToNumber}`);
-    }
-    const destinationId = numberId._serialized;
-    result.logs.push(`[wbot-addon] ID destino: ${destinationId}`);
-
     sendMessageRequest = await SendMessageRequest.create({
       fromNumber,
       toNumber: cleanToNumber,
       message
     });
 
-    let sentMessage;
-    if (mediaUrl) {
-      const media = await MessageMedia.fromUrl(mediaUrl);
-      sentMessage = await wbot.sendMessage(destinationId, media, {
-        caption: message,
+    const sendMessageToId = async (destinationId: string) => {
+      if (mediaUrl) {
+        const media = await MessageMedia.fromUrl(mediaUrl);
+        return wbot.sendMessage(destinationId, media, {
+          caption: message,
+          linkPreview: false
+        });
+      }
+      return wbot.sendMessage(destinationId, message, {
         linkPreview: false
       });
-    } else {
-      sentMessage = await wbot.sendMessage(destinationId, message, {
-        linkPreview: false
-      });
-    }
+    };
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const refreshAndValidate = async (msg: any) => {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      try {
+        const updatedMessage = await wbot.getMessageById(msg.id._serialized);
+        if (updatedMessage) return updatedMessage;
+      } catch (refreshError) {
+        result.logs.push(`[wbot-addon] No se pudo refrescar mensaje: ${(refreshError as any)?.message}`);
+      }
+
+      return msg;
+    };
+
+    let sentMessage;
+    let usedDestinationId = `${cleanToNumber}@c.us`;
 
     try {
-      const updatedMessage = await wbot.getMessageById(sentMessage.id._serialized);
-      if (updatedMessage) sentMessage = updatedMessage;
-    } catch (refreshError) {
-      result.logs.push(`[wbot-addon] No se pudo refrescar mensaje: ${(refreshError as any)?.message}`);
+      result.logs.push(`[wbot-addon] Enviando a @c.us: ${usedDestinationId}`);
+      sentMessage = await sendMessageToId(usedDestinationId);
+      sentMessage = await refreshAndValidate(sentMessage);
+    } catch (firstSendError) {
+      result.logs.push(`[wbot-addon] Fallo envio inicial a @c.us: ${(firstSendError as any)?.message}`);
+      sentMessage = null;
     }
 
-    if (sentMessage.ack === -1) {
+    if (!sentMessage || sentMessage.ack === -1) {
+      const numberId = await wbot.getNumberId(`${cleanToNumber}@c.us`);
+      if (!numberId) {
+        throw new Error(`ERR_NUMBER_NOT_FOUND: ${cleanToNumber}`);
+      }
+
+      const lidDestinationId = numberId._serialized;
+      if (lidDestinationId !== usedDestinationId) {
+        usedDestinationId = lidDestinationId;
+        result.logs.push(`[wbot-addon] Reintentando con ID alternativo: ${usedDestinationId}`);
+        sentMessage = await sendMessageToId(usedDestinationId);
+        sentMessage = await refreshAndValidate(sentMessage);
+      }
+    }
+
+    if (!sentMessage || sentMessage.ack === -1) {
       throw new Error("ERR_ACK_REJECTED");
     }
 
-    result.logs.push(`[wbot-addon] Mensaje enviado - ACK: ${sentMessage.ack}`);
+    result.logs.push(`[wbot-addon] Mensaje enviado - ACK: ${sentMessage.ack} (${usedDestinationId})`);
     result.data = sentMessage;
 
     await sendMessageRequest.update({ status: "sent" });
