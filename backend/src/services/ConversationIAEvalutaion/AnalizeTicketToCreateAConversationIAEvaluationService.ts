@@ -10,6 +10,7 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import Whatsapp from "../../models/Whatsapp";
 import { Op } from "sequelize";
+import getAIChatCompletion from "./AIChatCompletionService";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -251,53 +252,13 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
       - Antes de finalizar tu respuesta, asegúrate de que el JSON sea parseable por JSON.parse().
     `;
 
-    const firstIARequest = await fetch(
-      "https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          "model": "gpt-4.1",
-          "messages": [
-            {
-              "role": "user",
-              "content": [
-                {
-                  "type": "file",
-                  "file": {
-                    "file_id": "file-JgfAgvp3Fm9zZUV1Qnr3Ht"
-                  }
-                },
-                {
-                  "type": "file",
-                  "file": {
-                    "file_id": "file-BoNnhpeGjGbDQRRLjNBrLh"
-                  }
-                },
-                {
-                  "type": "text",
-                  "text": firstPrompt
-                }
-              ]
-            }
-          ]
-        })
-      }
-    );
-
-    if (!firstIARequest.ok) {
-      throw new Error("Error en la petición a OpenAI: " + firstIARequest.statusText);
-    }
-
-    const firstIAResponse = await firstIARequest.json();
+    const firstIAResponseContent = await getAIChatCompletion(firstPrompt);
 
     response.messages.push(`--- firstIAResponse ---`);
 
-    response.data = firstIAResponse;
+    response.data = firstIAResponseContent;
 
-    const firstIAResponseData = JSON.parse(firstIAResponse.choices[0].message.content);
+    const firstIAResponseData = JSON.parse(firstIAResponseContent);
 
     const secondPrompt = `
       Eres un asistente experto en análisis de conversaciones del área de implementaciones de la empresa Restaurant.pe. A continuación, se te proporciona:
@@ -404,54 +365,13 @@ const AnalizeTicketToCreateAConversationIAEvaluationService = async ({
 
     await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 1 segundo para evitar problemas de límite de tasa
 
-    const secondIARequest = await fetch(
-      "https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          "model": "gpt-4.1",
-          "messages": [
-            {
-              "role": "user",
-              // "content": secondPrompt,
-              "content": [
-                {
-                  "type": "file",
-                  "file": {
-                    "file_id": "file-JgfAgvp3Fm9zZUV1Qnr3Ht"
-                  }
-                },
-              {
-                  "type": "file",
-                  "file": {
-                    "file_id": "file-BoNnhpeGjGbDQRRLjNBrLh"
-                  }
-                },
-                {
-                  "type": "text",
-                  "text": secondPrompt
-                }
-              ]
-            }
-          ]
-        })
-      }
-    );
+    const secondIAResponseContent = await getAIChatCompletion(secondPrompt);
 
-    if (!secondIARequest.ok) {
-      throw new Error("Error en la petición a OpenAI: " + secondIARequest.statusText);
-    }
+    response.messages.push(`--- secondIAResponse ---`);
 
-    const secondIAResponse = await secondIARequest.json();
+    response.data = secondIAResponseContent;
 
-    response.messages.push(`--- firstIAResponse ---`);
-
-    response.data = secondIAResponse;
-
-    const secondIAResponseData = JSON.parse(secondIAResponse.choices[0].message.content);
+    const secondIAResponseData = JSON.parse(secondIAResponseContent);
 
     const newConversationIAEvalutaion = await ConversationIAEvalutaion.create({
       ticketId: ticket.id,
