@@ -30,6 +30,8 @@ import {
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const REPORT_TIME_ZONE = "America/Lima";
+
 type IndexQuery = {
   fromDate: string;
   toDate: string;
@@ -1617,9 +1619,11 @@ export const reportToExcelPublic = async (
     selectedQueueIds: selectedQueueIdsAsString = '[]'
   } = req.query as any;
 
-  const targetDate = dateParam ? dayjs(dateParam as string) : dayjs();
-  const fromDate = targetDate.format("YYYY-MM-DD[T]00:00:00-05:00");
-  const toDate = targetDate.format("YYYY-MM-DD[T]23:59:59-05:00");
+  const targetDate = dateParam
+    ? dayjs.tz(dateParam as string, REPORT_TIME_ZONE)
+    : dayjs().tz(REPORT_TIME_ZONE);
+  const fromDate = targetDate.startOf("day").format("YYYY-MM-DD[T]HH:mm:ssZ");
+  const toDate = targetDate.endOf("day").format("YYYY-MM-DD[T]HH:mm:ssZ");
 
   const result = await processReportData(
     fromDate,
