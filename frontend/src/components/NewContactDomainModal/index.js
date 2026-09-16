@@ -83,6 +83,17 @@ const NewContactDomainModal = ({ modalOpen, onClose, contact }) => {
       );
 
       console.log("handleSaveRelation: ", data);
+
+      // El microservicio responde 200 incluso en error; tipo "1" es éxito
+      if (String(data?.tipo) !== "1") {
+        const mensajes = data?.mensajes?.length
+          ? data.mensajes.join(", ")
+          : "No se pudo relacionar el dominio";
+        toast.error(mensajes);
+        setLoading(false);
+        return;
+      }
+
       toast("Dominio relacionado con éxito", { type: "success" });
       setLoading(false);
       handleClose();
