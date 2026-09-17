@@ -473,6 +473,8 @@ const messages = {
           "La creación de usuarios fue deshabilitada por el administrador.",
         ERR_NO_PERMISSION: "No tienes permiso para acceder a este recurso.",
         ERR_DUPLICATED_CONTACT: "Ya existe un contacto con este número.",
+        ERR_CONTACT_NUMBER_WITHOUT_COUNTRY_CODE:
+          "El número debe incluir el código de país (ej. 51987654321). Verifica el número e intenta de nuevo.",
         ERR_NO_SETTING_FOUND:
           "No se encontró ninguna configuración con este ID.",
         ERR_NO_CONTACT_FOUND: "No se encontró ningún contacto con este ID.",

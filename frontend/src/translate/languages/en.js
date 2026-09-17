@@ -445,6 +445,8 @@ const messages = {
           "User creation was disabled by administrator.",
         ERR_NO_PERMISSION: "You don't have permission to access this resource.",
         ERR_DUPLICATED_CONTACT: "A contact with this number already exists.",
+        ERR_CONTACT_NUMBER_WITHOUT_COUNTRY_CODE:
+          "The number must include the country code (e.g. 51987654321). Please check it and try again.",
         ERR_NO_SETTING_FOUND: "No setting found with this ID.",
         ERR_NO_CONTACT_FOUND: "No contact found with this ID.",
         ERR_NO_TICKET_FOUND: "No ticket found with this ID.",
