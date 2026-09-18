@@ -18,7 +18,7 @@ import CheckSettingsHelper from "./helpers/CheckSettings";
 import ConversationIAEvalutaion from "./models/ConversationIAEvalutaion";
 import ContactClientelicencia from "./models/ContactClientelicencias";
 import AnalizeTicketToCreateAConversationIAEvaluationService from "./services/ConversationIAEvalutaion/AnalizeTicketToCreateAConversationIAEvaluationService";
-import { sendGoogleChatError } from "./helpers/SendGoogleChatLog";
+import { sendGoogleChatError, sendGoogleChatInfo } from "./helpers/SendGoogleChatLog";
 
 const server = app.listen(process.env.PORT, () => {
   const memUsage = process.memoryUsage();
@@ -413,6 +413,58 @@ cron.schedule('*/5 * * * *', async () => {
   const CheckExpiredChatbotSessions = (await import("./services/CronJobs/CheckExpiredChatbotSessions")).default;
   await CheckExpiredChatbotSessions('soporte');
 });
+
+// CRON FOR AUDITING CONTACT NUMBERS WITHOUT COUNTRY PREFIX
+// Solo lectura: detecta contactos sin prefijo de país y duplicados con/sin prefijo.
+// La fusión NO se automatiza (borra contactos): se corre a mano con `npm run contacts:merge`.
+// Lunes 06:00 hora de Lima
+cron.schedule('0 6 * * 1', async () => {
+  const cronStartTime = Date.now();
+  logger.info(`[${new Date().toISOString()}] CRON START auditContactNumbers`);
+
+  try {
+    const AuditContactNumbers = (await import("./services/CronJobs/AuditContactNumbers")).default;
+    const { totalContacts, withoutPrefix, duplicatePairs, onlyOrphans } = await AuditContactNumbers();
+
+    const cronElapsed = Date.now() - cronStartTime;
+    logger.info(
+      `[${new Date().toISOString()}] CRON END auditContactNumbers - analizados: ${totalContacts}, sin prefijo: ${withoutPrefix.length}, duplicados: ${duplicatePairs.length}, huérfanos: ${onlyOrphans.length} - elapsed: ${cronElapsed}ms`
+    );
+
+    if (withoutPrefix.length === 0) {
+      return;
+    }
+
+    const pairsDetail = duplicatePairs
+      .slice(0, 20)
+      .map(pair => `#${pair.orphan.id} ${pair.orphan.number} -> #${pair.canonical.id} ${pair.canonical.number}`)
+      .join("\n");
+
+    await sendGoogleChatInfo(
+      "CRON auditContactNumbers",
+      `${withoutPrefix.length} contacto(s) sin prefijo de país válido sobre ${totalContacts} analizados.
+Pares duplicados (fusionables con contacts:merge): ${duplicatePairs.length}
+Sin gemelo canónico (revisar a mano): ${onlyOrphans.length}${
+        pairsDetail
+          ? `\n${pairsDetail}${duplicatePairs.length > 20 ? `\n... y ${duplicatePairs.length - 20} más` : ""}`
+          : ""
+      }`
+    );
+  } catch (error) {
+    const cronElapsed = Date.now() - cronStartTime;
+    logger.error(
+      `[${new Date().toISOString()}] CRON ERROR auditContactNumbers - elapsed: ${cronElapsed}ms`,
+      error
+    );
+    Sentry.captureException(error);
+
+    sendGoogleChatError({
+      service: "CRON auditContactNumbers",
+      error: "Error en CRON de auditoría de números de contacto",
+      details: `${error?.message || error?.toString()} - Tiempo: ${cronElapsed}ms`
+    });
+  }
+}, { timezone: "America/Lima" });
 
 // Every minute of every hour of the day
 // cron.schedule('0 * * * *', async () => {

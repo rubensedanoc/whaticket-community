@@ -106,7 +106,51 @@ npm run contacts:audit -- --csv > auditoria.csv   # para Excel
 Reporta contactos sin prefijo válido, cuáles tienen un gemelo canónico y cuántos tickets y
 mensajes cuelga cada uno.
 
-Equivalente rápido en SQL, para phpMyAdmin:
+### 4.1 En Docker
+
+Desde la raíz del repo (donde está `docker-compose.yaml`). El `WORKDIR` de la imagen ya es
+`/usr/src/app`, así que **no** hace falta `cd backend`:
+
+```bash
+# reporte en consola
+docker compose exec backend npm run contacts:audit
+
+# equivalente sin ts-node-dev: usa el build que el Dockerfile ya compiló
+docker compose exec backend node dist/scripts/auditContactNumbers.js
+```
+
+Para el CSV hay dos detalles que importan:
+
+- `-T` desactiva el TTY; si no, Docker mete caracteres de control en el archivo.
+- `npm run` imprime el banner `> backend@1.0.0 contacts:audit` en **stdout** y corrompe la
+  primera línea del CSV. Se evita con `--silent` o llamando a `node` directo.
+
+```bash
+docker compose exec -T backend npm run --silent contacts:audit -- --csv > auditoria.csv
+
+# o, sin riesgo de banner:
+docker compose exec -T backend node dist/scripts/auditContactNumbers.js --csv > auditoria.csv
+```
+
+El archivo queda en el host, en el directorio desde donde se corrió el comando.
+
+Si el stack está apagado, `run --rm` levanta un contenedor efímero con la misma red y las
+mismas variables de entorno, sin tocar el backend en producción:
+
+```bash
+docker compose run --rm --no-deps backend node dist/scripts/auditContactNumbers.js
+```
+
+Y para trabajar adentro del contenedor:
+
+```bash
+docker compose exec backend bash   # ya estás en /usr/src/app
+npm run contacts:audit
+```
+
+### 4.2 Equivalente rápido en SQL
+
+Para consultar desde phpMyAdmin (`http://localhost:9000` con el stack levantado):
 
 ```sql
 -- Pares duplicados: el mismo número con y sin prefijo
@@ -157,9 +201,91 @@ y borra el duplicado. Cada par corre en su propia transacción: si choca contra 
 > casos con historial grande y recién después correr el `--apply` general. **Hacer backup
 > de la base antes del `--apply`.**
 
+### 5.1 En Docker
+
+Backup primero, desde el contenedor de la base (el `--apply` borra contactos):
+
+```bash
+docker compose exec -T mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' > backup-antes-merge.sql
+```
+
+```bash
+docker compose exec backend npm run contacts:merge                       # DRY RUN
+docker compose exec backend npm run contacts:merge -- --pair=1042:1310   # DRY RUN de un par
+docker compose exec backend npm run contacts:merge -- --pair=1042:1310 --apply
+docker compose exec backend npm run contacts:merge -- --apply            # todos los pares
+```
+
 ---
 
-## 6. Configuración
+## 6. Cronjob semanal de auditoría
+
+La auditoría corre sola usando la infraestructura de cron que ya tenía el proyecto
+(`node-cron` + `backend/src/services/CronJobs/`), igual que `CheckExpiredChatbotSessions`.
+
+### 6.1 Qué se implementó
+
+- `backend/src/services/CronJobs/AuditContactNumbers.ts` — la detección, extraída del
+  script. Es **solo lectura**, no imprime y no llama a `process.exit`: devuelve
+  `{ totalContacts, withoutPrefix, duplicatePairs, onlyOrphans }`. Un `process.exit` dentro
+  de un cron mataría el backend entero, por eso la lógica no podía quedar en el script.
+- `backend/src/scripts/auditContactNumbers.ts` — quedó como wrapper delgado: llama al
+  servicio y se encarga solo de la salida en consola / CSV. Los comandos de la sección 4
+  no cambian.
+- `backend/src/server.ts` — registro del cron, **lunes 06:00 hora de Lima**:
+
+```ts
+// Lunes 06:00 hora de Lima
+cron.schedule('0 6 * * 1', async () => {
+  const AuditContactNumbers = (await import("./services/CronJobs/AuditContactNumbers")).default;
+  const { totalContacts, withoutPrefix, duplicatePairs, onlyOrphans } = await AuditContactNumbers();
+  // ...loguea el resumen y, si withoutPrefix.length > 0, avisa por Google Chat
+}, { timezone: "America/Lima" });
+```
+
+El `timezone` explícito es necesario: `node-cron` usa la zona horaria del contenedor, y el
+servicio `backend` del compose **no** define `TZ` (solo `mysql` lo hace), así que corre en
+UTC. `America/Lima` es la convención del resto del proyecto (`REPORT_TIME_ZONE` en
+`ReportsController.ts`).
+
+### 6.2 Qué reporta
+
+Si no hay contactos sin prefijo, solo deja la línea de log y no molesta a nadie. Si hay,
+manda un `sendGoogleChatInfo` con el conteo de sin-prefijo, de pares fusionables y de
+huérfanos sin gemelo, más el detalle de los primeros 20 pares. Los errores del propio cron
+van a `logger.error` + Sentry + `sendGoogleChatError`, como los demás crons.
+
+En los logs del contenedor se ve así:
+
+```bash
+docker compose logs -f backend | grep auditContactNumbers
+```
+
+### 6.3 Por qué la fusión no se automatiza
+
+`contacts:merge --apply` borra contactos y reapunta `contactId` en todas las tablas que
+referencian `Contacts`. Eso se corre a mano, con backup y después de revisar el CSV. El
+cron solo avisa que aparecieron duplicados nuevos.
+
+Si alguna vez se quiere automatizar, el paso intermedio razonable es un flag que fusione
+únicamente pares donde el contacto sin prefijo tenga 0 tickets y 0 mensajes: ahí no hay
+historial que perder.
+
+### 6.4 Alternativa: cron del host
+
+No es la opción elegida, queda documentada por si hace falta correr la auditoría sin
+redeployar. Los scripts terminan con `process.exit`, así que funcionan tal cual en un
+`crontab` del servidor:
+
+```cron
+0 6 * * 1 cd /ruta/al/whaticket-community && docker compose exec -T backend node dist/scripts/auditContactNumbers.js --csv > /var/log/whaticket/auditoria-$(date +\%F).csv 2>&1
+```
+
+Desventaja: queda fuera del repo y hay que replicarlo en cada servidor.
+
+---
+
+## 7. Configuración
 
 | Variable | Default | Para qué |
 |---|---|---|
@@ -171,7 +297,7 @@ también ahí; si no, cae a un rango permisivo de 7 a 11 dígitos.
 
 ---
 
-## 7. Límites conocidos
+## 8. Límites conocidos
 
 - La validación depende de la tabla `Countries`. Un país que no esté cargado no se puede
   reconocer como prefijo válido.
