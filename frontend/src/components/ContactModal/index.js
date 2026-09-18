@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { ListItemText } from "@material-ui/core";
 import Button from "@material-ui/core/Button";
@@ -58,14 +58,34 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const ContactSchema = Yup.object().shape({
-  name: Yup.string()
-    .min(2, "Too Short!")
-    .max(50, "Too Long!")
-    .required("Required"),
-  number: Yup.string().min(8, "Too Short!").max(50, "Too Long!"),
-  email: Yup.string().email("Invalid email"),
-});
+// El contacto se guarda siempre con prefijo de país: sin él se terminan creando dos
+// contactos para el mismo cliente (987654321 y 51987654321) y la conversación se parte
+// en dos tickets distintos.
+const buildContactSchema = (countries) =>
+  Yup.object().shape({
+    name: Yup.string()
+      .min(2, "Too Short!")
+      .max(50, "Too Long!")
+      .required("Required"),
+    number: Yup.string()
+      .min(8, "Too Short!")
+      .max(50, "Too Long!")
+      .test(
+        "country-prefix",
+        "El número debe incluir el código de país (ej. 51987654321)",
+        (value) => {
+          if (!value) return true;
+          if (!countries?.length) return true;
+
+          const digits = String(value).replace(/\D/g, "");
+
+          return countries.some((country) =>
+            digits.startsWith(String(country.code).replace(/\D/g, ""))
+          );
+        }
+      ),
+    email: Yup.string().email("Invalid email"),
+  });
 
 const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
   const classes = useStyles();
@@ -80,6 +100,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 
   const [contact, setContact] = useState(initialState);
   const [countries, setCountries] = useState([]);
+  const contactSchema = useMemo(() => buildContactSchema(countries), [countries]);
   const [chooseCountryId, setChooseCountryId] = useState(null);
   const [newContactDomainModal, setNewContactDomainModal] = useState(false);
   const [isCompanyMember, setIsCompanyMember] = useState(false);
@@ -184,7 +205,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
             ...(!contact.domain && { domain: "" }),
           }}
           enableReinitialize={true}
-          validationSchema={ContactSchema}
+          validationSchema={contactSchema}
           onSubmit={(values, actions) => {
             setTimeout(async () => {
               await handleSaveContact(values);
@@ -215,7 +236,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
                   name="number"
                   error={touched.number && Boolean(errors.number)}
                   helperText={touched.number && errors.number}
-                  placeholder="5513912344321"
+                  placeholder="51987654321"
                   variant="outlined"
                   margin="dense"
                 />

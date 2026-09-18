@@ -956,10 +956,20 @@ const handleMessage = async ({
           }
         }
         for await (const ob of obj) {
-          const cont = await CreateContactService({
-            name: contact,
-            number: ob.number.replace(/\D/g, "")
-          });
+          try {
+            // Los vcards suelen traer el número en formato nacional; se pasa la conexión
+            // para poder completar el prefijo de país con el país de esa conexión.
+            await CreateContactService({
+              name: contact,
+              number: ob.number.replace(/\D/g, ""),
+              whatsappId: whatsapp.id
+            });
+          } catch (error) {
+            console.log(
+              `[handleMessage] No se pudo crear el contacto del vcard ${ob.number}:`,
+              error?.message || error
+            );
+          }
         }
       } catch (error) {
         console.log(error);

@@ -1,8 +1,7 @@
-import { QueryTypes } from "sequelize";
 import { emitEvent } from "../../libs/emitEvent";
 import { getIO } from "../../libs/socket";
 import Contact from "../../models/Contact";
-import Country from "../../models/Country";
+import NormalizePhoneNumber from "../../helpers/NormalizePhoneNumber";
 
 interface ExtraInfo {
   name: string;
@@ -27,6 +26,19 @@ const CreateOrUpdateContactService = async ({
   extraInfo = []
 }: Request): Promise<Contact> => {
   const number = isGroup ? rawNumber : rawNumber.replace(/[^0-9]/g, "");
+
+  // Los números que entran por aquí vienen de WhatsApp, así que ya son canónicos. No se
+  // rechazan (eso haría perder mensajes entrantes), pero sí se deja rastro cuando alguno
+  // llega sin un prefijo de país reconocible, para que la auditoría lo levante.
+  if (!isGroup) {
+    const normalized = await NormalizePhoneNumber(number);
+
+    if (!normalized) {
+      console.warn(
+        `[CreateOrUpdateContact] Número sin prefijo de país reconocible: ${number}`
+      );
+    }
+  }
 
   const io = getIO();
   let contact: Contact | null;
@@ -146,19 +158,18 @@ const CreateOrUpdateContactService = async ({
   return contact;
 };
 
+/**
+ * Devuelve el countryId del número, o undefined si no se puede determinar.
+ *
+ * Usa `NormalizePhoneNumber`, que valida prefijo + largo nacional. La versión anterior
+ * solo comparaba `startsWith(country.code)` sobre el código crudo de la tabla, lo que
+ * clasificaba mal dos casos: los códigos guardados con guion ("1-809" nunca calzaba) y
+ * los números sin prefijo (987654321 quedaba como Irán por el "98").
+ */
 export const getCountryIdOfNumber = async (number: string) => {
-  const allCountries: Country[] = await Country.sequelize.query(
-    "SELECT * FROM Countries c ORDER BY LENGTH(c.code) DESC ",
-    { type: QueryTypes.SELECT }
-  );
+  const normalized = await NormalizePhoneNumber(number);
 
-  // console.log("---- allCountries: ", allCountries);
-
-  for (const country of allCountries) {
-    if (number.startsWith(country.code)) {
-      return country.id;
-    }
-  }
+  return normalized?.countryId;
 };
 
 export default CreateOrUpdateContactService;

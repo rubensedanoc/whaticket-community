@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as Yup from "yup";
 
 import CreateContactService from "../services/ContactServices/CreateContactService";
+import ResolveContactNumberService from "../services/ContactServices/ResolveContactNumberService";
 import DeleteContactService from "../services/ContactServices/DeleteContactService";
 import ListContactsService from "../services/ContactServices/ListContactsService";
 import ShowContactService from "../services/ContactServices/ShowContactService";
@@ -21,7 +22,6 @@ import Whatsapp from "../models/Whatsapp";
 import GetContactService from "../services/ContactServices/GetContactService";
 import GetDefaultWhatsApp from "../helpers/GetDefaultWhatsApp";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
-import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 // ⚠️ Import mantenido para evitar errores de TypeScript, pero función comentada en uso
 import { getClientTimeWaitingForTickets } from "./ReportsController";
@@ -100,20 +100,33 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message);
   }
 
+  // El número se resuelve SIEMPRE a su forma con prefijo de país antes de cualquier otra
+  // cosa: si no se puede resolver, ResolveContactNumberService corta acá y el contacto no
+  // se crea sin prefijo. La validación contra wbot solo aplica a conexiones
+  // whatsapp-web.js; las conexiones Meta no tienen forma de verificar el número.
   let validNumber = newContact.number;
   let profilePicUrl = "";
+  let resolvedCountryId = newContact.countryId;
+
+  const userId = parseInt(req.user.id);
+  const defaultWhatsapp = await GetDefaultWhatsApp(userId);
+  const apiType = defaultWhatsapp.apiType || "whatsapp-web.js";
+
+  const resolved = await ResolveContactNumberService({
+    number: newContact.number,
+    whatsappId: defaultWhatsapp.id
+  });
+
+  validNumber = resolved.number;
+  resolvedCountryId = newContact.countryId || resolved.countryId;
+
+  console.log(
+    `[ContactController.store] Using WhatsApp for user ${userId}: ${defaultWhatsapp.name} (apiType: ${apiType})`
+  );
 
   try {
-    const userId = parseInt(req.user.id);
-    const defaultWhatsapp = await GetDefaultWhatsApp(userId);
-    const apiType = defaultWhatsapp.apiType || "whatsapp-web.js";
-
-    console.log(`[ContactController.store] Using WhatsApp for user ${userId}: ${defaultWhatsapp.name} (apiType: ${apiType})`);
-
     if (apiType === "whatsapp-web.js") {
-      await CheckIsValidContact(newContact.number);
-      const checkedNumber: any = await CheckContactNumber(newContact.number);
-      validNumber = checkedNumber;
+      await CheckIsValidContact(validNumber);
       profilePicUrl = await GetProfilePicUrl(validNumber);
     } else {
       console.log("[ContactController.store] Meta API detected - skipping wbot validation");
@@ -126,7 +139,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   let number = validNumber;
   let email = newContact.email;
   let extraInfo = newContact.extraInfo;
-  let countryId = newContact.countryId;
+  let countryId = resolvedCountryId;
 
   const contact = await CreateContactService({
     name,
@@ -134,7 +147,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     email,
     extraInfo,
     profilePicUrl,
-    countryId
+    countryId,
+    askWhatsapp: false
   });
 
   emitEvent({

@@ -1,7 +1,7 @@
 import { Op } from "sequelize";
 import AppError from "../../errors/AppError";
 import Contact from "../../models/Contact";
-import { getCountryIdOfNumber } from "./CreateOrUpdateContactService";
+import ResolveContactNumberService from "./ResolveContactNumberService";
 
 interface ExtraInfo {
   name: string;
@@ -15,6 +15,10 @@ interface Request {
   profilePicUrl?: string;
   extraInfo?: ExtraInfo[];
   countryId?: number;
+  /** Conexión cuyo país se usa para completar números en formato nacional. */
+  whatsappId?: number;
+  /** Consultar a WhatsApp por el número canónico. */
+  askWhatsapp?: boolean;
 }
 
 const CreateContactService = async ({
@@ -22,48 +26,36 @@ const CreateContactService = async ({
   number,
   email = "",
   extraInfo = [],
-  countryId
+  countryId,
+  whatsappId,
+  askWhatsapp = true
 }: Request): Promise<Contact> => {
-  // Normalizar el número: trim + remover espacios y caracteres no numéricos
-  const normalizedNumber = number.trim().replace(/[^0-9]/g, "");
+  // Todo contacto se guarda con prefijo de país. Si el número no se puede resolver,
+  // ResolveContactNumberService lanza ERR_CONTACT_NUMBER_WITHOUT_COUNTRY_CODE y el
+  // contacto no se crea: así no se generan duplicados del tipo 987654321 / 51987654321.
+  const resolved = await ResolveContactNumberService({
+    number,
+    whatsappId,
+    askWhatsapp
+  });
 
-  // Remover el 0 después del código de país SOLO para países específicos que lo requieren
-  // Ecuador (593), Argentina (54), Colombia (57) usan 0 después del código de país
-  let finalNumber = normalizedNumber;
-  if (normalizedNumber.length >= 10) {
-    const countriesWithZero = ['593', '54', '57'];
-    const matchedCountry = countriesWithZero.find(code => normalizedNumber.startsWith(code));
-    
-    if (matchedCountry) {
-      // Verificar si después del código de país hay un 0
-      const pattern = new RegExp(`^(${matchedCountry})0(\\d{8,})$`);
-      finalNumber = normalizedNumber.replace(pattern, '$1$2');
-    }
+  const finalNumber = resolved.number;
+
+  // Se busca también la forma nacional (sin prefijo) para no crear un segundo contacto
+  // cuando el histórico todavía tiene la variante vieja del mismo número.
+  const possibleNumbers = [finalNumber];
+
+  if (resolved.countryCode && finalNumber.startsWith(resolved.countryCode)) {
+    possibleNumbers.push(finalNumber.slice(resolved.countryCode.length));
   }
 
-  // Buscar duplicados: exacto o con el 0 extra (para manejar casos como 5930995650094 vs 593995650094)
   const numberExists = await Contact.findOne({
-    where: {
-      [Op.or]: [
-        { number: finalNumber },
-        { number: normalizedNumber } // Por si el número original no tenía el 0 extra
-      ]
-    }
+    where: { number: { [Op.in]: possibleNumbers } }
   });
 
   if (numberExists) {
     throw new AppError("ERR_DUPLICATED_CONTACT");
   }
-  
-
-  try {
-    if (!countryId) {
-      countryId = await getCountryIdOfNumber(number);
-    }
-  } catch (error) {
-    console.log("---> CreateContactService | Error getting countryId of number", number, error);
-  }
-
 
   const contact = await Contact.create(
     {
@@ -71,7 +63,9 @@ const CreateContactService = async ({
       number: finalNumber,
       email,
       extraInfo,
-      ...(countryId && { countryId })
+      ...((countryId || resolved.countryId) && {
+        countryId: countryId || resolved.countryId
+      })
     },
     {
       include: ["extraInfo"]
