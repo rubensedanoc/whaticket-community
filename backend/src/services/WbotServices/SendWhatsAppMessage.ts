@@ -164,24 +164,40 @@ const SendWhatsAppMessage = async ({
       destinationId = `${ticket.contact.number}@g.us`;
       console.log("[SendWhatsAppMessage] Grupo detectado, usando:", destinationId);
     } else {
-      // Para contactos individuales, obtener el ID correcto con getNumberId
-      console.log("[SendWhatsAppMessage] 🔍 Obteniendo ID correcto para:", ticket.contact.number);
-      
-      try {
-        const numberId = await wbot.getNumberId(`${ticket.contact.number}@c.us`);
-        
-        if (!numberId) {
-          console.error("[SendWhatsAppMessage] ❌ No se pudo obtener el ID del número");
-          throw new AppError("ERR_NUMBER_NOT_REGISTERED");
+      // Los contactos LID entrantes se guardan como dígitos (id.user), sin @lid.
+      // Primero probamos el número telefónico; si no existe, resolvemos el LID
+      // usando el mapeo phone/LID de WhatsApp Web.
+      const contactNumber = String(ticket.contact.number).replace(/\D/g, "");
+      const phoneId = await wbot.getNumberId(`${contactNumber}@c.us`);
+
+      if (phoneId?._serialized) {
+        destinationId = phoneId._serialized;
+        console.log("[SendWhatsAppMessage] ✅ ID de teléfono obtenido:", destinationId);
+      } else {
+        let lidId = `${contactNumber}@lid`;
+        let resolvedPhoneId: string | undefined;
+
+        try {
+          const mappings = await wbot.getContactLidAndPhone([lidId]);
+          const mapping = mappings?.[0];
+          if (mapping?.lid) lidId = mapping.lid;
+          if (mapping?.pn) {
+            const mappedPhoneId = await wbot.getNumberId(mapping.pn);
+            resolvedPhoneId = mappedPhoneId?._serialized;
+          }
+        } catch (lidErr) {
+          console.warn("[SendWhatsAppMessage] No se pudo consultar el mapeo LID:", lidErr?.message || lidErr);
         }
-        
-        destinationId = numberId._serialized;
-        console.log("[SendWhatsAppMessage] ✅ ID obtenido:", destinationId);
-      } catch (numberIdErr) {
-        console.error("[SendWhatsAppMessage] Error obteniendo numberId:", numberIdErr);
-        // Fallback al formato tradicional
-        destinationId = `${ticket.contact.number}@c.us`;
-        console.log("[SendWhatsAppMessage] ⚠️ Usando fallback:", destinationId);
+
+        if (resolvedPhoneId) {
+          destinationId = resolvedPhoneId;
+          console.log("[SendWhatsAppMessage] ✅ ID resuelto desde LID:", destinationId);
+        } else {
+          // Un identificador LID no es un número telefónico: enviar @c.us aquí
+          // produce `No LID for user` en versiones recientes de WhatsApp Web.
+          destinationId = lidId;
+          console.log("[SendWhatsAppMessage] ⚠️ Enviando al LID guardado:", destinationId);
+        }
       }
     }
 

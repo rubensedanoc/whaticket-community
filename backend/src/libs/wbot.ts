@@ -386,8 +386,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
                 const chat = await originalGetChat.call(this, chatId, options);
                 if (chat) return chat;
                 
-                // Si no se encuentra, intentar desde Store
-                const chatFromStore = window.Store.Chat.get(chatId);
+                // Store.Chat.get requiere un Wid (objeto con id), no el string serializado.
+                const chatWid = window.Store.WidFactory.createWid(chatId);
+                const chatFromStore = window.Store.Chat.get(chatWid);
                 if (chatFromStore) return chatFromStore;
                 
                 // Si aún no existe, buscarlo de forma más robusta
@@ -755,7 +756,9 @@ export const applyPatchesToWbot = async (wbot: Session): Promise<boolean> => {
             try {
               const chat = await originalGetChat.call(this, chatId, options);
               if (chat) return chat;
-              const chatFromStore = window.Store.Chat.get(chatId);
+              // Store.Chat.get requiere un Wid (objeto con id), no el string serializado.
+              const chatWid = window.Store.WidFactory.createWid(chatId);
+              const chatFromStore = window.Store.Chat.get(chatWid);
               if (chatFromStore) return chatFromStore;
               const allChats = window.Store.Chat.getModelsArray();
               const foundChat = allChats.find(c => c.id && c.id._serialized === chatId);

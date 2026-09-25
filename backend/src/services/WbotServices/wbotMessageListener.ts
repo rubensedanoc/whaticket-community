@@ -206,7 +206,8 @@ const getContactSafelyForGroup = async (
  * Save or update the contact in the database (name, number, profilePicUrl)
  */
 export const verifyContact = async (
-  msgContact: WbotContact
+  msgContact: WbotContact,
+  wbot?: Session
 ): Promise<Contact> => {
   let profilePicUrl;
   
@@ -227,6 +228,20 @@ export const verifyContact = async (
     profilePicUrl = null;
   }
 
+  let contactNumber = msgContact.id.user;
+  if (isLidContact && wbot?.getContactLidAndPhone) {
+    try {
+      const mapping = (await wbot.getContactLidAndPhone([msgContact.id._serialized]))?.[0];
+      const phoneNumber = mapping?.pn?.split("@")[0]?.replace(/\D/g, "");
+      if (phoneNumber) {
+        contactNumber = phoneNumber;
+        console.log(`[verifyContact] LID ${msgContact.id._serialized} resuelto al teléfono ${contactNumber}`);
+      }
+    } catch (err) {
+      console.warn(`[verifyContact] No se pudo resolver LID ${msgContact.id._serialized}:`, err?.message || err);
+    }
+  }
+
   const contactData: {
     name: string;
     number: string;
@@ -234,7 +249,7 @@ export const verifyContact = async (
     isGroup: boolean;
   } = {
     name: msgContact.name || msgContact.pushname || msgContact.id.user,
-    number: msgContact.id.user,
+    number: contactNumber,
     isGroup: msgContact.isGroup
   };
 
@@ -242,7 +257,23 @@ export const verifyContact = async (
     contactData.profilePicUrl = profilePicUrl;
   }
 
-  const contact = await CreateOrUpdateContactService(contactData);
+  let contact: Contact;
+  if (isLidContact && contactNumber !== msgContact.id.user) {
+    // Actualizar la fila LID existente conserva la relación con sus tickets.
+    const oldNumber = String(msgContact.id.user).replace(/\D/g, "");
+    const existingLidContact = await Contact.findOne({ where: { number: oldNumber } });
+    const phoneContact = await Contact.findOne({ where: { number: contactNumber } });
+    if (existingLidContact && !phoneContact) {
+      await existingLidContact.update({ number: contactNumber, name: contactData.name });
+      contact = existingLidContact;
+      emitEvent({ event: { name: "contact", data: { action: "update", contact } } });
+      console.log(`[verifyContact] Contacto actualizado de LID ${oldNumber} a teléfono ${contactNumber}`);
+    } else {
+      contact = await CreateOrUpdateContactService(contactData);
+    }
+  } else {
+    contact = await CreateOrUpdateContactService(contactData);
+  }
 
   // Corrección automática de grupos con nombres genéricos
   // Si es un grupo existente con nombre "Grupo {número}", intentar actualizar
@@ -915,12 +946,12 @@ const handleMessage = async ({
         msgGroupContact = await getContactByIdSafely(wbot, msg.from, msg);
       }
 
-      groupContact = await verifyContact(msgGroupContact);
+      groupContact = await verifyContact(msgGroupContact, wbot);
     }
 
     const whatsapp = await ShowWhatsAppService(wbot.id!);
 
-    const contact = await verifyContact(msgContact);
+    const contact = await verifyContact(msgContact, wbot);
 
     // if i sent the message, unreadMessages = 0 otherwise unreadMessages = chat.unreadCount
     const unreadMessages = msg.fromMe ? 0 : chat.unreadCount;
@@ -1761,7 +1792,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
 
     try {
       const wbotGroupContact = await getContactByIdSafely(wbot, notification.chatId);
-      const groupContact = await verifyContact(wbotGroupContact);
+      const groupContact = await verifyContact(wbotGroupContact, wbot);
 
       const newTicket = await CreateTicketService({
         contactId: groupContact.id,
