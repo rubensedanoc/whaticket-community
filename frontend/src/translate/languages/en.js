@@ -373,6 +373,7 @@ const messages = {
         },
       },
       messagesList: {
+        deliveryUnconfirmed: "NOT CONFIRMED",
         header: {
           assignedTo: "Assigned to:",
           buttons: {

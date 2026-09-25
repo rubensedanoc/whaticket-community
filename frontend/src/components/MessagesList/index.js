@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import clsx from "clsx";
 import { format, fromUnixTime, isSameDay, parseISO } from "date-fns";
@@ -429,6 +430,7 @@ const reducer = (state, action) => {
 
 const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   const classes = useStyles();
+  const { t } = useTranslation();
 
   const [messagesList, dispatch] = useReducer(reducer, []);
   const [hasMore, setHasMore] = useState(false);
@@ -899,6 +901,16 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   };
 
   const renderMessageAck = (message) => {
+    if (message.sendStatus === "unconfirmed") {
+      return (
+        <span
+          title={t("messagesList.deliveryUnconfirmed")}
+          style={{ color: "#b26a00", fontSize: 11, marginLeft: 5 }}
+        >
+          {t("messagesList.deliveryUnconfirmed")}
+        </span>
+      );
+    }
     if (message.ack === -1) {
       return (
         <span

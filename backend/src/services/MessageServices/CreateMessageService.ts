@@ -13,6 +13,7 @@ interface MessageData {
   body: string;
   contactId?: number;
   fromMe?: boolean;
+  sendStatus?: string | null;
   read?: boolean;
   mediaType?: string;
   mediaUrl?: string;

@@ -400,6 +400,7 @@ const messages = {
         },
       },
       messagesList: {
+        deliveryUnconfirmed: "SIN CONFIRMAR",
         header: {
           assignedTo: "Asignado a:",
           buttons: {

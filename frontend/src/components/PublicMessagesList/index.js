@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import clsx from "clsx";
 import { format, fromUnixTime, isSameDay, parseISO } from "date-fns";
@@ -341,6 +342,7 @@ const useStyles = makeStyles((theme) => ({
 
 const PublicMessagesList = ({ messagesList, whatsApps, isGroup }) => {
   const classes = useStyles();
+  const { t } = useTranslation();
 
   const lastMessageRef = useRef();
 
@@ -442,6 +444,16 @@ const PublicMessagesList = ({ messagesList, whatsApps, isGroup }) => {
   };
 
   const renderMessageAck = (message) => {
+    if (message.sendStatus === "unconfirmed") {
+      return (
+        <span
+          title={t("messagesList.deliveryUnconfirmed")}
+          style={{ color: "#b26a00", fontSize: 11, marginLeft: 5 }}
+        >
+          {t("messagesList.deliveryUnconfirmed")}
+        </span>
+      );
+    }
     if (message.ack === 0) {
       return <AccessTime fontSize="small" className={classes.ackIcons} />;
     }

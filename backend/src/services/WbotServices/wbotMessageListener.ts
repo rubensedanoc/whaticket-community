@@ -54,6 +54,94 @@ interface Session extends Client {
 
 const writeFileAsync = promisify(writeFile);
 
+const messageAckTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const configuredMessageAckTimeoutMs = Number(process.env.WAPP_MESSAGE_ACK_TIMEOUT_MS);
+const messageAckTimeoutMs =
+  Number.isFinite(configuredMessageAckTimeoutMs) && configuredMessageAckTimeoutMs > 0
+    ? configuredMessageAckTimeoutMs
+    : 60000;
+
+const markMessageUnconfirmed = async (messageId: string): Promise<void> => {
+  const pendingMessage = await Message.findByPk(messageId);
+  if (
+    !pendingMessage ||
+    pendingMessage.ack !== 0 ||
+    pendingMessage.sendStatus !== "pending"
+  ) {
+    return;
+  }
+
+  await pendingMessage.update({ sendStatus: "unconfirmed" });
+  emitEvent({
+    to: [pendingMessage.ticketId.toString()],
+    event: {
+      name: "appMessage",
+      data: { action: "update", message: pendingMessage }
+    }
+  });
+  logger.warn(
+    `[message_ack] No se recibió ACK dentro del plazo para el mensaje ${messageId}; queda sin confirmar`
+  );
+};
+
+const scheduleMessageAckTimeout = (
+  message: Message,
+  delayMs = messageAckTimeoutMs
+): void => {
+  const existingTimer = messageAckTimers.get(message.id);
+  if (existingTimer) clearTimeout(existingTimer);
+
+  const timeout = setTimeout(async () => {
+    messageAckTimers.delete(message.id);
+
+    try {
+      await markMessageUnconfirmed(message.id);
+    } catch (err) {
+      Sentry.captureException(err);
+      logger.error(`Error marcando mensaje sin confirmar. Err: ${err}`);
+    }
+  }, delayMs);
+
+  // No mantener vivo el proceso únicamente por este temporizador.
+  if (typeof timeout.unref === "function") timeout.unref();
+  messageAckTimers.set(message.id, timeout);
+};
+
+const markStalePendingMessagesUnconfirmed = async (whatsappId: number): Promise<void> => {
+  try {
+    const tickets = await Ticket.findAll({
+      where: { whatsappId },
+      attributes: ["id"]
+    });
+    const ticketIds = tickets.map(ticket => ticket.id);
+    if (ticketIds.length === 0) return;
+
+    const staleMessages = await Message.findAll({
+      where: {
+        ticketId: { [Op.in]: ticketIds },
+        fromMe: true,
+        ack: 0,
+        sendStatus: "pending"
+      },
+      attributes: ["id", "createdAt"]
+    });
+
+    await Promise.all(
+      staleMessages.map(async message => {
+        const elapsedMs = Date.now() - message.createdAt.getTime();
+        if (elapsedMs >= messageAckTimeoutMs) {
+          await markMessageUnconfirmed(message.id);
+        } else {
+          scheduleMessageAckTimeout(message, messageAckTimeoutMs - elapsedMs);
+        }
+      })
+    );
+  } catch (err) {
+    Sentry.captureException(err);
+    logger.error(`Error recuperando mensajes pendientes de ACK. Err: ${err}`);
+  }
+};
+
 /**
  * Universal helper to safely get contact by ID, handling both @c.us and @lid formats
  * Works for individual contacts, groups, and all message scenarios
@@ -517,6 +605,7 @@ export const verifyMessage = async ({
     contactId: msg.fromMe ? undefined : contact.id,
     body: msg.body,
     fromMe: msg.fromMe,
+    sendStatus: msg.fromMe ? "pending" : null,
     mediaType: msg.type,
     read: msg.fromMe,
     quotedMsgId: quotedMsg?.id,
@@ -576,6 +665,8 @@ export const verifyMessage = async ({
   console.log(`[VERIFY] 🔄 Llamando a CreateMessageService...`);
   const createdMessage = await CreateMessageService({ messageData, ticket });
   console.log(`[VERIFY] ✅ Mensaje guardado exitosamente en BD - ID: ${createdMessage.id}`);
+
+  if (msg.fromMe) scheduleMessageAckTimeout(createdMessage);
   
   return createdMessage;
 };
@@ -1641,7 +1732,23 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
     //   ack
     // );
 
-    await messageToUpdate.update({ ack });
+    const sendStatus = messageToUpdate.fromMe
+      ? ack < 0
+        ? "failed"
+        : ack >= 1
+          ? "confirmed"
+          : undefined
+      : undefined;
+    if (messageToUpdate.fromMe && ack !== 0) {
+      const timer = messageAckTimers.get(messageToUpdate.id);
+      if (timer) clearTimeout(timer);
+      messageAckTimers.delete(messageToUpdate.id);
+    }
+
+    await messageToUpdate.update({
+      ack,
+      ...(sendStatus && { sendStatus })
+    });
 
     emitEvent({
       to: [messageToUpdate.ticketId.toString()],
@@ -1660,6 +1767,8 @@ const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
 };
 
 const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
+  void markStalePendingMessagesUnconfirmed(whatsapp.id);
+
   wbot.on("message_create", async msg => {
     // logger.info(
     //   `BOT wbotMessageListener message_create - wpp id: ${whatsapp.id} - from: ${msg.from} - type ${msg.type}`

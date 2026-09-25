@@ -23,6 +23,9 @@ class Message extends Model<Message> {
   @Column
   ack: number;
 
+  @Column(DataType.STRING)
+  sendStatus: string | null;
+
   @Default(false)
   @Column
   read: boolean;
