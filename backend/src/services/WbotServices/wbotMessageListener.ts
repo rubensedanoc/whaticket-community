@@ -50,6 +50,7 @@ import ShowNotificationService from "../NotificationService/ShowNotificationServ
 
 interface Session extends Client {
   id?: number;
+  loadedWebVersion?: string;
 }
 
 const writeFileAsync = promisify(writeFile);
@@ -71,6 +72,9 @@ const markMessageUnconfirmed = async (messageId: string): Promise<void> => {
     return;
   }
 
+  const ticket = await Ticket.findByPk(pendingMessage.ticketId, {
+    attributes: ["whatsappId"]
+  });
   await pendingMessage.update({ sendStatus: "unconfirmed" });
   emitEvent({
     to: [pendingMessage.ticketId.toString()],
@@ -80,7 +84,7 @@ const markMessageUnconfirmed = async (messageId: string): Promise<void> => {
     }
   });
   logger.warn(
-    `[message_ack] No se recibió ACK dentro del plazo para el mensaje ${messageId}; queda sin confirmar`
+    `[message_ack] No se recibió ACK dentro del plazo. WhatsappId=${ticket?.whatsappId || "unknown"} TicketId=${pendingMessage.ticketId} MessageId=${messageId}; queda sin confirmar`
   );
 };
 
@@ -1705,12 +1709,21 @@ const handleMessage = async ({
   }
 };
 
-const handleMsgAck = async (msg: WbotMessage, ack: MessageAck) => {
+const handleMsgAck = async (
+  msg: WbotMessage,
+  ack: MessageAck,
+  whatsappId: number,
+  loadedWebVersion: string
+) => {
   await new Promise(r => setTimeout(r, 600));
 
   const io = getIO();
 
   try {
+    logger.info(
+      `[message_ack] WhatsappId=${whatsappId} webVersion=${loadedWebVersion} ack=${ack} messageId=${msg.id?._serialized || msg.id?.id || "unknown"}`
+    );
+
     const messageToUpdate = await Message.findByPk(msg.id.id, {
       include: [
         "contact",
@@ -2082,7 +2095,7 @@ const wbotMessageListener = (wbot: Session, whatsapp: Whatsapp): void => {
       return;
     }
 
-    handleMsgAck(msg, ack);
+    handleMsgAck(msg, ack, whatsapp.id, wbot.loadedWebVersion || "unknown");
   });
 };
 

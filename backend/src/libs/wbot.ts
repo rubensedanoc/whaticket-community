@@ -20,9 +20,12 @@ import AppError from "../errors/AppError";
 
 interface Session extends Client {
   id?: number;
+  configuredWebVersion?: string;
+  loadedWebVersion?: string;
 }
 
 const sessions: Session[] = [];
+const CONFIGURED_WEB_VERSION = "2.3000.1048354754-alpha";
 
 const fetchWbotMessagesGraduallyUpToATimestamp = async ({
   wbotChat,
@@ -255,10 +258,11 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           browserWSEndpoint: process.env.CHROME_WS || undefined,
           args: args.split(" ")
         },
-        webVersion: '2.3000.1017054665',
+        webVersion: CONFIGURED_WEB_VERSION,
         webVersionCache: {
           type: 'remote',
-          remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1017054665.html'
+          remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html',
+          strict: true
         },
         authTimeoutMs: 30000,
         qrMaxRetries: 0,
@@ -268,6 +272,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         ffmpegPath: 'ffmpeg',
         bypassCSP: false
       });
+
+      wbot.configuredWebVersion = CONFIGURED_WEB_VERSION;
 
       wbot.initialize();
 
@@ -330,6 +336,18 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       wbot.on("ready", async () => {
         logger.info(`Session: ${sessionName} READY`);
+
+        try {
+          wbot.loadedWebVersion = await wbot.getWWebVersion();
+        } catch (versionError) {
+          wbot.loadedWebVersion = "unknown";
+          logger.warn(
+            `[WWebVersion] No se pudo obtener la versión cargada. WhatsappId=${whatsapp.id} Error=${versionError.message}`
+          );
+        }
+        logger.info(
+          `[WWebVersion] WhatsappId=${whatsapp.id} configured=${wbot.configuredWebVersion} loaded=${wbot.loadedWebVersion}`
+        );
 
         await whatsapp.update({
           status: "CONNECTED",

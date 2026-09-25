@@ -203,6 +203,22 @@ const SendWhatsAppMessage = async ({
 
     console.log("[SendWhatsAppMessage] DestinationId final:", destinationId);
     console.log("[SendWhatsAppMessage] QuotedMsgId:", quotedMsgSerializedId || "none");
+
+    let loadedWebVersion = (wbot as any).loadedWebVersion || "unknown";
+    if (loadedWebVersion === "unknown") {
+      try {
+        loadedWebVersion = await wbot.getWWebVersion();
+      } catch (_versionError) {
+        // La versión ya se reporta como unknown en el diagnóstico del envío.
+      }
+    }
+    const configuredWebVersion =
+      (wbot as any).configuredWebVersion || "unknown";
+    const webVersionDiagnostic =
+      `configured=${configuredWebVersion}, loaded=${loadedWebVersion}`;
+    console.log(
+      `[SendWhatsAppMessage] WhatsappId=${ticket.whatsappId} WWebVersion ${webVersionDiagnostic}`
+    );
     console.log("[SendWhatsAppMessage] Enviando mensaje...");
 
     // Intentar enviar mensaje con captura detallada de error
@@ -226,6 +242,7 @@ const SendWhatsAppMessage = async ({
       console.log("[SendWhatsAppMessage] ERROR DETALLADO en wbot.sendMessage:");
       console.log("[SendWhatsAppMessage] - Error name:", sendError.name);
       console.log("[SendWhatsAppMessage] - Error message:", sendError.message);
+      console.log("[SendWhatsAppMessage] - WWebVersion:", webVersionDiagnostic);
       console.log("[SendWhatsAppMessage] - Error en método de librería whatsapp-web.js");
       console.log("[SendWhatsAppMessage] - Indica que el parche NO se aplicó correctamente a esta sesión");
       console.log("[SendWhatsAppMessage] - Solución: Reconectar WhatsApp ID", ticket.whatsappId);
@@ -234,6 +251,7 @@ const SendWhatsAppMessage = async ({
 
     console.log("[SendWhatsAppMessage] Mensaje enviado exitosamente");
     console.log("[SendWhatsAppMessage] MessageId:", sentMessage.id._serialized);
+    console.log("[SendWhatsAppMessage] - WWebVersion:", webVersionDiagnostic);
 
     await ticket.update({ lastMessage: body });
     return sentMessage;
