@@ -5,7 +5,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useTranslation } from "react-i18next";
 
 import clsx from "clsx";
 import { format, fromUnixTime, isSameDay, parseISO } from "date-fns";
@@ -41,6 +40,7 @@ import ModalImageCors from "../ModalImageCors";
 import VcardPreview from "../VcardPreview";
 
 import toastError from "../../errors/toastError";
+import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import Audio from "../Audio";
 
@@ -430,7 +430,6 @@ const reducer = (state, action) => {
 
 const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
   const classes = useStyles();
-  const { t } = useTranslation();
 
   const [messagesList, dispatch] = useReducer(reducer, []);
   const [hasMore, setHasMore] = useState(false);
@@ -904,10 +903,10 @@ const MessagesList = ({ ticketId, isGroup, isAPreview }) => {
     if (message.sendStatus === "unconfirmed") {
       return (
         <span
-          title={t("messagesList.deliveryUnconfirmed")}
+          title={i18n.t("messagesList.deliveryUnconfirmed")}
           style={{ color: "#b26a00", fontSize: 11, marginLeft: 5 }}
         >
-          {t("messagesList.deliveryUnconfirmed")}
+          {i18n.t("messagesList.deliveryUnconfirmed")}
         </span>
       );
     }

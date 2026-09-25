@@ -1,5 +1,4 @@
 import React, { useRef } from "react";
-import { useTranslation } from "react-i18next";
 
 import clsx from "clsx";
 import { format, fromUnixTime, isSameDay, parseISO } from "date-fns";
@@ -18,6 +17,7 @@ import {
 
 import TextsmsOutlinedIcon from "@material-ui/icons/TextsmsOutlined";
 import whatsBackground from "../../assets/wa-background.png";
+import { i18n } from "../../translate/i18n";
 import LocationPreview from "../LocationPreview";
 import MarkdownWrapper from "../MarkdownWrapper";
 import ModalImageCors from "../ModalImageCors";
@@ -342,7 +342,6 @@ const useStyles = makeStyles((theme) => ({
 
 const PublicMessagesList = ({ messagesList, whatsApps, isGroup }) => {
   const classes = useStyles();
-  const { t } = useTranslation();
 
   const lastMessageRef = useRef();
 
@@ -447,10 +446,10 @@ const PublicMessagesList = ({ messagesList, whatsApps, isGroup }) => {
     if (message.sendStatus === "unconfirmed") {
       return (
         <span
-          title={t("messagesList.deliveryUnconfirmed")}
+          title={i18n.t("messagesList.deliveryUnconfirmed")}
           style={{ color: "#b26a00", fontSize: 11, marginLeft: 5 }}
         >
-          {t("messagesList.deliveryUnconfirmed")}
+          {i18n.t("messagesList.deliveryUnconfirmed")}
         </span>
       );
     }
