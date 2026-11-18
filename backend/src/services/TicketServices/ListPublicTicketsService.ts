@@ -466,7 +466,13 @@ const ListPublicTicketsService = async (
                   "isEdited",
                   "quotedMsgId",
                   "createdAt",
-                  "ticketId"
+                  "ticketId",
+                  // Imprescindible: al combinar "separate" con "limit",
+                  // sequelize arma un UNION de subconsultas y hace el JOIN a
+                  // Contacts contra esa tabla derivada. Si contactId no está
+                  // entre los atributos, la tabla derivada no lo tiene y MySQL
+                  // responde "Unknown column 'Message.contactId' in 'ON'".
+                  "contactId"
                 ],
                 ...(messageWhere ? { where: messageWhere } : {}),
                 include: [
