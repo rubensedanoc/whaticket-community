@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as ExternalApiController from "../controllers/ExternalApiController";
 import * as ReportsController from "../controllers/ReportsController";
+import * as PublicTicketsController from "../controllers/PublicTicketsController";
 
 const externalRoutes = Router();
 
@@ -77,5 +78,12 @@ externalRoutes.get(
   "/reportToExcelDaily",
   ReportsController.reportToExcelPublic
 );
+
+// API pública de tickets para verificación E2E (sin autenticación interna)
+// GET /external/tickets?year=2026&page=1&pageSize=200
+externalRoutes.get("/tickets", PublicTicketsController.index);
+
+// GET /external/tickets/:ticketId
+externalRoutes.get("/tickets/:ticketId", PublicTicketsController.show);
 
 export default externalRoutes;
