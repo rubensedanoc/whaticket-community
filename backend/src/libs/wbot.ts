@@ -34,6 +34,14 @@ const DEFAULT_WEB_VERSION = "2.3000.1056179073-alpha"; // publicada 2026-11-25, 
 const CONFIGURED_WEB_VERSION =
   process.env.WA_WEB_VERSION || DEFAULT_WEB_VERSION;
 
+// Tiempo que espera whatsapp-web.js a que la pagina inyectada llegue a un estado
+// de socket utilizable. 30s es muy justo en contenedores con --single-process y
+// varias sesiones levantando a la vez; el fork usa `authTimeoutMs || 30000`, asi
+// que un 0 aqui NO significa "sin limite".
+const DEFAULT_AUTH_TIMEOUT_MS = 120000;
+const CONFIGURED_AUTH_TIMEOUT_MS =
+  Number(process.env.WA_AUTH_TIMEOUT_MS) || DEFAULT_AUTH_TIMEOUT_MS;
+
 const fetchWbotMessagesGraduallyUpToATimestamp = async ({
   wbotChat,
   limit,
@@ -273,7 +281,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           // se carga web.whatsapp.com en vivo en vez de tumbar la sesion.
           strict: false
         },
-        authTimeoutMs: 30000,
+        authTimeoutMs: CONFIGURED_AUTH_TIMEOUT_MS,
         qrMaxRetries: 0,
         takeoverOnConflict: false,
         takeoverTimeoutMs: 0,
@@ -284,7 +292,40 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       wbot.configuredWebVersion = CONFIGURED_WEB_VERSION;
 
-      wbot.initialize();
+      // initialize() es async: sin catch, cualquier fallo de arranque (timeout de
+      // inyeccion, version de WhatsApp Web incompatible, Chrome caido) queda como
+      // unhandled rejection y en Node 20 eso TUMBA todo el proceso, no solo esta
+      // sesion. Lo capturamos y lo tratamos igual que un auth_failure.
+      wbot.initialize().catch(async (initError: Error) => {
+        logger.error(
+          `Session: ${sessionName} INITIALIZE FAILED (webVersion=${CONFIGURED_WEB_VERSION} authTimeoutMs=${CONFIGURED_AUTH_TIMEOUT_MS}): ${
+            initError?.message || initError
+          }`
+        );
+
+        try {
+          await whatsapp.update({
+            status: "DISCONNECTED",
+            retries: whatsapp.retries + 1
+          });
+
+          emitEvent({
+            event: {
+              name: "whatsappSession",
+              data: {
+                action: "update",
+                session: whatsapp
+              }
+            }
+          });
+        } catch (updateError) {
+          logger.error(
+            `Session: ${sessionName} no se pudo marcar DISCONNECTED: ${updateError}`
+          );
+        }
+
+        reject(initError instanceof Error ? initError : new Error(String(initError)));
+      });
 
       wbot.on("qr", async qr => {
         logger.info(`Session: ${sessionName} QR RECEIVED credentials ${whatsapp.sessionUuid || whatsapp.id}`);
