@@ -39,17 +39,16 @@ const sessions: Session[] = [];
 // Ademas el archivo de wppconnect-team/wa-version borra cada version ~2 meses despues
 // de publicarla, asi que cualquier version fijada termina dando 404.
 //
-// Solo para debug puntual: setear WA_WEB_VERSION con una version vigente de
+// Si algun dia hiciera falta fijarla para debuggear, se pone la version aca y se
+// reponen webVersion + webVersionCache en las opciones del Client (ver abajo),
+// usando una version vigente de
 // https://github.com/wppconnect-team/wa-version/blob/main/versions.json
-const CONFIGURED_WEB_VERSION = process.env.WA_WEB_VERSION || undefined;
 
 // Tiempo que espera whatsapp-web.js a que la pagina inyectada llegue a un estado
 // de socket utilizable. 30s es muy justo en contenedores con --single-process y
 // varias sesiones levantando a la vez; el fork usa `authTimeoutMs || 30000`, asi
 // que un 0 aqui NO significa "sin limite".
-const DEFAULT_AUTH_TIMEOUT_MS = 120000;
-const CONFIGURED_AUTH_TIMEOUT_MS =
-  Number(process.env.WA_AUTH_TIMEOUT_MS) || DEFAULT_AUTH_TIMEOUT_MS;
+const AUTH_TIMEOUT_MS = 120000;
 
 const fetchWbotMessagesGraduallyUpToATimestamp = async ({
   wbotChat,
@@ -282,21 +281,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
           browserWSEndpoint: process.env.CHROME_WS || undefined,
           args: args.split(" ")
         },
-        // Solo se fija la version si WA_WEB_VERSION esta definida (ver nota arriba).
-        // strict: false -> si esa version ya expiro y no esta en el archivo, se carga
-        // web.whatsapp.com en vivo en vez de tumbar la sesion.
-        ...(CONFIGURED_WEB_VERSION
-          ? {
-              webVersion: CONFIGURED_WEB_VERSION,
-              webVersionCache: {
-                type: "remote" as const,
-                remotePath:
-                  "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html",
-                strict: false
-              }
-            }
-          : {}),
-        authTimeoutMs: CONFIGURED_AUTH_TIMEOUT_MS,
+        // Sin webVersion ni webVersionCache a proposito: ver la nota del principio
+        // del archivo antes de volver a fijarlos.
+        authTimeoutMs: AUTH_TIMEOUT_MS,
         qrMaxRetries: 0,
         takeoverOnConflict: false,
         takeoverTimeoutMs: 0,
@@ -305,7 +292,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         bypassCSP: false
       });
 
-      wbot.configuredWebVersion = CONFIGURED_WEB_VERSION;
+      wbot.configuredWebVersion = "live";
 
       // initialize() es async: sin catch, cualquier fallo de arranque (timeout de
       // inyeccion, version de WhatsApp Web incompatible, Chrome caido) queda como
@@ -313,7 +300,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       // sesion. Lo capturamos y lo tratamos igual que un auth_failure.
       wbot.initialize().catch(async (initError: Error) => {
         logger.error(
-          `Session: ${sessionName} INITIALIZE FAILED (webVersion=${CONFIGURED_WEB_VERSION || "live"} authTimeoutMs=${CONFIGURED_AUTH_TIMEOUT_MS}): ${
+          `Session: ${sessionName} INITIALIZE FAILED (webVersion=live authTimeoutMs=${AUTH_TIMEOUT_MS}): ${
             initError?.message || initError
           }`
         );
