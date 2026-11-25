@@ -25,7 +25,14 @@ interface Session extends Client {
 }
 
 const sessions: Session[] = [];
-const CONFIGURED_WEB_VERSION = "2.3000.1048354754-alpha";
+// Version de WhatsApp Web que se inyecta desde el archivo de wppconnect-team/wa-version.
+// OJO: ese archivo expira cada version 2 meses despues de publicarla y luego la borra
+// del repo, asi que una version fijada deja de resolverse (404) con el tiempo.
+// Lista vigente: https://github.com/wppconnect-team/wa-version/blob/main/versions.json
+// Se puede sobreescribir sin recompilar con la variable de entorno WA_WEB_VERSION.
+const DEFAULT_WEB_VERSION = "2.3000.1056179073-alpha"; // publicada 2026-11-25, expira 2027-01-25
+const CONFIGURED_WEB_VERSION =
+  process.env.WA_WEB_VERSION || DEFAULT_WEB_VERSION;
 
 const fetchWbotMessagesGraduallyUpToATimestamp = async ({
   wbotChat,
@@ -262,7 +269,9 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         webVersionCache: {
           type: 'remote',
           remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html',
-          strict: true
+          // strict: false -> si la version fijada ya expiro y no esta en el archivo,
+          // se carga web.whatsapp.com en vivo en vez de tumbar la sesion.
+          strict: false
         },
         authTimeoutMs: 30000,
         qrMaxRetries: 0,
